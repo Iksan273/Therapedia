@@ -22,10 +22,17 @@ import CalendarPage from "@/pages/adminSchedule/CalendarPage";
 import MySchedule from "@/pages/therapist/MySchedule";
 import TherapistClientDetail from "@/pages/therapist/TherapistClientDetail";
 import ClientDashboard from "@/pages/client/ClientDashboard";
+import PrintClientReport from "@/pages/PrintClientReport";
 
 const RequireRole = ({ role, children }) => {
   const { auth } = useAuth();
   if (auth.role !== role) return <Navigate to="/" replace />;
+  return children;
+};
+
+const RequireAnyRole = ({ roles, children }) => {
+  const { auth } = useAuth();
+  if (!roles.includes(auth.role)) return <Navigate to="/" replace />;
   return children;
 };
 
@@ -93,6 +100,15 @@ function App() {
                     >
                       <Route index element={<ClientDashboard />} />
                     </Route>
+
+                    <Route
+                      path="/print/client/:id"
+                      element={
+                        <RequireAnyRole roles={["admin_inquiry", "admin_schedule", "therapist"]}>
+                          <PrintClientReport />
+                        </RequireAnyRole>
+                      }
+                    />
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>

@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Search, Eye } from "lucide-react";
+import { ArrowLeft, Search, Eye, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -47,9 +47,16 @@ export default function TherapistClientDetail() {
 
   return (
     <div className="max-w-3xl space-y-6" data-testid="therapist-client-detail-page">
-      <Link to="/therapist" className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]" data-testid="therapist-client-back-link">
-        <ArrowLeft className="w-4 h-4" /> Back to my schedule
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link to="/therapist" className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]" data-testid="therapist-client-back-link">
+          <ArrowLeft className="w-4 h-4" /> Back to my schedule
+        </Link>
+        <Link to={`/print/client/${id}`}>
+          <Button variant="outline" size="sm" className="gap-1.5" data-testid="therapist-print-report-button">
+            <Printer className="w-3.5 h-3.5" /> Print Report
+          </Button>
+        </Link>
+      </div>
 
       <Card className="rounded-xl border-[var(--color-border)] shadow-sm">
         <CardContent className="p-5 sm:p-6">

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarPlus, LogOut, RefreshCw, Search, Wallet } from "lucide-react";
+import { ArrowLeft, CalendarPlus, LogOut, Printer, RefreshCw, Search, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -182,6 +182,11 @@ export default function ActiveClientDetail() {
               </p>
             </div>
             <div className="flex gap-2">
+              <Link to={`/print/client/${id}`}>
+                <Button variant="outline" className="gap-2" data-testid="print-report-link-button">
+                  <Printer className="w-4 h-4" /> Print Report
+                </Button>
+              </Link>
               {!isDischarged && (
                 <>
                   <Button variant="outline" className="gap-2" onClick={() => setAddOpen(true)} data-testid="client-add-schedule-button">

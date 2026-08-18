@@ -83,6 +83,23 @@ export default function DashboardSchedule() {
       .sort((a, b) => Number(a.dob.split("-")[2]) - Number(b.dob.split("-")[2]));
   }, [activeClients]);
 
+  // Clients whose birthday falls within the next 7 days (including today).
+  const upcomingBirthdays = useMemo(() => {
+    const now = new Date();
+    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return activeClients
+      .map((c) => {
+        if (!c.dob) return null;
+        const [, m, d] = c.dob.split("-").map(Number);
+        let next = new Date(today0.getFullYear(), m - 1, d);
+        if (next < today0) next = new Date(today0.getFullYear() + 1, m - 1, d);
+        const days = Math.round((next - today0) / 86400000);
+        return { client: c, days, date: next };
+      })
+      .filter((x) => x && x.days <= 7)
+      .sort((a, b) => a.days - b.days);
+  }, [activeClients]);
+
   const dischargeData = useMemo(() => {
     const map = {};
     clients
@@ -100,6 +117,34 @@ export default function DashboardSchedule() {
         <h1 className="text-2xl font-semibold tracking-tight">Schedule Dashboard</h1>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">Clinic operations at a glance.</p>
       </div>
+
+      {/* Birthday reminder banner (next 7 days) */}
+      {upcomingBirthdays.length > 0 && (
+        <div
+          className="rounded-xl border border-[rgba(47,168,224,0.35)] bg-[var(--color-primary-light)] px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2"
+          data-testid="birthday-reminder-banner"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold text-[var(--color-primary-dark)]">
+            <Cake className="w-4 h-4" /> Birthdays coming up!
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {upcomingBirthdays.map(({ client, days, date }) => (
+              <button
+                key={client.id}
+                type="button"
+                onClick={() => navigate(`/admin-schedule/clients/${client.id}`)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[rgba(47,168,224,0.35)] px-3 py-1 text-xs font-medium text-[var(--color-primary-dark)] hover:shadow-sm transition-shadow"
+                data-testid={`birthday-reminder-chip-${client.id}`}
+              >
+                {client.clientName}
+                <span className="text-[var(--color-text-muted)] font-normal">
+                  {days === 0 ? "today 🎂" : days === 1 ? "tomorrow" : `in ${days} days (${format(date, "MMM d")})`}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Active Clients" value={activeClients.length} icon={Users} accent="primary" onClick={() => navigate("/admin-schedule/clients")} testid="stat-active-clients" />

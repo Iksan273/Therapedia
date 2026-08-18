@@ -56,12 +56,14 @@ export default function InquiryPipeline() {
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-4 kanban-scroll">
-        <div className="flex gap-4 min-w-max">
+      <p className="md:hidden text-[11px] text-[var(--color-text-muted)]">Swipe sideways to browse pipeline stages →</p>
+
+      <div className="overflow-x-auto pb-4 kanban-scroll snap-x snap-mandatory md:snap-none scroll-px-4">
+        <div className="flex gap-3 md:gap-4 min-w-max">
           {PIPELINE_STATUSES.map((status) => (
             <div
               key={status}
-              className="w-[264px] shrink-0 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]"
+              className="w-[82vw] max-w-[300px] sm:w-[264px] sm:max-w-none shrink-0 snap-start rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]"
               data-testid={`kanban-column-${status}`}
             >
               <div className="px-3 py-2.5 flex items-center justify-between border-b border-[var(--color-border)]">

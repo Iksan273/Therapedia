@@ -15,6 +15,7 @@ import {
   Repeat,
   Search,
   UserCheck,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -273,16 +274,23 @@ export default function ClientDetailInquiry() {
                 </span>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-[11px] text-[var(--color-text-muted)] mb-1">Client access code</p>
-              <button
-                type="button"
-                onClick={() => copyCode(client.clientAccessCode)}
-                className="font-mono text-sm font-semibold bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--color-primary-light)] transition-colors"
-                data-testid="client-detail-access-code"
-              >
-                {client.clientAccessCode}
-              </button>
+            <div className="text-right space-y-2">
+              <div>
+                <p className="text-[11px] text-[var(--color-text-muted)] mb-1">Client access code</p>
+                <button
+                  type="button"
+                  onClick={() => copyCode(client.clientAccessCode)}
+                  className="font-mono text-sm font-semibold bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:bg-[var(--color-primary-light)] transition-colors"
+                  data-testid="client-detail-access-code"
+                >
+                  {client.clientAccessCode}
+                </button>
+              </div>
+              <Link to={`/print/client/${id}`} className="inline-block">
+                <Button variant="outline" size="sm" className="gap-1.5" data-testid="inquiry-print-report-button">
+                  <Printer className="w-3.5 h-3.5" /> Print Report
+                </Button>
+              </Link>
             </div>
           </div>
           {client.status === "admitted" && (

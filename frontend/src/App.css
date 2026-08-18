@@ -7,3 +7,13 @@
 .calendar-grid-cell {
     min-height: 64px;
 }
+
+/* Print styles for the client summary report */
+@media print {
+    body {
+        background: #ffffff !important;
+    }
+    @page {
+        margin: 14mm;
+    }
+}
