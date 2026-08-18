@@ -49,6 +49,16 @@ export const STATUS_META = {
   consultation: { label: "Consultation", cls: "bg-cyan-50 text-cyan-700" },
 };
 
+export const CONCERN_TAGS = [
+  { value: "sensory", label: "Sensory", cls: "bg-violet-50 text-violet-600" },
+  { value: "motor", label: "Motor Skills", cls: "bg-blue-50 text-blue-600" },
+  { value: "speech", label: "Speech", cls: "bg-cyan-50 text-cyan-700" },
+  { value: "behavior", label: "Behaviour", cls: "bg-amber-50 text-amber-600" },
+  { value: "social", label: "Social", cls: "bg-pink-50 text-pink-600" },
+  { value: "feeding", label: "Feeding", cls: "bg-green-50 text-green-600" },
+  { value: "attention", label: "Attention / Focus", cls: "bg-orange-50 text-orange-600" },
+];
+
 export const DISCHARGE_REASONS = [
   { value: "moving", label: "Moving / Relocation" },
   { value: "financial", label: "Financial" },
@@ -154,6 +164,7 @@ export function makeInquiryClient(form) {
     parentContact: form.parentContact.trim(),
     parentEmail: form.parentEmail.trim(),
     parentComplaint: (form.parentComplaint || "").trim(),
+    concernTags: form.concernTags || [],
     dob: form.dob,
     serviceType: null,
     assessmentCategoryId: null,

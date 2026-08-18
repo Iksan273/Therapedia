@@ -42,6 +42,7 @@ import { useTherapists } from "@/context/TherapistsContext";
 import {
   DISCHARGE_REASONS,
   PACKAGE_OPTIONS,
+  CONCERN_TAGS,
   calcAge,
   fmtDate,
   genCode,
@@ -279,6 +280,37 @@ export default function ClientDetailInquiry() {
                   <p className="text-sm leading-snug">{client.parentComplaint}</p>
                 </div>
               )}
+              <div className="mt-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)] mb-1.5">
+                  Concern Tags <span className="normal-case font-normal">(click to toggle)</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5" data-testid="concern-tags-editor">
+                  {CONCERN_TAGS.map((t) => {
+                    const active = (client.concernTags || []).includes(t.value);
+                    return (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => {
+                          const cur = client.concernTags || [];
+                          updateClient(id, {
+                            concernTags: active ? cur.filter((v) => v !== t.value) : [...cur, t.value],
+                          });
+                        }}
+                        className={cn(
+                          "rounded-full px-2.5 py-1 text-[11px] font-medium border transition-colors",
+                          active
+                            ? `${t.cls} border-transparent ring-1 ring-inset ring-black/5`
+                            : "bg-white border-[var(--color-border)] text-[var(--color-text-muted)] opacity-60 hover:opacity-100"
+                        )}
+                        data-testid={`concern-tag-toggle-${t.value}`}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <div className="text-right space-y-2">
               <div>

@@ -195,6 +195,7 @@ export default function PrintClientReport() {
                     <th className="px-3 py-2 border-b border-[var(--color-border)] font-medium">Therapist</th>
                     <th className="px-3 py-2 border-b border-[var(--color-border)] font-medium">Type</th>
                     <th className="px-3 py-2 border-b border-[var(--color-border)] font-medium">Status</th>
+                    <th className="px-3 py-2 border-b border-[var(--color-border)] font-medium">Progress Note</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -207,6 +208,7 @@ export default function PrintClientReport() {
                         <td className="px-3 py-1.5 border-b border-[var(--color-border)]">{t ? t.name : "\u2014"}</td>
                         <td className="px-3 py-1.5 border-b border-[var(--color-border)] capitalize">{s.type}</td>
                         <td className="px-3 py-1.5 border-b border-[var(--color-border)] capitalize">{s.status}</td>
+                        <td className="px-3 py-1.5 border-b border-[var(--color-border)] italic text-[var(--color-text-muted)]">{s.progressNote || ""}</td>
                       </tr>
                     );
                   })}

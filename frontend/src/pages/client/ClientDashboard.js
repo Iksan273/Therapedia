@@ -114,6 +114,7 @@ export default function ClientDashboard() {
                   <TableHead>Time</TableHead>
                   <TableHead>Therapist</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Therapist's Note</TableHead>
                   <TableHead className="text-right">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -124,6 +125,15 @@ export default function ClientDashboard() {
                     <TableCell className="tabular-nums text-[var(--color-text-muted)]">{s.startTime}–{s.endTime}</TableCell>
                     <TableCell className="text-[var(--color-text-muted)]">{getTherapist(s.therapistId) ? getTherapist(s.therapistId).name : "—"}</TableCell>
                     <TableCell><StatusBadge status={s.type} /></TableCell>
+                    <TableCell className="max-w-[220px]">
+                      {s.progressNote ? (
+                        <span className="text-xs text-[var(--color-text-muted)] italic leading-snug line-clamp-2" title={s.progressNote}>
+                          {s.progressNote}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--color-text-muted)]">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right"><StatusBadge status={s.status} /></TableCell>
                   </TableRow>
                 ))}

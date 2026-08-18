@@ -3,22 +3,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { Search, Plus, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/common/StatusBadge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StatusBadge, ConcernTag } from "@/components/common/StatusBadge";
 import { useClients } from "@/context/ClientsContext";
-import { PIPELINE_STATUSES, STATUS_META, calcAge, fmtDate } from "@/lib/appUtils";
+import { PIPELINE_STATUSES, STATUS_META, CONCERN_TAGS, calcAge, fmtDate } from "@/lib/appUtils";
 
 export default function InquiryPipeline() {
   const navigate = useNavigate();
   const { clients } = useClients();
   const [search, setSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState("all");
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return clients;
-    return clients.filter(
-      (c) => c.clientName.toLowerCase().includes(q) || c.parentName.toLowerCase().includes(q)
-    );
-  }, [clients, search]);
+    return clients.filter((c) => {
+      if (q && !c.clientName.toLowerCase().includes(q) && !c.parentName.toLowerCase().includes(q)) return false;
+      if (tagFilter !== "all" && !(c.concernTags || []).includes(tagFilter)) return false;
+      return true;
+    });
+  }, [clients, search, tagFilter]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -37,17 +40,28 @@ export default function InquiryPipeline() {
           <h1 className="text-2xl font-semibold tracking-tight">Inquiry Pipeline</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">Track every family from first contact to admission.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
             <Input
-              className="pl-9 w-56"
+              className="pl-9 w-48 sm:w-56"
               placeholder="Search client or parent..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               data-testid="pipeline-search-input"
             />
           </div>
+          <Select value={tagFilter} onValueChange={setTagFilter}>
+            <SelectTrigger className="w-44 h-10" data-testid="pipeline-tag-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All concerns</SelectItem>
+              {CONCERN_TAGS.map((t) => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Link to="/inquiry">
             <Button className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] gap-2" data-testid="pipeline-new-inquiry-button">
               <Plus className="w-4 h-4" /> New Inquiry
@@ -96,6 +110,13 @@ export default function InquiryPipeline() {
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                       {c.parentName} · age {calcAge(c.dob) != null ? calcAge(c.dob) : "—"}
                     </p>
+                    {(c.concernTags || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {(c.concernTags || []).slice(0, 3).map((t) => (
+                          <ConcernTag key={t} tag={t} />
+                        ))}
+                      </div>
+                    )}
                     {c.parentComplaint && (
                       <p className="text-[11px] text-[var(--color-text-muted)] italic mt-1 line-clamp-2">
                         “{c.parentComplaint}”

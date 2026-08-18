@@ -19,7 +19,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1001",
     "_createdDaysAgo": 2,
-    "parentComplaint": "Gets overwhelmed by loud noises and often has meltdowns at school."
+    "parentComplaint": "Gets overwhelmed by loud noises and often has meltdowns at school.",
+    "concernTags": [
+      "sensory",
+      "behavior"
+    ]
   },
   {
     "id": "c-002",
@@ -41,7 +45,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1002",
     "_createdDaysAgo": 4,
-    "parentComplaint": "Avoids playing with other children and rarely makes eye contact."
+    "parentComplaint": "Avoids playing with other children and rarely makes eye contact.",
+    "concernTags": [
+      "social",
+      "speech"
+    ]
   },
   {
     "id": "c-003",
@@ -63,7 +71,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1003",
     "_createdDaysAgo": 6,
-    "parentComplaint": "Very picky eater, refuses most food textures and gags easily."
+    "parentComplaint": "Very picky eater, refuses most food textures and gags easily.",
+    "concernTags": [
+      "feeding",
+      "sensory"
+    ]
   },
   {
     "id": "c-004",
@@ -85,7 +97,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1004",
     "_createdDaysAgo": 9,
-    "parentComplaint": "Seems behind on motor milestones, walks unsteadily and falls often."
+    "parentComplaint": "Seems behind on motor milestones, walks unsteadily and falls often.",
+    "concernTags": [
+      "motor"
+    ]
   },
   {
     "id": "c-005",
@@ -107,7 +122,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1005",
     "_createdDaysAgo": 12,
-    "parentComplaint": "Difficulty holding crayons and using utensils compared to peers."
+    "parentComplaint": "Difficulty holding crayons and using utensils compared to peers.",
+    "concernTags": [
+      "motor"
+    ]
   },
   {
     "id": "c-006",
@@ -129,7 +147,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1006",
     "_createdDaysAgo": 15,
-    "parentComplaint": "Extremely sensitive to touch and clothing tags, daily dressing battles."
+    "parentComplaint": "Extremely sensitive to touch and clothing tags, daily dressing battles.",
+    "concernTags": [
+      "sensory",
+      "behavior"
+    ]
   },
   {
     "id": "c-007",
@@ -151,7 +173,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1007",
     "_createdDaysAgo": 17,
-    "parentComplaint": "Parents want guidance on managing transitions and daily routines."
+    "parentComplaint": "Parents want guidance on managing transitions and daily routines.",
+    "concernTags": [
+      "behavior",
+      "attention"
+    ]
   },
   {
     "id": "c-008",
@@ -173,7 +199,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1008",
     "_createdDaysAgo": 20,
-    "parentComplaint": "Trouble with handwriting and buttoning clothes at school."
+    "parentComplaint": "Trouble with handwriting and buttoning clothes at school.",
+    "concernTags": [
+      "motor"
+    ]
   },
   {
     "id": "c-009",
@@ -227,7 +256,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1009",
     "_createdDaysAgo": 260,
-    "parentComplaint": "Overreacts to noise and avoids messy play like sand or paint."
+    "parentComplaint": "Overreacts to noise and avoids messy play like sand or paint.",
+    "concernTags": [
+      "sensory"
+    ]
   },
   {
     "id": "c-010",
@@ -255,7 +287,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1010",
     "_createdDaysAgo": 200,
-    "parentComplaint": "Clumsy, trips often and struggles with ball games at the park."
+    "parentComplaint": "Clumsy, trips often and struggles with ball games at the park.",
+    "concernTags": [
+      "motor"
+    ]
   },
   {
     "id": "c-011",
@@ -284,7 +319,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1011",
     "_createdDaysAgo": 170,
-    "parentComplaint": "Weak pencil grip and refuses drawing or colouring activities."
+    "parentComplaint": "Weak pencil grip and refuses drawing or colouring activities.",
+    "concernTags": [
+      "motor"
+    ]
   },
   {
     "id": "c-012",
@@ -312,7 +350,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1012",
     "_createdDaysAgo": 45,
-    "parentComplaint": "Seeking consultation on sleep routine and emotional regulation."
+    "parentComplaint": "Seeking consultation on sleep routine and emotional regulation.",
+    "concernTags": [
+      "behavior"
+    ]
   },
   {
     "id": "c-013",
@@ -340,7 +381,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1013",
     "_createdDaysAgo": 140,
-    "parentComplaint": "Frequent emotional outbursts and difficulty sharing with siblings."
+    "parentComplaint": "Frequent emotional outbursts and difficulty sharing with siblings.",
+    "concernTags": [
+      "behavior",
+      "social"
+    ]
   },
   {
     "id": "c-014",
@@ -368,7 +413,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1014",
     "_createdDaysAgo": 230,
-    "parentComplaint": "Sensory-seeking behaviour, constantly climbing and crashing into things."
+    "parentComplaint": "Sensory-seeking behaviour, constantly climbing and crashing into things.",
+    "concernTags": [
+      "sensory",
+      "motor"
+    ]
   },
   {
     "id": "c-015",
@@ -397,7 +446,10 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1015",
     "_createdDaysAgo": 75,
-    "parentComplaint": "Poor posture and tires very quickly during physical play."
+    "parentComplaint": "Poor posture and tires very quickly during physical play.",
+    "concernTags": [
+      "motor"
+    ]
   },
   {
     "id": "c-016",
@@ -425,7 +477,11 @@
     "dischargeNote": null,
     "clientAccessCode": "TDC-1016",
     "_createdDaysAgo": 110,
-    "parentComplaint": "Hard time focusing and switching between activities without tears."
+    "parentComplaint": "Hard time focusing and switching between activities without tears.",
+    "concernTags": [
+      "attention",
+      "behavior"
+    ]
   },
   {
     "id": "c-017",
@@ -454,7 +510,10 @@
     "dischargeNote": "Met all therapy goals. Family thrilled with progress.",
     "clientAccessCode": "TDC-1017",
     "_createdDaysAgo": 440,
-    "parentComplaint": "Handwriting difficulties affecting confidence at school."
+    "parentComplaint": "Handwriting difficulties affecting confidence at school.",
+    "concernTags": [
+      "motor"
+    ]
   },
   {
     "id": "c-018",
@@ -483,7 +542,10 @@
     "dischargeNote": "Family relocated out of state. Referral letter provided.",
     "clientAccessCode": "TDC-1018",
     "_createdDaysAgo": 620,
-    "parentComplaint": "Sensory sensitivities disrupting daily family routines."
+    "parentComplaint": "Sensory sensitivities disrupting daily family routines.",
+    "concernTags": [
+      "sensory"
+    ]
   },
   {
     "id": "c-019",
@@ -536,6 +598,10 @@
     "dischargeNote": "Family expected faster results and chose another provider.",
     "clientAccessCode": "TDC-1019",
     "_createdDaysAgo": 90,
-    "parentComplaint": "Aggressive behaviour at preschool and difficulty socializing."
+    "parentComplaint": "Aggressive behaviour at preschool and difficulty socializing.",
+    "concernTags": [
+      "behavior",
+      "social"
+    ]
   }
 ]

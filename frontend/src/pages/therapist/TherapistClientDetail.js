@@ -112,6 +112,11 @@ export default function TherapistClientDetail() {
                 <span className="ml-auto">
                   <StatusBadge status={s.status} />
                 </span>
+                {s.progressNote && (
+                  <span className="basis-full text-xs text-[var(--color-text-muted)] italic leading-snug">
+                    Note: {s.progressNote}
+                  </span>
+                )}
               </div>
             ))
           )}

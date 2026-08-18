@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { endOfWeek, format, parseISO, startOfWeek, subMonths } from "date-fns";
+import { endOfWeek, format, startOfWeek, subMonths, addDays } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -14,15 +14,18 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { Users, CalendarDays, Wallet, Cake, PieChart as PieIcon, AlertTriangle } from "lucide-react";
+import { Users, CalendarDays, Wallet, Cake, PieChart as PieIcon, AlertTriangle, CalendarClock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/common/StatCard";
 import { EmptyState } from "@/components/common/EmptyState";
 import { CreditBar } from "@/components/common/CreditBar";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
+import { useTherapists } from "@/context/TherapistsContext";
 import { calcAge, dischargeReasonLabel, fmtDate } from "@/lib/appUtils";
 
 const PIE_COLORS = ["#2FA8E0", "#22C55E", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6"];
@@ -32,6 +35,7 @@ export default function DashboardSchedule() {
   const { clients } = useClients();
   const { schedules } = useSchedules();
   const { credits } = useCredits();
+  const { getTherapist } = useTherapists();
 
   const [monthFilter, setMonthFilter] = useState("all");
 
@@ -111,6 +115,21 @@ export default function DashboardSchedule() {
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [clients]);
 
+  // Tomorrow's sessions for attendance confirmation.
+  const tomorrow = addDays(new Date(), 1);
+  const tomorrowSessions = useMemo(() => {
+    const tomorrowStr = format(tomorrow, "yyyy-MM-dd");
+    return schedules
+      .filter((s) => s.date === tomorrowStr && s.status !== "cancelled")
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schedules]);
+
+  const clientName = (clientId) => {
+    const c = clients.find((cl) => cl.id === clientId);
+    return c ? c.clientName : "Unknown";
+  };
+
   return (
     <div className="space-y-6" data-testid="dashboard-schedule-page">
       <div>
@@ -152,6 +171,48 @@ export default function DashboardSchedule() {
         <StatCard label="Low / Out of Credit" value={lowCredit.length} icon={Wallet} accent="warning" testid="stat-low-credit" />
         <StatCard label="Over Leave Quota" value={overLeave.length} icon={AlertTriangle} accent="danger" testid="stat-over-leave" />
       </div>
+
+      {/* Tomorrow's sessions — attendance confirmation list */}
+      <Card className="rounded-xl border-[var(--color-border)] shadow-sm">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-[var(--color-primary-dark)]" />
+            Tomorrow's Sessions ({tomorrowSessions.length}) · {format(tomorrow, "EEE, MMM d")}
+          </CardTitle>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => navigate("/admin-schedule/calendar")} data-testid="tomorrow-open-calendar-button">
+            Open Calendar
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {tomorrowSessions.length === 0 ? (
+            <EmptyState icon={CalendarClock} title="No sessions tomorrow" subtitle="A quiet day ahead — nothing to confirm." />
+          ) : (
+            <ul className="divide-y divide-[var(--color-border)]" data-testid="tomorrow-sessions-list">
+              {tomorrowSessions.map((s) => {
+                const t = getTherapist(s.therapistId);
+                return (
+                  <li
+                    key={s.id}
+                    className="py-2.5 flex flex-wrap items-center gap-3 cursor-pointer hover:bg-[rgba(47,168,224,0.04)] rounded-lg px-2 -mx-2"
+                    onClick={() => navigate(`/admin-schedule/clients/${s.clientId}`)}
+                    data-testid={`tomorrow-session-item-${s.id}`}
+                  >
+                    <span className="w-24 text-sm font-semibold tabular-nums shrink-0">
+                      {s.startTime}–{s.endTime}
+                    </span>
+                    <span className="text-sm font-medium">{clientName(s.clientId)}</span>
+                    <span className="text-xs text-[var(--color-text-muted)]">{t ? t.name : "—"}</span>
+                    <span className="ml-auto flex gap-1.5">
+                      <StatusBadge status={s.type} />
+                      <StatusBadge status={s.status} />
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Session status chart */}

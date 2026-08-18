@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { StatusBadge } from "@/components/common/StatusBadge";
+import { StatusBadge, ConcernTag } from "@/components/common/StatusBadge";
 import { CreditBar, LeaveInfo } from "@/components/common/CreditBar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { AddScheduleModal } from "@/components/calendar/AddScheduleModal";
@@ -149,6 +149,11 @@ export default function ActiveClientDetail() {
       <span className="ml-auto">
         <StatusBadge status={s.status} />
       </span>
+      {s.progressNote && (
+        <span className="basis-full text-xs text-[var(--color-text-muted)] italic leading-snug">
+          Note: {s.progressNote}
+        </span>
+      )}
     </button>
   );
 
@@ -184,6 +189,13 @@ export default function ActiveClientDetail() {
                 <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 max-w-xl" data-testid="active-client-complaint">
                   <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Parent's Concern</p>
                   <p className="text-sm leading-snug">{client.parentComplaint}</p>
+                </div>
+              )}
+              {(client.concernTags || []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {(client.concernTags || []).map((t) => (
+                    <ConcernTag key={t} tag={t} />
+                  ))}
                 </div>
               )}
             </div>

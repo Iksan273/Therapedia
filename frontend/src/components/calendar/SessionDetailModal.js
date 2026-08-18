@@ -41,6 +41,9 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const [newEnd, setNewEnd] = useState("10:00");
   const [newTherapist, setNewTherapist] = useState("");
   const [countAsLeave, setCountAsLeave] = useState(true);
+  const [completeNote, setCompleteNote] = useState("");
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
 
   useEffect(() => {
     if (open && schedule) {
@@ -52,6 +55,9 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       setNewEnd(schedule.endTime);
       setNewTherapist(schedule.therapistId);
       setCountAsLeave(true);
+      setCompleteNote("");
+      setEditingNote(false);
+      setNoteDraft(schedule.progressNote || "");
     }
   }, [open, schedule]);
 
@@ -76,7 +82,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const actionable = schedule.status === "scheduled" || schedule.status === "rescheduled";
 
   const handleComplete = () => {
-    updateSchedule(schedule.id, { status: "completed" });
+    updateSchedule(schedule.id, { status: "completed", progressNote: completeNote.trim() || schedule.progressNote || null });
     if (schedule.type === "therapy" && record) {
       spendCredit({ clientId: client.id, scheduleId: schedule.id, date: schedule.date });
       const after = Math.max(0, record.remainingCredit - 1);
@@ -193,7 +199,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
             <div className="space-y-2">
               <Button
                 className="w-full bg-[var(--color-success)] hover:bg-green-600 gap-2"
-                onClick={handleComplete}
+                onClick={() => setMode("complete")}
                 data-testid="session-complete-button"
               >
                 <CheckCircle2 className="w-4 h-4" /> Mark Completed
@@ -209,10 +215,96 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
             </div>
           )}
 
-          {!actionable && (
+          {!actionable && schedule.status !== "completed" && (
             <p className="text-xs text-[var(--color-text-muted)] text-center bg-[var(--color-surface)] rounded-lg py-2.5">
               This session is {schedule.status}. No further actions available.
             </p>
+          )}
+
+          {/* Progress note for completed sessions */}
+          {schedule.status === "completed" && (
+            <div className="rounded-xl border border-[var(--color-border)] p-4 space-y-2.5" data-testid="session-progress-note-section">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Progress Note</p>
+                {!editingNote && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-[var(--color-primary-dark)]"
+                    onClick={() => {
+                      setNoteDraft(schedule.progressNote || "");
+                      setEditingNote(true);
+                    }}
+                    data-testid="session-edit-note-button"
+                  >
+                    {schedule.progressNote ? "Edit" : "Add Note"}
+                  </Button>
+                )}
+              </div>
+              {editingNote ? (
+                <div className="space-y-2">
+                  <Textarea
+                    rows={3}
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="How did the session go? Wins, struggles, homework..."
+                    data-testid="session-note-edit-input"
+                  />
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditingNote(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)]"
+                      onClick={() => {
+                        updateSchedule(schedule.id, { progressNote: noteDraft.trim() || null });
+                        setEditingNote(false);
+                        toast.success("Progress note saved.");
+                      }}
+                      data-testid="session-note-save-button"
+                    >
+                      Save Note
+                    </Button>
+                  </div>
+                </div>
+              ) : schedule.progressNote ? (
+                <p className="text-sm bg-[var(--color-surface)] rounded-lg p-2.5 leading-snug" data-testid="session-progress-note-text">
+                  {schedule.progressNote}
+                </p>
+              ) : (
+                <p className="text-xs text-[var(--color-text-muted)] italic">No progress note yet — add one for the client's history.</p>
+              )}
+            </div>
+          )}
+
+          {mode === "complete" && (
+            <div className="rounded-xl border border-[var(--color-border)] p-4 space-y-3" data-testid="session-complete-form">
+              <p className="text-sm font-semibold">Complete Session</p>
+              <div className="space-y-1.5">
+                <Label>Progress note (optional)</Label>
+                <Textarea
+                  rows={3}
+                  value={completeNote}
+                  onChange={(e) => setCompleteNote(e.target.value)}
+                  placeholder="How did the session go? Wins, struggles, homework..."
+                  data-testid="session-complete-note-input"
+                />
+                <p className="text-[11px] text-[var(--color-text-muted)]">Shown in the client's history and printable report.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setMode("view")}>
+                  Back
+                </Button>
+                <Button
+                  className="flex-1 bg-[var(--color-success)] hover:bg-green-600"
+                  onClick={handleComplete}
+                  data-testid="session-complete-confirm-button"
+                >
+                  Confirm Completed
+                </Button>
+              </div>
+            </div>
           )}
 
           {mode === "cancel" && (

@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useClients } from "@/context/ClientsContext";
-import { makeInquiryClient } from "@/lib/appUtils";
+import { makeInquiryClient, CONCERN_TAGS } from "@/lib/appUtils";
+import { cn } from "@/lib/utils";
 
-const EMPTY = { parentName: "", parentContact: "", parentEmail: "", clientName: "", dob: "", parentComplaint: "" };
+const EMPTY = { parentName: "", parentContact: "", parentEmail: "", clientName: "", dob: "", parentComplaint: "", concernTags: [] };
 
 export default function PublicInquiryForm() {
   const { addClient } = useClients();
@@ -153,6 +154,37 @@ export default function PublicInquiryForm() {
                     data-testid="inquiry-complaint-input"
                   />
                   {errors.parentComplaint && <p className="text-xs text-[var(--color-danger)]">{errors.parentComplaint}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Areas of Concern <span className="text-[var(--color-text-muted)] font-normal">(tap all that apply)</span></Label>
+                  <div className="flex flex-wrap gap-2" data-testid="inquiry-concern-tags">
+                    {CONCERN_TAGS.map((t) => {
+                      const active = form.concernTags.includes(t.value);
+                      return (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              concernTags: active
+                                ? form.concernTags.filter((v) => v !== t.value)
+                                : [...form.concernTags, t.value],
+                            })
+                          }
+                          className={cn(
+                            "rounded-full px-3 py-1.5 text-xs font-medium border transition-colors",
+                            active
+                              ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
+                              : "bg-white border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary-dark)]"
+                          )}
+                          data-testid={`inquiry-tag-${t.value}`}
+                        >
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <Button type="submit" className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] h-11" data-testid="inquiry-submit-button">
                   Submit Inquiry
