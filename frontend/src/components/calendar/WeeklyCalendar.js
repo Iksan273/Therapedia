@@ -8,6 +8,7 @@ const CHIP_STYLES = {
   completed: "bg-green-50 border-green-200 text-green-700",
   cancelled: "bg-red-50 border-red-200 text-red-500",
   rescheduled: "bg-amber-50 border-amber-200 text-amber-700",
+  frozen: "bg-cyan-50 border-cyan-300 text-cyan-900 shadow-inner",
 };
 
 const TYPE_DOT = {
@@ -17,7 +18,17 @@ const TYPE_DOT = {
 };
 
 // Custom weekly grid: Monday-Saturday columns x hourly rows (08:00-18:00).
-export const WeeklyCalendar = ({ weekStart, schedules, getClientName, onSlotClick, onSessionClick }) => {
+export const WeeklyCalendar = ({
+  weekStart,
+  schedules,
+  getClientName,
+  onSlotClick,
+  onSessionClick,
+  isBulkMode = false,
+  selectedSessionIds = [],
+  onToggleSelectSession,
+  isClientCreditZero,
+}) => {
   const days = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
 
   const sessionsFor = (dayStr, hour) =>
@@ -70,36 +81,62 @@ export const WeeklyCalendar = ({ weekStart, schedules, getClientName, onSlotClic
                     key={dayStr + hour}
                     className={cn(
                       "calendar-grid-cell border-l border-[var(--color-border)] p-1 space-y-1",
-                      onSlotClick && "cursor-pointer hover:bg-[rgba(47,168,224,0.05)] transition-colors duration-150"
+                      onSlotClick && !isBulkMode && "cursor-pointer hover:bg-[rgba(47,168,224,0.05)] transition-colors duration-150"
                     )}
-                    onClick={() => onSlotClick && onSlotClick(dayStr, hour)}
+                    onClick={() => !isBulkMode && onSlotClick && onSlotClick(dayStr, hour)}
                     data-testid={`calendar-slot-${dayStr}-${hour.replace(":", "")}`}
                   >
-                    {cellSessions.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSessionClick && onSessionClick(s);
-                        }}
-                        className={cn(
-                          "w-full text-left rounded-lg border px-2 py-1 text-[11px] leading-tight shadow-sm hover:shadow transition-shadow duration-150",
-                          CHIP_STYLES[s.status] || CHIP_STYLES.scheduled
-                        )}
-                        data-testid={`calendar-session-${s.id}`}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", TYPE_DOT[s.type] || TYPE_DOT.therapy)} />
-                          <span className={cn("font-medium truncate", s.status === "cancelled" && "line-through")}>
-                            {getClientName(s.clientId)}
+                    {cellSessions.map((s) => {
+                      const isSelected = selectedSessionIds.includes(s.id);
+                      const isFrozen =
+                        s.type === "therapy" &&
+                        ["scheduled", "rescheduled"].includes(s.status) &&
+                        isClientCreditZero &&
+                        isClientCreditZero(s.clientId);
+
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isBulkMode && onToggleSelectSession) {
+                              onToggleSelectSession(s.id);
+                            } else if (onSessionClick) {
+                              onSessionClick(s);
+                            }
+                          }}
+                          className={cn(
+                            "w-full text-left rounded-lg border px-2 py-1 text-[11px] leading-tight shadow-sm hover:shadow transition-all duration-150 relative",
+                            isFrozen ? CHIP_STYLES.frozen : CHIP_STYLES[s.status] || CHIP_STYLES.scheduled,
+                            isSelected && "ring-2 ring-[var(--color-primary-dark)] shadow-md"
+                          )}
+                          data-testid={`calendar-session-${s.id}`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="flex items-center gap-1.5 truncate">
+                              {isBulkMode && (
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="w-3.5 h-3.5 rounded text-[var(--color-primary)] cursor-pointer"
+                                />
+                              )}
+                              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", TYPE_DOT[s.type] || TYPE_DOT.therapy)} />
+                              <span className={cn("font-medium truncate", s.status === "cancelled" && "line-through")}>
+                                {getClientName(s.clientId)}
+                              </span>
+                            </span>
+                            {isFrozen && <span title="Frozen - Credit Depleted (0 Remaining)">❄️</span>}
+                          </div>
+                          <span className="block text-[10px] opacity-75 tabular-nums mt-0.5">
+                            {s.startTime}–{s.endTime}
+                            {isFrozen && <span className="ml-1 font-semibold text-cyan-950">(Frozen)</span>}
                           </span>
-                        </span>
-                        <span className="block text-[10px] opacity-75 tabular-nums mt-0.5">
-                          {s.startTime}–{s.endTime}
-                        </span>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -118,6 +155,7 @@ export const CalendarLegend = () => (
       ["Completed", "bg-green-50 border-green-200"],
       ["Cancelled", "bg-red-50 border-red-200"],
       ["Rescheduled", "bg-amber-50 border-amber-200"],
+      ["Frozen (0 Credit)", "bg-cyan-50 border-cyan-300"],
     ].map(([label, cls]) => (
       <span key={label} className="inline-flex items-center gap-1.5">
         <span className={cn("w-3 h-3 rounded border", cls)} />

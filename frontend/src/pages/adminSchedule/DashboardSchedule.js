@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { endOfWeek, format, startOfWeek, subMonths, addDays } from "date-fns";
+import { endOfWeek, format, startOfWeek, subMonths, addDays, parseISO, isAfter, isBefore } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -14,9 +14,24 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { Users, CalendarDays, Wallet, Cake, PieChart as PieIcon, AlertTriangle, CalendarClock } from "lucide-react";
+import {
+  Users,
+  CalendarDays,
+  Wallet,
+  Cake,
+  PieChart as PieIcon,
+  AlertTriangle,
+  CalendarClock,
+  Filter,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  Activity,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/common/StatCard";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -35,9 +50,17 @@ export default function DashboardSchedule() {
   const { clients } = useClients();
   const { schedules } = useSchedules();
   const { credits } = useCredits();
-  const { getTherapist } = useTherapists();
+  const { therapists, getTherapist } = useTherapists();
 
   const [monthFilter, setMonthFilter] = useState("all");
+
+  // Advanced Analytics Filters
+  const [filterClient, setFilterClient] = useState("all");
+  const [filterTherapyType, setFilterTherapyType] = useState("all");
+  const [filterTherapist, setFilterTherapist] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
 
   const activeClients = useMemo(() => clients.filter((c) => c.status === "admitted"), [clients]);
 
@@ -48,6 +71,53 @@ export default function DashboardSchedule() {
       return { key: format(m, "yyyy-MM"), label: format(m, "MMM yyyy") };
     });
   }, []);
+
+  // Filtered schedules for Advanced Analytics section
+  const filteredAnalyticsSchedules = useMemo(() => {
+    return schedules.filter((s) => {
+      if (filterClient !== "all" && s.clientId !== filterClient) return false;
+      if (filterTherapyType !== "all" && s.type !== filterTherapyType) return false;
+      if (filterTherapist !== "all" && s.therapistId !== filterTherapist) return false;
+      if (filterStatus !== "all" && s.status !== filterStatus) return false;
+
+      if (filterStartDate && s.date < filterStartDate) return false;
+      if (filterEndDate && s.date > filterEndDate) return false;
+
+      return true;
+    });
+  }, [schedules, filterClient, filterTherapyType, filterTherapist, filterStatus, filterStartDate, filterEndDate]);
+
+  // Analytics Metrics
+  const totalFiltered = filteredAnalyticsSchedules.length;
+  const completedFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "completed").length;
+  const cancelledFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "cancelled").length;
+  const rescheduledFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "rescheduled").length;
+  const scheduledFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "scheduled").length;
+
+  const completionRate = totalFiltered > 0 ? Math.round((completedFiltered / totalFiltered) * 100) : 0;
+  const cancellationRate = totalFiltered > 0 ? Math.round((cancelledFiltered / totalFiltered) * 100) : 0;
+
+  // Breakdown by Therapy Type
+  const therapyTypeBreakdown = useMemo(() => {
+    const counts = { therapy: 0, assessment: 0, consultation: 0 };
+    filteredAnalyticsSchedules.forEach((s) => {
+      if (counts[s.type] !== undefined) counts[s.type]++;
+    });
+    return [
+      { name: "Therapy", value: counts.therapy },
+      { name: "Assessment", value: counts.assessment },
+      { name: "Consultation", value: counts.consultation },
+    ].filter((item) => item.value > 0);
+  }, [filteredAnalyticsSchedules]);
+
+  const resetFilters = () => {
+    setFilterClient("all");
+    setFilterTherapyType("all");
+    setFilterTherapist("all");
+    setFilterStatus("all");
+    setFilterStartDate("");
+    setFilterEndDate("");
+  };
 
   const sessionChartData = useMemo(() => {
     const source = monthFilter === "all" ? months : months.filter((m) => m.key === monthFilter);
@@ -122,8 +192,7 @@ export default function DashboardSchedule() {
     return schedules
       .filter((s) => s.date === tomorrowStr && s.status !== "cancelled")
       .sort((a, b) => a.startTime.localeCompare(b.startTime));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schedules]);
+  }, [schedules, tomorrow]);
 
   const clientName = (clientId) => {
     const c = clients.find((cl) => cl.id === clientId);
@@ -133,8 +202,8 @@ export default function DashboardSchedule() {
   return (
     <div className="space-y-6" data-testid="dashboard-schedule-page">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Schedule Dashboard</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">Clinic operations at a glance.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Schedule & Analytics Dashboard</h1>
+        <p className="text-sm text-[var(--color-text-muted)] mt-1">Clinic operations, scheduling metrics, and advanced client analytics at a glance.</p>
       </div>
 
       {/* Birthday reminder banner (next 7 days) */}
@@ -165,12 +234,217 @@ export default function DashboardSchedule() {
         </div>
       )}
 
+      {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Active Clients" value={activeClients.length} icon={Users} accent="primary" onClick={() => navigate("/admin-schedule/clients")} testid="stat-active-clients" />
         <StatCard label="Sessions This Week" value={sessionsThisWeek} icon={CalendarDays} accent="info" onClick={() => navigate("/admin-schedule/calendar")} testid="stat-sessions-week" />
         <StatCard label="Low / Out of Credit" value={lowCredit.length} icon={Wallet} accent="warning" testid="stat-low-credit" />
         <StatCard label="Over Leave Quota" value={overLeave.length} icon={AlertTriangle} accent="danger" testid="stat-over-leave" />
       </div>
+
+      {/* SECTION: ADVANCED CLIENT ANALYTICS FILTER BAR */}
+      <Card className="rounded-xl border-[var(--color-primary)] border-opacity-30 bg-gradient-to-r from-blue-50/50 to-cyan-50/30 shadow-sm" data-testid="advanced-analytics-card">
+        <CardHeader className="pb-3 border-b border-[var(--color-border)]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-[var(--color-primary-dark)]" />
+              <CardTitle className="text-base font-semibold">Advanced Client Analytics & Filters</CardTitle>
+            </div>
+            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={resetFilters} data-testid="reset-analytics-filters">
+              <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-5">
+          {/* Filters Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            {/* Filter 1: Per Child / Client */}
+            <div className="space-y-1">
+              <Label className="text-xs text-[var(--color-text-muted)] font-medium">Per Anak / Client</Label>
+              <Select value={filterClient} onValueChange={setFilterClient}>
+                <SelectTrigger className="h-9 text-xs" data-testid="filter-client-select">
+                  <SelectValue placeholder="Semua Anak" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Anak ({clients.length})</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.clientName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filter 2: Per Therapy Type */}
+            <div className="space-y-1">
+              <Label className="text-xs text-[var(--color-text-muted)] font-medium">Per Layanan / Terapi</Label>
+              <Select value={filterTherapyType} onValueChange={setFilterTherapyType}>
+                <SelectTrigger className="h-9 text-xs" data-testid="filter-therapy-type-select">
+                  <SelectValue placeholder="Semua Layanan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Layanan</SelectItem>
+                  <SelectItem value="therapy">Therapy</SelectItem>
+                  <SelectItem value="assessment">Assessment</SelectItem>
+                  <SelectItem value="consultation">Consultation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filter 3: Per Terapis */}
+            <div className="space-y-1">
+              <Label className="text-xs text-[var(--color-text-muted)] font-medium">Per Terapis</Label>
+              <Select value={filterTherapist} onValueChange={setFilterTherapist}>
+                <SelectTrigger className="h-9 text-xs" data-testid="filter-therapist-select">
+                  <SelectValue placeholder="Semua Terapis" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Terapis</SelectItem>
+                  {therapists.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filter 4: Per Status */}
+            <div className="space-y-1">
+              <Label className="text-xs text-[var(--color-text-muted)] font-medium">Status Sesi</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-9 text-xs" data-testid="filter-status-select">
+                  <SelectValue placeholder="Semua Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filter 5: Date Start */}
+            <div className="space-y-1">
+              <Label className="text-xs text-[var(--color-text-muted)] font-medium">Dari Tanggal</Label>
+              <Input
+                type="date"
+                className="h-9 text-xs"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                data-testid="filter-start-date-input"
+              />
+            </div>
+
+            {/* Filter 6: Date End */}
+            <div className="space-y-1">
+              <Label className="text-xs text-[var(--color-text-muted)] font-medium">Sampai Tanggal</Label>
+              <Input
+                type="date"
+                className="h-9 text-xs"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                data-testid="filter-end-date-input"
+              />
+            </div>
+          </div>
+
+          {/* Filter Analytics Results Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 pt-2">
+            <div className="bg-white rounded-lg p-3 border shadow-sm">
+              <p className="text-[11px] font-medium text-[var(--color-text-muted)]">Total Filtered</p>
+              <p className="text-xl font-bold text-gray-900 mt-0.5">{totalFiltered}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border shadow-sm">
+              <p className="text-[11px] font-medium text-green-600">Completed</p>
+              <p className="text-xl font-bold text-green-700 mt-0.5">{completedFiltered}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border shadow-sm">
+              <p className="text-[11px] font-medium text-amber-600">Rescheduled</p>
+              <p className="text-xl font-bold text-amber-700 mt-0.5">{rescheduledFiltered}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border shadow-sm">
+              <p className="text-[11px] font-medium text-red-600">Cancelled</p>
+              <p className="text-xl font-bold text-red-700 mt-0.5">{cancelledFiltered}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border shadow-sm">
+              <p className="text-[11px] font-medium text-[var(--color-primary-dark)]">Completion Rate</p>
+              <p className="text-xl font-bold text-[var(--color-primary-dark)] mt-0.5">{completionRate}%</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border shadow-sm">
+              <p className="text-[11px] font-medium text-rose-600">Cancel Rate</p>
+              <p className="text-xl font-bold text-rose-700 mt-0.5">{cancellationRate}%</p>
+            </div>
+          </div>
+
+          {/* Detailed Breakdown Charts & List for Filtered Selection */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-2">
+            {/* Filtered Session List */}
+            <div className="lg:col-span-8 bg-white rounded-xl border p-4 shadow-sm">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-[var(--color-primary)]" />
+                Filtered Session Records ({filteredAnalyticsSchedules.length})
+              </h3>
+              {filteredAnalyticsSchedules.length === 0 ? (
+                <EmptyState icon={CalendarClock} title="Tidak ada sesi" subtitle="Tidak ada data sesi yang sesuai dengan kombinasi filter di atas." />
+              ) : (
+                <div className="max-h-64 overflow-y-auto divide-y divide-gray-100" data-testid="filtered-analytics-session-list">
+                  {filteredAnalyticsSchedules.slice(0, 20).map((s) => {
+                    const t = getTherapist(s.therapistId);
+                    return (
+                      <div key={s.id} className="py-2 flex items-center justify-between text-xs hover:bg-gray-50 px-2 rounded">
+                        <div>
+                          <p className="font-semibold text-gray-900">{clientName(s.clientId)}</p>
+                          <p className="text-[11px] text-gray-500">
+                            {s.date} · {s.startTime}–{s.endTime} · Terapis: {t ? t.name : "—"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={s.type} />
+                          <StatusBadge status={s.status} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredAnalyticsSchedules.length > 20 && (
+                    <p className="text-[11px] text-center text-gray-500 pt-2 font-medium">
+                      + Menampilkan 20 dari {filteredAnalyticsSchedules.length} sesi.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Service Type Breakdown Pie */}
+            <div className="lg:col-span-4 bg-white rounded-xl border p-4 shadow-sm">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <PieIcon className="w-4 h-4 text-violet-500" />
+                Distribusi Layanan
+              </h3>
+              <div className="h-52">
+                {therapyTypeBreakdown.length === 0 ? (
+                  <EmptyState icon={PieIcon} title="No data" subtitle="Select filters with sessions." />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={therapyTypeBreakdown} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={60} innerRadius={30} paddingAngle={4}>
+                        {therapyTypeBreakdown.map((entry, i) => (
+                          <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tomorrow's sessions — attendance confirmation list */}
       <Card className="rounded-xl border-[var(--color-border)] shadow-sm">
@@ -218,7 +492,7 @@ export default function DashboardSchedule() {
         {/* Session status chart */}
         <Card className="rounded-xl border-[var(--color-border)] shadow-sm lg:col-span-7">
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">Sessions by Status</CardTitle>
+            <CardTitle className="text-base">Sessions by Status (Monthly Overview)</CardTitle>
             <Select value={monthFilter} onValueChange={setMonthFilter}>
               <SelectTrigger className="w-40 h-9" data-testid="session-chart-month-filter">
                 <SelectValue />

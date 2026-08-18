@@ -44,6 +44,7 @@ export const STATUS_META = {
   rescheduled: { label: "Rescheduled", cls: "bg-amber-50 text-amber-600" },
   unpaid: { label: "Unpaid", cls: "bg-amber-50 text-amber-600" },
   paid: { label: "Paid", cls: "bg-green-50 text-green-600" },
+  frozen: { label: "Frozen (0 Credit)", cls: "bg-cyan-100 text-cyan-900 border border-cyan-300" },
   therapy: { label: "Therapy", cls: "bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]" },
   assessment: { label: "Assessment", cls: "bg-violet-50 text-violet-600" },
   consultation: { label: "Consultation", cls: "bg-cyan-50 text-cyan-700" },
@@ -145,14 +146,66 @@ export function checkConflicts({ therapistId, date, startTime, endTime, schedule
   return issues;
 }
 
-export function buildRecurringSchedules(base, weeks = 12) {
-  return Array.from({ length: weeks }, (_, i) => ({
-    ...base,
-    id: i === 0 ? base.id : uid(),
-    date: format(addWeeks(parseISO(base.date), i), "yyyy-MM-dd"),
-    isRecurring: true,
-    recurrenceRule: "weekly",
-  }));
+export const WEEKDAY_OPTIONS = [
+  { id: "Monday", label: "Senin", short: "Sen" },
+  { id: "Tuesday", label: "Selasa", short: "Sel" },
+  { id: "Wednesday", label: "Rabu", short: "Rab" },
+  { id: "Thursday", label: "Kamis", short: "Kam" },
+  { id: "Friday", label: "Jumat", short: "Jum" },
+  { id: "Saturday", label: "Sabtu", short: "Sab" },
+];
+
+export function buildRecurringSchedules(base, weeks = 12, selectedDays = [], dayTimes = {}) {
+  const startAnchor = parseISO(base.date);
+
+  // If no multi-day selection provided, fallback to standard single-day weekly recurrence
+  if (!selectedDays || selectedDays.length === 0) {
+    return Array.from({ length: weeks }, (_, i) => ({
+      ...base,
+      id: i === 0 ? base.id : uid(),
+      date: format(addWeeks(startAnchor, i), "yyyy-MM-dd"),
+      isRecurring: true,
+      recurrenceRule: "weekly",
+    }));
+  }
+
+  const dayIndexMap = {
+    Monday: 0,
+    Tuesday: 1,
+    Wednesday: 2,
+    Thursday: 3,
+    Friday: 4,
+    Saturday: 5,
+    Sunday: 6,
+  };
+
+  const baseWeekStart = startOfWeek(startAnchor, { weekStartsOn: 1 }); // Monday of starting week
+  const results = [];
+
+  for (let w = 0; w < weeks; w++) {
+    const currentWeekMonday = addWeeks(baseWeekStart, w);
+    selectedDays.forEach((dayName) => {
+      const dayOffset = dayIndexMap[dayName] !== undefined ? dayIndexMap[dayName] : 0;
+      const targetDate = addDays(currentWeekMonday, dayOffset);
+      const targetDateStr = format(targetDate, "yyyy-MM-dd");
+
+      const customTime = dayTimes[dayName] || {};
+      const slotStart = customTime.startTime || base.startTime;
+      const slotEnd = customTime.endTime || base.endTime;
+
+      results.push({
+        ...base,
+        id: results.length === 0 && targetDateStr === base.date ? base.id : uid(),
+        date: targetDateStr,
+        startTime: slotStart,
+        endTime: slotEnd,
+        isRecurring: true,
+        recurrenceRule: `weekly_${selectedDays.join(",")}`,
+      });
+    });
+  }
+
+  return results;
 }
 
 export function makeInquiryClient(form) {

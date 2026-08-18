@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound } from "lucide-react";
+import { ArrowLeft, CalendarPlus, CheckCircle2, FileQuestion, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AddScheduleModal } from "@/components/calendar/AddScheduleModal";
 import { useClients } from "@/context/ClientsContext";
 import { useAssessments } from "@/context/AssessmentsContext";
 
@@ -59,6 +60,8 @@ export default function AssessmentFill() {
     setStage("done");
     toast.success("Assessment submitted. Thank you!");
   };
+
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)] noise-bg py-10 px-4">
@@ -191,11 +194,43 @@ export default function AssessmentFill() {
                   Thank you! The clinic team will review your answers before the assessment session.
                 </p>
               </div>
+
+              {client && (
+                <div className="pt-2">
+                  <div className="rounded-xl border border-[rgba(47,168,224,0.3)] bg-[var(--color-primary-light)] p-4 text-left space-y-2 mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary-dark)]">Plot Schedule Terapi</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Anda dapat langsung menentukan jadwal terapi / assessment pilihan untuk <span className="font-semibold">{client.clientName}</span>.
+                    </p>
+                    <Button
+                      type="button"
+                      className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] gap-2 mt-1"
+                      onClick={() => setScheduleModalOpen(true)}
+                      data-testid="plot-schedule-assessment-button"
+                    >
+                      <CalendarPlus className="w-4 h-4" /> Plot Schedule Terapi / Assessment
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <Link to="/">
-                <Button className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)]">Back to home</Button>
+                <Button variant="outline">Back to home</Button>
               </Link>
             </CardContent>
           </Card>
+        )}
+
+        {client && (
+          <AddScheduleModal
+            open={scheduleModalOpen}
+            onOpenChange={setScheduleModalOpen}
+            defaults={{
+              clientId: client.id,
+              lockClient: true,
+              type: "therapy",
+            }}
+          />
         )}
       </div>
     </div>

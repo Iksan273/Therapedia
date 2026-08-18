@@ -23,6 +23,7 @@ import { useSchedules } from "@/context/SchedulesContext";
 import {
   SESSION_TYPES,
   TIME_OPTIONS,
+  WEEKDAY_OPTIONS,
   buildRecurringSchedules,
   checkConflicts,
   timeToMin,
@@ -48,6 +49,9 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
   const [recurring, setRecurring] = useState(false);
   const [notes, setNotes] = useState("");
 
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [recurringWeeks, setRecurringWeeks] = useState("12");
+
   useEffect(() => {
     if (open) {
       setClientId(defaults.clientId || "");
@@ -59,6 +63,8 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
       setEndTime(`${String(Math.min(h + 1, 18)).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
       setType(defaults.type || "therapy");
       setRecurring(Boolean(defaults.defaultRecurring));
+      setSelectedDays([]);
+      setRecurringWeeks("12");
       setNotes("");
       setClientOpen(false);
     }
@@ -85,6 +91,12 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
     }
   };
 
+  const toggleDay = (dayId) => {
+    setSelectedDays((prev) =>
+      prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId]
+    );
+  };
+
   const valid = clientId && therapistId && date && startTime && endTime && timeToMin(endTime) > timeToMin(startTime);
 
   const handleSubmit = () => {
@@ -106,8 +118,12 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
       notes,
     };
     if (recurring) {
-      addSchedules(buildRecurringSchedules(base, 12));
-      toast.success("Recurring schedule created — 12 weekly sessions added.");
+      const weeksNum = parseInt(recurringWeeks, 10) || 12;
+      const schedulesList = buildRecurringSchedules(base, weeksNum, selectedDays);
+      addSchedules(schedulesList);
+      toast.success(
+        `Recurring schedule created — ${schedulesList.length} session(s) generated for ${weeksNum} week(s).`
+      );
     } else {
       addSchedule(base);
       toast.success("Session scheduled.");
@@ -254,15 +270,73 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
           </div>
 
           {/* Recurring */}
-          <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] px-3 py-2.5">
-            <div className="flex items-center gap-2">
-              <Repeat className="w-4 h-4 text-[var(--color-text-muted)]" />
-              <div>
-                <p className="text-sm font-medium">Recurring weekly</p>
-                <p className="text-xs text-[var(--color-text-muted)]">Auto-creates 12 weekly sessions ahead</p>
+          <div className="space-y-3 rounded-lg border border-[var(--color-border)] p-3 bg-[var(--color-surface)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat className="w-4 h-4 text-[var(--color-primary-dark)]" />
+                <div>
+                  <p className="text-sm font-medium">Recurring Schedule</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">Repeat session automatically across multiple weeks</p>
+                </div>
               </div>
+              <Switch checked={recurring} onCheckedChange={setRecurring} data-testid="add-schedule-recurring-toggle" />
             </div>
-            <Switch checked={recurring} onCheckedChange={setRecurring} data-testid="add-schedule-recurring-toggle" />
+
+            {recurring && (
+              <div className="space-y-3 pt-2 border-t border-[var(--color-border)]">
+                {/* Select days of week */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Pilih Hari Recurring (Multiply Days)
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5" data-testid="recurring-day-selector">
+                    {WEEKDAY_OPTIONS.map((day) => {
+                      const selected = selectedDays.includes(day.id);
+                      return (
+                        <button
+                          key={day.id}
+                          type="button"
+                          onClick={() => toggleDay(day.id)}
+                          className={cn(
+                            "px-2.5 py-1 text-xs font-medium rounded-lg border transition-all",
+                            selected
+                              ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-sm"
+                              : "bg-white text-[var(--color-text)] border-[var(--color-border)] hover:bg-gray-50"
+                          )}
+                          data-testid={`recurring-day-${day.id}`}
+                        >
+                          {day.label} ({day.short})
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedDays.length > 0 && (
+                    <p className="text-[11px] text-[var(--color-primary-dark)] font-medium">
+                      Dipilih: {selectedDays.map((d) => WEEKDAY_OPTIONS.find((w) => w.id === d)?.label).join(", ")}
+                    </p>
+                  )}
+                </div>
+
+                {/* Duration select */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Durasi Repetisi (Duration Weeks)
+                  </Label>
+                  <Select value={recurringWeeks} onValueChange={setRecurringWeeks}>
+                    <SelectTrigger className="w-full h-9" data-testid="recurring-weeks-select">
+                      <SelectValue placeholder="Pilih durasi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4">4 Minggu (1 Bulan)</SelectItem>
+                      <SelectItem value="8">8 Minggu (2 Bulan)</SelectItem>
+                      <SelectItem value="12">12 Minggu (3 Bulan - Default)</SelectItem>
+                      <SelectItem value="16">16 Minggu (4 Bulan)</SelectItem>
+                      <SelectItem value="24">24 Minggu (6 Bulan)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Notes */}
