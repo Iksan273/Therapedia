@@ -1,0 +1,72 @@
+[
+  {
+    "id": "cr-001", "clientId": "c-009", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 7,
+    "leaveQuota": 3, "leaveUsed": 1, "purchaseDate": "2025-06-15", "isRenewal": false, "invoiceId": "inv-009",
+    "history": [
+      { "date": "2026-01-05", "scheduleId": "sch-p901", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-12", "scheduleId": "sch-001", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-19", "scheduleId": "sch-008", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-26", "scheduleId": "sch-l901", "action": "leave", "creditChange": 0 }
+    ]
+  },
+  {
+    "id": "cr-002", "clientId": "c-010", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 2,
+    "leaveQuota": 3, "leaveUsed": 0, "purchaseDate": "2025-08-20", "isRenewal": false, "invoiceId": "inv-010",
+    "history": [
+      { "date": "2025-12-10", "scheduleId": "sch-p1001", "action": "used", "creditChange": -1 },
+      { "date": "2025-12-17", "scheduleId": "sch-p1002", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-14", "scheduleId": "sch-002", "action": "used", "creditChange": -1 }
+    ]
+  },
+  {
+    "id": "cr-003", "clientId": "c-011", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 0,
+    "leaveQuota": 3, "leaveUsed": 2, "purchaseDate": "2025-09-05", "isRenewal": false, "invoiceId": "inv-011",
+    "history": [
+      { "date": "2025-12-16", "scheduleId": "sch-p1101", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-06", "scheduleId": "sch-003", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-13", "scheduleId": "sch-010", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-20", "scheduleId": "sch-l1101", "action": "leave", "creditChange": 0 }
+    ]
+  },
+  {
+    "id": "cr-004", "clientId": "c-012", "packageName": "5 Sessions", "totalCredit": 5, "remainingCredit": 5,
+    "leaveQuota": 3, "leaveUsed": 1, "purchaseDate": "2026-01-10", "isRenewal": false, "invoiceId": "inv-012",
+    "history": [
+      { "date": "2026-01-22", "scheduleId": "sch-004", "action": "leave", "creditChange": 0 }
+    ]
+  },
+  {
+    "id": "cr-005", "clientId": "c-013", "packageName": "20 Sessions", "totalCredit": 20, "remainingCredit": 12,
+    "leaveQuota": 3, "leaveUsed": 0, "purchaseDate": "2025-10-01", "isRenewal": false, "invoiceId": "inv-013",
+    "history": [
+      { "date": "2025-11-07", "scheduleId": "sch-p1301", "action": "used", "creditChange": -1 },
+      { "date": "2025-12-05", "scheduleId": "sch-p1302", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-16", "scheduleId": "sch-005", "action": "used", "creditChange": -1 }
+    ]
+  },
+  {
+    "id": "cr-006", "clientId": "c-014", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 1,
+    "leaveQuota": 3, "leaveUsed": 4, "purchaseDate": "2025-07-12", "isRenewal": false, "invoiceId": "inv-014",
+    "history": [
+      { "date": "2025-11-20", "scheduleId": "sch-p1401", "action": "used", "creditChange": -1 },
+      { "date": "2025-12-04", "scheduleId": "sch-l1401", "action": "leave", "creditChange": 0 },
+      { "date": "2025-12-18", "scheduleId": "sch-l1402", "action": "leave", "creditChange": 0 },
+      { "date": "2026-01-08", "scheduleId": "sch-l1403", "action": "leave", "creditChange": 0 },
+      { "date": "2026-01-15", "scheduleId": "sch-006", "action": "leave", "creditChange": 0 }
+    ]
+  },
+  {
+    "id": "cr-007", "clientId": "c-015", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 10,
+    "leaveQuota": 3, "leaveUsed": 0, "purchaseDate": "2026-01-28", "isRenewal": false, "invoiceId": "inv-015",
+    "history": []
+  },
+  {
+    "id": "cr-008", "clientId": "c-016", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 4,
+    "leaveQuota": 3, "leaveUsed": 1, "purchaseDate": "2025-11-03", "isRenewal": false, "invoiceId": "inv-016",
+    "history": [
+      { "date": "2025-12-08", "scheduleId": "sch-p1601", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-05", "scheduleId": "sch-p1602", "action": "used", "creditChange": -1 },
+      { "date": "2026-01-12", "scheduleId": "sch-l1601", "action": "leave", "creditChange": 0 }
+    ]
+  }
+]

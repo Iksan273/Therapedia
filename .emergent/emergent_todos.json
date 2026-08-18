@@ -1,0 +1,42 @@
+[
+  {
+    "content": "Phase 1: Foundation — seed data, useLocalStorage hook, contexts/reducers, routing, design tokens",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Module 1 — Inquiry management (public form, pipeline kanban, client detail checklist, assessment fill, master data CRUD)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Module 3 — Weekly calendar, add-schedule modal, session detail modal, recurring, conflict check, credit rules",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Module 2 — Active client list (All/Birthday/Analytic), active client detail, discharge flow",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Module 4 — Credit display, badges, renew package flow",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Module 5 — Admin Inquiry + Admin Schedule dashboards with recharts",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Module 6 — Client portal (access code login + dashboard)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Role select landing, therapist role views, Reset Demo Data",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: All user stories covered in development",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: End to End Testing using Testing Agent + fix all issues",
+    "status": "in_progress"
+  }
+]

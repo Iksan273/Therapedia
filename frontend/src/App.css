@@ -1,0 +1,9 @@
+/* Therapedia app-level styles. Layout is handled with Tailwind utilities. */
+
+.kanban-scroll {
+    scrollbar-width: thin;
+}
+
+.calendar-grid-cell {
+    min-height: 64px;
+}

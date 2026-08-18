@@ -1,0 +1,156 @@
+[
+  {
+    "id": "c-001", "status": "inquiry", "clientName": "Liam Carter", "parentName": "Daniel Carter", "parentContact": "+1 555-0141", "parentEmail": "daniel.carter@example.com", "dob": "2019-04-12",
+    "serviceType": null, "assessmentCategoryId": null, "assessmentAccessCode": null, "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1001", "_createdDaysAgo": 2
+  },
+  {
+    "id": "c-002", "status": "inquiry", "clientName": "Sofia Nguyen", "parentName": "Linh Nguyen", "parentContact": "+1 555-0187", "parentEmail": "linh.nguyen@example.com", "dob": "2020-09-03",
+    "serviceType": null, "assessmentCategoryId": null, "assessmentAccessCode": null, "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1002", "_createdDaysAgo": 4
+  },
+  {
+    "id": "c-003", "status": "inquiry", "clientName": "Ethan Brooks", "parentName": "Rachel Brooks", "parentContact": "+1 555-0134", "parentEmail": "rachel.brooks@example.com", "dob": "2018-11-27",
+    "serviceType": null, "assessmentCategoryId": null, "assessmentAccessCode": null, "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1003", "_createdDaysAgo": 6
+  },
+  {
+    "id": "c-004", "status": "inquiry", "clientName": "Amara Okafor", "parentName": "Chidi Okafor", "parentContact": "+1 555-0158", "parentEmail": "chidi.okafor@example.com", "dob": "2021-02-18",
+    "serviceType": null, "assessmentCategoryId": null, "assessmentAccessCode": null, "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1004", "_createdDaysAgo": 9
+  },
+  {
+    "id": "c-005", "status": "inquiry", "clientName": "Noah Kim", "parentName": "Grace Kim", "parentContact": "+1 555-0172", "parentEmail": "grace.kim@example.com", "dob": "2019-07-30",
+    "serviceType": null, "assessmentCategoryId": null, "assessmentAccessCode": null, "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1005", "_createdDaysAgo": 12
+  },
+  {
+    "id": "c-006", "status": "pending", "clientName": "Zoe Martinez", "parentName": "Carlos Martinez", "parentContact": "+1 555-0119", "parentEmail": "carlos.martinez@example.com", "dob": "2019-12-08",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-001", "assessmentAccessCode": "ASM-2201", "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1006", "_createdDaysAgo": 15
+  },
+  {
+    "id": "c-007", "status": "pending", "clientName": "Lucas Wright", "parentName": "Emily Wright", "parentContact": "+1 555-0163", "parentEmail": "emily.wright@example.com", "dob": "2020-05-21",
+    "serviceType": "consultation", "assessmentCategoryId": null, "assessmentAccessCode": null, "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1007", "_createdDaysAgo": 17
+  },
+  {
+    "id": "c-008", "status": "assessment_scheduled", "clientName": "Mia Thompson", "parentName": "Sarah Thompson", "parentContact": "+1 555-0195", "parentEmail": "sarah.thompson@example.com", "dob": "2018-08-15",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-002", "assessmentAccessCode": "ASM-2203", "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": null, "dateOfJoin": null, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1008", "_createdDaysAgo": 20
+  },
+  {
+    "id": "c-009", "status": "admitted", "clientName": "Oliver Bennett", "parentName": "Hannah Bennett", "parentContact": "+1 555-0102", "parentEmail": "hannah.bennett@example.com", "dob": "2019-01-05", "_birthdayThisMonth": true,
+    "serviceType": "assessment", "assessmentCategoryId": "cat-001", "assessmentAccessCode": "ASM-9001",
+    "assessmentAnswers": [
+      { "questionId": "q-101", "answer": "Yes" },
+      { "questionId": "q-102", "answer": "Becomes upset" },
+      { "questionId": "q-103", "answer": "Yes" },
+      { "questionId": "q-104", "answer": "Avoids crunchy foods and clothing tags. Prefers soft cotton." },
+      { "questionId": "q-105", "answer": "Often" },
+      { "questionId": "q-106", "answer": "Deep pressure hugs and a quiet corner with dim light." }
+    ],
+    "assessmentReportNote": "Oliver shows moderate tactile and auditory sensitivity. Recommended weekly OT with a sensory-diet home program. Re-evaluate in 12 weeks.",
+    "invoice": { "id": "inv-009", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-oliver-0125.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 8, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1009", "_createdDaysAgo": 260
+  },
+  {
+    "id": "c-010", "status": "admitted", "clientName": "Ava Sullivan", "parentName": "Patrick Sullivan", "parentContact": "+1 555-0126", "parentEmail": "patrick.sullivan@example.com", "dob": "2020-03-19",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-003", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Gross motor delays in bilateral coordination. Weekly therapy recommended.",
+    "invoice": { "id": "inv-010", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-ava-0325.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 6, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1010", "_createdDaysAgo": 200
+  },
+  {
+    "id": "c-011", "status": "admitted", "clientName": "Elijah Foster", "parentName": "Monica Foster", "parentContact": "+1 555-0148", "parentEmail": "monica.foster@example.com", "dob": "2018-06-14", "_birthdayThisMonth": true,
+    "serviceType": "assessment", "assessmentCategoryId": "cat-002", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Fine motor delays affecting pre-writing skills. Weekly OT with handwriting focus.",
+    "invoice": { "id": "inv-011", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-elijah-0425.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 5, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1011", "_createdDaysAgo": 170
+  },
+  {
+    "id": "c-012", "status": "admitted", "clientName": "Isabella Rossi", "parentName": "Marco Rossi", "parentContact": "+1 555-0139", "parentEmail": "marco.rossi@example.com", "dob": "2021-10-02",
+    "serviceType": "consultation", "assessmentCategoryId": null, "assessmentAccessCode": null, "assessmentAnswers": [], "assessmentReportNote": null,
+    "invoice": { "id": "inv-012", "amount": 150, "status": "paid", "proofOfPaymentUrl": "receipt-isabella-1225.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 1, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1012", "_createdDaysAgo": 45
+  },
+  {
+    "id": "c-013", "status": "admitted", "clientName": "Mason Clarke", "parentName": "Jennifer Clarke", "parentContact": "+1 555-0111", "parentEmail": "jennifer.clarke@example.com", "dob": "2019-09-26",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-004", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Social-emotional regulation goals. Weekly sessions with parent coaching.",
+    "invoice": { "id": "inv-013", "amount": 450, "status": "paid", "proofOfPaymentUrl": "receipt-mason-0925.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 4, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1013", "_createdDaysAgo": 140
+  },
+  {
+    "id": "c-014", "status": "admitted", "clientName": "Harper Diaz", "parentName": "Luis Diaz", "parentContact": "+1 555-0177", "parentEmail": "luis.diaz@example.com", "dob": "2018-03-11",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-001", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Sensory modulation difficulties. Weekly OT recommended.",
+    "invoice": { "id": "inv-014", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-harper-0625.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 7, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1014", "_createdDaysAgo": 230
+  },
+  {
+    "id": "c-015", "status": "admitted", "clientName": "Aiden Murphy", "parentName": "Colleen Murphy", "parentContact": "+1 555-0153", "parentEmail": "colleen.murphy@example.com", "dob": "2020-11-22", "_birthdayThisMonth": true,
+    "serviceType": "assessment", "assessmentCategoryId": "cat-003", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Core strength and postural control goals. Weekly gross-motor OT.",
+    "invoice": { "id": "inv-015", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-aiden-1125.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 2, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1015", "_createdDaysAgo": 75
+  },
+  {
+    "id": "c-016", "status": "admitted", "clientName": "Chloe Anderson", "parentName": "Mark Anderson", "parentContact": "+1 555-0168", "parentEmail": "mark.anderson@example.com", "dob": "2019-05-09",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-004", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Attention and transition support goals. Weekly sessions.",
+    "invoice": { "id": "inv-016", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-chloe-1025.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 3, "dateOfDischarge": null, "dischargeReason": null, "dischargeNote": null,
+    "clientAccessCode": "TDC-1016", "_createdDaysAgo": 110
+  },
+  {
+    "id": "c-017", "status": "discharged", "clientName": "Grace Liu", "parentName": "Wei Liu", "parentContact": "+1 555-0122", "parentEmail": "wei.liu@example.com", "dob": "2017-04-25",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-002", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Graduated all fine-motor goals.",
+    "invoice": { "id": "inv-017", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-grace-0824.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 14, "dateOfDischarge": null, "_dischargeMonthsAgo": 1,
+    "dischargeReason": "graduate", "dischargeNote": "Met all therapy goals. Family thrilled with progress.",
+    "clientAccessCode": "TDC-1017", "_createdDaysAgo": 440
+  },
+  {
+    "id": "c-018", "status": "discharged", "clientName": "Ryan Park", "parentName": "Susan Park", "parentContact": "+1 555-0184", "parentEmail": "susan.park@example.com", "dob": "2018-10-07",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-001", "assessmentAccessCode": null, "assessmentAnswers": [],
+    "assessmentReportNote": "Sensory integration program in progress at discharge.",
+    "invoice": { "id": "inv-018", "amount": 250, "status": "paid", "proofOfPaymentUrl": "receipt-ryan-0524.pdf" },
+    "dateOfJoin": null, "_joinMonthsAgo": 20, "dateOfDischarge": null, "_dischargeMonthsAgo": 3,
+    "dischargeReason": "moving", "dischargeNote": "Family relocated out of state. Referral letter provided.",
+    "clientAccessCode": "TDC-1018", "_createdDaysAgo": 620
+  },
+  {
+    "id": "c-019", "status": "discontinued", "clientName": "Ella Novak", "parentName": "Peter Novak", "parentContact": "+1 555-0190", "parentEmail": "peter.novak@example.com", "dob": "2020-01-16",
+    "serviceType": "assessment", "assessmentCategoryId": "cat-004", "assessmentAccessCode": "ASM-2299",
+    "assessmentAnswers": [
+      { "questionId": "q-401", "answer": "No" },
+      { "questionId": "q-402", "answer": "Frequent meltdowns" },
+      { "questionId": "q-403", "answer": "No" },
+      { "questionId": "q-404", "answer": "Physical outbursts" },
+      { "questionId": "q-405", "answer": "Prefers to play alone, struggles with sharing." },
+      { "questionId": "q-406", "answer": "Better emotional regulation at preschool." }
+    ],
+    "assessmentReportNote": null,
+    "invoice": { "id": "inv-019", "amount": 250, "status": "unpaid", "proofOfPaymentUrl": null },
+    "dateOfJoin": null, "dateOfDischarge": null, "_dischargeMonthsAgo": 2,
+    "dischargeReason": "expectation_not_met", "dischargeNote": "Family expected faster results and chose another provider.",
+    "clientAccessCode": "TDC-1019", "_createdDaysAgo": 90
+  }
+]

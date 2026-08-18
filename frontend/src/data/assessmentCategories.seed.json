@@ -1,0 +1,48 @@
+[
+  {
+    "id": "cat-001",
+    "categoryName": "Sensory Processing Assessment",
+    "questions": [
+      { "id": "q-101", "question": "Does your child overreact to loud noises or bright lights?", "type": "yes_no", "options": [] },
+      { "id": "q-102", "question": "How does your child respond to being touched unexpectedly?", "type": "multiple_choice", "options": ["Calmly", "Startles but recovers", "Becomes upset", "Avoids touch entirely"] },
+      { "id": "q-103", "question": "Does your child seek out spinning, swinging, or jumping more than peers?", "type": "yes_no", "options": [] },
+      { "id": "q-104", "question": "Describe any food textures or clothing materials your child avoids.", "type": "text", "options": [] },
+      { "id": "q-105", "question": "How often does your child appear overwhelmed in busy environments?", "type": "multiple_choice", "options": ["Never", "Occasionally", "Often", "Almost always"] },
+      { "id": "q-106", "question": "What calming strategies currently work for your child?", "type": "text", "options": [] }
+    ]
+  },
+  {
+    "id": "cat-002",
+    "categoryName": "Fine Motor Skills Assessment",
+    "questions": [
+      { "id": "q-201", "question": "Can your child hold a pencil or crayon with a proper grip?", "type": "yes_no", "options": [] },
+      { "id": "q-202", "question": "How well does your child manage buttons and zippers?", "type": "multiple_choice", "options": ["Independently", "With some help", "Needs full assistance", "Has not tried"] },
+      { "id": "q-203", "question": "Does your child avoid drawing, colouring, or cutting activities?", "type": "yes_no", "options": [] },
+      { "id": "q-204", "question": "Which hand does your child prefer to use?", "type": "multiple_choice", "options": ["Right", "Left", "Switches between both", "Unclear"] },
+      { "id": "q-205", "question": "Describe any difficulties you notice during mealtimes with utensils.", "type": "text", "options": [] }
+    ]
+  },
+  {
+    "id": "cat-003",
+    "categoryName": "Gross Motor Development",
+    "questions": [
+      { "id": "q-301", "question": "Can your child jump with both feet off the ground?", "type": "yes_no", "options": [] },
+      { "id": "q-302", "question": "How does your child manage stairs?", "type": "multiple_choice", "options": ["Alternating feet independently", "Two feet per step", "With railing support", "Avoids stairs"] },
+      { "id": "q-303", "question": "Does your child trip or bump into objects more than peers?", "type": "yes_no", "options": [] },
+      { "id": "q-304", "question": "How would you rate your child's ball skills (throwing/catching)?", "type": "multiple_choice", "options": ["Age appropriate", "Slightly behind", "Well behind", "Not sure"] },
+      { "id": "q-305", "question": "Describe your child's favourite physical activities.", "type": "text", "options": [] }
+    ]
+  },
+  {
+    "id": "cat-004",
+    "categoryName": "Social & Behavioral Assessment",
+    "questions": [
+      { "id": "q-401", "question": "Does your child make eye contact during conversations?", "type": "yes_no", "options": [] },
+      { "id": "q-402", "question": "How does your child handle transitions between activities?", "type": "multiple_choice", "options": ["Smoothly", "Minor resistance", "Frequent meltdowns", "Depends on the day"] },
+      { "id": "q-403", "question": "Does your child play cooperatively with other children?", "type": "yes_no", "options": [] },
+      { "id": "q-404", "question": "How does your child express frustration?", "type": "multiple_choice", "options": ["Uses words", "Cries or withdraws", "Physical outbursts", "Mix of the above"] },
+      { "id": "q-405", "question": "Describe a typical playdate or group setting for your child.", "type": "text", "options": [] },
+      { "id": "q-406", "question": "What are your main goals for your child from therapy?", "type": "text", "options": [] }
+    ]
+  }
+]
