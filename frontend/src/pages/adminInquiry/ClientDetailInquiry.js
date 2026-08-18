@@ -273,6 +273,12 @@ export default function ClientDetailInquiry() {
                   <Mail className="w-4 h-4" /> {client.parentEmail}
                 </span>
               </div>
+              {client.parentComplaint && (
+                <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 max-w-xl" data-testid="client-detail-complaint">
+                  <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Parent's Concern</p>
+                  <p className="text-sm leading-snug">{client.parentComplaint}</p>
+                </div>
+              )}
             </div>
             <div className="text-right space-y-2">
               <div>

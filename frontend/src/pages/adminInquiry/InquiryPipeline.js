@@ -96,6 +96,11 @@ export default function InquiryPipeline() {
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                       {c.parentName} · age {calcAge(c.dob) != null ? calcAge(c.dob) : "—"}
                     </p>
+                    {c.parentComplaint && (
+                      <p className="text-[11px] text-[var(--color-text-muted)] italic mt-1 line-clamp-2">
+                        “{c.parentComplaint}”
+                      </p>
+                    )}
                     <div className="flex items-center justify-between mt-2">
                       {c.serviceType ? (
                         <StatusBadge status={c.serviceType} />

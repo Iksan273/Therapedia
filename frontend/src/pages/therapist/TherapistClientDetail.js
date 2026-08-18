@@ -74,6 +74,12 @@ export default function TherapistClientDetail() {
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
             Parent: {client.parentName} · {client.parentContact}
           </p>
+          {client.parentComplaint && (
+            <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2" data-testid="therapist-client-complaint">
+              <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Parent's Concern</p>
+              <p className="text-sm leading-snug">{client.parentComplaint}</p>
+            </div>
+          )}
           {client.assessmentReportNote && (
             <div className="mt-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-3">
               <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">Assessment Report</p>

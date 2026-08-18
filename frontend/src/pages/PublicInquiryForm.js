@@ -5,11 +5,12 @@ import { ArrowLeft, CheckCircle2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useClients } from "@/context/ClientsContext";
 import { makeInquiryClient } from "@/lib/appUtils";
 
-const EMPTY = { parentName: "", parentContact: "", parentEmail: "", clientName: "", dob: "" };
+const EMPTY = { parentName: "", parentContact: "", parentEmail: "", clientName: "", dob: "", parentComplaint: "" };
 
 export default function PublicInquiryForm() {
   const { addClient } = useClients();
@@ -29,6 +30,7 @@ export default function PublicInquiryForm() {
     if (!form.parentEmail.trim() || !/^\S+@\S+\.\S+$/.test(form.parentEmail)) errs.parentEmail = "A valid email is required";
     if (!form.clientName.trim()) errs.clientName = "Child name is required";
     if (!form.dob) errs.dob = "Date of birth is required";
+    if (!form.parentComplaint.trim()) errs.parentComplaint = "Please describe your concerns so our team can prepare";
     return errs;
   };
 
@@ -140,6 +142,17 @@ export default function PublicInquiryForm() {
                     <Input type="date" value={form.dob} onChange={set("dob")} data-testid="inquiry-dob-input" />
                     {errors.dob && <p className="text-xs text-[var(--color-danger)]">{errors.dob}</p>}
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Your Concerns about Your Child *</Label>
+                  <Textarea
+                    rows={3}
+                    value={form.parentComplaint}
+                    onChange={set("parentComplaint")}
+                    placeholder="Tell us what you're worried about — behaviour, motor skills, senses, speech, eating, school..."
+                    data-testid="inquiry-complaint-input"
+                  />
+                  {errors.parentComplaint && <p className="text-xs text-[var(--color-danger)]">{errors.parentComplaint}</p>}
                 </div>
                 <Button type="submit" className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] h-11" data-testid="inquiry-submit-button">
                   Submit Inquiry

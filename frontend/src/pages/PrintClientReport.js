@@ -115,6 +115,12 @@ export default function PrintClientReport() {
               <InfoItem label="Service Type" value={client.serviceType ? <StatusBadge status={client.serviceType} /> : "\u2014"} />
               <InfoItem label="Access Code" value={<span className="font-mono">{client.clientAccessCode}</span>} />
             </div>
+            {client.parentComplaint && (
+              <div className="rounded-lg print:rounded-none bg-amber-50 print:bg-white print:border print:border-[var(--color-border)] border border-amber-100 px-4 py-3 mt-1">
+                <p className="text-[11px] text-amber-600 print:text-[var(--color-text-muted)] font-semibold uppercase tracking-wide mb-1">Parent's Concern at Inquiry</p>
+                <p className="text-sm leading-relaxed" data-testid="print-report-complaint">{client.parentComplaint}</p>
+              </div>
+            )}
             {client.dateOfDischarge && (
               <p className="text-xs text-[var(--color-text-muted)] mt-2">
                 {client.status === "discharged" ? "Discharged" : "Discontinued"} on {fmtDate(client.dateOfDischarge)} · Reason: {dischargeReasonLabel(client.dischargeReason)}

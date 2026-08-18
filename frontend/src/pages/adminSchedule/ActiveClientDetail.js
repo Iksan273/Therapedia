@@ -180,6 +180,12 @@ export default function ActiveClientDetail() {
               <p className="text-xs text-[var(--color-text-muted)] mt-2">
                 Portal access code: <span className="font-mono font-semibold text-[var(--color-primary-dark)]">{client.clientAccessCode}</span>
               </p>
+              {client.parentComplaint && (
+                <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 max-w-xl" data-testid="active-client-complaint">
+                  <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-wide mb-0.5">Parent's Concern</p>
+                  <p className="text-sm leading-snug">{client.parentComplaint}</p>
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <Link to={`/print/client/${id}`}>

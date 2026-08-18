@@ -153,6 +153,7 @@ export function makeInquiryClient(form) {
     parentName: form.parentName.trim(),
     parentContact: form.parentContact.trim(),
     parentEmail: form.parentEmail.trim(),
+    parentComplaint: (form.parentComplaint || "").trim(),
     dob: form.dob,
     serviceType: null,
     assessmentCategoryId: null,
