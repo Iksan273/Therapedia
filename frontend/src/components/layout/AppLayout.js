@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -12,6 +12,12 @@ import {
   FilePlus2,
   FileQuestion,
   Menu,
+  Sparkles,
+  ShieldAlert,
+  ChevronRight,
+  UserCircle2,
+  MessageCircle,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -26,6 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { WhatsAppAutomationModal } from "@/components/common/WhatsAppAutomationModal";
 import { useAuth } from "@/context/AuthContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useClients } from "@/context/ClientsContext";
@@ -35,9 +42,11 @@ import { cn } from "@/lib/utils";
 const NAV_CONFIG = {
   admin_inquiry: {
     title: "Admin — Inquiry",
+    shortRole: "Inquiry Admin",
     items: [
       { to: "/admin-inquiry", label: "Dashboard", icon: LayoutDashboard, end: true, testid: "sidebar-nav-dashboard-link" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "sidebar-nav-inquiry-pipeline-link" },
+      { to: "/admin-inquiry/waiting-list", label: "Waiting List Hub", icon: Clock, testid: "sidebar-nav-waiting-list-link" },
       { to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, testid: "sidebar-nav-assessment-master-link" },
     ],
     extras: [
@@ -47,6 +56,7 @@ const NAV_CONFIG = {
   },
   admin_schedule: {
     title: "Admin — Schedule",
+    shortRole: "Schedule Admin",
     items: [
       { to: "/admin-schedule", label: "Dashboard", icon: LayoutDashboard, end: true, testid: "sidebar-nav-dashboard-link" },
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "sidebar-nav-active-clients-link" },
@@ -55,60 +65,77 @@ const NAV_CONFIG = {
     extras: [],
   },
   therapist: {
-    title: "Therapist",
+    title: "Therapist Portal",
+    shortRole: "Pediatric OT",
     items: [{ to: "/therapist", label: "My Schedule", icon: CalendarDays, end: true, testid: "sidebar-nav-my-schedule-link" }],
     extras: [],
   },
   client: {
     title: "Client Portal",
+    shortRole: "Parent Portal",
     items: [{ to: "/client", label: "My Dashboard", icon: Home, end: true, testid: "sidebar-nav-client-dashboard-link" }],
     extras: [],
   },
 };
 
 const Logo = ({ compact = false }) => (
-  <div className={cn("flex items-center gap-3", !compact && "px-5 h-16 border-b border-[var(--color-border)]")}>
-    <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold text-lg shrink-0">
+  <div className={cn("flex items-center gap-3", !compact && "px-5 h-16 border-b border-slate-200/80 bg-white")}>
+    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm shadow-sky-600/20">
       T
     </div>
-    <div className="leading-tight">
-      <p className="font-semibold text-[15px] text-[var(--color-text)]">Therapedia</p>
-      <p className="text-[11px] text-[var(--color-text-muted)]">Developmental Center</p>
+    <div className="leading-tight min-w-0">
+      <p className="font-bold text-[15px] text-slate-900 tracking-tight">Therapedia</p>
+      <p className="text-[11px] font-medium text-slate-500 truncate">Developmental Center</p>
     </div>
   </div>
 );
 
 const navLinkClass = ({ isActive }) =>
   cn(
-    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150",
+    "relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group",
     isActive
-      ? "bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]"
-      : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
+      ? "bg-sky-50 text-sky-700 font-bold shadow-xs border border-sky-200/60"
+      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   );
 
-// Shared nav list used by both the desktop sidebar and the mobile drawer.
+// Shared nav list used by both desktop sidebar and mobile drawer
 const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
-  <>
-    <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-      {config.title}
-    </p>
-    {config.items.map((item) => (
-      <NavLink
-        key={item.to}
-        to={item.to}
-        end={item.end}
-        className={navLinkClass}
-        onClick={onNavigate}
-        data-testid={`${testidPrefix}${item.testid}`}
-      >
-        <item.icon className="w-[18px] h-[18px]" />
-        {item.label}
-      </NavLink>
-    ))}
+  <div className="space-y-6">
+    <div className="space-y-1">
+      <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        {config.title}
+      </p>
+      {config.items.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end={item.end}
+          className={navLinkClass}
+          onClick={onNavigate}
+          data-testid={`${testidPrefix}${item.testid}`}
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sky-600" />
+              )}
+              <item.icon
+                className={cn(
+                  "w-[18px] h-[18px] shrink-0 transition-transform duration-150 group-hover:scale-105",
+                  isActive ? "text-sky-600 stroke-[2.2]" : "text-slate-400 group-hover:text-slate-600"
+                )}
+              />
+              <span className="truncate">{item.label}</span>
+            </>
+          )}
+        </NavLink>
+      ))}
+    </div>
+
     {config.extras.length > 0 && (
-      <>
-        <p className="px-3 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-          Public Pages
+      <div className="space-y-1 pt-2 border-t border-slate-100">
+        <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          Public Portals
         </p>
         {config.extras.map((item) => (
           <NavLink
@@ -118,13 +145,22 @@ const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
             onClick={onNavigate}
             data-testid={`${testidPrefix}${item.testid}`}
           >
-            <item.icon className="w-[18px] h-[18px]" />
-            {item.label}
+            {({ isActive }) => (
+              <>
+                <item.icon
+                  className={cn(
+                    "w-[18px] h-[18px] shrink-0",
+                    isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600"
+                  )}
+                />
+                <span className="truncate">{item.label}</span>
+              </>
+            )}
           </NavLink>
         ))}
-      </>
+      </div>
     )}
-  </>
+  </div>
 );
 
 const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
@@ -132,28 +168,33 @@ const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
     <AlertDialogTrigger asChild>
       <Button
         variant="ghost"
-        className="w-full justify-start gap-3 text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+        className="w-full justify-start gap-2.5 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50/60 rounded-xl transition-colors h-10"
         data-testid={testid}
       >
-        <RotateCcw className="w-[18px] h-[18px]" />
+        <RotateCcw className="w-4 h-4 text-slate-400 group-hover:text-rose-500" />
         Reset Demo Data
       </Button>
     </AlertDialogTrigger>
-    <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-xl">
+    <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md rounded-2xl p-6 border-slate-200">
       <AlertDialogHeader>
-        <AlertDialogTitle>Reset all demo data?</AlertDialogTitle>
-        <AlertDialogDescription>
-          This clears every change you made and restores the original seed data. The page will reload.
+        <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center mb-3">
+          <ShieldAlert className="w-6 h-6 stroke-[2]" />
+        </div>
+        <AlertDialogTitle className="text-xl font-bold text-slate-900">Reset all demo data?</AlertDialogTitle>
+        <AlertDialogDescription className="text-sm text-slate-600 leading-relaxed">
+          This will clear all changes made during this session and restore the original clinical seed database. The application will reload automatically.
         </AlertDialogDescription>
       </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel data-testid="reset-demo-cancel-button">Cancel</AlertDialogCancel>
+      <AlertDialogFooter className="mt-4 gap-2">
+        <AlertDialogCancel className="rounded-xl border-slate-200" data-testid="reset-demo-cancel-button">
+          Keep Working
+        </AlertDialogCancel>
         <AlertDialogAction
-          className="bg-[var(--color-danger)] hover:bg-red-600"
+          className="bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl"
           onClick={resetDemoData}
           data-testid="reset-demo-confirm-button"
         >
-          Reset Data
+          Confirm & Reset
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
@@ -165,18 +206,23 @@ const AppLayout = () => {
   const { getTherapist } = useTherapists();
   const { getClient } = useClients();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [waModalOpen, setWaModalOpen] = useState(false);
 
-  const config = NAV_CONFIG[auth.role] || { title: "", items: [], extras: [] };
+  const config = NAV_CONFIG[auth.role] || { title: "", shortRole: "", items: [], extras: [] };
 
   let identity = config.title;
+  let identitySub = config.shortRole;
   if (auth.role === "therapist" && auth.therapistId) {
     const t = getTherapist(auth.therapistId);
     identity = t ? t.name : identity;
+    identitySub = t ? t.specialty : identitySub;
   }
   if (auth.role === "client" && auth.clientId) {
     const c = getClient(auth.clientId);
     identity = c ? `${c.parentName} (${c.clientName})` : identity;
+    identitySub = "Parent Account";
   }
 
   const handleSwitchRole = () => {
@@ -185,103 +231,150 @@ const AppLayout = () => {
     navigate("/");
   };
 
+  const isStaff = ["admin_inquiry", "admin_schedule", "therapist"].includes(auth.role);
+
   return (
-    <div className="min-h-screen bg-[var(--color-surface)]">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-white border-r border-[var(--color-border)] z-30">
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200/90 z-30 shadow-xs">
         <Logo />
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+
+        {/* User Identity Chip */}
+        <div className="px-4 py-3 mx-3 mt-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0">
+            <UserCircle2 className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-slate-800 truncate">{identity}</p>
+            <p className="text-[11px] font-medium text-slate-500 truncate">{identitySub}</p>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <NavItems config={config} />
         </nav>
-        <div className="p-3 border-t border-[var(--color-border)] space-y-1">
+
+        <div className="p-3 border-t border-slate-200/80 space-y-1.5 bg-slate-50/50">
           <ResetDemoButton />
           <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-[var(--color-text-muted)]"
+            variant="outline"
+            className="w-full justify-start gap-2.5 text-xs font-semibold text-slate-700 hover:text-sky-700 hover:bg-sky-50 border-slate-200 rounded-xl h-10 transition-colors"
             onClick={handleSwitchRole}
             data-testid="switch-role-button"
           >
-            <LogOut className="w-[18px] h-[18px]" />
-            Switch Role
+            <LogOut className="w-4 h-4 text-slate-400" />
+            Switch Active Role
           </Button>
         </div>
       </aside>
 
-      {/* Main area */}
-      <div className="md:ml-64 flex flex-col min-h-screen">
-        <header className="sticky top-0 z-20 h-16 bg-white/85 backdrop-blur border-b border-[var(--color-border)] flex items-center justify-between px-3 sm:px-6 lg:px-8 gap-2">
-          {/* Mobile: hamburger + logo */}
-          <div className="flex items-center gap-1.5 md:hidden min-w-0">
+      {/* Main content area */}
+      <div className="md:ml-64 flex-1 flex flex-col min-h-screen min-w-0">
+        {/* Frosted Glass Header */}
+        <header className="sticky top-0 z-20 h-16 glass-header border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-3">
+          {/* Mobile hamburger & brand */}
+          <div className="flex items-center gap-2 md:hidden min-w-0">
             <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="shrink-0"
+                  className="shrink-0 rounded-xl hover:bg-slate-100"
                   aria-label="Open menu"
                   data-testid="mobile-menu-button"
                 >
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-5 h-5 text-slate-700" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-0 flex flex-col" data-testid="mobile-nav-drawer">
+              <SheetContent side="left" className="w-72 p-0 flex flex-col border-r border-slate-200" data-testid="mobile-nav-drawer">
                 <SheetTitle className="sr-only">Navigation menu</SheetTitle>
                 <SheetDescription className="sr-only">Select a page to navigate to</SheetDescription>
-                <div className="px-5 h-16 flex items-center border-b border-[var(--color-border)]">
+                <div className="px-5 h-16 flex items-center border-b border-slate-200 bg-white">
                   <Logo compact />
                 </div>
-                <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <p className="text-[11px] text-[var(--color-text-muted)]">Signed in as</p>
-                  <p className="text-sm font-medium truncate">{identity}</p>
+                <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0">
+                    <UserCircle2 className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Signed in as</p>
+                    <p className="text-sm font-bold text-slate-800 truncate">{identity}</p>
+                  </div>
                 </div>
-                <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                <nav className="flex-1 px-3 py-4 overflow-y-auto">
                   <NavItems config={config} onNavigate={() => setMobileNavOpen(false)} testidPrefix="mobile-" />
                 </nav>
-                <div className="p-3 border-t border-[var(--color-border)] space-y-1">
+                <div className="p-3 border-t border-slate-200 space-y-1.5 bg-slate-50/50">
                   <ResetDemoButton testid="mobile-reset-demo-data-button" />
                   <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-3 text-[var(--color-text-muted)]"
+                    variant="outline"
+                    className="w-full justify-start gap-2.5 text-xs font-semibold text-slate-700 hover:text-sky-700 hover:bg-sky-50 border-slate-200 rounded-xl h-10"
                     onClick={handleSwitchRole}
                     data-testid="mobile-switch-role-button"
                   >
-                    <LogOut className="w-[18px] h-[18px]" />
-                    Switch Role
+                    <LogOut className="w-4 h-4 text-slate-400" />
+                    Switch Active Role
                   </Button>
                 </div>
               </SheetContent>
             </Sheet>
+
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white font-semibold shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-sky-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
                 T
               </div>
-              <span className="font-semibold text-sm truncate">Therapedia</span>
+              <span className="font-bold text-sm text-slate-900 truncate">Therapedia</span>
             </div>
           </div>
 
-          {/* Desktop: identity */}
-          <div className="hidden md:block text-sm text-[var(--color-text-muted)]">
-            Signed in as <span className="font-medium text-[var(--color-text)]" data-testid="topbar-identity">{identity}</span>
+          {/* Desktop header title & context */}
+          <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
+            <span className="font-semibold text-slate-900">Therapedia Developmental Center</span>
+            <span className="text-slate-300">/</span>
+            <span className="text-sky-700 font-medium bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/60 text-xs" data-testid="topbar-identity">
+              {identity}
+            </span>
           </div>
 
-          {/* Mobile: quick switch-role shortcut */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="md:hidden gap-1.5 shrink-0"
-            onClick={handleSwitchRole}
-            data-testid="mobile-topbar-switch-role-button"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-xs">Switch</span>
-          </Button>
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
+            {isStaff && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors shadow-2xs font-bold text-xs h-9"
+                onClick={() => setWaModalOpen(true)}
+                title="Open WhatsApp Communication & Automation Hub"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span className="hidden sm:inline">WhatsApp Hub</span>
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 rounded-xl border-slate-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs font-semibold text-xs h-9"
+              onClick={handleSwitchRole}
+              data-testid="mobile-topbar-switch-role-button"
+            >
+              <LogOut className="w-3.5 h-3.5 text-slate-500" />
+              <span>Switch Role</span>
+            </Button>
+          </div>
         </header>
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Main Content View */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1400px] w-full mx-auto">
           <Outlet />
         </main>
       </div>
+
+      {/* Universal WhatsApp Automation Modal */}
+      <WhatsAppAutomationModal open={waModalOpen} onOpenChange={setWaModalOpen} />
     </div>
   );
 };
 
 export default AppLayout;
+

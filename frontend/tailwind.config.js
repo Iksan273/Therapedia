@@ -7,12 +7,24 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', '"Poppins"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'clinical': '0 1px 3px rgba(2, 132, 199, 0.04), 0 4px 14px rgba(15, 23, 42, 0.04)',
+        'clinical-hover': '0 4px 12px rgba(2, 132, 199, 0.08), 0 12px 28px rgba(15, 23, 42, 0.06)',
+        'clinical-lg': '0 10px 30px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(2, 132, 199, 0.05)',
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
       },
       colors: {
+        surface: {
+          DEFAULT: 'var(--color-surface)',
+          subtle: 'var(--color-surface-subtle)',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

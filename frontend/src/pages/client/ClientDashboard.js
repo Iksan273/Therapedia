@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { CalendarHeart, Sparkles, Wallet } from "lucide-react";
+import { CalendarHeart, Sparkles, Wallet, Clock, User, HeartHandshake, ShieldCheck, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -44,97 +44,125 @@ export default function ClientDashboard() {
 
   return (
     <div className="max-w-3xl space-y-6" data-testid="client-dashboard-page">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Hi, {client.parentName.split(" ")[0]}!</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          Here's how {client.clientName}'s therapy journey is going.
-        </p>
+      {/* Welcome Banner */}
+      <div className="rounded-2xl bg-gradient-to-r from-sky-600 to-sky-700 text-white p-6 sm:p-7 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-sky-100 text-xs font-semibold backdrop-blur-xs">
+              <HeartHandshake className="w-3.5 h-3.5" />
+              Parent & Family Portal
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Hello, {client.parentName.split(" ")[0]}!
+            </h1>
+            <p className="text-xs sm:text-sm text-sky-100/90 font-medium">
+              Tracking <span className="font-bold text-white underline decoration-sky-300">{client.clientName}'s</span> growth and developmental milestones with Therapedia.
+            </p>
+          </div>
+          <div className="shrink-0 bg-white/10 backdrop-blur-xs px-4 py-2.5 rounded-xl border border-white/20 text-right">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-sky-200">Patient ID</p>
+            <p className="font-mono text-sm font-bold text-white">#{client.clientAccessCode}</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Credit card */}
-        <Card className="rounded-xl border-[var(--color-border)] shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-[var(--color-primary-dark)]" /> Remaining Credit
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden clinical-card">
+          <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+                <Wallet className="w-4 h-4" />
+              </div>
+              Package & Credit Balance
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="p-5 space-y-3.5">
             {record ? (
               <>
-                <p className="text-3xl font-semibold tabular-nums" data-testid="client-portal-remaining-credit">
+                <p className="text-3xl font-extrabold text-slate-900 tabular-nums" data-testid="client-portal-remaining-credit">
                   {record.remainingCredit}
-                  <span className="text-base font-normal text-[var(--color-text-muted)]"> / {record.totalCredit} sessions</span>
+                  <span className="text-sm font-semibold text-slate-400"> / {record.totalCredit} sessions left</span>
                 </p>
                 <CreditBar remaining={record.remainingCredit} total={record.totalCredit} compact />
                 <LeaveInfo leaveUsed={record.leaveUsed} leaveQuota={record.leaveQuota} />
               </>
             ) : (
-              <p className="text-sm text-[var(--color-text-muted)]">No active package yet — the clinic will set this up on admission.</p>
+              <p className="text-xs text-slate-400 italic">No active package assigned yet — clinic team will activate upon enrollment.</p>
             )}
           </CardContent>
         </Card>
 
         {/* Next session */}
-        <Card className="rounded-xl border-[var(--color-border)] shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CalendarHeart className="w-4 h-4 text-[var(--color-primary-dark)]" /> Next Session
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden clinical-card">
+          <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                <CalendarHeart className="w-4 h-4" />
+              </div>
+              Upcoming Session
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-5">
             {nextSession ? (
-              <div className="space-y-1" data-testid="client-portal-next-session">
-                <p className="text-lg font-semibold">{fmtDate(nextSession.date)}</p>
-                <p className="text-sm text-[var(--color-text-muted)] tabular-nums">
-                  {nextSession.startTime}–{nextSession.endTime} · {getTherapist(nextSession.therapistId) ? getTherapist(nextSession.therapistId).name : ""}
+              <div className="space-y-2" data-testid="client-portal-next-session">
+                <p className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  {fmtDate(nextSession.date)}
                 </p>
-                <StatusBadge status={nextSession.type} />
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 tabular-nums">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{nextSession.startTime}–{nextSession.endTime}</span>
+                  <span>·</span>
+                  <span className="text-slate-800 font-bold">{getTherapist(nextSession.therapistId) ? getTherapist(nextSession.therapistId).name : "Practitioner"}</span>
+                </div>
+                <div className="pt-1">
+                  <StatusBadge status={nextSession.type} />
+                </div>
               </div>
             ) : (
-              <p className="text-sm text-[var(--color-text-muted)]">No upcoming sessions scheduled. The clinic will be in touch.</p>
+              <p className="text-xs text-slate-400 italic">No upcoming session slots booked. The clinic coordinator will contact you.</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* History */}
-      <Card className="rounded-xl border-[var(--color-border)] shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Therapy History</CardTitle>
+      {/* Therapy History */}
+      <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+          <CardTitle className="text-sm font-bold text-slate-900">Therapy & Progress History ({history.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {history.length === 0 ? (
-            <EmptyState icon={CalendarHeart} title="No sessions yet" subtitle="Your therapy history will appear here after your first session." />
+            <EmptyState icon={CalendarHeart} title="No therapy sessions logged yet" subtitle="Your child's attendance and therapist notes will appear here." />
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-[var(--color-surface)]">
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Therapist</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Therapist's Note</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
+                <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
+                  <TableHead className="font-bold text-slate-700 text-xs py-3 pl-6">Session Date</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs">Time</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs">Therapist</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs">Type</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs">Clinical Observation</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs text-right pr-6">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody data-testid="client-portal-history-table">
                 {history.map((s) => (
-                  <TableRow key={s.id} className="hover:bg-[rgba(47,168,224,0.04)]">
-                    <TableCell className="font-medium">{fmtDate(s.date)}</TableCell>
-                    <TableCell className="tabular-nums text-[var(--color-text-muted)]">{s.startTime}–{s.endTime}</TableCell>
-                    <TableCell className="text-[var(--color-text-muted)]">{getTherapist(s.therapistId) ? getTherapist(s.therapistId).name : "—"}</TableCell>
+                  <TableRow key={s.id} className="hover:bg-sky-50/30 transition-colors border-b border-slate-100">
+                    <TableCell className="font-bold text-xs text-slate-900 pl-6">{fmtDate(s.date)}</TableCell>
+                    <TableCell className="tabular-nums font-semibold text-xs text-slate-500">{s.startTime}–{s.endTime}</TableCell>
+                    <TableCell className="text-xs font-semibold text-slate-700">{getTherapist(s.therapistId) ? getTherapist(s.therapistId).name : "—"}</TableCell>
                     <TableCell><StatusBadge status={s.type} /></TableCell>
                     <TableCell className="max-w-[220px]">
                       {s.progressNote ? (
-                        <span className="text-xs text-[var(--color-text-muted)] italic leading-snug line-clamp-2" title={s.progressNote}>
+                        <span className="text-xs text-slate-700 bg-slate-50 border border-slate-100 rounded-lg p-1.5 block line-clamp-2 leading-snug" title={s.progressNote}>
                           {s.progressNote}
                         </span>
                       ) : (
-                        <span className="text-xs text-[var(--color-text-muted)]">—</span>
+                        <span className="text-xs text-slate-400 italic">No notes</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right"><StatusBadge status={s.status} /></TableCell>
+                    <TableCell className="text-right pr-6"><StatusBadge status={s.status} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -145,3 +173,4 @@ export default function ClientDashboard() {
     </div>
   );
 }
+

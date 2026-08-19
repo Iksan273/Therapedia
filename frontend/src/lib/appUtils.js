@@ -1,4 +1,4 @@
-import { addWeeks, differenceInYears, format, parseISO } from "date-fns";
+import { addDays, addWeeks, differenceInYears, format, parseISO, startOfWeek } from "date-fns";
 import { clearPersistedData } from "@/hooks/useLocalStorage";
 
 export const uid = () =>
@@ -28,36 +28,39 @@ export const PIPELINE_STATUSES = [
 ];
 
 export const STATUS_META = {
-  inquiry: { label: "Inquiry", cls: "bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]" },
-  pending: { label: "Pending", cls: "bg-amber-50 text-amber-600" },
-  assessment_scheduled: { label: "Assessment Scheduled", cls: "bg-blue-50 text-blue-600" },
-  assessment_done: { label: "Assessment Done", cls: "bg-sky-50 text-sky-700" },
-  report_ready: { label: "Report Ready", cls: "bg-violet-50 text-violet-600" },
-  scheduling: { label: "Scheduling", cls: "bg-cyan-50 text-cyan-700" },
-  admitted: { label: "Admitted", cls: "bg-green-50 text-green-600" },
-  active: { label: "Active", cls: "bg-green-50 text-green-600" },
-  discontinued: { label: "Discontinued", cls: "bg-red-50 text-red-600" },
-  discharged: { label: "Discharged", cls: "bg-gray-100 text-gray-600" },
-  scheduled: { label: "Scheduled", cls: "bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]" },
-  completed: { label: "Completed", cls: "bg-green-50 text-green-600" },
-  cancelled: { label: "Cancelled", cls: "bg-red-50 text-red-600" },
-  rescheduled: { label: "Rescheduled", cls: "bg-amber-50 text-amber-600" },
-  unpaid: { label: "Unpaid", cls: "bg-amber-50 text-amber-600" },
-  paid: { label: "Paid", cls: "bg-green-50 text-green-600" },
-  frozen: { label: "Frozen (0 Credit)", cls: "bg-cyan-100 text-cyan-900 border border-cyan-300" },
-  therapy: { label: "Therapy", cls: "bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]" },
-  assessment: { label: "Assessment", cls: "bg-violet-50 text-violet-600" },
-  consultation: { label: "Consultation", cls: "bg-cyan-50 text-cyan-700" },
+  inquiry: { label: "Inquiry", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
+  pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
+  assessment_scheduled: { label: "Assessment Scheduled", cls: "bg-blue-50 text-blue-700 border border-blue-200/70" },
+  assessment_done: { label: "Assessment Done", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
+  report_ready: { label: "Report Ready", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
+  scheduling: { label: "Scheduling", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
+  admitted: { label: "Admitted", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  active: { label: "Active", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  discontinued: { label: "Discontinued", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
+  discharged: { label: "Discharged", cls: "bg-slate-100 text-slate-700 border border-slate-200/80" },
+  scheduled: { label: "Scheduled", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
+  completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  cancelled: { label: "Cancelled", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
+  rescheduled: { label: "Rescheduled", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
+  unpaid: { label: "Unpaid", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
+  paid: { label: "Paid", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  frozen: { label: "Frozen (0 Credit)", cls: "bg-cyan-50 text-cyan-800 border border-cyan-300" },
+  therapy: { label: "OT / Sensory", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
+  therapy_speech: { label: "Speech Therapy", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  therapy_physio: { label: "Physiotherapy", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
+  therapy_behavior: { label: "Behavior Therapy", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
+  assessment: { label: "Assessment", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
+  consultation: { label: "Consultation", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
 };
 
 export const CONCERN_TAGS = [
-  { value: "sensory", label: "Sensory", cls: "bg-violet-50 text-violet-600" },
-  { value: "motor", label: "Motor Skills", cls: "bg-blue-50 text-blue-600" },
-  { value: "speech", label: "Speech", cls: "bg-cyan-50 text-cyan-700" },
-  { value: "behavior", label: "Behaviour", cls: "bg-amber-50 text-amber-600" },
-  { value: "social", label: "Social", cls: "bg-pink-50 text-pink-600" },
-  { value: "feeding", label: "Feeding", cls: "bg-green-50 text-green-600" },
-  { value: "attention", label: "Attention / Focus", cls: "bg-orange-50 text-orange-600" },
+  { value: "sensory", label: "Sensory", cls: "bg-purple-50 text-purple-700 border border-purple-200/60" },
+  { value: "motor", label: "Motor Skills", cls: "bg-blue-50 text-blue-700 border border-blue-200/60" },
+  { value: "speech", label: "Speech", cls: "bg-teal-50 text-teal-700 border border-teal-200/60" },
+  { value: "behavior", label: "Behaviour", cls: "bg-amber-50 text-amber-700 border border-amber-200/60" },
+  { value: "social", label: "Social", cls: "bg-rose-50 text-rose-700 border border-rose-200/60" },
+  { value: "feeding", label: "Feeding", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/60" },
+  { value: "attention", label: "Attention / Focus", cls: "bg-orange-50 text-orange-700 border border-orange-200/60" },
 ];
 
 export const DISCHARGE_REASONS = [
@@ -81,9 +84,12 @@ export const PACKAGE_OPTIONS = [
 ];
 
 export const SESSION_TYPES = [
-  { value: "therapy", label: "Therapy" },
-  { value: "assessment", label: "Assessment" },
-  { value: "consultation", label: "Consultation" },
+  { value: "therapy", label: "Occupational / Sensory Therapy", shortLabel: "OT / Sensory" },
+  { value: "therapy_speech", label: "Speech & Language Therapy", shortLabel: "Speech Therapy" },
+  { value: "therapy_physio", label: "Physiotherapy & Gross Motor", shortLabel: "Physiotherapy" },
+  { value: "therapy_behavior", label: "Behavioral & Early Intervention", shortLabel: "Behavior Therapy" },
+  { value: "assessment", label: "Clinical Assessment", shortLabel: "Assessment" },
+  { value: "consultation", label: "Specialist Consultation", shortLabel: "Consultation" },
 ];
 
 export const CALENDAR_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -147,25 +153,25 @@ export function checkConflicts({ therapistId, date, startTime, endTime, schedule
 }
 
 export const WEEKDAY_OPTIONS = [
-  { id: "Monday", label: "Senin", short: "Sen" },
-  { id: "Tuesday", label: "Selasa", short: "Sel" },
-  { id: "Wednesday", label: "Rabu", short: "Rab" },
-  { id: "Thursday", label: "Kamis", short: "Kam" },
-  { id: "Friday", label: "Jumat", short: "Jum" },
-  { id: "Saturday", label: "Sabtu", short: "Sab" },
+  { id: "Monday", label: "Monday", short: "Mon" },
+  { id: "Tuesday", label: "Tuesday", short: "Tue" },
+  { id: "Wednesday", label: "Wednesday", short: "Wed" },
+  { id: "Thursday", label: "Thursday", short: "Thu" },
+  { id: "Friday", label: "Friday", short: "Fri" },
+  { id: "Saturday", label: "Saturday", short: "Sat" },
 ];
 
-export function buildRecurringSchedules(base, weeks = 12, selectedDays = [], dayTimes = {}) {
+export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayConfigs = {}) {
   const startAnchor = parseISO(base.date);
 
-  // If no multi-day selection provided, fallback to standard single-day weekly recurrence
+  // If no multi-day selection provided, fallback to standard single-day recurrence
   if (!selectedDays || selectedDays.length === 0) {
     return Array.from({ length: weeks }, (_, i) => ({
       ...base,
       id: i === 0 ? base.id : uid(),
       date: format(addWeeks(startAnchor, i), "yyyy-MM-dd"),
-      isRecurring: true,
-      recurrenceRule: "weekly",
+      isRecurring: weeks > 1,
+      recurrenceRule: weeks > 1 ? "weekly" : "none",
     }));
   }
 
@@ -189,9 +195,11 @@ export function buildRecurringSchedules(base, weeks = 12, selectedDays = [], day
       const targetDate = addDays(currentWeekMonday, dayOffset);
       const targetDateStr = format(targetDate, "yyyy-MM-dd");
 
-      const customTime = dayTimes[dayName] || {};
-      const slotStart = customTime.startTime || base.startTime;
-      const slotEnd = customTime.endTime || base.endTime;
+      const config = dayConfigs[dayName] || {};
+      const slotStart = config.startTime || base.startTime;
+      const slotEnd = config.endTime || base.endTime;
+      const slotTherapist = config.therapistId || base.therapistId;
+      const slotType = config.type || base.type;
 
       results.push({
         ...base,
@@ -199,8 +207,10 @@ export function buildRecurringSchedules(base, weeks = 12, selectedDays = [], day
         date: targetDateStr,
         startTime: slotStart,
         endTime: slotEnd,
-        isRecurring: true,
-        recurrenceRule: `weekly_${selectedDays.join(",")}`,
+        therapistId: slotTherapist,
+        type: slotType,
+        isRecurring: weeks > 1,
+        recurrenceRule: weeks > 1 ? `weekly_${selectedDays.join(",")}` : "single_week",
       });
     });
   }
@@ -209,19 +219,29 @@ export function buildRecurringSchedules(base, weeks = 12, selectedDays = [], day
 }
 
 export function makeInquiryClient(form) {
+  const serviceTypes = form.serviceTypes && form.serviceTypes.length > 0
+    ? form.serviceTypes
+    : form.serviceType
+    ? [form.serviceType]
+    : ["assessment"];
+
   return {
     id: uid(),
-    status: "inquiry",
+    status: form.status || "inquiry",
     clientName: form.clientName.trim(),
     parentName: form.parentName.trim(),
     parentContact: form.parentContact.trim(),
-    parentEmail: form.parentEmail.trim(),
+    parentEmail: (form.parentEmail || "").trim(),
     parentComplaint: (form.parentComplaint || "").trim(),
     concernTags: form.concernTags || [],
     dob: form.dob,
-    serviceType: null,
-    assessmentCategoryId: null,
-    assessmentAccessCode: null,
+    serviceTypes,
+    serviceType: serviceTypes[0] || "assessment",
+    urgency: form.urgency || "regular",
+    timePreference: form.timePreference || "anytime",
+    isWaitingList: Boolean(form.isWaitingList),
+    assessmentCategoryId: form.assessmentCategoryId || null,
+    assessmentAccessCode: form.assessmentAccessCode || null,
     assessmentAnswers: [],
     assessmentReportNote: null,
     invoice: null,

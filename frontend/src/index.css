@@ -4,56 +4,65 @@
 
 body {
     margin: 0;
-    font-family: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Plus Jakarta Sans", "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: #f8fafc;
+    color: #0f172a;
 }
 
 code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-feature-settings: "tnum";
 }
 
 @layer base {
     :root {
-        /* Therapedia design tokens */
-        --color-primary: #2FA8E0;
-        --color-primary-dark: #1C7FB0;
-        --color-primary-light: #E6F4FB;
-        --color-text: #333333;
-        --color-text-muted: #6B7280;
-        --color-border: #E5E7EB;
-        --color-background: #FFFFFF;
-        --color-surface: #F8FAFC;
-        --color-success: #22C55E;
-        --color-warning: #F59E0B;
-        --color-danger: #EF4444;
-        --color-info: #3B82F6;
+        /* Therapedia Pediatric Healthcare Tokens */
+        --color-primary: #0284c7;
+        --color-primary-dark: #0369a1;
+        --color-primary-light: #e0f2fe;
+        --color-primary-hover: #075985;
+        --color-text: #0f172a;
+        --color-text-muted: #64748b;
+        --color-border: #e2e8f0;
+        --color-background: #ffffff;
+        --color-surface: #f8fafc;
+        --color-surface-subtle: #f1f5f9;
+        --color-success: #16a34a;
+        --color-success-light: #dcfce7;
+        --color-warning: #d97706;
+        --color-warning-light: #fef3c7;
+        --color-danger: #dc2626;
+        --color-danger-light: #fee2e2;
+        --color-info: #0284c7;
+        --color-info-light: #e0f2fe;
 
-        /* shadcn tokens mapped to the brand */
-        --background: 0 0% 100%;
-        --foreground: 0 0% 20%;
+        /* shadcn tokens mapped to healthcare palette */
+        --background: 210 40% 98%;
+        --foreground: 222.2 84% 4.9%;
         --card: 0 0% 100%;
-        --card-foreground: 0 0% 20%;
+        --card-foreground: 222.2 84% 4.9%;
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 20%;
-        --primary: 199 74% 53%;
+        --popover-foreground: 222.2 84% 4.9%;
+        --primary: 199 89% 40%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 210 40% 98%;
-        --secondary-foreground: 0 0% 20%;
-        --muted: 210 40% 98%;
-        --muted-foreground: 220 9% 46%;
-        --accent: 201 76% 94%;
-        --accent-foreground: 202 73% 40%;
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222.2 47.4% 11.2%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --accent: 199 89% 94%;
+        --accent-foreground: 199 89% 25%;
         --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 220 13% 91%;
-        --input: 220 13% 91%;
-        --ring: 199 74% 53%;
-        --chart-1: 199 74% 53%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 199 89% 40%;
+        --chart-1: 199 89% 40%;
         --chart-2: 142 71% 45%;
-        --chart-3: 0 84% 60%;
-        --chart-4: 38 92% 50%;
-        --chart-5: 217 91% 60%;
+        --chart-3: 38 92% 50%;
+        --chart-4: 0 84% 60%;
+        --chart-5: 262 83% 58%;
         --radius: 0.75rem;
     }
 }
@@ -63,28 +72,51 @@ code {
         @apply border-border;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-surface text-foreground;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     }
 }
 
-/* Subtle scrollbars */
+/* Clinical subtle scrollbars */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 ::-webkit-scrollbar-track {
     background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: #d7dde3;
-    border-radius: 8px;
+    background: #cbd5e1;
+    border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #b9c3cc;
+    background: #94a3b8;
 }
 
 .noise-bg {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");
+}
+
+/* Clinical glass & card elevations */
+.glass-header {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.clinical-card {
+    background: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 1px 3px rgba(2, 132, 199, 0.03), 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.clinical-card-hover {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.clinical-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08), 0 12px 28px rgba(15, 23, 42, 0.06);
+    border-color: rgba(186, 230, 253, 0.8);
 }
 
 @layer base {

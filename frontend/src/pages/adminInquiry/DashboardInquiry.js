@@ -2,8 +2,22 @@ import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, subMonths } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { ClipboardList, Hourglass, CalendarCheck, FileCheck2, FileText, CalendarRange, UserCheck, UserX, MailWarning } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ClipboardList,
+  Hourglass,
+  CalendarCheck,
+  FileCheck2,
+  FileText,
+  CalendarRange,
+  UserCheck,
+  UserX,
+  MailWarning,
+  ArrowRight,
+  TrendingDown,
+  Sparkles,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/common/StatCard";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useClients } from "@/context/ClientsContext";
@@ -32,6 +46,20 @@ const STATUS_ACCENTS = {
   discontinued: "danger",
 };
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900 text-white px-3 py-2 rounded-xl text-xs shadow-lg border border-slate-800">
+        <p className="font-semibold">{label}</p>
+        <p className="text-rose-400 mt-0.5">
+          {payload[0].value} {payload[0].value === 1 ? "client" : "clients"} discontinued / discharged
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function DashboardInquiry() {
   const navigate = useNavigate();
   const { clients } = useClients();
@@ -44,6 +72,8 @@ export default function DashboardInquiry() {
     });
     return map;
   }, [clients]);
+
+  const totalInquiries = clients.filter((c) => c.status !== "discharged").length;
 
   const awaiting = useMemo(
     () =>
@@ -72,14 +102,32 @@ export default function DashboardInquiry() {
   }, [clients]);
 
   return (
-    <div className="space-y-6" data-testid="dashboard-inquiry-page">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Inquiry Dashboard</h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">Pipeline overview and follow-ups that need attention.</p>
+    <div className="space-y-7" data-testid="dashboard-inquiry-page">
+      {/* Header section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 text-sky-800 text-xs font-semibold mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+            Intake & Pipeline Intelligence
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            Inquiry & Intake Dashboard
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Real-time pipeline overview, intake progression, and action items requiring parent follow-up.
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate("/admin-inquiry/pipeline")}
+          className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl gap-2 shadow-sm shadow-sky-600/20 w-fit"
+        >
+          View Pipeline Kanban
+          <ArrowRight className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* Pipeline counts */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {PIPELINE_STATUSES.map((status) => (
           <StatCard
             key={status}
@@ -95,51 +143,78 @@ export default function DashboardInquiry() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Monthly discontinued chart */}
-        <Card className="rounded-xl border-[var(--color-border)] shadow-sm lg:col-span-7">
+        <Card className="clinical-card rounded-2xl border-slate-200/90 lg:col-span-7">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Discontinued / Discharged per Month</CardTitle>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900">Discontinued & Discharge Trends</CardTitle>
+                <CardDescription className="text-xs text-slate-500">6-month overview of client dropouts and discharges</CardDescription>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                <TrendingDown className="w-4 h-4 stroke-[2.2]" />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="h-64">
+          <CardContent className="h-72 pt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyDiscontinued} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(229,231,235,0.9)" />
-                <XAxis dataKey="month" tick={{ fill: "#6B7280", fontSize: 12 }} />
-                <YAxis allowDecimals={false} tick={{ fill: "#6B7280", fontSize: 12 }} />
-                <Tooltip cursor={{ fill: "rgba(47,168,224,0.06)" }} />
-                <Bar dataKey="count" name="Clients" fill="#EF4444" radius={[6, 6, 0, 0]} maxBarSize={44} />
+              <BarChart data={monthlyDiscontinued} margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="roseGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#BE123C" stopOpacity={0.7} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="count" name="Clients" fill="url(#roseGradient)" radius={[8, 8, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Awaiting assessment list */}
-        <Card className="rounded-xl border-[var(--color-border)] shadow-sm lg:col-span-5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Assessments Awaiting Parent Response</CardTitle>
+        <Card className="clinical-card rounded-2xl border-slate-200/90 lg:col-span-5 flex flex-col">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900">Awaiting Parent Assessment</CardTitle>
+                <CardDescription className="text-xs text-slate-500">Forms sent but pending parent submission</CardDescription>
+              </div>
+              <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80 px-2.5 py-0.5 rounded-full">
+                {awaiting.length} Pending
+              </span>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 flex-1">
             {awaiting.length === 0 ? (
-              <EmptyState icon={MailWarning} title="All caught up" subtitle="Every generated assessment code has been filled in." />
+              <EmptyState icon={MailWarning} title="All caught up!" subtitle="Every generated assessment code has been filled by parents." />
             ) : (
-              <ul className="divide-y divide-[var(--color-border)]" data-testid="awaiting-assessment-list">
+              <ul className="divide-y divide-slate-100 space-y-1" data-testid="awaiting-assessment-list">
                 {awaiting.map((c) => {
                   const cat = getCategory(c.assessmentCategoryId);
                   return (
                     <li
                       key={c.id}
-                      className="py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-[rgba(47,168,224,0.04)] rounded-lg px-2 -mx-2"
+                      className="py-3 px-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-sky-50/60 rounded-xl transition-colors group"
                       onClick={() => navigate(`/admin-inquiry/clients/${c.id}`)}
                       data-testid={`awaiting-assessment-item-${c.id}`}
                     >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{c.clientName}</p>
-                        <p className="text-xs text-[var(--color-text-muted)] truncate">
-                          {cat ? cat.categoryName : "Category not set"} · sent {fmtDate(c.updatedAt)}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-sky-700 truncate">
+                          {c.clientName}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">
+                          {cat ? cat.categoryName : "Assessment category pending"} · {fmtDate(c.updatedAt)}
                         </p>
                       </div>
-                      <span className="font-mono text-xs bg-[var(--color-primary-light)] text-[var(--color-primary-dark)] rounded-full px-2.5 py-1">
-                        {c.assessmentAccessCode}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-mono text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200/80 rounded-lg px-2.5 py-1 tracking-wider">
+                          {c.assessmentAccessCode}
+                        </span>
+                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-sky-600 transition-transform group-hover:translate-x-0.5" />
+                      </div>
                     </li>
                   );
                 })}
@@ -151,3 +226,4 @@ export default function DashboardInquiry() {
     </div>
   );
 }
+

@@ -15,6 +15,7 @@ import DashboardInquiry from "@/pages/adminInquiry/DashboardInquiry";
 import InquiryPipeline from "@/pages/adminInquiry/InquiryPipeline";
 import ClientDetailInquiry from "@/pages/adminInquiry/ClientDetailInquiry";
 import AssessmentMasterData from "@/pages/adminInquiry/AssessmentMasterData";
+import WaitingListHub from "@/pages/adminInquiry/WaitingListHub";
 import DashboardSchedule from "@/pages/adminSchedule/DashboardSchedule";
 import ActiveClients from "@/pages/adminSchedule/ActiveClients";
 import ActiveClientDetail from "@/pages/adminSchedule/ActiveClientDetail";
@@ -60,6 +61,7 @@ function App() {
                     >
                       <Route index element={<DashboardInquiry />} />
                       <Route path="pipeline" element={<InquiryPipeline />} />
+                      <Route path="waiting-list" element={<WaitingListHub />} />
                       <Route path="clients/:id" element={<ClientDetailInquiry />} />
                       <Route path="assessments" element={<AssessmentMasterData />} />
                     </Route>

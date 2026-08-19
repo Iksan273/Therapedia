@@ -10,6 +10,8 @@ import {
   ListChecks,
   Plus,
   XCircle,
+  CalendarDays,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -199,33 +201,42 @@ export default function CalendarPage() {
     });
 
   return (
-    <div className="space-y-5" data-testid="weekly-calendar-page">
+    <div className="space-y-6" data-testid="weekly-calendar-page">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Therapy Calendar</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 text-sky-800 text-xs font-semibold mb-2">
+            <CalendarDays className="w-3.5 h-3.5 text-sky-600" />
+            Clinical Timetable
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            Weekly Therapy Calendar
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
             {view === "week"
-              ? "Click an empty slot to add a session, or use Bulk Mode for multi-session updates."
-              : "Today's agenda \u2014 tap a session to manage it."}
+              ? "Click any time slot to schedule sessions or switch to Bulk Mode for multi-client adjustments."
+              : "Day Agenda overview — tap sessions to view and edit progress notes."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Button
             variant={isBulkMode ? "default" : "outline"}
-            className={cn(isBulkMode && "bg-[var(--color-primary-dark)] text-white")}
+            className={cn(
+              "rounded-xl font-semibold text-xs border-slate-200 h-10",
+              isBulkMode ? "bg-sky-700 text-white hover:bg-sky-800" : "text-slate-700 hover:bg-sky-50"
+            )}
             onClick={() => {
               setIsBulkMode(!isBulkMode);
               if (isBulkMode) clearSelection();
             }}
             data-testid="calendar-bulk-mode-toggle"
           >
-            <ListChecks className="w-4 h-4 mr-2" />
+            <ListChecks className="w-4 h-4 mr-2 text-sky-600" />
             {isBulkMode ? "Exit Bulk Mode" : "Bulk Operations"}
           </Button>
 
           <Button
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] gap-2"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl gap-2 shadow-sm shadow-sky-600/20 h-10"
             onClick={() => setAddModal({ open: true, defaults: {} })}
             data-testid="calendar-add-session-button"
           >
@@ -237,19 +248,19 @@ export default function CalendarPage() {
       {/* Bulk Toolbar if Bulk Mode Active */}
       {isBulkMode && (
         <div
-          className="rounded-xl border border-[var(--color-primary)] bg-[var(--color-primary-light)] p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-sm"
+          className="rounded-2xl border border-sky-300 bg-sky-50 p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs"
           data-testid="calendar-bulk-toolbar"
         >
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary-dark)]">
+            <span className="text-xs font-bold uppercase tracking-wider text-sky-900 bg-sky-200/70 px-2.5 py-1 rounded-lg">
               {selectedSessionIds.length} Session(s) Selected
             </span>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={selectAllVisible}>
+            <Button size="sm" variant="ghost" className="h-8 text-xs font-semibold text-sky-800 hover:bg-sky-100 rounded-lg" onClick={selectAllVisible}>
               Select All Visible
             </Button>
             {selectedSessionIds.length > 0 && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs text-red-600" onClick={clearSelection}>
-                Clear
+              <Button size="sm" variant="ghost" className="h-8 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg" onClick={clearSelection}>
+                Clear Selection
               </Button>
             )}
           </div>
@@ -257,7 +268,7 @@ export default function CalendarPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              className="bg-[var(--color-success)] hover:bg-green-600 gap-1.5 h-8 text-xs"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl gap-1.5 h-9 text-xs"
               disabled={selectedSessionIds.length === 0}
               onClick={handleBulkComplete}
               data-testid="bulk-complete-button"
@@ -267,7 +278,7 @@ export default function CalendarPage() {
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 h-8 text-xs bg-white"
+              className="gap-1.5 h-9 text-xs bg-white border-slate-200 font-semibold rounded-xl"
               disabled={selectedSessionIds.length === 0}
               onClick={() => setBulkRescheduleOpen(true)}
               data-testid="bulk-reschedule-button"
@@ -277,7 +288,7 @@ export default function CalendarPage() {
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 h-8 text-xs bg-white text-red-600 hover:text-red-700"
+              className="gap-1.5 h-9 text-xs bg-white text-rose-600 hover:text-rose-700 border-rose-200 hover:bg-rose-50 font-semibold rounded-xl"
               disabled={selectedSessionIds.length === 0}
               onClick={() => setBulkCancelOpen(true)}
               data-testid="bulk-cancel-button"
@@ -289,50 +300,50 @@ export default function CalendarPage() {
       )}
 
       {/* Date controls and filters */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" onClick={goPrev} aria-label="Previous" data-testid="calendar-prev-week-button">
-            <ChevronLeft className="w-4 h-4" />
+          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-9 w-9" onClick={goPrev} aria-label="Previous" data-testid="calendar-prev-week-button">
+            <ChevronLeft className="w-4 h-4 text-slate-600" />
           </Button>
-          <Button variant="outline" onClick={goToday} data-testid="calendar-today-button">
+          <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-semibold text-slate-700 h-9" onClick={goToday} data-testid="calendar-today-button">
             Today
           </Button>
-          <Button variant="outline" size="icon" onClick={goNext} aria-label="Next" data-testid="calendar-next-week-button">
-            <ChevronRight className="w-4 h-4" />
+          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-9 w-9" onClick={goNext} aria-label="Next" data-testid="calendar-next-week-button">
+            <ChevronRight className="w-4 h-4 text-slate-600" />
           </Button>
-          <span className="text-sm font-medium ml-1 tabular-nums" data-testid="calendar-week-label">
+          <span className="text-sm font-bold text-slate-900 ml-2 tabular-nums" data-testid="calendar-week-label">
             {label}
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* View toggle */}
-          <div className="flex rounded-lg border border-[var(--color-border)] overflow-hidden" data-testid="calendar-view-toggle">
+          <div className="flex rounded-xl border border-slate-200 p-0.5 bg-slate-100" data-testid="calendar-view-toggle">
             <button
               type="button"
               onClick={() => setView("week")}
               className={cn(
-                "px-3 py-1.5 text-xs font-medium transition-colors",
+                "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
                 view === "week"
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "bg-white text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
+                  ? "bg-white text-sky-800 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
               )}
               data-testid="calendar-view-week-button"
             >
-              Week
+              Week Grid
             </button>
             <button
               type="button"
               onClick={() => setView("day")}
               className={cn(
-                "px-3 py-1.5 text-xs font-medium transition-colors",
+                "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
                 view === "day"
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "bg-white text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
+                  ? "bg-white text-sky-800 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
               )}
               data-testid="calendar-view-day-button"
             >
-              Day
+              Day Agenda
             </button>
           </div>
 
@@ -341,28 +352,28 @@ export default function CalendarPage() {
             type="button"
             onClick={() => setShowDischarged(!showDischarged)}
             className={cn(
-              "px-3 py-1.5 text-xs font-medium rounded-lg border transition-all flex items-center gap-1.5",
+              "px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer",
               showDischarged
-                ? "bg-gray-800 text-white border-gray-800"
-                : "bg-white text-[var(--color-text-muted)] border-[var(--color-border)] hover:bg-gray-50"
+                ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
             )}
-            title="Sembunyikan atau tampilkan jadwal klien berstatus Discharge"
+            title="Toggle visibility of discharged clients"
             data-testid="calendar-toggle-discharged"
           >
-            <Filter className="w-3 h-3" />
+            <Filter className="w-3.5 h-3.5" />
             {showDischarged ? "Showing Discharged" : "Hide Discharged"}
           </button>
 
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <CalendarLegend />
           </div>
 
           <Select value={therapistFilter} onValueChange={setTherapistFilter}>
-            <SelectTrigger className="w-44 sm:w-48 h-9" data-testid="calendar-therapist-filter">
-              <SelectValue />
+            <SelectTrigger className="w-44 sm:w-48 h-9 text-xs rounded-xl border-slate-200 bg-white font-medium" data-testid="calendar-therapist-filter">
+              <SelectValue placeholder="Filter therapist" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All therapists</SelectItem>
+            <SelectContent className="rounded-xl border-slate-200">
+              <SelectItem value="all">All Therapists</SelectItem>
               {therapists.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.name}
@@ -420,33 +431,36 @@ export default function CalendarPage() {
 
       {/* Bulk Reschedule Dialog */}
       <Dialog open={bulkRescheduleOpen} onOpenChange={setBulkRescheduleOpen}>
-        <DialogContent data-testid="bulk-reschedule-dialog">
+        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="bulk-reschedule-dialog">
           <DialogHeader>
-            <DialogTitle>Bulk Reschedule ({selectedSessionIds.length} Sessions)</DialogTitle>
-            <DialogDescription>Shift all selected sessions to a specific date or offset by days/weeks.</DialogDescription>
+            <DialogTitle className="text-lg font-bold text-slate-900">Bulk Reschedule ({selectedSessionIds.length} Sessions)</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Shift selected sessions by a weekday offset or assign to a target calendar date.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3.5 pt-2">
             <div className="space-y-1.5">
-              <Label>Option 1: Shift by Days Offset</Label>
+              <Label className="text-xs font-bold text-slate-700">Option 1: Shift by Days Offset</Label>
               <Select value={bulkDayOffset} onValueChange={setBulkDayOffset}>
-                <SelectTrigger data-testid="bulk-reschedule-offset-select">
+                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-offset-select">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">No Offset (Use target date below)</SelectItem>
-                  <SelectItem value="1">+1 Hari (Besok)</SelectItem>
-                  <SelectItem value="2">+2 Hari</SelectItem>
-                  <SelectItem value="7">+1 Minggu (7 Hari)</SelectItem>
-                  <SelectItem value="14">+2 Minggu (14 Hari)</SelectItem>
-                  <SelectItem value="-7">-1 Minggu (-7 Hari)</SelectItem>
+                <SelectContent className="rounded-xl border-slate-200">
+                  <SelectItem value="0">No Offset (Use exact target date below)</SelectItem>
+                  <SelectItem value="1">+1 Day (Tomorrow)</SelectItem>
+                  <SelectItem value="2">+2 Days</SelectItem>
+                  <SelectItem value="7">+1 Week (7 Days)</SelectItem>
+                  <SelectItem value="14">+2 Weeks (14 Days)</SelectItem>
+                  <SelectItem value="-7">-1 Week (-7 Days)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Option 2: Set Exact Target Date (Overrides offset)</Label>
+              <Label className="text-xs font-bold text-slate-700">Option 2: Exact Target Date (Overrides offset)</Label>
               <Input
                 type="date"
+                className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
                 value={bulkTargetDate}
                 onChange={(e) => setBulkTargetDate(e.target.value)}
                 data-testid="bulk-reschedule-date-input"
@@ -454,13 +468,13 @@ export default function CalendarPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Reassign Therapist (Optional)</Label>
+              <Label className="text-xs font-bold text-slate-700">Reassign Therapist (Optional)</Label>
               <Select value={bulkTargetTherapist} onValueChange={setBulkTargetTherapist}>
-                <SelectTrigger data-testid="bulk-reschedule-therapist-select">
+                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-therapist-select">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="keep">Keep Current Therapist(s)</SelectItem>
+                <SelectContent className="rounded-xl border-slate-200">
+                  <SelectItem value="keep">Keep Currently Assigned Therapist(s)</SelectItem>
                   {therapists.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
@@ -470,12 +484,12 @@ export default function CalendarPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkRescheduleOpen(false)}>
+          <DialogFooter className="mt-5 gap-2">
+            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setBulkRescheduleOpen(false)}>
               Cancel
             </Button>
             <Button
-              className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)]"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl"
               onClick={handleBulkRescheduleConfirm}
               data-testid="bulk-reschedule-confirm-button"
             >
@@ -487,40 +501,43 @@ export default function CalendarPage() {
 
       {/* Bulk Cancel Dialog */}
       <Dialog open={bulkCancelOpen} onOpenChange={setBulkCancelOpen}>
-        <DialogContent data-testid="bulk-cancel-dialog">
+        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="bulk-cancel-dialog">
           <DialogHeader>
-            <DialogTitle>Bulk Cancel ({selectedSessionIds.length} Sessions)</DialogTitle>
-            <DialogDescription>Cancel all selected sessions with cancellation reason and notes.</DialogDescription>
+            <DialogTitle className="text-lg font-bold text-slate-900">Bulk Cancel ({selectedSessionIds.length} Sessions)</DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Cancel all selected appointments with cancellation reasons recorded in audit logs.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3.5 pt-2">
             <div className="space-y-1.5">
-              <Label>Reason</Label>
+              <Label className="text-xs font-bold text-slate-700">Cancellation Reason</Label>
               <Select value={bulkCancelReason} onValueChange={setBulkCancelReason}>
-                <SelectTrigger data-testid="bulk-cancel-reason-select">
+                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-cancel-reason-select">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="leave">Leave — Count as leave quota, credit preserved</SelectItem>
-                  <SelectItem value="other">Other — No leave/credit deduction</SelectItem>
+                <SelectContent className="rounded-xl border-slate-200">
+                  <SelectItem value="leave">Leave — Count toward leave quota, preserve session credit</SelectItem>
+                  <SelectItem value="other">Other Reason — No leave or credit alteration</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Note (Optional)</Label>
+              <Label className="text-xs font-bold text-slate-700">Cancellation Note (Optional)</Label>
               <Input
-                placeholder="Reason for bulk cancellation..."
+                placeholder="Brief reason for cancellation..."
+                className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
                 value={bulkCancelNote}
                 onChange={(e) => setBulkCancelNote(e.target.value)}
                 data-testid="bulk-cancel-note-input"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkCancelOpen(false)}>
+          <DialogFooter className="mt-5 gap-2">
+            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setBulkCancelOpen(false)}>
               Cancel
             </Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleBulkCancelConfirm} data-testid="bulk-cancel-confirm-button">
+            <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl" onClick={handleBulkCancelConfirm} data-testid="bulk-cancel-confirm-button">
               Confirm Cancel All
             </Button>
           </DialogFooter>
@@ -529,3 +546,4 @@ export default function CalendarPage() {
     </div>
   );
 }
+
