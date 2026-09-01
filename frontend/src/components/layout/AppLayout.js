@@ -9,18 +9,21 @@ import {
   Home,
   RotateCcw,
   LogOut,
-  FilePlus2,
   FileQuestion,
   Menu,
-  Sparkles,
-  ShieldAlert,
-  ChevronRight,
+  ShieldCheck,
   UserCircle2,
   MessageCircle,
-  Clock
+  Building2,
+  TrendingUp,
+  Receipt,
+  UserCog,
+  ShieldAlert,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,45 +39,89 @@ import { WhatsAppAutomationModal } from "@/components/common/WhatsAppAutomationM
 import { useAuth } from "@/context/AuthContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useClients } from "@/context/ClientsContext";
-import { resetDemoData } from "@/lib/appUtils";
+import { resetDemoData, BRANCHES } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 const NAV_CONFIG = {
-  admin_inquiry: {
-    title: "Admin — Inquiry",
-    shortRole: "Inquiry Admin",
+  master: {
+    title: "Master Headquarter",
+    shortRole: "Master Director",
     items: [
-      { to: "/admin-inquiry", label: "Dashboard", icon: LayoutDashboard, end: true, testid: "sidebar-nav-dashboard-link" },
-      { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "sidebar-nav-inquiry-pipeline-link" },
-      { to: "/admin-inquiry/waiting-list", label: "Waiting List Hub", icon: Clock, testid: "sidebar-nav-waiting-list-link" },
-      { to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, testid: "sidebar-nav-assessment-master-link" },
+      { to: "/master/revenue", label: "Revenue All-Branch", icon: TrendingUp, end: true, testid: "nav-master-revenue" },
+      { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, testid: "nav-master-inquiry-dashboard" },
+      { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "nav-master-pipeline" },
+      { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, testid: "nav-master-calendar" },
+      { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "nav-master-clients" },
+      { to: "/finance", label: "Finance & Invoices", icon: Receipt, testid: "nav-master-finance" },
+      { to: "/master/users", label: "User Management", icon: UserCog, testid: "nav-master-users" },
+      { to: "/master/rbac", label: "RBAC Module Access", icon: ShieldCheck, testid: "nav-master-rbac" },
     ],
     extras: [
-      { to: "/inquiry", label: "Public Inquiry Form", icon: FilePlus2, testid: "sidebar-nav-public-inquiry-link" },
-      { to: "/assessment", label: "Assessment Fill Page", icon: FileQuestion, testid: "sidebar-nav-assessment-fill-link" },
+      { to: "/assessment", label: "Parent Questionnaire Portal", icon: FileQuestion, testid: "nav-assessment-fill" },
+    ],
+  },
+  manager: {
+    title: "Branch Manager",
+    shortRole: "Operations Manager",
+    items: [
+      { to: "/manager/revenue", label: "Revenue Overview", icon: TrendingUp, end: true, testid: "nav-manager-revenue" },
+      { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, testid: "nav-manager-inquiry-dashboard" },
+      { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "nav-manager-pipeline" },
+      { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, testid: "nav-manager-calendar" },
+      { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "nav-manager-clients" },
+    ],
+    extras: [
+      { to: "/assessment", label: "Parent Questionnaire Portal", icon: FileQuestion, testid: "nav-assessment-fill" },
+    ],
+  },
+  admin_inquiry: {
+    title: "Admin — Inquiry",
+    shortRole: "Inquiry & Intake Admin",
+    items: [
+      { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, end: true, testid: "nav-inquiry-dashboard" },
+      { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "nav-inquiry-pipeline" },
+      { to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, testid: "nav-assessment-master" },
+    ],
+    extras: [
+      { to: "/assessment", label: "Parent Questionnaire Portal", icon: FileQuestion, testid: "nav-assessment-fill" },
     ],
   },
   admin_schedule: {
     title: "Admin — Schedule",
-    shortRole: "Schedule Admin",
+    shortRole: "Schedule & Timetable Admin",
     items: [
-      { to: "/admin-schedule", label: "Dashboard", icon: LayoutDashboard, end: true, testid: "sidebar-nav-dashboard-link" },
-      { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "sidebar-nav-active-clients-link" },
-      { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, testid: "sidebar-nav-weekly-calendar-link" },
+      { to: "/admin-schedule", label: "Schedule Dashboard", icon: LayoutDashboard, end: true, testid: "nav-schedule-dashboard" },
+      { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, testid: "nav-weekly-calendar" },
+      { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "nav-active-clients" },
+    ],
+    extras: [],
+  },
+  finance: {
+    title: "Role Finance",
+    shortRole: "Billing & Verification Specialist",
+    items: [
+      { to: "/finance", label: "Finance Hub", icon: Receipt, end: true, testid: "nav-finance-hub" },
+      { to: "/admin-schedule/clients", label: "Active Clients Roster", icon: Users, testid: "nav-finance-clients" },
     ],
     extras: [],
   },
   therapist: {
     title: "Therapist Portal",
-    shortRole: "Pediatric OT",
-    items: [{ to: "/therapist", label: "My Schedule", icon: CalendarDays, end: true, testid: "sidebar-nav-my-schedule-link" }],
+    shortRole: "Clinical Practitioner",
+    items: [
+      { to: "/therapist", label: "My Clinical Schedule", icon: CalendarDays, end: true, testid: "nav-my-schedule" }
+    ],
     extras: [],
   },
   client: {
-    title: "Client Portal",
-    shortRole: "Parent Portal",
-    items: [{ to: "/client", label: "My Dashboard", icon: Home, end: true, testid: "sidebar-nav-client-dashboard-link" }],
-    extras: [],
+    title: "Parent Portal",
+    shortRole: "Family Care Account",
+    items: [
+      { to: "/client", label: "My Child Portal", icon: Home, end: true, testid: "nav-client-dashboard" }
+    ],
+    extras: [
+      { to: "/assessment", label: "Fill Questionnaire", icon: FileQuestion, testid: "nav-assessment-fill" },
+    ],
   },
 };
 
@@ -98,7 +145,6 @@ const navLinkClass = ({ isActive }) =>
       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   );
 
-// Shared nav list used by both desktop sidebar and mobile drawer
 const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
   <div className="space-y-6">
     <div className="space-y-1">
@@ -135,7 +181,7 @@ const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
     {config.extras.length > 0 && (
       <div className="space-y-1 pt-2 border-t border-slate-100">
         <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-          Public Portals
+          Questionnaire
         </p>
         {config.extras.map((item) => (
           <NavLink
@@ -182,7 +228,7 @@ const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
         </div>
         <AlertDialogTitle className="text-xl font-bold text-slate-900">Reset all demo data?</AlertDialogTitle>
         <AlertDialogDescription className="text-sm text-slate-600 leading-relaxed">
-          This will clear all changes made during this session and restore the original clinical seed database. The application will reload automatically.
+          This will restore all seed clients, 3 branches, multi-packages, and scheduling timetables to default state.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter className="mt-4 gap-2">
@@ -202,11 +248,10 @@ const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
 );
 
 const AppLayout = () => {
-  const { auth, logout } = useAuth();
+  const { auth, logout, activeBranch, setActiveBranch } = useAuth();
   const { getTherapist } = useTherapists();
   const { getClient } = useClients();
   const navigate = useNavigate();
-  const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [waModalOpen, setWaModalOpen] = useState(false);
 
@@ -214,6 +259,7 @@ const AppLayout = () => {
 
   let identity = config.title;
   let identitySub = config.shortRole;
+
   if (auth.role === "therapist" && auth.therapistId) {
     const t = getTherapist(auth.therapistId);
     identity = t ? t.name : identity;
@@ -224,6 +270,9 @@ const AppLayout = () => {
     identity = c ? `${c.parentName} (${c.clientName})` : identity;
     identitySub = "Parent Account";
   }
+  if (auth.staffName) {
+    identity = auth.staffName;
+  }
 
   const handleSwitchRole = () => {
     setMobileNavOpen(false);
@@ -231,7 +280,8 @@ const AppLayout = () => {
     navigate("/");
   };
 
-  const isStaff = ["admin_inquiry", "admin_schedule", "therapist"].includes(auth.role);
+  const isStaff = ["master", "manager", "admin_inquiry", "admin_schedule", "finance", "therapist"].includes(auth.role);
+  const canSwitchBranch = ["master", "manager"].includes(auth.role);
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -270,7 +320,7 @@ const AppLayout = () => {
 
       {/* Main content area */}
       <div className="md:ml-64 flex-1 flex flex-col min-h-screen min-w-0">
-        {/* Frosted Glass Header */}
+        {/* Top Header */}
         <header className="sticky top-0 z-20 h-16 glass-header border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-3">
           {/* Mobile hamburger & brand */}
           <div className="flex items-center gap-2 md:hidden min-w-0">
@@ -327,13 +377,35 @@ const AppLayout = () => {
             </div>
           </div>
 
-          {/* Desktop header title & context */}
-          <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
-            <span className="font-semibold text-slate-900">Therapedia Developmental Center</span>
+          {/* Desktop header title & branch switcher */}
+          <div className="hidden md:flex items-center gap-3 text-sm text-slate-500">
+            <span className="font-bold text-slate-900">Therapedia Developmental Center</span>
             <span className="text-slate-300">/</span>
-            <span className="text-sky-700 font-medium bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/60 text-xs" data-testid="topbar-identity">
-              {identity}
-            </span>
+
+            {/* Branch Switcher */}
+            {canSwitchBranch ? (
+              <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2 py-1 shadow-2xs">
+                <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <Select value={activeBranch} onValueChange={setActiveBranch}>
+                  <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 gap-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="all">🏢 All Branches (Semua Cabang)</SelectItem>
+                    {BRANCHES.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        📍 {b.name} ({b.city})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <span className="text-slate-700 font-semibold bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200 text-xs flex items-center gap-1">
+                <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                {BRANCHES.find((b) => b.id === (auth.branchId || activeBranch))?.name || "Surabaya Timur"}
+              </span>
+            )}
           </div>
 
           {/* Right actions */}
@@ -344,7 +416,7 @@ const AppLayout = () => {
                 size="sm"
                 className="gap-1.5 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors shadow-2xs font-bold text-xs h-9"
                 onClick={() => setWaModalOpen(true)}
-                title="Open WhatsApp Communication & Automation Hub"
+                title="WhatsApp Hub"
               >
                 <MessageCircle className="w-4 h-4 text-emerald-600" />
                 <span className="hidden sm:inline">WhatsApp Hub</span>
@@ -356,7 +428,7 @@ const AppLayout = () => {
               size="sm"
               className="gap-1.5 rounded-xl border-slate-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs font-semibold text-xs h-9"
               onClick={handleSwitchRole}
-              data-testid="mobile-topbar-switch-role-button"
+              data-testid="topbar-switch-role-button"
             >
               <LogOut className="w-3.5 h-3.5 text-slate-500" />
               <span>Switch Role</span>
@@ -365,16 +437,14 @@ const AppLayout = () => {
         </header>
 
         {/* Main Content View */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1400px] w-full mx-auto">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1440px] w-full mx-auto">
           <Outlet />
         </main>
       </div>
 
-      {/* Universal WhatsApp Automation Modal */}
       <WhatsAppAutomationModal open={waModalOpen} onOpenChange={setWaModalOpen} />
     </div>
   );
 };
 
 export default AppLayout;
-

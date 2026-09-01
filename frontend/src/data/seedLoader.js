@@ -1,12 +1,14 @@
 import { addDays, addWeeks, format, startOfWeek, subDays, subMonths } from "date-fns";
+import branchesSeed from "@/data/branches.seed.json";
 import clientsSeed from "@/data/clients.seed.json";
 import therapistsSeed from "@/data/therapists.seed.json";
 import schedulesSeed from "@/data/schedules.seed.json";
 import creditsSeed from "@/data/credits.seed.json";
 import categoriesSeed from "@/data/assessmentCategories.seed.json";
 
-// Seed loaders transform relative date markers (_createdDaysAgo, _weekOffset, etc.)
-// into real dates anchored to "today", so the demo always feels current.
+export function loadBranchesSeed() {
+  return branchesSeed;
+}
 
 export function loadClientsSeed() {
   const now = new Date();
@@ -40,7 +42,12 @@ export function loadSchedulesSeed() {
 }
 
 export function loadCreditsSeed() {
-  return { records: creditsSeed, renewals: [] };
+  return {
+    masterPackages: creditsSeed.masterPackages || [],
+    records: creditsSeed.records || [],
+    invoices: creditsSeed.invoices || [],
+    renewals: []
+  };
 }
 
 export function loadTherapistsSeed() {

@@ -1,48 +1,181 @@
 [
   {
     "id": "cat-001",
-    "categoryName": "Sensory Processing Assessment",
-    "questions": [
-      { "id": "q-101", "question": "Does your child overreact to loud noises or bright lights?", "type": "yes_no", "options": [] },
-      { "id": "q-102", "question": "How does your child respond to being touched unexpectedly?", "type": "multiple_choice", "options": ["Calmly", "Startles but recovers", "Becomes upset", "Avoids touch entirely"] },
-      { "id": "q-103", "question": "Does your child seek out spinning, swinging, or jumping more than peers?", "type": "yes_no", "options": [] },
-      { "id": "q-104", "question": "Describe any food textures or clothing materials your child avoids.", "type": "text", "options": [] },
-      { "id": "q-105", "question": "How often does your child appear overwhelmed in busy environments?", "type": "multiple_choice", "options": ["Never", "Occasionally", "Often", "Almost always"] },
-      { "id": "q-106", "question": "What calming strategies currently work for your child?", "type": "text", "options": [] }
+    "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+    "domain": "Sensory & Developmental Processing",
+    "standardTitle": "Child Sensory Profile 2",
+    "author": "Winnie Dunn, PhD, OTR, FAOTA",
+    "scoringKey": {
+      "5": "Hampir selalu (90% atau lebih setiap waktu)",
+      "4": "Selalu / Sering (75% setiap waktu)",
+      "3": "Sebagian waktu / Kadang (50% setiap waktu)",
+      "2": "Terkadang / Jarang (25% setiap waktu)",
+      "1": "Hampir tidak pernah (10% setiap waktu)",
+      "0": "Tidak mengobservasi / Tidak meyakini berlaku"
+    },
+    "sections": [
+      {
+        "sectionId": "sec-auditory",
+        "title": "Pemrosesan AUDITORI",
+        "leadText": "Anakku ...",
+        "questions": [
+          { "id": "q-01", "itemNo": 1, "quadrant": "AV", "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))" },
+          { "id": "q-02", "itemNo": 2, "quadrant": "AV", "question": "menutup telinga untuk melindunginya dari suara-suara" },
+          { "id": "q-03", "itemNo": 3, "quadrant": "SN", "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala" },
+          { "id": "q-04", "itemNo": 4, "quadrant": "SN", "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya" },
+          { "id": "q-05", "itemNo": 5, "quadrant": "AV", "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)" },
+          { "id": "q-06", "itemNo": 6, "quadrant": "SN", "question": "terlihat tidak memperdulikan saya atau mengabaikan saya" },
+          { "id": "q-07", "itemNo": 7, "quadrant": "SN", "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)" },
+          { "id": "q-08", "itemNo": 8, "quadrant": "RG", "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri" }
+        ]
+      },
+      {
+        "sectionId": "sec-visual",
+        "title": "Pemrosesan VISUAL",
+        "leadText": "Anakku ...",
+        "questions": [
+          { "id": "q-09", "itemNo": 9, "quadrant": "SN", "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup" },
+          { "id": "q-10", "itemNo": 10, "quadrant": "SK", "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar" },
+          { "id": "q-11", "itemNo": 11, "quadrant": "SK", "question": "senang melihat detil-detil pada obyek" },
+          { "id": "q-12", "itemNo": 12, "quadrant": "RG", "question": "membutuhkan bantuan untuk menemukan benda yang terlihat jelas oleh orang lain" },
+          { "id": "q-13", "itemNo": 13, "quadrant": "SN", "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya" },
+          { "id": "q-14", "itemNo": 14, "quadrant": "SK", "question": "melihat orang-orang yang bergerak di dalam ruangan" },
+          { "id": "q-15", "itemNo": 15, "quadrant": "AV", "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)" }
+        ]
+      },
+      {
+        "sectionId": "sec-tactile",
+        "title": "Pemrosesan SENTUHAN",
+        "leadText": "Anakku ...",
+        "questions": [
+          { "id": "q-16", "itemNo": 16, "quadrant": "SN", "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak atau menangis saat memotong kuku, mencuci rambut, membasuh wajah)" },
+          { "id": "q-17", "itemNo": 17, "quadrant": "AV", "question": "menjadi rewel ketika mengenakan sepatu atau kaos kaki tertentu" },
+          { "id": "q-18", "itemNo": 18, "quadrant": "AV", "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir, atau karpet bertekstur" },
+          { "id": "q-19", "itemNo": 19, "quadrant": "SK", "question": "menyentuh orang atau benda secara berlebihan hingga mengganggu orang lain" },
+          { "id": "q-20", "itemNo": 20, "quadrant": "RG", "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya" }
+        ]
+      },
+      {
+        "sectionId": "sec-vestibular",
+        "title": "Pemrosesan GERAKAN / VESTIBULAR",
+        "leadText": "Anakku ...",
+        "questions": [
+          { "id": "q-21", "itemNo": 21, "quadrant": "SK", "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)" },
+          { "id": "q-22", "itemNo": 22, "quadrant": "AV", "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)" },
+          { "id": "q-23", "itemNo": 23, "quadrant": "SN", "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian" }
+        ]
+      },
+      {
+        "sectionId": "sec-proprioception",
+        "title": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+        "leadText": "Anakku ...",
+        "questions": [
+          { "id": "q-24", "itemNo": 24, "quadrant": "RG", "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan" },
+          { "id": "q-25", "itemNo": 25, "quadrant": "SK", "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja" },
+          { "id": "q-26", "itemNo": 26, "quadrant": "RG", "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk" }
+        ]
+      },
+      {
+        "sectionId": "sec-behavior",
+        "title": "Pemrosesan PERILAKU & REGULASI SOSIAL-EMOSI",
+        "leadText": "Anakku ...",
+        "questions": [
+          { "id": "q-27", "itemNo": 27, "quadrant": "AV", "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan" },
+          { "id": "q-28", "itemNo": 28, "quadrant": "SN", "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa atau marah" },
+          { "id": "q-29", "itemNo": 29, "quadrant": "AV", "question": "enggan melakukan kontak mata selama percakapan berlangsung" }
+        ]
+      }
     ]
   },
   {
     "id": "cat-002",
-    "categoryName": "Fine Motor Skills Assessment",
-    "questions": [
-      { "id": "q-201", "question": "Can your child hold a pencil or crayon with a proper grip?", "type": "yes_no", "options": [] },
-      { "id": "q-202", "question": "How well does your child manage buttons and zippers?", "type": "multiple_choice", "options": ["Independently", "With some help", "Needs full assistance", "Has not tried"] },
-      { "id": "q-203", "question": "Does your child avoid drawing, colouring, or cutting activities?", "type": "yes_no", "options": [] },
-      { "id": "q-204", "question": "Which hand does your child prefer to use?", "type": "multiple_choice", "options": ["Right", "Left", "Switches between both", "Unclear"] },
-      { "id": "q-205", "question": "Describe any difficulties you notice during mealtimes with utensils.", "type": "text", "options": [] }
+    "categoryName": "School Companion Profile (School / Classroom Function)",
+    "domain": "School Adaptation & Classroom Function",
+    "standardTitle": "School Companion Profile",
+    "author": "Therapedia Clinical Team & Winnie Dunn Framework",
+    "scoringKey": {
+      "5": "Hampir selalu (90% atau lebih setiap waktu)",
+      "4": "Selalu / Sering (75% setiap waktu)",
+      "3": "Sebagian waktu / Kadang (50% setiap waktu)",
+      "2": "Terkadang / Jarang (25% setiap waktu)",
+      "1": "Hampir tidak pernah (10% setiap waktu)",
+      "0": "Tidak mengobservasi / Tidak berlaku di kelas"
+    },
+    "sections": [
+      {
+        "sectionId": "sec-scp-attention",
+        "title": "Pemrosesan & ATENSI KELAS (Classroom Attention)",
+        "leadText": "Di dalam kelas, siswa ...",
+        "questions": [
+          { "id": "q-scp-01", "itemNo": 1, "quadrant": "SN", "question": "mampu mempertahankan posisi duduk dan fokus selama 20-30 menit saat guru menjelaskan instruksi" },
+          { "id": "q-scp-02", "itemNo": 2, "quadrant": "AV", "question": "tampak gelisah dan sering menoleh saat ada siswa lain yang bergerak atau berbicara pelan di dekatnya" },
+          { "id": "q-scp-03", "itemNo": 3, "quadrant": "SK", "question": "meninggalkan tempat duduk tanpa izin atau berkeliling kelas saat proses belajar mengajar berlangsung" }
+        ]
+      },
+      {
+        "sectionId": "sec-scp-instruction",
+        "title": "PENGIKUTAN INSTRUKSI GURU (Teacher Instruction Following)",
+        "leadText": "Ketika guru memberi tugas ...",
+        "questions": [
+          { "id": "q-scp-04", "itemNo": 4, "quadrant": "SN", "question": "mampu mengikuti instruksi 2-3 langkah secara berurutan tanpa perlu didorong secara fisik" },
+          { "id": "q-scp-05", "itemNo": 5, "quadrant": "RG", "question": "membutuhkan guru pembimbing khusus (shadow teacher) untuk memulai setiap langkah pengerjaan tugas" }
+        ]
+      },
+      {
+        "sectionId": "sec-scp-social",
+        "title": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization)",
+        "leadText": "Selama jam istirahat / bermain ...",
+        "questions": [
+          { "id": "q-scp-06", "itemNo": 6, "quadrant": "SK", "question": "berinteraksi dan berbagi alat permainan secara kooperatif dengan teman sekelas" },
+          { "id": "q-scp-07", "itemNo": 7, "quadrant": "AV", "question": "mudah terpicu marah atau agresif jika gilirannya disela oleh teman bermain" },
+          { "id": "q-scp-08", "itemNo": 8, "quadrant": "RG", "question": "mengisolasi diri dan lebih memilih bermain sendirian di sudut area sekolah" }
+        ]
+      },
+      {
+        "sectionId": "sec-scp-tools",
+        "title": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+        "leadText": "Saat berada di meja belajar ...",
+        "questions": [
+          { "id": "q-scp-09", "itemNo": 9, "quadrant": "RG", "question": "postur duduk membungkuk, menempel di meja, atau menopang kepala saat menulis" },
+          { "id": "q-scp-10", "itemNo": 10, "quadrant": "SN", "question": "pengelolaan alat tulis, buku, dan gunting rapi serta tidak mudah tercecer" }
+        ]
+      },
+      {
+        "sectionId": "sec-scp-sensory",
+        "title": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+        "leadText": "Menghadapi lingkungan sekolah ...",
+        "questions": [
+          { "id": "q-scp-11", "itemNo": 11, "quadrant": "AV", "question": "menutup telinga atau panik saat mendengar bel sekolah berbunyi keras atau suasana kantin yang riuh" },
+          { "id": "q-scp-12", "itemNo": 12, "quadrant": "AV", "question": "menolak memakai seragam sekolah dengan bahan tertentu atau merasa tercekik oleh kerah seragam" }
+        ]
+      }
     ]
   },
   {
     "id": "cat-003",
-    "categoryName": "Gross Motor Development",
-    "questions": [
-      { "id": "q-301", "question": "Can your child jump with both feet off the ground?", "type": "yes_no", "options": [] },
-      { "id": "q-302", "question": "How does your child manage stairs?", "type": "multiple_choice", "options": ["Alternating feet independently", "Two feet per step", "With railing support", "Avoids stairs"] },
-      { "id": "q-303", "question": "Does your child trip or bump into objects more than peers?", "type": "yes_no", "options": [] },
-      { "id": "q-304", "question": "How would you rate your child's ball skills (throwing/catching)?", "type": "multiple_choice", "options": ["Age appropriate", "Slightly behind", "Well behind", "Not sure"] },
-      { "id": "q-305", "question": "Describe your child's favourite physical activities.", "type": "text", "options": [] }
-    ]
-  },
-  {
-    "id": "cat-004",
-    "categoryName": "Social & Behavioral Assessment",
-    "questions": [
-      { "id": "q-401", "question": "Does your child make eye contact during conversations?", "type": "yes_no", "options": [] },
-      { "id": "q-402", "question": "How does your child handle transitions between activities?", "type": "multiple_choice", "options": ["Smoothly", "Minor resistance", "Frequent meltdowns", "Depends on the day"] },
-      { "id": "q-403", "question": "Does your child play cooperatively with other children?", "type": "yes_no", "options": [] },
-      { "id": "q-404", "question": "How does your child express frustration?", "type": "multiple_choice", "options": ["Uses words", "Cries or withdraws", "Physical outbursts", "Mix of the above"] },
-      { "id": "q-405", "question": "Describe a typical playdate or group setting for your child.", "type": "text", "options": [] },
-      { "id": "q-406", "question": "What are your main goals for your child from therapy?", "type": "text", "options": [] }
+    "categoryName": "Fine Motor & Visual Motor Integration",
+    "domain": "Motor Planning & Coordination",
+    "standardTitle": "Fine Motor & Handwriting Profile",
+    "author": "Therapedia Clinical Occupational Therapy",
+    "scoringKey": {
+      "5": "Mandiri penuh sesuai usia",
+      "4": "Mampu dengan dorongan verbal minimal",
+      "3": "Mampu separuh dengan bantuan berkala",
+      "2": "Membutuhkan bantuan fisik bertahap",
+      "1": "Sangat kesulitan / Menolak",
+      "0": "Belum terobservasi"
+    },
+    "sections": [
+      {
+        "sectionId": "sec-fm-grip",
+        "title": "PENGEMBANGAN GENGGAMAN PENSIL & KOORDINASI TANGAN",
+        "leadText": "Saat aktivitas motorik halus ...",
+        "questions": [
+          { "id": "q-fm-01", "itemNo": 1, "quadrant": "SN", "question": "memegang pensil dengan pola dynamic tripod grip yang matang" },
+          { "id": "q-fm-02", "itemNo": 2, "quadrant": "RG", "question": "mampu menggunting kertas mengikuti garis lurus dan lengkung tanpa merobek kertas" },
+          { "id": "q-fm-03", "itemNo": 3, "quadrant": "AV", "question": "mandiri dalam mengancingkan kancing baju dan menarik ritsleting celana" }
+        ]
+      }
     ]
   }
 ]

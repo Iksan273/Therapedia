@@ -16,60 +16,104 @@ export const genCode = (prefix) => {
   return `${prefix}-${s}`;
 };
 
+export const BRANCHES = [
+  { id: "branch-sby-timur", name: "Surabaya Timur", code: "SBY-T", city: "Surabaya" },
+  { id: "branch-citraland", name: "Citraland", code: "CTL", city: "Surabaya Barat" },
+  { id: "branch-sby-barat", name: "Surabaya Barat", code: "SBY-B", city: "Surabaya" },
+];
+
 export const PIPELINE_STATUSES = [
   "inquiry",
-  "pending",
+  "service_selected",
   "assessment_scheduled",
   "assessment_done",
-  "report_ready",
-  "scheduling",
   "admitted",
+  "done_consult",
+  "done_assessment",
   "discontinued",
 ];
 
 export const STATUS_META = {
-  inquiry: { label: "Inquiry", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
-  pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
-  assessment_scheduled: { label: "Assessment Scheduled", cls: "bg-blue-50 text-blue-700 border border-blue-200/70" },
-  assessment_done: { label: "Assessment Done", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
-  report_ready: { label: "Report Ready", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
-  scheduling: { label: "Scheduling", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
-  admitted: { label: "Admitted", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
-  active: { label: "Active", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  inquiry: { label: "Inquiry Baru", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
+  service_selected: { label: "Layanan Dipilih", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
+  assessment_scheduled: { label: "Asesmen Terjadwal", cls: "bg-blue-50 text-blue-700 border border-blue-200/70" },
+  assessment_done: { label: "Asesmen Selesai", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
+  admitted: { label: "Active Client", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  active: { label: "Active Client", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  done_consult: { label: "Done Consult", cls: "bg-amber-50 text-amber-800 border border-amber-200/70" },
+  done_assessment: { label: "Done Assessment", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
   discontinued: { label: "Discontinued", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
   discharged: { label: "Discharged", cls: "bg-slate-100 text-slate-700 border border-slate-200/80" },
   scheduled: { label: "Scheduled", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
   completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
   cancelled: { label: "Cancelled", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
   rescheduled: { label: "Rescheduled", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
-  unpaid: { label: "Unpaid", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
-  paid: { label: "Paid", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
-  frozen: { label: "Frozen (0 Credit)", cls: "bg-cyan-50 text-cyan-800 border border-cyan-300" },
-  therapy: { label: "OT / Sensory", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
-  therapy_speech: { label: "Speech Therapy", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
-  therapy_physio: { label: "Physiotherapy", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
-  therapy_behavior: { label: "Behavior Therapy", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
-  assessment: { label: "Assessment", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
-  consultation: { label: "Consultation", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
+  unpaid: { label: "Belum Lunas", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
+  paid: { label: "Lunas Terverifikasi", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  frozen: { label: "Frozen (0 Kredit)", cls: "bg-cyan-50 text-cyan-900 border border-cyan-400 font-bold ring-1 ring-cyan-400/40" },
+  b_ota: { label: "B-OTA", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
+  f_ota: { label: "F-OTA", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
+  speech_assessment: { label: "Asesmen Wicara", cls: "bg-blue-50 text-blue-700 border border-blue-200/70" },
+  psychology_assessment: { label: "Asesmen Psikologi", cls: "bg-pink-50 text-pink-700 border border-pink-200/70" },
+  physio_assessment: { label: "Asesmen Fisioterapi", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
+  consult_w_report: { label: "Consult W/ Report", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
+  consult_wo_report: { label: "Consult W/O Report", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
+  therapy: { label: "Terapi Reguler", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
+  therapy_vip: { label: "Terapi VIP", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
+  therapy_speech: { label: "Terapi Wicara", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
+  therapy_physio: { label: "Fisioterapi", cls: "bg-orange-50 text-orange-700 border border-orange-200/70" },
 };
 
 export const CONCERN_TAGS = [
-  { value: "sensory", label: "Sensory", cls: "bg-purple-50 text-purple-700 border border-purple-200/60" },
-  { value: "motor", label: "Motor Skills", cls: "bg-blue-50 text-blue-700 border border-blue-200/60" },
-  { value: "speech", label: "Speech", cls: "bg-teal-50 text-teal-700 border border-teal-200/60" },
-  { value: "behavior", label: "Behaviour", cls: "bg-amber-50 text-amber-700 border border-amber-200/60" },
-  { value: "social", label: "Social", cls: "bg-rose-50 text-rose-700 border border-rose-200/60" },
-  { value: "feeding", label: "Feeding", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/60" },
-  { value: "attention", label: "Attention / Focus", cls: "bg-orange-50 text-orange-700 border border-orange-200/60" },
+  { value: "speech", label: "Speech & Language", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  { value: "sensory", label: "Sensory Processing", cls: "bg-purple-50 text-purple-700 border-purple-200" },
+  { value: "motor", label: "Fine/Gross Motor", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  { value: "behavior", label: "Behavioral & Focus", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+  { value: "social", label: "Social Skills", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  { value: "school", label: "School Readiness", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+];
+
+export const CLINICAL_SERVICES = [
+  { value: "b_ota", label: "B-OTA (Brief Occupational Therapy Assessment)", shortLabel: "B-OTA", allowsSchoolCompanion: true, category: "Asesmen" },
+  { value: "f_ota", label: "F-OTA (Full Occupational Therapy Assessment)", shortLabel: "F-OTA", allowsSchoolCompanion: true, category: "Asesmen" },
+  { value: "speech_assessment", label: "Asesmen Terapi Wicara & Bahasa (Speech & Language)", shortLabel: "Asesmen Wicara", allowsSchoolCompanion: false, category: "Asesmen" },
+  { value: "psychology_assessment", label: "Asesmen Psikologi Klinis & Perilaku Anak", shortLabel: "Asesmen Psikologi", allowsSchoolCompanion: true, category: "Asesmen" },
+  { value: "physio_assessment", label: "Asesmen Fisioterapi Pediatrik & Motorik", shortLabel: "Asesmen Fisioterapi", allowsSchoolCompanion: false, category: "Asesmen" },
+  { value: "consult_w_report", label: "Consultation with Written Report", shortLabel: "Consult W/ Report", allowsSchoolCompanion: false, category: "Konsultasi" },
+  { value: "consult_wo_report", label: "Consultation without Written Report", shortLabel: "Consult W/O Report", allowsSchoolCompanion: false, category: "Konsultasi" },
+  { value: "therapy", label: "Occupational & Sensory Therapy Session", shortLabel: "Terapi OT & Sensori", allowsSchoolCompanion: false, category: "Terapi" },
+  { value: "therapy_speech", label: "Speech & Language Therapy Session", shortLabel: "Terapi Wicara", allowsSchoolCompanion: false, category: "Terapi" },
+  { value: "therapy_physio", label: "Pediatric Physiotherapy Session", shortLabel: "Fisioterapi Anak", allowsSchoolCompanion: false, category: "Terapi" },
+];
+
+export const SESSION_TYPES = CLINICAL_SERVICES;
+
+export const CANCEL_REASONS = [
+  { value: "sakit", label: "Sakit / Kondisi Medis" },
+  { value: "izin_keluarga", label: "Izin / Keperluan Keluarga" },
+  { value: "bentrok_sekolah", label: "Bentrok Jadwal Sekolah" },
+  { value: "tanpa_kabar", label: "Tanpa Kabar (No Show)" },
+  { value: "lainnya", label: "Alasan Lainnya" },
+];
+
+export const cancelReasonLabel = (val) => {
+  const found = CANCEL_REASONS.find((r) => r.value === val);
+  return found ? found.label : val || "—";
+};
+
+export const DEFAULT_MASTER_PACKAGES = [
+  { id: "pkg-reguler", name: "Paket Reguler", credits: 10, price: 2500000, description: "10 Sesi Terapi Reguler (OT / Sensori / Wicara)" },
+  { id: "pkg-vip", name: "Paket VIP", credits: 10, price: 3500000, description: "10 Sesi Terapi VIP Spesialis (1-on-1 Senior Practitioner)" },
+  { id: "pkg-consult", name: "Paket Konsultasi", credits: 1, price: 500000, description: "1 Sesi Konsultasi Klinis & Review" },
 ];
 
 export const DISCHARGE_REASONS = [
   { value: "moving", label: "Moving / Relocation" },
-  { value: "financial", label: "Financial" },
-  { value: "conflict_schedule", label: "Schedule Conflict" },
+  { value: "financial", label: "Financial / Biaya" },
+  { value: "conflict_schedule", label: "Schedule Conflict / Bentrok" },
   { value: "expectation_not_met", label: "Expectation Not Met" },
-  { value: "graduate", label: "Graduated Goals" },
-  { value: "other", label: "Other" },
+  { value: "graduate", label: "Tercapai Target (Graduated)" },
+  { value: "other", label: "Lainnya" },
 ];
 
 export const dischargeReasonLabel = (value) => {
@@ -77,27 +121,19 @@ export const dischargeReasonLabel = (value) => {
   return found ? found.label : value || "—";
 };
 
-export const PACKAGE_OPTIONS = [
-  { key: "5", label: "5 Sessions (5x)", credits: 5 },
-  { key: "10", label: "10 Sessions (10x)", credits: 10 },
-  { key: "20", label: "20 Sessions (20x)", credits: 20 },
-];
-
-export const SESSION_TYPES = [
-  { value: "therapy", label: "Occupational / Sensory Therapy", shortLabel: "OT / Sensory" },
-  { value: "therapy_speech", label: "Speech & Language Therapy", shortLabel: "Speech Therapy" },
-  { value: "therapy_physio", label: "Physiotherapy & Gross Motor", shortLabel: "Physiotherapy" },
-  { value: "therapy_behavior", label: "Behavioral & Early Intervention", shortLabel: "Behavior Therapy" },
-  { value: "assessment", label: "Clinical Assessment", shortLabel: "Assessment" },
-  { value: "consultation", label: "Specialist Consultation", shortLabel: "Consultation" },
-];
-
 export const CALENDAR_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-// Hourly rows 08:00 -> 17:00 (slots ending 18:00)
+export const WEEKDAY_OPTIONS = [
+  { id: "Monday", label: "Senin (Monday)", short: "Mon" },
+  { id: "Tuesday", label: "Selasa (Tuesday)", short: "Tue" },
+  { id: "Wednesday", label: "Rabu (Wednesday)", short: "Wed" },
+  { id: "Thursday", label: "Kamis (Thursday)", short: "Thu" },
+  { id: "Friday", label: "Jumat (Friday)", short: "Fri" },
+  { id: "Saturday", label: "Sabtu (Saturday)", short: "Sat" },
+];
+
 export const CALENDAR_HOURS = Array.from({ length: 10 }, (_, i) => `${String(8 + i).padStart(2, "0")}:00`);
 
-// 30-min interval options 08:00 -> 18:00 for form selects
 export const TIME_OPTIONS = Array.from({ length: 21 }, (_, i) => {
   const minutes = 8 * 60 + i * 30;
   const h = Math.floor(minutes / 60);
@@ -124,18 +160,10 @@ export function checkConflicts({ therapistId, date, startTime, endTime, schedule
   } catch (e) {
     return issues;
   }
-  if (therapist) {
+  if (therapist && therapist.availableSlots) {
     const slots = therapist.availableSlots.filter((s) => s.day === dayName);
-    if (slots.length === 0) {
-      issues.push(`${therapist.name} is not available on ${dayName}s.`);
-    } else if (
-      !slots.some(
-        (s) => timeToMin(startTime) >= timeToMin(s.startTime) && timeToMin(endTime) <= timeToMin(s.endTime)
-      )
-    ) {
-      issues.push(
-        `Outside ${therapist.name}'s ${dayName} hours (${slots.map((s) => `${s.startTime}–${s.endTime}`).join(", ")}).`
-      );
+    if (slots.length > 0 && !slots.some((s) => timeToMin(startTime) >= timeToMin(s.startTime) && timeToMin(endTime) <= timeToMin(s.endTime))) {
+      issues.push(`Di luar jam kerja ${therapist.name} hari ${dayName} (${slots.map((s) => `${s.startTime}–${s.endTime}`).join(", ")}).`);
     }
   }
   const clashes = schedules.filter(
@@ -147,24 +175,14 @@ export function checkConflicts({ therapistId, date, startTime, endTime, schedule
       rangesOverlap(startTime, endTime, s.startTime, s.endTime)
   );
   if (clashes.length > 0) {
-    issues.push(`${therapist ? therapist.name : "This therapist"} already has ${clashes.length} overlapping booking(s) at this time.`);
+    issues.push(`${therapist ? therapist.name : "Terapis ini"} sudah memiliki ${clashes.length} jadwal bersamaan di jam tersebut.`);
   }
   return issues;
 }
 
-export const WEEKDAY_OPTIONS = [
-  { id: "Monday", label: "Monday", short: "Mon" },
-  { id: "Tuesday", label: "Tuesday", short: "Tue" },
-  { id: "Wednesday", label: "Wednesday", short: "Wed" },
-  { id: "Thursday", label: "Thursday", short: "Thu" },
-  { id: "Friday", label: "Friday", short: "Fri" },
-  { id: "Saturday", label: "Saturday", short: "Sat" },
-];
-
 export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayConfigs = {}) {
   const startAnchor = parseISO(base.date);
 
-  // If no multi-day selection provided, fallback to standard single-day recurrence
   if (!selectedDays || selectedDays.length === 0) {
     return Array.from({ length: weeks }, (_, i) => ({
       ...base,
@@ -185,7 +203,7 @@ export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayC
     Sunday: 6,
   };
 
-  const baseWeekStart = startOfWeek(startAnchor, { weekStartsOn: 1 }); // Monday of starting week
+  const baseWeekStart = startOfWeek(startAnchor, { weekStartsOn: 1 });
   const results = [];
 
   for (let w = 0; w < weeks; w++) {
@@ -200,6 +218,7 @@ export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayC
       const slotEnd = config.endTime || base.endTime;
       const slotTherapist = config.therapistId || base.therapistId;
       const slotType = config.type || base.type;
+      const slotCreditPkg = config.creditPackageId !== undefined ? config.creditPackageId : base.creditPackageId;
 
       results.push({
         ...base,
@@ -209,6 +228,7 @@ export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayC
         endTime: slotEnd,
         therapistId: slotTherapist,
         type: slotType,
+        creditPackageId: slotCreditPkg,
         isRecurring: weeks > 1,
         recurrenceRule: weeks > 1 ? `weekly_${selectedDays.join(",")}` : "single_week",
       });
@@ -219,34 +239,25 @@ export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayC
 }
 
 export function makeInquiryClient(form) {
-  const serviceTypes = form.serviceTypes && form.serviceTypes.length > 0
-    ? form.serviceTypes
-    : form.serviceType
-    ? [form.serviceType]
-    : ["assessment"];
-
   return {
     id: uid(),
+    branchId: form.branchId || "branch-sby-timur",
     status: form.status || "inquiry",
     clientName: form.clientName.trim(),
     parentName: form.parentName.trim(),
     parentContact: form.parentContact.trim(),
     parentEmail: (form.parentEmail || "").trim(),
-    parentComplaint: (form.parentComplaint || "").trim(),
-    concernTags: form.concernTags || [],
-    dob: form.dob,
-    serviceTypes,
-    serviceType: serviceTypes[0] || "assessment",
-    urgency: form.urgency || "regular",
-    timePreference: form.timePreference || "anytime",
-    isWaitingList: Boolean(form.isWaitingList),
-    assessmentCategoryId: form.assessmentCategoryId || null,
-    assessmentAccessCode: form.assessmentAccessCode || null,
+    dob: form.dob || todayStr(),
+    serviceType: form.serviceType || null,
+    hasSchoolCompanionProfile: Boolean(form.hasSchoolCompanionProfile),
+    assessmentCodes: [],
     assessmentAnswers: [],
     assessmentReportNote: null,
+    gdriveClientLink: null,
     invoice: null,
     dateOfJoin: null,
     dateOfDischarge: null,
+    finalOutcome: null,
     dischargeReason: null,
     dischargeNote: null,
     clientAccessCode: genCode("TDC"),
@@ -271,6 +282,34 @@ export const calcAge = (dob) => {
   } catch (e) {
     return null;
   }
+};
+
+export const calcAgeDetailed = (dob, testDate = new Date()) => {
+  if (!dob) return { years: 0, months: 0, days: 0 };
+  try {
+    const birth = typeof dob === "string" ? parseISO(dob) : dob;
+    const test = typeof testDate === "string" ? parseISO(testDate) : testDate;
+    let years = test.getFullYear() - birth.getFullYear();
+    let months = test.getMonth() - birth.getMonth();
+    let days = test.getDate() - birth.getDate();
+    if (days < 0) {
+      months -= 1;
+      const prevMonthLastDay = new Date(test.getFullYear(), test.getMonth(), 0).getDate();
+      days += prevMonthLastDay;
+    }
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    return { years: Math.max(0, years), months: Math.max(0, months), days: Math.max(0, days) };
+  } catch (e) {
+    return { years: 0, months: 0, days: 0 };
+  }
+};
+
+export const fmtCurrency = (val) => {
+  const num = Number(val) || 0;
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(num);
 };
 
 export function resetDemoData() {

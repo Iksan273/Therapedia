@@ -1,34 +1,96 @@
 [
   {
     "id": "t-001",
-    "name": "Dr. Maya Chen",
+    "name": "Dr. Maya Chen, S.Tr.Kes",
     "specialty": "Pediatric Occupational Therapy",
+    "branchId": "branch-sby-timur",
     "availableSlots": [
-      { "day": "Monday", "startTime": "09:00", "endTime": "15:00" },
-      { "day": "Tuesday", "startTime": "09:00", "endTime": "15:00" },
-      { "day": "Wednesday", "startTime": "09:00", "endTime": "15:00" },
-      { "day": "Thursday", "startTime": "09:00", "endTime": "15:00" },
-      { "day": "Friday", "startTime": "09:00", "endTime": "15:00" }
+      { "day": "Monday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Tuesday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Wednesday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Thursday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Friday", "startTime": "08:00", "endTime": "16:00" }
     ]
   },
   {
     "id": "t-002",
-    "name": "James Rodriguez",
-    "specialty": "Sensory Integration",
+    "name": "James Rodriguez, S.Ft",
+    "specialty": "Sensory Integration Specialist",
+    "branchId": "branch-citraland",
     "availableSlots": [
-      { "day": "Monday", "startTime": "10:00", "endTime": "17:00" },
-      { "day": "Wednesday", "startTime": "10:00", "endTime": "17:00" },
-      { "day": "Friday", "startTime": "10:00", "endTime": "17:00" }
+      { "day": "Monday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Wednesday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Friday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Saturday", "startTime": "08:00", "endTime": "14:00" }
     ]
   },
   {
     "id": "t-003",
-    "name": "Aisha Patel",
-    "specialty": "Fine Motor & Handwriting",
+    "name": "Aisha Patel, S.Psi, M.Psi",
+    "specialty": "Child Psychology & Developmental Assessment",
+    "branchId": "branch-sby-timur",
     "availableSlots": [
-      { "day": "Tuesday", "startTime": "08:00", "endTime": "14:00" },
-      { "day": "Thursday", "startTime": "08:00", "endTime": "14:00" },
-      { "day": "Saturday", "startTime": "08:00", "endTime": "14:00" }
+      { "day": "Tuesday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Thursday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Saturday", "startTime": "08:00", "endTime": "15:00" }
+    ]
+  },
+  {
+    "id": "t-004",
+    "name": "Dimas Anggara, A.Md.OT",
+    "specialty": "Occupational & Behavior Therapy",
+    "branchId": "branch-sby-barat",
+    "availableSlots": [
+      { "day": "Monday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Tuesday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Wednesday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Thursday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Friday", "startTime": "09:00", "endTime": "17:00" }
+    ]
+  },
+  {
+    "id": "t-005",
+    "name": "Sarah Alatas, S.Tr.Kes",
+    "specialty": "Sensory & School Readiness Specialist",
+    "branchId": "branch-sby-barat",
+    "availableSlots": [
+      { "day": "Monday", "startTime": "08:00", "endTime": "15:00" },
+      { "day": "Wednesday", "startTime": "08:00", "endTime": "15:00" },
+      { "day": "Friday", "startTime": "08:00", "endTime": "15:00" },
+      { "day": "Saturday", "startTime": "08:00", "endTime": "13:00" }
+    ]
+  },
+  {
+    "id": "t-006",
+    "name": "Kevin Gunawan, S.Ft",
+    "specialty": "Pediatric Physiotherapy & Gross Motor",
+    "branchId": "branch-citraland",
+    "availableSlots": [
+      { "day": "Tuesday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Thursday", "startTime": "09:00", "endTime": "17:00" },
+      { "day": "Friday", "startTime": "09:00", "endTime": "17:00" }
+    ]
+  },
+  {
+    "id": "t-007",
+    "name": "Nadia Putri, S.Pd, S.Tr.Kes",
+    "specialty": "Speech & Language Pathology",
+    "branchId": "branch-sby-timur",
+    "availableSlots": [
+      { "day": "Monday", "startTime": "10:00", "endTime": "16:00" },
+      { "day": "Tuesday", "startTime": "10:00", "endTime": "16:00" },
+      { "day": "Thursday", "startTime": "10:00", "endTime": "16:00" }
+    ]
+  },
+  {
+    "id": "t-008",
+    "name": "Rizky Firmansyah, A.Md.OT",
+    "specialty": "Motor Planning & Fine Motor Skills",
+    "branchId": "branch-citraland",
+    "availableSlots": [
+      { "day": "Wednesday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Thursday", "startTime": "08:00", "endTime": "16:00" },
+      { "day": "Saturday", "startTime": "08:00", "endTime": "16:00" }
     ]
   }
 ]

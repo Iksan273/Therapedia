@@ -16,6 +16,7 @@ import {
   Trash2,
   PlusCircle,
   Settings2,
+  Info,
 } from "lucide-react";
 import {
   Dialog,
@@ -36,6 +37,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useClients } from "@/context/ClientsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useSchedules } from "@/context/SchedulesContext";
+import { useCredits } from "@/context/CreditsContext";
 import {
   SESSION_TYPES,
   TIME_OPTIONS,
@@ -48,10 +50,29 @@ import {
 } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
-export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated }) => {
+export const AddScheduleModal = ({
+  open,
+  onOpenChange,
+  defaults,
+  defaultClientId,
+  defaultType: defaultTypeProp,
+  onCreated,
+}) => {
   const { clients } = useClients();
   const { therapists } = useTherapists();
   const { schedules, addSchedule, addSchedules } = useSchedules();
+  const { getRecordForClient } = useCredits();
+
+  // Stable primitives extracted from defaults / props to prevent infinite re-render loops
+  const defaultsClientId = defaults?.clientId || defaultClientId || "";
+  const defaultsTherapistId = defaults?.therapistId || "";
+  const defaultsDate = defaults?.date || "";
+  const defaultsStartTime = defaults?.startTime || "09:00";
+  const defaultsEndTime = defaults?.endTime || "";
+  const defaultsType = defaults?.type || defaultTypeProp || "therapy";
+  const defaultsRecurring = Boolean(defaults?.defaultRecurring || defaults?.multiDay);
+  const defaultsLockClient = Boolean(defaults?.lockClient);
+  const defaultsLockType = Boolean(defaults?.lockType);
 
   // Primary appointment state
   const [clientId, setClientId] = useState("");
@@ -62,6 +83,7 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
   const [defaultEndTime, setDefaultEndTime] = useState("10:00");
   const [defaultType, setDefaultType] = useState("therapy");
   const [notes, setNotes] = useState("");
+  const [singleCreditPackageId, setSingleCreditPackageId] = useState("");
 
   // Mode: "single" (1 session on specific date) vs "multi_day" (weekly schedule pattern)
   const [scheduleMode, setScheduleMode] = useState("single"); // "single" | "multi_day"
@@ -72,8 +94,6 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
   const [dayConfigs, setDayConfigs] = useState({});
 
   // Recurrence settings for multi-day pattern:
-  // isRecurring = false -> plot for 1 week only
-  // isRecurring = true -> repeat across recurringWeeks
   const [isRecurring, setIsRecurring] = useState(true);
   const [recurringWeeks, setRecurringWeeks] = useState("12");
 
@@ -85,68 +105,81 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
   const [bundleWeeks, setBundleWeeks] = useState("12");
   const [bundleStartDate, setBundleStartDate] = useState("");
 
+  const fallbackTherapistId = therapists[0]?.id || "";
+
   useEffect(() => {
-    if (open) {
-      const initialClient = defaults.clientId || "";
-      setClientId(initialClient);
-      const initialTh = defaults.therapistId || (therapists[0]?.id || "");
-      setDefaultTherapistId(initialTh);
-      const initialDate = defaults.date || todayStr();
-      setDate(initialDate);
+    if (!open) return;
 
-      const start = defaults.startTime || "09:00";
-      setDefaultStartTime(start);
-      if (defaults.endTime) {
-        setDefaultEndTime(defaults.endTime);
-      } else {
-        const [h, m] = start.split(":").map(Number);
-        setDefaultEndTime(`${String(Math.min(h + 1, 18)).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-      }
+    setClientId(defaultsClientId);
+    const initialTh = defaultsTherapistId || fallbackTherapistId;
+    setDefaultTherapistId(initialTh);
+    const initialDate = defaultsDate || todayStr();
+    setDate(initialDate);
 
-      const initialType = defaults.type || "therapy";
-      setDefaultType(initialType);
-      setNotes("");
-      setClientOpen(false);
-
-      if (defaults.defaultRecurring || defaults.multiDay) {
-        setScheduleMode("multi_day");
-      } else {
-        setScheduleMode("single");
-      }
-
-      // Initialize default day config for Monday & Wednesday
-      setSelectedDays(["Monday", "Wednesday"]);
-      setDayConfigs({
-        Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: "therapy" },
-        Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: "therapy" },
-      });
-      setIsRecurring(Boolean(defaults.defaultRecurring || true));
-      setRecurringWeeks("12");
-
-      // Reset bundled therapy booking
-      setBundleTherapy(false);
-      setBundleDays(["Monday", "Wednesday"]);
-      setBundleDayConfigs({
-        Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: "therapy" },
-        Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: "therapy" },
-      });
-      setBundleIsRecurring(true);
-      setBundleWeeks("12");
-      try {
-        const baseDate = parseISO(initialDate);
-        setBundleStartDate(format(addWeeks(baseDate, 1), "yyyy-MM-dd"));
-      } catch (e) {
-        setBundleStartDate(todayStr());
-      }
+    setDefaultStartTime(defaultsStartTime);
+    if (defaultsEndTime) {
+      setDefaultEndTime(defaultsEndTime);
+    } else {
+      const [h, m] = defaultsStartTime.split(":").map(Number);
+      setDefaultEndTime(`${String(Math.min(h + 1, 18)).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
     }
-  }, [open, defaults, therapists]);
+
+    setDefaultType(defaultsType);
+    setNotes("");
+    setClientOpen(false);
+
+    if (defaultsType === "assessment") {
+      setScheduleMode("single");
+    } else if (defaultsRecurring) {
+      setScheduleMode("multi_day");
+    } else {
+      setScheduleMode("single");
+    }
+
+    // Initialize default day config for Monday & Wednesday
+    setSelectedDays(["Monday", "Wednesday"]);
+    setDayConfigs({
+      Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: defaultsType },
+      Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: defaultsType },
+    });
+    setIsRecurring(Boolean(defaultsRecurring || true));
+    setRecurringWeeks("12");
+
+    // Reset bundled therapy booking
+    setBundleTherapy(false);
+    setBundleDays(["Monday", "Wednesday"]);
+    setBundleDayConfigs({
+      Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: "therapy" },
+      Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: "therapy" },
+    });
+    setBundleIsRecurring(true);
+    setBundleWeeks("12");
+    try {
+      const baseDate = parseISO(initialDate);
+      setBundleStartDate(format(addWeeks(baseDate, 1), "yyyy-MM-dd"));
+    } catch (e) {
+      setBundleStartDate(todayStr());
+    }
+  }, [
+    open,
+    defaultsClientId,
+    defaultsTherapistId,
+    fallbackTherapistId,
+    defaultsDate,
+    defaultsStartTime,
+    defaultsEndTime,
+    defaultsType,
+    defaultsRecurring
+  ]);
 
   const selectableClients = useMemo(
     () => clients.filter((c) => c.status !== "discharged"),
     [clients]
   );
-  const lockedClient = defaults.lockClient ? clients.find((c) => c.id === defaults.clientId) : null;
+  const lockedClient = defaultsLockClient ? clients.find((c) => c.id === defaultsClientId) : null;
   const selectedClient = clients.find((c) => c.id === clientId);
+  const clientRecord = useMemo(() => (clientId ? getRecordForClient(clientId) : null), [clientId, getRecordForClient]);
+  const clientPackages = useMemo(() => clientRecord?.packages || [], [clientRecord]);
 
   // Helper to update per-day config
   const updateDayConfig = (dayId, field, value) => {
@@ -263,6 +296,8 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
       const singleBase = {
         id: uid(),
         clientId,
+        branchId: selectedClient?.branchId || "branch-sby-timur",
+        creditPackageId: isAssessmentType ? null : (singleCreditPackageId || (clientPackages[0]?.id || null)),
         type: defaultType,
         therapistId: defaultTherapistId,
         date,
@@ -272,6 +307,8 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
         isRecurring: false,
         recurrenceRule: "none",
         notes: notes.trim() || null,
+        activitySection: "",
+        homeworkSection: "",
       };
       addSchedule(singleBase);
       createdList.push(singleBase);
@@ -286,6 +323,8 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
       const baseSession = {
         id: uid(),
         clientId,
+        branchId: selectedClient?.branchId || "branch-sby-timur",
+        creditPackageId: clientPackages[0]?.id || null,
         type: defaultType,
         therapistId: defaultTherapistId,
         date,
@@ -293,6 +332,8 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
         endTime: defaultEndTime,
         status: "scheduled",
         notes: notes.trim() || null,
+        activitySection: "",
+        homeworkSection: "",
       };
 
       const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs);
@@ -417,8 +458,8 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
             )}
           </div>
 
-          {/* Scheduling Mode Switcher */}
-          {!defaults.lockType && (
+          {/* Scheduling Mode Switcher (Hanya untuk Sesi Terapi Rutin, Asesmen khusus Single Date) */}
+          {!defaults.lockType && !isAssessmentType && (
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
               <button
                 type="button"
@@ -482,6 +523,41 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
                     </SelectContent>
                   </Select>
                 </div>
+
+                {isAssessmentType ? (
+                  <div className="sm:col-span-2 p-3 rounded-xl bg-sky-50 border border-sky-200 flex items-start gap-2.5 text-xs text-sky-900">
+                    <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-sky-950">Sesi Asesmen Klinis (Tanpa Kuota Kredit)</p>
+                      <p className="text-[11px] text-sky-700 leading-relaxed mt-0.5">
+                        Jadwal ini digunakan khusus untuk mengevaluasi dan meng-asses kondisi klien di awal (Pipeline Inquiry Step 4), sehingga tidak memotong saldo paket kredit terapi.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1 sm:col-span-2">
+                    <Label className="text-xs font-bold text-slate-700">Paket Kredit yang Digunakan</Label>
+                    <Select
+                      value={singleCreditPackageId || (clientPackages[0]?.id || "none")}
+                      onValueChange={(val) => setSingleCreditPackageId(val === "none" ? "" : val)}
+                    >
+                      <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
+                        <SelectValue placeholder="Pilih paket kredit..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200">
+                        {clientPackages.length === 0 ? (
+                          <SelectItem value="none">0 Kredit (Sesi Akan Berstatus Frozen ❄️)</SelectItem>
+                        ) : (
+                          clientPackages.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.packageName} — Sisa {p.remainingCredit} Sesi
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-2.5">
@@ -601,7 +677,7 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                         <div className="space-y-0.5">
                           <Label className="text-[10px] font-bold text-slate-500">Start Time</Label>
                           <Select
@@ -670,6 +746,29 @@ export const AddScheduleModal = ({ open, onOpenChange, defaults = {}, onCreated 
                                   {t.shortLabel || t.label}
                                 </SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-0.5 col-span-2 sm:col-span-1">
+                          <Label className="text-[10px] font-bold text-slate-500">Paket Kredit</Label>
+                          <Select
+                            value={cfg.creditPackageId || (clientPackages[0]?.id || "none")}
+                            onValueChange={(val) => updateDayConfig(dayId, "creditPackageId", val === "none" ? null : val)}
+                          >
+                            <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 truncate">
+                              <SelectValue placeholder="Pilih Paket" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200">
+                              {clientPackages.length === 0 ? (
+                                <SelectItem value="none">0 Kredit (Frozen)</SelectItem>
+                              ) : (
+                                clientPackages.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.packageName} ({p.remainingCredit} sisa)
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>

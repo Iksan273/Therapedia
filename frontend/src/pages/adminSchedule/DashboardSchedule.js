@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { endOfWeek, format, startOfWeek, subMonths, addDays, parseISO, isAfter, isBefore } from "date-fns";
+import { endOfWeek, format, startOfWeek, subMonths, parseISO } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -17,19 +17,22 @@ import {
 import {
   Users,
   CalendarDays,
-  Wallet,
   Cake,
-  PieChart as PieIcon,
-  AlertTriangle,
-  CalendarClock,
   Filter,
-  RotateCcw,
   CheckCircle2,
   XCircle,
-  Activity,
   Sparkles,
   ArrowRight,
   TrendingUp,
+  Building2,
+  MessageCircle,
+  Calendar,
+  Activity,
+  CalendarClock,
+  Clock,
+  PieChart as PieIcon,
+  Search,
+  UserCheck
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,321 +40,386 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/common/StatCard";
-import { EmptyState } from "@/components/common/EmptyState";
-import { CreditBar } from "@/components/common/CreditBar";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { EmptyState } from "@/components/common/EmptyState";
 import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
 import { useTherapists } from "@/context/TherapistsContext";
-import { calcAge, dischargeReasonLabel, fmtDate } from "@/lib/appUtils";
+import { useAuth } from "@/context/AuthContext";
+import { calcAge, fmtDate, BRANCHES, CANCEL_REASONS, cancelReasonLabel } from "@/lib/appUtils";
+import { cn } from "@/lib/utils";
 
-const PIE_COLORS = ["#0284C7", "#10B981", "#F59E0B", "#F43F5E", "#6366F1", "#8B5CF6"];
-
-const CustomBarTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-900 text-white p-3 rounded-xl text-xs shadow-xl border border-slate-800 space-y-1">
-        <p className="font-bold border-b border-slate-700 pb-1 mb-1">{label}</p>
-        {payload.map((entry) => (
-          <div key={entry.name} className="flex items-center justify-between gap-4">
-            <span className="flex items-center gap-1.5 font-medium" style={{ color: entry.color }}>
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              {entry.name}:
-            </span>
-            <span className="font-bold tabular-nums">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
+const PIE_COLORS = ["#0284C7", "#10B981", "#F59E0B", "#F43F5E", "#8B5CF6", "#64748B"];
 
 export default function DashboardSchedule() {
   const navigate = useNavigate();
   const { clients } = useClients();
   const { schedules } = useSchedules();
-  const { credits } = useCredits();
-  const { therapists, getTherapist } = useTherapists();
+  const { getRecordForClient } = useCredits();
+  const { therapists } = useTherapists();
+  const { activeBranch } = useAuth();
 
-  const [monthFilter, setMonthFilter] = useState("all");
+  const [selectedBranch, setSelectedBranch] = useState(activeBranch || "all");
+  const [period, setPeriod] = useState("month"); // week | month | quarter | custom
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
-  // Advanced Analytics Filters
-  const [filterClient, setFilterClient] = useState("all");
-  const [filterTherapyType, setFilterTherapyType] = useState("all");
-  const [filterTherapist, setFilterTherapist] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterStartDate, setFilterStartDate] = useState("");
-  const [filterEndDate, setFilterEndDate] = useState("");
+  // Advanced Client Analytics & Attendance Filters state (User requested restoration)
+  const [telemetryClientId, setTelemetryClientId] = useState("all");
+  const [telemetryTherapistId, setTelemetryTherapistId] = useState("all");
+  const [telemetryBranchId, setTelemetryBranchId] = useState("all");
+  const [telemetryStatus, setTelemetryStatus] = useState("all");
+  const [telemetryStartDate, setTelemetryStartDate] = useState("");
+  const [telemetryEndDate, setTelemetryEndDate] = useState("");
 
-  const activeClients = useMemo(() => clients.filter((c) => c.status === "admitted"), [clients]);
-
-  const months = useMemo(() => {
-    const now = new Date();
-    return Array.from({ length: 6 }, (_, i) => {
-      const m = subMonths(now, 5 - i);
-      return { key: format(m, "yyyy-MM"), label: format(m, "MMM yyyy") };
+  const activeClients = useMemo(() => {
+    return clients.filter((c) => {
+      if (c.status !== "admitted" && c.status !== "active") return false;
+      if (selectedBranch !== "all" && c.branchId !== selectedBranch) return false;
+      return true;
     });
-  }, []);
+  }, [clients, selectedBranch]);
 
-  // Filtered schedules for Advanced Analytics section
-  const filteredAnalyticsSchedules = useMemo(() => {
+  // Filter schedules by branch and period
+  const filteredSchedules = useMemo(() => {
     return schedules.filter((s) => {
-      if (filterClient !== "all" && s.clientId !== filterClient) return false;
-      if (filterTherapyType !== "all" && s.type !== filterTherapyType) return false;
-      if (filterTherapist !== "all" && s.therapistId !== filterTherapist) return false;
-      if (filterStatus !== "all" && s.status !== filterStatus) return false;
+      // Branch filter
+      if (selectedBranch !== "all" && s.branchId && s.branchId !== selectedBranch) return false;
 
-      if (filterStartDate && s.date < filterStartDate) return false;
-      if (filterEndDate && s.date > filterEndDate) return false;
+      // Period filter
+      if (!s.date) return true;
+      const d = s.date;
+
+      if (period === "custom") {
+        if (customStart && d < customStart) return false;
+        if (customEnd && d > customEnd) return false;
+        return true;
+      }
+
+      const today = new Date();
+      if (period === "week") {
+        const start = format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
+        const end = format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
+        return d >= start && d <= end;
+      }
+
+      if (period === "month") {
+        const curMonth = format(today, "yyyy-MM");
+        return d.startsWith(curMonth);
+      }
+
+      if (period === "quarter") {
+        const quarterAgo = format(subMonths(today, 3), "yyyy-MM-dd");
+        return d >= quarterAgo;
+      }
 
       return true;
     });
-  }, [schedules, filterClient, filterTherapyType, filterTherapist, filterStatus, filterStartDate, filterEndDate]);
+  }, [schedules, selectedBranch, period, customStart, customEnd]);
 
-  // Analytics Metrics
-  const totalFiltered = filteredAnalyticsSchedules.length;
-  const completedFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "completed").length;
-  const cancelledFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "cancelled").length;
-  const rescheduledFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "rescheduled").length;
-  const scheduledFiltered = filteredAnalyticsSchedules.filter((s) => s.status === "scheduled").length;
+  // Metrics
+  const metrics = useMemo(() => {
+    const totalSessions = filteredSchedules.length;
+    const completed = filteredSchedules.filter((s) => s.status === "completed").length;
+    const cancelled = filteredSchedules.filter((s) => s.status === "cancelled").length;
+    const scheduled = filteredSchedules.filter((s) => s.status === "scheduled").length;
 
-  const completionRate = totalFiltered > 0 ? Math.round((completedFiltered / totalFiltered) * 100) : 0;
-  const cancellationRate = totalFiltered > 0 ? Math.round((cancelledFiltered / totalFiltered) * 100) : 0;
+    return {
+      totalSessions,
+      completed,
+      cancelled,
+      scheduled,
+      completionRate: totalSessions > 0 ? Math.round((completed / totalSessions) * 100) : 0,
+    };
+  }, [filteredSchedules]);
 
-  // Breakdown by Therapy Type
-  const therapyTypeBreakdown = useMemo(() => {
-    const counts = { therapy: 0, assessment: 0, consultation: 0 };
-    filteredAnalyticsSchedules.forEach((s) => {
-      if (counts[s.type] !== undefined) counts[s.type]++;
+  // Cancellation Breakdown by Reason
+  const cancellationByReasonData = useMemo(() => {
+    const reasonCounts = {
+      sakit: 0,
+      izin_keluarga: 0,
+      bentrok_sekolah: 0,
+      tanpa_kabar: 0,
+      lainnya: 0,
+    };
+
+    filteredSchedules.forEach((s) => {
+      if (s.status === "cancelled" && s.cancelReason) {
+        if (reasonCounts[s.cancelReason] !== undefined) {
+          reasonCounts[s.cancelReason] += 1;
+        } else {
+          reasonCounts.lainnya += 1;
+        }
+      }
     });
+
     return [
-      { name: "Therapy", value: counts.therapy },
-      { name: "Assessment", value: counts.assessment },
-      { name: "Consultation", value: counts.consultation },
+      { name: "Sakit / Medis", value: reasonCounts.sakit },
+      { name: "Izin Keluarga", value: reasonCounts.izin_keluarga },
+      { name: "Bentrok Sekolah", value: reasonCounts.bentrok_sekolah },
+      { name: "Tanpa Kabar (No Show)", value: reasonCounts.tanpa_kabar },
+      { name: "Lainnya", value: reasonCounts.lainnya },
     ].filter((item) => item.value > 0);
-  }, [filteredAnalyticsSchedules]);
+  }, [filteredSchedules]);
 
-  const resetFilters = () => {
-    setFilterClient("all");
-    setFilterTherapyType("all");
-    setFilterTherapist("all");
-    setFilterStatus("all");
-    setFilterStartDate("");
-    setFilterEndDate("");
-  };
-
-  const sessionChartData = useMemo(() => {
-    const source = monthFilter === "all" ? months : months.filter((m) => m.key === monthFilter);
-    return source.map((m) => {
-      const inMonth = schedules.filter((s) => s.date && s.date.startsWith(m.key));
-      return {
-        month: m.label,
-        Completed: inMonth.filter((s) => s.status === "completed").length,
-        Cancelled: inMonth.filter((s) => s.status === "cancelled").length,
-        Rescheduled: inMonth.filter((s) => s.status === "rescheduled").length,
-      };
-    });
-  }, [schedules, months, monthFilter]);
-
-  const sessionsThisWeek = useMemo(() => {
-    const start = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-    const end = format(endOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-    return schedules.filter((s) => s.date >= start && s.date <= end).length;
-  }, [schedules]);
-
-  const lowCredit = useMemo(() => {
-    return credits.records
-      .filter((r) => r.remainingCredit <= 2)
-      .map((r) => ({ record: r, client: activeClients.find((c) => c.id === r.clientId) }))
-      .filter((x) => x.client);
-  }, [credits.records, activeClients]);
-
-  const overLeave = useMemo(
-    () => credits.records.filter((r) => r.leaveUsed > r.leaveQuota && activeClients.some((c) => c.id === r.clientId)),
-    [credits.records, activeClients]
-  );
-
-  const birthdays = useMemo(() => {
+  // Birthday Radar (active clients with birthday this month)
+  const birthdayClients = useMemo(() => {
     const currentMonth = format(new Date(), "MM");
-    return activeClients
-      .filter((c) => c.dob && c.dob.split("-")[1] === currentMonth)
-      .sort((a, b) => Number(a.dob.split("-")[2]) - Number(b.dob.split("-")[2]));
+    return activeClients.filter((c) => {
+      if (!c.dob) return false;
+      const m = c.dob.slice(5, 7);
+      return m === currentMonth;
+    });
   }, [activeClients]);
 
-  // Clients whose birthday falls within the next 7 days (including today).
-  const upcomingBirthdays = useMemo(() => {
-    const now = new Date();
-    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return activeClients
-      .map((c) => {
-        if (!c.dob) return null;
-        const [, m, d] = c.dob.split("-").map(Number);
-        let next = new Date(today0.getFullYear(), m - 1, d);
-        if (next < today0) next = new Date(today0.getFullYear() + 1, m - 1, d);
-        const days = Math.round((next - today0) / 86400000);
-        return { client: c, days, date: next };
-      })
-      .filter((x) => x && x.days <= 7)
-      .sort((a, b) => a.days - b.days);
-  }, [activeClients]);
+  // ---------------------------------------------------------------------------
+  // Advanced Telemetry Filtered Results (Requested: Restored & Optimized)
+  // ---------------------------------------------------------------------------
+  const filteredTelemetrySchedules = useMemo(() => {
+    return schedules.filter((s) => {
+      if (telemetryClientId !== "all" && s.clientId !== telemetryClientId) return false;
+      if (telemetryTherapistId !== "all" && s.therapistId !== telemetryTherapistId) return false;
+      if (telemetryBranchId !== "all" && s.branchId !== telemetryBranchId) return false;
+      if (telemetryStatus !== "all" && s.status !== telemetryStatus) return false;
+      if (telemetryStartDate && s.date && s.date < telemetryStartDate) return false;
+      if (telemetryEndDate && s.date && s.date > telemetryEndDate) return false;
+      return true;
+    });
+  }, [schedules, telemetryClientId, telemetryTherapistId, telemetryBranchId, telemetryStatus, telemetryStartDate, telemetryEndDate]);
 
-  const dischargeData = useMemo(() => {
+  const telemetryMetrics = useMemo(() => {
+    const total = filteredTelemetrySchedules.length;
+    const completed = filteredTelemetrySchedules.filter((s) => s.status === "completed").length;
+    const rescheduled = filteredTelemetrySchedules.filter((s) => s.status === "rescheduled").length;
+    const cancelled = filteredTelemetrySchedules.filter((s) => s.status === "cancelled").length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const cancellationRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
+
+    return { total, completed, rescheduled, cancelled, completionRate, cancellationRate };
+  }, [filteredTelemetrySchedules]);
+
+  const telemetryTypeDistribution = useMemo(() => {
+    const counts = {};
+    filteredTelemetrySchedules.forEach((s) => {
+      const t = s.type === "therapy" ? "Terapi Reguler" : s.type === "assessment" ? "Asesmen Klinis" : "Lainnya";
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [filteredTelemetrySchedules]);
+
+  const clientNameMap = useMemo(() => {
     const map = {};
-    clients
-      .filter((c) => c.dischargeReason)
-      .forEach((c) => {
-        const label = dischargeReasonLabel(c.dischargeReason);
-        map[label] = (map[label] || 0) + 1;
-      });
-    return Object.entries(map).map(([name, value]) => ({ name, value }));
+    clients.forEach((c) => {
+      map[c.id] = c.clientName;
+    });
+    return map;
   }, [clients]);
 
-  // Tomorrow's sessions for attendance confirmation.
-  const tomorrow = addDays(new Date(), 1);
-  const tomorrowSessions = useMemo(() => {
-    const tomorrowStr = format(tomorrow, "yyyy-MM-dd");
-    return schedules
-      .filter((s) => s.date === tomorrowStr && s.status !== "cancelled")
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [schedules, tomorrow]);
-
-  const clientName = (clientId) => {
-    const c = clients.find((cl) => cl.id === clientId);
-    return c ? c.clientName : "Unknown";
-  };
+  const therapistMap = useMemo(() => {
+    const map = {};
+    therapists.forEach((t) => {
+      map[t.id] = t.name;
+    });
+    return map;
+  }, [therapists]);
 
   return (
-    <div className="space-y-7" data-testid="dashboard-schedule-page">
-      {/* Header */}
+    <div className="space-y-6" data-testid="dashboard-schedule-page">
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 text-sky-800 text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-            Clinic Operations & Scheduling
+            <Building2 className="w-3.5 h-3.5 text-sky-600" />
+            Scheduling & Operations Hub
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            Schedule & Analytics Dashboard
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Schedule & Caseload Overview
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Real-time clinic schedule performance, therapist occupancy, credit health, and attendance.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Monitoring performa kehadiran, jadwal rutin, pembatalan izin, dan analitik caseload antar cabang.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
+
+        <div className="flex items-center gap-2">
           <Button
             onClick={() => navigate("/admin-schedule/calendar")}
-            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl gap-2 shadow-sm shadow-sky-600/20"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl gap-2 shadow-xs text-xs"
           >
-            <CalendarDays className="w-4 h-4" />
-            Open Weekly Calendar
+            <CalendarDays className="w-4 h-4" /> Buka Kalender Sesi
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/admin-schedule/clients")}
+            className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold rounded-xl gap-2 shadow-2xs text-xs"
+          >
+            <Users className="w-4 h-4" /> Active Clients Roster
           </Button>
         </div>
       </div>
 
-      {/* Birthday reminder banner (next 7 days) */}
-      {upcomingBirthdays.length > 0 && (
-        <div
-          className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs"
-          data-testid="birthday-reminder-banner"
-        >
-          <div className="flex items-center gap-2.5 text-sm font-bold text-sky-900">
-            <div className="w-8 h-8 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0">
-              <Cake className="w-4 h-4" />
-            </div>
-            <span>Upcoming Client Birthdays (Next 7 Days):</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {upcomingBirthdays.map(({ client, days, date }) => (
+      {/* Global Filter Bar: Branch + Presets */}
+      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <SelectTrigger className="w-48 h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-bold">
+              <SelectValue placeholder="Semua Cabang" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200">
+              <SelectItem value="all">🏢 Semua Cabang</SelectItem>
+              {BRANCHES.map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  📍 {b.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs">
+            {[
+              { id: "week", label: "Minggu Ini" },
+              { id: "month", label: "Bulan Ini" },
+              { id: "quarter", label: "Kuartal Ini" },
+              { id: "custom", label: "Custom Range" },
+            ].map((p) => (
               <button
-                key={client.id}
+                key={p.id}
                 type="button"
-                onClick={() => navigate(`/admin-schedule/clients/${client.id}`)}
-                className="inline-flex items-center gap-2 rounded-xl bg-white border border-sky-200 px-3 py-1.5 text-xs font-bold text-sky-800 hover:border-sky-400 hover:shadow-xs transition-all cursor-pointer"
-                data-testid={`birthday-reminder-chip-${client.id}`}
+                onClick={() => setPeriod(p.id)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                  period === p.id ? "bg-white text-sky-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                )}
               >
-                <span>{client.clientName}</span>
-                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded-md">
-                  {days === 0 ? "Today! 🎂" : days === 1 ? "Tomorrow" : `In ${days}d (${format(date, "MMM d")})`}
-                </span>
+                {p.label}
               </button>
             ))}
           </div>
         </div>
-      )}
 
-      {/* Overview Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard label="Active Enrolled Clients" value={activeClients.length} icon={Users} accent="primary" onClick={() => navigate("/admin-schedule/clients")} testid="stat-active-clients" />
-        <StatCard label="Sessions This Week" value={sessionsThisWeek} icon={CalendarDays} accent="info" onClick={() => navigate("/admin-schedule/calendar")} testid="stat-sessions-week" />
-        <StatCard label="Low / Out of Credit" value={lowCredit.length} icon={Wallet} accent="warning" testid="stat-low-credit" />
-        <StatCard label="Over Leave Quota" value={overLeave.length} icon={AlertTriangle} accent="danger" testid="stat-over-leave" />
+        {period === "custom" && (
+          <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 font-medium">From:</span>
+              <Input
+                type="date"
+                className="h-9 w-36 text-xs rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 font-medium">To:</span>
+              <Input
+                type="date"
+                className="h-9 w-36 text-xs rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* SECTION: ADVANCED CLIENT ANALYTICS FILTER BAR */}
-      <Card className="clinical-card rounded-2xl border-slate-200/90" data-testid="advanced-analytics-card">
-        <CardHeader className="pb-3 border-b border-slate-100">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100">
-                <Filter className="w-4 h-4 stroke-[2.2]" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-bold text-slate-900">Advanced Client Analytics & Attendance Filters</CardTitle>
-                <CardDescription className="text-xs text-slate-500">Filter session telemetry across children, therapists, and date ranges</CardDescription>
-              </div>
+      {/* Top 4 KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={Users}
+          label="Active Clients"
+          value={activeClients.length}
+          helper="Terdaftar dalam terapi aktif"
+          trend="neutral"
+          data-testid="stat-active-clients"
+        />
+        <StatCard
+          icon={CalendarDays}
+          label="Sesi Terjadwal"
+          value={metrics.scheduled}
+          helper="Akan datang di periode ini"
+          trend="neutral"
+          data-testid="stat-scheduled-sessions"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Sesi Selesai (Completed)"
+          value={metrics.completed}
+          helper={`${metrics.completionRate}% rasio kehadiran`}
+          trend="up"
+          data-testid="stat-completed-sessions"
+        />
+        <StatCard
+          icon={XCircle}
+          label="Sesi Dibatalkan (Cancelled)"
+          value={metrics.cancelled}
+          helper="Dipisahkan per alasan izin"
+          trend="down"
+          data-testid="stat-cancelled-sessions"
+        />
+      </div>
+
+      {/* ========================================================================= */}
+      {/* RESTORED SECTION: Advanced Client Analytics & Attendance Filters          */}
+      {/* ========================================================================= */}
+      <Card className="rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden" data-testid="advanced-attendance-telemetry-card">
+        <CardHeader className="pb-3 border-b border-sky-100 bg-sky-50/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-sky-600" />
+                Advanced Client Analytics & Attendance Filters
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-600 mt-0.5">
+                Filter session telemetry across children, therapists, and date ranges
+              </CardDescription>
             </div>
-            <Button size="sm" variant="outline" className="h-8 text-xs font-semibold rounded-xl gap-1.5 border-slate-200" onClick={resetFilters} data-testid="reset-analytics-filters">
-              <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs font-bold text-sky-700 hover:bg-sky-100 self-start rounded-xl"
+              onClick={() => {
+                setTelemetryClientId("all");
+                setTelemetryTherapistId("all");
+                setTelemetryBranchId("all");
+                setTelemetryStatus("all");
+                setTelemetryStartDate("");
+                setTelemetryEndDate("");
+              }}
+            >
+              Reset Filter Telemetri
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="pt-5 space-y-5">
-          {/* Filters Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-            {/* Filter 1: Per Child / Client */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600 font-bold">Child / Client</Label>
-              <Select value={filterClient} onValueChange={setFilterClient}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white" data-testid="filter-client-select">
-                  <SelectValue placeholder="All Children" />
+
+        <CardContent className="p-5 space-y-5">
+          {/* Telemetry Filter Form Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            {/* Filter 1: Child / Client */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Client / Anak</Label>
+              <Select value={telemetryClientId} onValueChange={setTelemetryClientId}>
+                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                  <SelectValue placeholder="Semua Client" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="all">All Children ({clients.length})</SelectItem>
+                <SelectContent className="max-h-56">
+                  <SelectItem value="all">Semua Client ({clients.length})</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.clientName}
+                      {c.clientName} ({c.clientAccessCode})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Filter 2: Per Therapy Type */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600 font-bold">Service Type</Label>
-              <Select value={filterTherapyType} onValueChange={setFilterTherapyType}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white" data-testid="filter-therapy-type-select">
-                  <SelectValue placeholder="All Services" />
+            {/* Filter 2: Therapist */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Terapis Praktisi</Label>
+              <Select value={telemetryTherapistId} onValueChange={setTelemetryTherapistId}>
+                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                  <SelectValue placeholder="Semua Terapis" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="all">All Services</SelectItem>
-                  <SelectItem value="therapy">Therapy</SelectItem>
-                  <SelectItem value="assessment">Assessment</SelectItem>
-                  <SelectItem value="consultation">Consultation</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filter 3: Per Therapist */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600 font-bold">Assigned Therapist</Label>
-              <Select value={filterTherapist} onValueChange={setFilterTherapist}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white" data-testid="filter-therapist-select">
-                  <SelectValue placeholder="All Therapists" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="all">All Therapists</SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">Semua Praktisi Terapis</SelectItem>
                   {therapists.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
@@ -361,15 +429,33 @@ export default function DashboardSchedule() {
               </Select>
             </div>
 
-            {/* Filter 4: Per Status */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600 font-bold">Session Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white" data-testid="filter-status-select">
-                  <SelectValue placeholder="All Statuses" />
+            {/* Filter 3: Branch */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Cabang Sesi</Label>
+              <Select value={telemetryBranchId} onValueChange={setTelemetryBranchId}>
+                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                  <SelectValue placeholder="Semua Cabang" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="all">All Statuses</SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">Semua Cabang</SelectItem>
+                  {BRANCHES.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filter 4: Status Sesi */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Status Sesi</Label>
+              <Select value={telemetryStatus} onValueChange={setTelemetryStatus}>
+                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                  <SelectValue placeholder="Semua Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="rescheduled">Rescheduled</SelectItem>
@@ -378,116 +464,128 @@ export default function DashboardSchedule() {
               </Select>
             </div>
 
-            {/* Filter 5: Date Start */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600 font-bold">Start Date</Label>
+            {/* Filter 5: Dari Tanggal */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Dari Tanggal</Label>
               <Input
                 type="date"
-                className="h-9 text-xs rounded-xl border-slate-200 bg-white"
-                value={filterStartDate}
-                onChange={(e) => setFilterStartDate(e.target.value)}
-                data-testid="filter-start-date-input"
+                className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50"
+                value={telemetryStartDate}
+                onChange={(e) => setTelemetryStartDate(e.target.value)}
               />
             </div>
 
-            {/* Filter 6: Date End */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-600 font-bold">End Date</Label>
+            {/* Filter 6: Sampai Tanggal */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Sampai Tanggal</Label>
               <Input
                 type="date"
-                className="h-9 text-xs rounded-xl border-slate-200 bg-white"
-                value={filterEndDate}
-                onChange={(e) => setFilterEndDate(e.target.value)}
-                data-testid="filter-end-date-input"
+                className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50"
+                value={telemetryEndDate}
+                onChange={(e) => setTelemetryEndDate(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Filter Analytics Results Summary */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
-            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Filtered Sessions</p>
-              <p className="text-xl font-extrabold text-slate-900 mt-0.5 tabular-nums">{totalFiltered}</p>
+          {/* Telemetry Metric Scorecards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+              <p className="text-[11px] font-bold text-slate-500">Total Filtered</p>
+              <p className="text-xl font-black text-slate-900 mt-0.5">{telemetryMetrics.total}</p>
             </div>
-            <div className="bg-emerald-50/70 rounded-xl p-3 border border-emerald-200/80">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Completed</p>
-              <p className="text-xl font-extrabold text-emerald-800 mt-0.5 tabular-nums">{completedFiltered}</p>
+            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200">
+              <p className="text-[11px] font-bold text-emerald-700">Completed</p>
+              <p className="text-xl font-black text-emerald-800 mt-0.5">{telemetryMetrics.completed}</p>
             </div>
-            <div className="bg-amber-50/70 rounded-xl p-3 border border-amber-200/80">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Rescheduled</p>
-              <p className="text-xl font-extrabold text-amber-800 mt-0.5 tabular-nums">{rescheduledFiltered}</p>
+            <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+              <p className="text-[11px] font-bold text-amber-700">Rescheduled</p>
+              <p className="text-xl font-black text-amber-800 mt-0.5">{telemetryMetrics.rescheduled}</p>
             </div>
-            <div className="bg-rose-50/70 rounded-xl p-3 border border-rose-200/80">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700">Cancelled</p>
-              <p className="text-xl font-extrabold text-rose-800 mt-0.5 tabular-nums">{cancelledFiltered}</p>
+            <div className="bg-rose-50 rounded-xl p-3 border border-rose-200">
+              <p className="text-[11px] font-bold text-rose-700">Cancelled</p>
+              <p className="text-xl font-black text-rose-800 mt-0.5">{telemetryMetrics.cancelled}</p>
             </div>
-            <div className="bg-sky-50/70 rounded-xl p-3 border border-sky-200/80">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700">Completion Rate</p>
-              <p className="text-xl font-extrabold text-sky-900 mt-0.5 tabular-nums">{completionRate}%</p>
+            <div className="bg-sky-50 rounded-xl p-3 border border-sky-200">
+              <p className="text-[11px] font-bold text-sky-700">Completion Rate</p>
+              <p className="text-xl font-black text-sky-800 mt-0.5">{telemetryMetrics.completionRate}%</p>
             </div>
-            <div className="bg-purple-50/70 rounded-xl p-3 border border-purple-200/80">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Cancellation Rate</p>
-              <p className="text-xl font-extrabold text-purple-900 mt-0.5 tabular-nums">{cancellationRate}%</p>
+            <div className="bg-rose-50 rounded-xl p-3 border border-rose-200">
+              <p className="text-[11px] font-bold text-rose-700">Cancel Rate</p>
+              <p className="text-xl font-black text-rose-800 mt-0.5">{telemetryMetrics.cancellationRate}%</p>
             </div>
           </div>
 
-          {/* Detailed Breakdown Charts & List for Filtered Selection */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2">
-            {/* Filtered Session List */}
-            <div className="lg:col-span-8 bg-slate-50/50 rounded-2xl border border-slate-200/80 p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-sky-600" />
-                Filtered Session Records ({filteredAnalyticsSchedules.length})
-              </h3>
-              {filteredAnalyticsSchedules.length === 0 ? (
-                <EmptyState icon={CalendarClock} title="No matching sessions" subtitle="Try loosening the filter parameters above." />
+          {/* Telemetry Details: Session List + Distribution Pie */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Filtered Session Roster */}
+            <div className="lg:col-span-8 bg-slate-50/50 rounded-xl border border-slate-200 p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                  <CalendarClock className="w-4 h-4 text-sky-600" />
+                  Daftar Sesi Terfilter ({filteredTelemetrySchedules.length} Sesi)
+                </h3>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  Menampilkan s/d 20 sesi teratas
+                </span>
+              </div>
+
+              {filteredTelemetrySchedules.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">
+                  Tidak ada data sesi yang sesuai dengan kombinasi filter di atas.
+                </div>
               ) : (
-                <div className="max-h-64 overflow-y-auto divide-y divide-slate-200/70 pr-1 space-y-0.5" data-testid="filtered-analytics-session-list">
-                  {filteredAnalyticsSchedules.slice(0, 20).map((s) => {
-                    const t = getTherapist(s.therapistId);
-                    return (
-                      <div key={s.id} className="py-2.5 px-2 flex items-center justify-between text-xs hover:bg-white rounded-xl transition-colors">
-                        <div>
-                          <p className="font-bold text-slate-900">{clientName(s.clientId)}</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {s.date} · {s.startTime}–{s.endTime} · Therapist: {t ? t.name : "—"}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <StatusBadge status={s.type} />
-                          <StatusBadge status={s.status} />
-                        </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-200/80 pr-1 space-y-1">
+                  {filteredTelemetrySchedules.slice(0, 20).map((s) => (
+                    <div key={s.id} className="py-2 px-2 flex items-center justify-between text-xs hover:bg-white rounded-lg transition-colors">
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-slate-900">{clientNameMap[s.clientId] || "Client"}</p>
+                        <p className="text-[11px] text-slate-500">
+                          {s.date} · {s.startTime}–{s.endTime} · Terapis: {therapistMap[s.therapistId] || "—"}
+                        </p>
                       </div>
-                    );
-                  })}
-                  {filteredAnalyticsSchedules.length > 20 && (
-                    <p className="text-[11px] text-center text-slate-500 pt-3 font-semibold">
-                      + Showing 20 of {filteredAnalyticsSchedules.length} session records
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={s.type} />
+                        <StatusBadge status={s.status} />
+                      </div>
+                    </div>
+                  ))}
+                  {filteredTelemetrySchedules.length > 20 && (
+                    <p className="text-[11px] text-center text-slate-500 pt-2 font-medium">
+                      + Menampilkan 20 dari {filteredTelemetrySchedules.length} sesi.
                     </p>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Service Type Breakdown Pie */}
-            <div className="lg:col-span-4 bg-slate-50/50 rounded-2xl border border-slate-200/80 p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-2">
+            {/* Service Type Distribution */}
+            <div className="lg:col-span-4 bg-slate-50/50 rounded-xl border border-slate-200 p-4 space-y-3 flex flex-col justify-between">
+              <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-2">
                 <PieIcon className="w-4 h-4 text-purple-600" />
-                Service Distribution
+                Distribusi Tipe Layanan Sesi
               </h3>
-              <div className="h-56">
-                {therapyTypeBreakdown.length === 0 ? (
-                  <EmptyState icon={PieIcon} title="No data" subtitle="No matching service records." />
+              <div className="h-52 flex items-center justify-center">
+                {telemetryTypeDistribution.length === 0 ? (
+                  <p className="text-xs text-slate-400">Tidak ada data tipe sesi.</p>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={therapyTypeBreakdown} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={64} innerRadius={36} paddingAngle={4}>
-                        {therapyTypeBreakdown.map((entry, i) => (
-                          <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      <Pie
+                        data={telemetryTypeDistribution}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={65}
+                        innerRadius={35}
+                        paddingAngle={3}
+                      >
+                        {telemetryTypeDistribution.map((_, idx) => (
+                          <Cell key={`pie-cell-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
+                      <Tooltip contentStyle={{ borderRadius: "10px", fontSize: "11px" }} />
+                      <Legend wrapperStyle={{ fontSize: "10px" }} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
@@ -497,207 +595,101 @@ export default function DashboardSchedule() {
         </CardContent>
       </Card>
 
-      {/* Tomorrow's sessions — attendance confirmation list */}
-      <Card className="clinical-card rounded-2xl border-slate-200/90">
-        <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100">
-              <CalendarClock className="w-4 h-4" />
-            </div>
-            <div>
-              <CardTitle className="text-base font-bold text-slate-900">
-                Tomorrow's Clinical Sessions ({tomorrowSessions.length}) · {format(tomorrow, "EEE, MMM d")}
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">Upcoming sessions requiring parent attendance confirmation</CardDescription>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" className="h-8 text-xs font-semibold rounded-xl border-slate-200" onClick={() => navigate("/admin-schedule/calendar")} data-testid="tomorrow-open-calendar-button">
-            View on Calendar
-          </Button>
-        </CardHeader>
-        <CardContent className="p-4">
-          {tomorrowSessions.length === 0 ? (
-            <EmptyState icon={CalendarClock} title="No sessions tomorrow" subtitle="No client appointments are scheduled for tomorrow." />
-          ) : (
-            <ul className="divide-y divide-slate-100" data-testid="tomorrow-sessions-list">
-              {tomorrowSessions.map((s) => {
-                const t = getTherapist(s.therapistId);
-                return (
-                  <li
-                    key={s.id}
-                    className="py-3 px-3 flex flex-wrap items-center gap-3 cursor-pointer hover:bg-sky-50/60 rounded-xl transition-colors group"
-                    onClick={() => navigate(`/admin-schedule/clients/${s.clientId}`)}
-                    data-testid={`tomorrow-session-item-${s.id}`}
-                  >
-                    <span className="w-28 text-xs font-bold text-slate-800 tabular-nums bg-slate-100 px-2 py-1 rounded-md shrink-0">
-                      {s.startTime}–{s.endTime}
-                    </span>
-                    <span className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
-                      {clientName(s.clientId)}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">Therapist: {t ? t.name : "—"}</span>
-                    <span className="ml-auto flex items-center gap-2">
-                      <StatusBadge status={s.type} />
-                      <StatusBadge status={s.status} />
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Session status chart */}
-        <Card className="clinical-card rounded-2xl border-slate-200/90 lg:col-span-7">
-          <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className="text-base font-bold text-slate-900">Session Status Overview</CardTitle>
-              <CardDescription className="text-xs text-slate-500">Monthly breakdown of completed, cancelled, and rescheduled visits</CardDescription>
-            </div>
-            <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="w-40 h-9 text-xs rounded-xl border-slate-200 bg-white" data-testid="session-chart-month-filter">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200">
-                <SelectItem value="all">Last 6 months</SelectItem>
-                {months.map((m) => (
-                  <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Charts Row: Cancellation Breakdown + Birthday Radar */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Cancellation Breakdown by Reason */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
+          <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-rose-600" />
+              Statistik Pembatalan Sesi Berdasarkan Alasan
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Setiap pembatalan dipisahkan per alasan (Sakit, Izin, Bentrok Sekolah, Tanpa Kabar)
+            </CardDescription>
           </CardHeader>
-          <CardContent className="h-72 pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={sessionChartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="emeraldGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#047857" stopOpacity={0.7} />
-                  </linearGradient>
-                  <linearGradient id="roseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#F43F5E" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#BE123C" stopOpacity={0.7} />
-                  </linearGradient>
-                  <linearGradient id="amberGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#B45309" stopOpacity={0.7} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="month" tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: "#64748B", fontSize: 12, fontWeight: 500 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomBarTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
-                <Bar dataKey="Completed" fill="url(#emeraldGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                <Bar dataKey="Cancelled" fill="url(#roseGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-                <Bar dataKey="Rescheduled" fill="url(#amberGrad)" radius={[6, 6, 0, 0]} maxBarSize={28} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Discharge reason pie */}
-        <Card className="clinical-card rounded-2xl border-slate-200/90 lg:col-span-5">
-          <CardHeader className="pb-3 border-b border-slate-100">
-            <CardTitle className="text-base font-bold text-slate-900">Discharge Reasons</CardTitle>
-            <CardDescription className="text-xs text-slate-500">Distribution of historical reasons for discharge</CardDescription>
-          </CardHeader>
-          <CardContent className="h-72 pt-2">
-            {dischargeData.length === 0 ? (
-              <EmptyState icon={PieIcon} title="No discharges yet" subtitle="Discharge reasons will appear here." />
+          <CardContent className="p-4 pt-6">
+            {cancellationByReasonData.length === 0 ? (
+              <div className="h-60 flex items-center justify-center text-xs text-slate-400">
+                Tidak ada pembatalan sesi pada periode ini.
+              </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={dischargeData} dataKey="value" nameKey="name" cx="50%" cy="46%" outerRadius={76} innerRadius={42} paddingAngle={3}>
-                    {dischargeData.map((entry, i) => (
-                      <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12, fontWeight: 600 }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="h-60 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={cancellationByReasonData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={75}
+                      innerRadius={40}
+                      paddingAngle={3}
+                    >
+                      {cancellationByReasonData.map((_, idx) => (
+                        <Cell key={`cell-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "11px" }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "6px" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Low credit list */}
-        <Card className="clinical-card rounded-2xl border-slate-200/90 lg:col-span-6">
-          <CardHeader className="pb-3 border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-bold text-slate-900">Low or Depleted Credits</CardTitle>
-                <CardDescription className="text-xs text-slate-500">Enrolled clients with 2 or fewer remaining session credits</CardDescription>
-              </div>
-              <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                {lowCredit.length} Clients
-              </span>
-            </div>
+        {/* Birthday Radar Dashboard */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden flex flex-col">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Cake className="w-4 h-4 text-pink-600" />
+              Birthday Dashboard (Bulan Berjalan)
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Radar perayaan ulang tahun anak bulan ini untuk ucapan & loyalty care
+            </CardDescription>
           </CardHeader>
-          <CardContent className="p-4">
-            {lowCredit.length === 0 ? (
-              <EmptyState icon={Wallet} title="All accounts healthy" subtitle="No active client has depleted session credits." />
-            ) : (
-              <ul className="divide-y divide-slate-100" data-testid="low-credit-list">
-                {lowCredit.map(({ record, client }) => (
-                  <li
-                    key={record.id}
-                    className="py-3 px-2 flex items-center gap-4 cursor-pointer hover:bg-sky-50/60 rounded-xl transition-colors"
-                    onClick={() => navigate(`/admin-schedule/clients/${client.id}`)}
-                    data-testid={`low-credit-item-${client.id}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-800">{client.clientName}</p>
-                      <p className="text-xs text-slate-500 font-medium">{record.packageName}</p>
-                    </div>
-                    <div className="w-44">
-                      <CreditBar remaining={record.remainingCredit} total={record.totalCredit} compact />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Birthdays */}
-        <Card className="clinical-card rounded-2xl border-slate-200/90 lg:col-span-6">
-          <CardHeader className="pb-3 border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-bold text-slate-900">Birthdays This Month</CardTitle>
-                <CardDescription className="text-xs text-slate-500">Enrolled children celebrating their birthdays this month</CardDescription>
+          <CardContent className="p-4 flex-1 space-y-3">
+            {birthdayClients.length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-xs text-slate-400">
+                Tidak ada client aktif yang berulang tahun bulan ini.
               </div>
-              <span className="text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 px-2.5 py-0.5 rounded-full">
-                {birthdays.length} Children
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            {birthdays.length === 0 ? (
-              <EmptyState icon={Cake} title="No birthdays this month" subtitle="Check the Active Clients birthday tab for upcoming months." />
             ) : (
-              <ul className="divide-y divide-slate-100" data-testid="birthday-list">
-                {birthdays.map((c) => (
-                  <li
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                {birthdayClients.map((c) => (
+                  <div
                     key={c.id}
-                    className="py-3 px-2 flex items-center gap-3 cursor-pointer hover:bg-sky-50/60 rounded-xl transition-colors group"
-                    onClick={() => navigate(`/admin-schedule/clients/${c.id}`)}
-                    data-testid={`birthday-item-${c.id}`}
+                    className="p-3 rounded-xl bg-pink-50/50 border border-pink-200/80 flex items-center justify-between gap-3"
                   >
-                    <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold text-sm shrink-0 border border-sky-200">
-                      <Cake className="w-4 h-4" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs shrink-0">
+                        🎂
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs text-slate-900">{c.clientName}</p>
+                        <p className="text-[11px] text-slate-500">
+                          Ulang tahun ke-{calcAge(c.dob)} ({fmtDate(c.dob)})
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors">{c.clientName}</p>
-                      <p className="text-xs text-slate-500 font-medium">Born {fmtDate(c.dob)} · Turning {(calcAge(c.dob) || 0) + 1} years old</p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-sky-600 transition-transform group-hover:translate-x-0.5" />
-                  </li>
+
+                    <a
+                      href={`https://wa.me/${c.parentContact.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                        `Halo ${c.parentName}, segenap keluarga besar Therapedia mengucapkan Selamat Ulang Tahun untuk ananda ${c.clientName}! Semoga senantiasa sehat dan bertumbuh optimal. 🎂✨`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs shrink-0"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> Kirim Ucapan
+                    </a>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -705,4 +697,3 @@ export default function DashboardSchedule() {
     </div>
   );
 }
-

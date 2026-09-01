@@ -1,0 +1,29 @@
+[
+  {
+    "id": "branch-sby-timur",
+    "name": "Surabaya Timur",
+    "code": "SBY-T",
+    "city": "Surabaya",
+    "address": "Jl. Kertajaya Indah Timur No. 42, Surabaya Timur",
+    "phone": "+62 31 5928811",
+    "managerName": "dr. Anita Wijaya, Sp.KFR"
+  },
+  {
+    "id": "branch-citraland",
+    "name": "Citraland",
+    "code": "CTL",
+    "city": "Surabaya Barat",
+    "address": "Ruko North Junction Blok RB-12, Citraland, Surabaya",
+    "phone": "+62 31 7401122",
+    "managerName": "Budi Santoso, S.Ft, Ftr"
+  },
+  {
+    "id": "branch-sby-barat",
+    "name": "Surabaya Barat",
+    "code": "SBY-B",
+    "city": "Surabaya",
+    "address": "Jl. Mayjen Sungkono No. 88, Surabaya Barat",
+    "phone": "+62 31 5683344",
+    "managerName": "dr. Hendra Setiawan, Sp.A"
+  }
+]

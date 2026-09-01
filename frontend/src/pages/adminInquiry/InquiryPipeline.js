@@ -9,21 +9,17 @@ import {
   Sparkles,
   User,
   Calendar,
-  Tag,
-  CalendarPlus,
-  Clock,
   Layers,
-  Zap,
-  Baby,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
+  Building2,
+  ExternalLink,
+  Mail,
+  Phone,
+  ArrowRight,
+  ClipboardList
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -33,706 +29,370 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { StatusBadge, ConcernTag } from "@/components/common/StatusBadge";
-import { AddScheduleModal } from "@/components/calendar/AddScheduleModal";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { useClients } from "@/context/ClientsContext";
-import { useAssessments } from "@/context/AssessmentsContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   PIPELINE_STATUSES,
   STATUS_META,
-  CONCERN_TAGS,
-  SESSION_TYPES,
+  BRANCHES,
   calcAge,
   fmtDate,
-  genCode,
   makeInquiryClient,
+  CLINICAL_SERVICES,
 } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
-const STAGE_ACCENT_BAR = {
-  inquiry: "bg-sky-500",
-  pending: "bg-amber-500",
-  assessment_scheduled: "bg-blue-500",
-  assessment_done: "bg-teal-500",
-  report_ready: "bg-indigo-500",
-  scheduling: "bg-cyan-500",
-  admitted: "bg-emerald-500",
-  discontinued: "bg-rose-500",
-};
+const STAGE_COLUMNS = [
+  { status: "inquiry", label: "1. New Intake", accent: "bg-sky-500", desc: "Data awal masuk" },
+  { status: "service_selected", label: "2. Layanan Dipilih", accent: "bg-purple-500", desc: "B-OTA / F-OTA" },
+  { status: "assessment_scheduled", label: "3. Asesmen Terjadwal", accent: "bg-blue-500", desc: "Kode kuesioner aktif" },
+  { status: "assessment_done", label: "4. Asesmen Selesai", accent: "bg-teal-500", desc: "GDrive & Tabel Psikologi" },
+  { status: "admitted", label: "5. Active Client", accent: "bg-emerald-500", desc: "Lanjut sesi terapi" },
+  { status: "done_consult", label: "Done Consult", accent: "bg-amber-500", desc: "Konsultasi selesai" },
+  { status: "done_assessment", label: "Done Assessment", accent: "bg-indigo-500", desc: "Laporan selesai" },
+  { status: "discontinued", label: "Discontinued", accent: "bg-rose-500", desc: "Batal / tidak lanjut" },
+];
 
 export default function InquiryPipeline() {
   const navigate = useNavigate();
-  const { clients, addClient, updateClient } = useClients();
-  const { categories } = useAssessments();
+  const { clients, addClient } = useClients();
+  const { activeBranch } = useAuth();
 
   const [search, setSearch] = useState("");
-  const [tagFilter, setTagFilter] = useState("all");
-  const [quickScheduleClientId, setQuickScheduleClientId] = useState(null);
-  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
-
-  // New Intake Modal State
+  const [branchFilter, setBranchFilter] = useState(activeBranch || "all");
   const [newIntakeOpen, setNewIntakeOpen] = useState(false);
+
+  // New Intake Form
   const [newForm, setNewForm] = useState({
     clientName: "",
     parentName: "",
     parentContact: "",
     parentEmail: "",
     dob: "",
-    parentComplaint: "",
-    concernTags: ["sensory"],
-    serviceTypes: ["assessment", "therapy"],
-    isWaitingList: false,
-    urgency: "regular",
-    timePreference: "sat_morning",
+    branchId: "branch-sby-timur",
   });
-
-  // Direct Card Waitlist Modal State
-  const [waitlistModalOpen, setWaitlistModalOpen] = useState(false);
-  const [waitlistTargetClient, setWaitlistTargetClient] = useState(null);
-  const [waitlistUrgency, setWaitlistUrgency] = useState("regular");
-  const [waitlistTimePref, setWaitlistTimePref] = useState("sat_morning");
-  const [waitlistActive, setWaitlistActive] = useState(true);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return clients.filter((c) => {
-      if (q && !c.clientName.toLowerCase().includes(q) && !c.parentName.toLowerCase().includes(q)) return false;
-      if (tagFilter !== "all" && !(c.concernTags || []).includes(tagFilter)) return false;
+      // Filter branch
+      if (branchFilter !== "all" && c.branchId !== branchFilter) return false;
+      // Filter search query
+      if (q) {
+        const nameMatch = c.clientName?.toLowerCase().includes(q);
+        const parentMatch = c.parentName?.toLowerCase().includes(q);
+        const codeMatch = c.clientAccessCode?.toLowerCase().includes(q);
+        const emailMatch = c.parentEmail?.toLowerCase().includes(q);
+        if (!nameMatch && !parentMatch && !codeMatch && !emailMatch) return false;
+      }
       return true;
     });
-  }, [clients, search, tagFilter]);
+  }, [clients, search, branchFilter]);
 
-  const grouped = useMemo(() => {
-    const map = {};
-    PIPELINE_STATUSES.forEach((s) => {
-      map[s] = filtered
-        .filter((c) => c.status === s)
-        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  const clientsByStage = useMemo(() => {
+    const groups = {};
+    STAGE_COLUMNS.forEach((col) => {
+      groups[col.status] = [];
     });
-    return map;
-  }, [filtered]);
-
-  const handleQuickBookAssessment = (e, client) => {
-    e.stopPropagation();
-    if (!client.assessmentAccessCode) {
-      const code = genCode("ASM");
-      const catId = client.assessmentCategoryId || (categories[0] ? categories[0].id : null);
-      updateClient(client.id, {
-        assessmentAccessCode: code,
-        assessmentCategoryId: catId,
-        serviceType: client.serviceType || "assessment",
-      });
-    }
-    setQuickScheduleClientId(client.id);
-    setScheduleModalOpen(true);
-  };
-
-  const handleOpenCardWaitlist = (e, client) => {
-    e.stopPropagation();
-    setWaitlistTargetClient(client);
-    setWaitlistActive(client.isWaitingList !== false);
-    setWaitlistUrgency(client.urgency || (calcAge(client.dob) <= 3 ? "urgent" : "regular"));
-    setWaitlistTimePref(client.timePreference || "sat_morning");
-    setWaitlistModalOpen(true);
-  };
-
-  const handleSaveCardWaitlist = () => {
-    if (!waitlistTargetClient) return;
-
-    updateClient(waitlistTargetClient.id, {
-      isWaitingList: waitlistActive,
-      urgency: waitlistUrgency,
-      timePreference: waitlistTimePref,
-    });
-
-    if (waitlistActive) {
-      toast.success(`${waitlistTargetClient.clientName} placed on Priority Waiting List.`);
-    } else {
-      toast.info(`${waitlistTargetClient.clientName} removed from Waiting List.`);
-    }
-    setWaitlistModalOpen(false);
-  };
-
-  const toggleServiceType = (val) => {
-    setNewForm((prev) => {
-      const cur = prev.serviceTypes || [];
-      if (cur.includes(val)) {
-        if (cur.length === 1) return prev;
-        return { ...prev, serviceTypes: cur.filter((v) => v !== val) };
+    filtered.forEach((c) => {
+      if (groups[c.status]) {
+        groups[c.status].push(c);
       } else {
-        return { ...prev, serviceTypes: [...cur, val] };
+        // Fallback mapping
+        if (c.status === "active") groups["admitted"]?.push(c);
+        else if (groups["inquiry"]) groups["inquiry"].push(c);
       }
     });
-  };
+    return groups;
+  }, [filtered]);
 
-  const toggleConcernTag = (val) => {
-    setNewForm((prev) => {
-      const cur = prev.concernTags || [];
-      return {
-        ...prev,
-        concernTags: cur.includes(val) ? cur.filter((v) => v !== val) : [...cur, val],
-      };
-    });
-  };
-
-  const handleCreateNewIntake = (e) => {
+  const handleCreateIntake = (e) => {
     e.preventDefault();
-    if (!newForm.clientName.trim() || !newForm.parentName.trim()) {
-      toast.error("Child name and parent name are required.");
+    if (!newForm.clientName.trim() || !newForm.parentName.trim() || !newForm.parentContact.trim() || !newForm.dob) {
+      toast.error("Mohon lengkapi nama anak, orang tua, kontak WhatsApp, dan tanggal lahir.");
       return;
     }
 
     const newClient = makeInquiryClient({
       ...newForm,
-      assessmentCategoryId: categories[0]?.id || "cat-1",
+      status: "inquiry",
     });
 
     addClient(newClient);
+    toast.success(`Data New Intake ${newClient.clientName} berhasil ditambahkan!`);
     setNewIntakeOpen(false);
-
-    if (newForm.isWaitingList) {
-      toast.success(`${newForm.clientName} added directly to Priority Waiting List!`);
-    } else {
-      toast.success(`New intake created for ${newForm.clientName}!`);
-    }
-
-    // Reset form
     setNewForm({
       clientName: "",
       parentName: "",
       parentContact: "",
       parentEmail: "",
       dob: "",
-      parentComplaint: "",
-      concernTags: ["sensory"],
-      serviceTypes: ["assessment", "therapy"],
-      isWaitingList: false,
-      urgency: "regular",
-      timePreference: "sat_morning",
+      branchId: "branch-sby-timur",
     });
+
+    navigate(`/admin-inquiry/pipeline/${newClient.id}`);
   };
 
   return (
     <div className="space-y-6" data-testid="inquiry-pipeline-page">
-      {/* Header & Filter Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 text-sky-800 text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-            Active Intake Pipeline
+            <ClipboardList className="w-3.5 h-3.5 text-sky-600" />
+            Flexible Non-Sequential Inquiry Pipeline
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Inquiry Pipeline</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            Inquiry & Intake Pipeline
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Track and progress every family from initial inquiry through assessment to clinic admission.
+            Alur pendaftaran client baru fleksibel non-sekuensial. Setiap langkah dapat dilompati atau diproses sesuai kebutuhan klinis.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input
-              className="pl-9 w-48 sm:w-60 bg-white border-slate-200 rounded-xl text-xs h-10"
-              placeholder="Search child or parent..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              data-testid="pipeline-search-input"
-            />
-          </div>
+        <Button
+          className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl gap-2 shadow-sm shadow-sky-600/20 text-xs h-10 self-start sm:self-auto"
+          onClick={() => setNewIntakeOpen(true)}
+          data-testid="add-new-intake-button"
+        >
+          <Plus className="w-4 h-4" /> New Intake Client
+        </Button>
+      </div>
 
-          <Select value={tagFilter} onValueChange={setTagFilter}>
-            <SelectTrigger className="w-44 h-10 bg-white border-slate-200 rounded-xl text-xs font-semibold" data-testid="pipeline-tag-filter">
-              <SelectValue placeholder="Filter concern" />
+      {/* Filter Toolbar */}
+      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+        <div className="relative flex-1 min-w-[260px]">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input
+            className="pl-10 h-10 rounded-xl border-slate-200 bg-slate-50 focus:bg-white text-xs"
+            placeholder="Cari nama anak, orang tua, email, atau kode akses..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="inquiry-search-input"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
+          <Select value={branchFilter} onValueChange={setBranchFilter}>
+            <SelectTrigger className="w-48 h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+              <SelectValue placeholder="Semua Cabang" />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-200">
-              <SelectItem value="all">All concerns</SelectItem>
-              {CONCERN_TAGS.map((t) => (
-                <SelectItem key={t.value} value={t.value}>
-                  {t.label}
+              <SelectItem value="all">🏢 Semua Cabang (All)</SelectItem>
+              {BRANCHES.map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  📍 {b.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-
-          <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl gap-2 shadow-sm shadow-sky-600/20 text-xs h-10"
-            onClick={() => setNewIntakeOpen(true)}
-            data-testid="pipeline-new-inquiry-button"
-          >
-            <Plus className="w-4 h-4" /> New Intake
-          </Button>
         </div>
       </div>
 
-      <p className="md:hidden text-xs text-slate-500 flex items-center gap-1">
-        <span>← Swipe horizontally to browse stages →</span>
-      </p>
-
-      {/* Kanban Board Columns */}
-      <div className="overflow-x-auto pb-4 kanban-scroll snap-x snap-mandatory md:snap-none scroll-px-4">
-        <div className="flex gap-3.5 min-w-max pb-2">
-          {PIPELINE_STATUSES.map((status) => (
-            <div
-              key={status}
-              className="w-[84vw] max-w-[310px] sm:w-[285px] sm:max-w-none shrink-0 snap-start rounded-2xl bg-slate-100/70 border border-slate-200/80 flex flex-col shadow-2xs overflow-hidden"
-              data-testid={`kanban-column-${status}`}
-            >
-              {/* Colored top accent bar */}
-              <div className={cn("h-1.5 w-full", STAGE_ACCENT_BAR[status] || "bg-sky-500")} />
-
-              {/* Column header */}
-              <div className="px-3.5 py-3 flex items-center justify-between border-b border-slate-200/70 bg-white/70">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  {STATUS_META[status].label}
-                </span>
-                <span
-                  className="text-xs font-bold bg-white text-slate-700 border border-slate-200 rounded-full px-2.5 py-0.5 tabular-nums shadow-2xs"
-                  data-testid={`kanban-column-${status}-count`}
-                >
-                  {grouped[status].length}
-                </span>
-              </div>
-
-              {/* Column cards container */}
-              <div className="p-2.5 space-y-2.5 min-h-[140px] max-h-[66vh] overflow-y-auto">
-                {grouped[status].length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-10 text-slate-400">
-                    <Inbox className="w-6 h-6 opacity-40 mb-1.5 stroke-[1.5]" />
-                    <span className="text-xs font-medium">No clients in stage</span>
-                  </div>
-                )}
-
-                {grouped[status].map((c) => {
-                  const services = c.serviceTypes && c.serviceTypes.length > 0 ? c.serviceTypes : (c.serviceType ? [c.serviceType] : []);
-
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => navigate(`/admin-inquiry/clients/${c.id}`)}
-                      className="w-full text-left rounded-xl bg-white border border-slate-200/90 p-3.5 shadow-xs hover:shadow-md hover:border-sky-300 hover:-translate-y-0.5 transition-all duration-150 group cursor-pointer space-y-2"
-                      data-testid={`kanban-card-${c.id}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-extrabold text-slate-900 group-hover:text-sky-700 transition-colors leading-snug">
-                          {c.clientName}
-                        </p>
-                        {calcAge(c.dob) != null && (
-                          <span className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.2 rounded-md shrink-0">
-                            {calcAge(c.dob)}y
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                        <User className="w-3 h-3 text-slate-400" />
-                        <span className="truncate">{c.parentName}</span>
-                      </p>
-
-                      {/* Multiple Clinical Service Badges */}
-                      {services.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {services.map((srv) => (
-                            <StatusBadge key={srv} status={srv} showDot={false} className="text-[10px] px-1.5 py-0" />
-                          ))}
-                        </div>
-                      )}
-
-                      {(c.concernTags || []).length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {(c.concernTags || []).slice(0, 3).map((t) => (
-                            <ConcernTag key={t} tag={t} />
-                          ))}
-                        </div>
-                      )}
-
-                      {c.parentComplaint && (
-                        <p className="text-[11px] text-slate-600 bg-slate-50/80 rounded-lg p-2 leading-relaxed line-clamp-2 italic border border-slate-100 font-medium">
-                          “{c.parentComplaint}”
-                        </p>
-                      )}
-
-                      {/* Quick Action Buttons on Initial Stages */}
-                      {(status === "inquiry" || status === "pending") && (
-                        <div className="grid grid-cols-2 gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            className="h-8 px-2 gap-1 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold rounded-lg shadow-2xs"
-                            onClick={(e) => handleQuickBookAssessment(e, c)}
-                            title="Book assessment slot directly onto timetable"
-                          >
-                            <CalendarPlus className="w-3.5 h-3.5 text-sky-600" /> Book Slot
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className={cn(
-                              "h-8 px-2 gap-1 text-[11px] font-bold rounded-lg border",
-                              c.isWaitingList
-                                ? "bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100"
-                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                            )}
-                            onClick={(e) => handleOpenCardWaitlist(e, c)}
-                            title={c.isWaitingList ? "Client is on waiting list (Click to edit triage)" : "Place client on priority waiting list"}
-                          >
-                            <Clock className="w-3.5 h-3.5 text-purple-600" />
-                            {c.isWaitingList ? "On Waitlist" : "Put Waitlist"}
-                          </Button>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
-                        {c.isWaitingList ? (
-                          <span className="font-bold text-[10px] text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded-md flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-purple-600" /> Waiting List
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 font-medium">Intake ID: {c.clientAccessCode?.slice(-4) || "—"}</span>
-                        )}
-                        <span className="text-slate-400 tabular-nums">{fmtDate(c.createdAt)}</span>
-                      </div>
+      {/* Horizontal Kanban Columns */}
+      <div className="overflow-x-auto pb-4">
+        <div className="flex gap-4 min-w-[1400px]">
+          {STAGE_COLUMNS.map((col) => {
+            const list = clientsByStage[col.status] || [];
+            return (
+              <div
+                key={col.status}
+                className="w-80 shrink-0 bg-slate-100/70 border border-slate-200/80 rounded-2xl flex flex-col max-h-[calc(100vh-250px)]"
+              >
+                {/* Column Header */}
+                <div className="p-3.5 border-b border-slate-200 bg-white/70 rounded-t-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("w-2 h-4 rounded-full", col.accent)} />
+                    <div>
+                      <h3 className="text-xs font-black text-slate-900">{col.label}</h3>
+                      <p className="text-[10px] text-slate-400">{col.desc}</p>
                     </div>
-                  );
-                })}
+                  </div>
+                  <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">
+                    {list.length}
+                  </span>
+                </div>
+
+                {/* Cards Container */}
+                <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                  {list.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400">
+                      Kosong di tahap ini
+                    </div>
+                  ) : (
+                    list.map((c) => {
+                      const br = BRANCHES.find((b) => b.id === c.branchId);
+                      return (
+                        <div
+                          key={c.id}
+                          className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all cursor-pointer group space-y-2.5"
+                          onClick={() => navigate(`/admin-inquiry/pipeline/${c.id}`)}
+                          data-testid={`client-card-${c.id}`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-bold text-sm text-slate-900 group-hover:text-sky-700 transition-colors">
+                                {c.clientName}
+                              </h4>
+                              <p className="text-[11px] text-slate-500 font-medium">
+                                {calcAge(c.dob)} th • DOB: {fmtDate(c.dob)}
+                              </p>
+                            </div>
+                            <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                              {c.clientAccessCode}
+                            </span>
+                          </div>
+
+                          {/* Contact Info */}
+                          <div className="space-y-1 text-xs text-slate-600 pt-1 border-t border-slate-100">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <User className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span className="font-semibold text-slate-800">{c.parentName}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 truncate">
+                              <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span>{c.parentContact}</span>
+                            </div>
+                            {c.parentEmail && (
+                              <div className="flex items-center gap-1.5 truncate text-[11px] text-slate-500">
+                                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{c.parentEmail}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Badges footer */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100">
+                            <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                              📍 {br ? br.name : "Surabaya"}
+                            </span>
+                            {((c.serviceTypes && c.serviceTypes.length > 0) ? c.serviceTypes : (c.serviceType ? [c.serviceType] : [])).map((st) => {
+                              const srv = CLINICAL_SERVICES.find((s) => s.value === st);
+                              return (
+                                <span key={st} className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                                  {srv?.shortLabel || st}
+                                </span>
+                              );
+                            })}
+                            {c.hasSchoolCompanionProfile && (
+                              <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                                + School Profile
+                              </span>
+                            )}
+                            {c.gdriveClientLink && (
+                              <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded-md border border-sky-200 flex items-center gap-1">
+                                <ExternalLink className="w-2.5 h-2.5" /> GDrive
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* DIRECT CARD WAITING LIST MANAGEMENT DIALOG */}
-      <Dialog open={waitlistModalOpen} onOpenChange={setWaitlistModalOpen}>
-        <DialogContent className="max-w-md p-5 sm:p-6">
-          <DialogHeader className="pb-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-base sm:text-lg font-extrabold text-slate-900">
-                  Priority Waiting List Management
-                </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500">
-                  Place family on triage queue when clinical assessment slots are currently full.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {waitlistTargetClient && (
-            <div className="space-y-3.5 pt-1 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                <p className="text-sm font-bold text-slate-900">{waitlistTargetClient.clientName}</p>
-                <p className="text-slate-500">
-                  Parent: <strong>{waitlistTargetClient.parentName}</strong> ({waitlistTargetClient.parentContact || "No Phone"})
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50/50 border border-purple-200">
-                <div>
-                  <p className="font-bold text-purple-950 text-xs">Waiting List Status</p>
-                  <p className="text-[11px] text-purple-700">Include in Waiting List Hub & Cancellation Radar</p>
-                </div>
-                <Switch
-                  checked={waitlistActive}
-                  onCheckedChange={setWaitlistActive}
-                  data-testid="card-waitlist-toggle"
-                />
-              </div>
-
-              {waitlistActive && (
-                <div className="space-y-3 pt-1">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-700">Triage Priority Tier</Label>
-                    <Select value={waitlistUrgency} onValueChange={setWaitlistUrgency}>
-                      <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-slate-200">
-                        <SelectItem value="urgent">🚨 Urgent (Early Intervention ≤ 3 yrs)</SelectItem>
-                        <SelectItem value="high">⚡ High Priority</SelectItem>
-                        <SelectItem value="regular">Standard Queue</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-700">Preferred Session Window</Label>
-                    <Select value={waitlistTimePref} onValueChange={setWaitlistTimePref}>
-                      <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-slate-200">
-                        <SelectItem value="sat_morning">Saturday Morning (08:00 - 12:00)</SelectItem>
-                        <SelectItem value="sat_afternoon">Saturday Afternoon (13:00 - 17:00)</SelectItem>
-                        <SelectItem value="weekday_morning">Weekday Morning</SelectItem>
-                        <SelectItem value="weekday_afternoon">Weekday Afternoon</SelectItem>
-                        <SelectItem value="anytime">Flexible / Any Open Slot</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-
-              <DialogFooter className="mt-4 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl border-slate-200 text-xs font-bold h-9"
-                  onClick={() => setWaitlistModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs"
-                  onClick={handleSaveCardWaitlist}
-                  data-testid="save-card-waitlist-button"
-                >
-                  {waitlistActive ? "Save to Waitlist" : "Remove from Waitlist"}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* NEW INTAKE & WAITING LIST DIALOG */}
+      {/* New Intake Modal (Clean, email included, no complaints/tags) */}
       <Dialog open={newIntakeOpen} onOpenChange={setNewIntakeOpen}>
-        <DialogContent className="max-w-xl max-h-[calc(100dvh-2.5rem)] overflow-y-auto p-5 sm:p-6">
-          <DialogHeader className="pb-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold shrink-0">
-                <Plus className="w-5 h-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-base sm:text-lg font-extrabold text-slate-900">
-                  New Pediatric Intake Registration
-                </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500">
-                  Register incoming family inquiry with multi-service clinical disciplines or direct waiting list placement.
-                </DialogDescription>
-              </div>
-            </div>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-sky-600" /> New Intake Pendaftaran
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Input data dasar client dan orang tua. Pemilihan layanan klinis dan kuesioner asesmen dapat diproses fleksibel pada langkah pipeline berikutnya.
+            </DialogDescription>
           </DialogHeader>
-
-          <form onSubmit={handleCreateNewIntake} className="space-y-4 pt-1 text-xs">
-            {/* Child & Parent Basic Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Child's Full Name *</Label>
-                <Input
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-9"
-                  placeholder="e.g. Leo Hernandez"
-                  value={newForm.clientName}
-                  onChange={(e) => setNewForm({ ...newForm, clientName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Date of Birth</Label>
-                <Input
-                  type="date"
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-9"
-                  value={newForm.dob}
-                  onChange={(e) => setNewForm({ ...newForm, dob: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Parent / Guardian Name *</Label>
-                <Input
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-9"
-                  placeholder="e.g. Maria Hernandez"
-                  value={newForm.parentName}
-                  onChange={(e) => setNewForm({ ...newForm, parentName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">WhatsApp / Phone Number *</Label>
-                <Input
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-9"
-                  placeholder="+62 812-3456-7890"
-                  value={newForm.parentContact}
-                  onChange={(e) => setNewForm({ ...newForm, parentContact: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* MULTI-SERVICE DISCIPLINE SELECTION */}
-            <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50/80 border border-slate-200">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-sky-600" />
-                  Clinical Services & Disciplines
-                </Label>
-                <span className="text-[10px] text-slate-500 font-semibold">
-                  (Select all required services)
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {SESSION_TYPES.map((srv) => {
-                  const active = (newForm.serviceTypes || []).includes(srv.value);
-                  return (
-                    <button
-                      key={srv.value}
-                      type="button"
-                      onClick={() => toggleServiceType(srv.value)}
-                      className={cn(
-                        "px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer",
-                        active
-                          ? "bg-sky-600 border-sky-600 text-white shadow-2xs"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                      )}
-                    >
-                      {srv.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Clinical Concern Tags */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Referral Focus Tags</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {CONCERN_TAGS.map((t) => {
-                  const active = (newForm.concernTags || []).includes(t.value);
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => toggleConcernTag(t.value)}
-                      className={cn(
-                        "rounded-full px-2.5 py-1 text-[11px] font-bold border transition-all cursor-pointer",
-                        active
-                          ? "bg-purple-600 border-purple-600 text-white shadow-2xs"
-                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
-                      )}
-                    >
-                      {t.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
+          <form onSubmit={handleCreateIntake} className="space-y-3.5 pt-2">
             <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Parent Complaint & Intake Notes</Label>
-              <Textarea
-                rows={2}
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs"
-                placeholder="Sensory sensitivities, speech delays, attention span, school reports..."
-                value={newForm.parentComplaint}
-                onChange={(e) => setNewForm({ ...newForm, parentComplaint: e.target.value })}
+              <Label className="text-xs font-bold text-slate-700">Nama Lengkap Anak *</Label>
+              <Input
+                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                placeholder="e.g. Kenzo Danendra"
+                value={newForm.clientName}
+                onChange={(e) => setNewForm({ ...newForm, clientName: e.target.value })}
+                data-testid="intake-client-name"
               />
             </div>
 
-            {/* DIRECT WAITING LIST PLACEMENT TOGGLE */}
-            <div className="space-y-2.5 rounded-2xl border border-purple-200 bg-purple-50/40 p-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                    <Clock className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-purple-950">
-                      Slots currently full? Place directly on Waiting List
-                    </p>
-                    <p className="text-[10px] text-purple-700">
-                      Automatically registers family in the Waiting List Hub triage queue
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={newForm.isWaitingList}
-                  onCheckedChange={(val) => setNewForm({ ...newForm, isWaitingList: val })}
-                />
-              </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak *</Label>
+              <Input
+                type="date"
+                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                value={newForm.dob}
+                onChange={(e) => setNewForm({ ...newForm, dob: e.target.value })}
+                data-testid="intake-dob"
+              />
+            </div>
 
-              {newForm.isWaitingList && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-purple-200/70">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700">Triage Priority</Label>
-                    <Select
-                      value={newForm.urgency}
-                      onValueChange={(val) => setNewForm({ ...newForm, urgency: val })}
-                    >
-                      <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-8 font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-slate-200">
-                        <SelectItem value="urgent">🚨 Urgent (Early Intervention)</SelectItem>
-                        <SelectItem value="high">⚡ High Priority</SelectItem>
-                        <SelectItem value="regular">Standard Queue</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Nama Orang Tua / Wali *</Label>
+              <Input
+                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                placeholder="e.g. Ibu Liana Santoso"
+                value={newForm.parentName}
+                onChange={(e) => setNewForm({ ...newForm, parentName: e.target.value })}
+                data-testid="intake-parent-name"
+              />
+            </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-700">Preferred Time Window</Label>
-                    <Select
-                      value={newForm.timePreference}
-                      onValueChange={(val) => setNewForm({ ...newForm, timePreference: val })}
-                    >
-                      <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-8 font-semibold">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-slate-200">
-                        <SelectItem value="sat_morning">Saturday Morning</SelectItem>
-                        <SelectItem value="sat_afternoon">Saturday Afternoon</SelectItem>
-                        <SelectItem value="weekday_morning">Weekday Morning</SelectItem>
-                        <SelectItem value="weekday_afternoon">Weekday Afternoon</SelectItem>
-                        <SelectItem value="anytime">Flexible / Any Open Slot</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">No. WhatsApp / HP *</Label>
+              <Input
+                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                placeholder="+62 812-xxxx-xxxx"
+                value={newForm.parentContact}
+                onChange={(e) => setNewForm({ ...newForm, parentContact: e.target.value })}
+                data-testid="intake-parent-contact"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Email Orang Tua *</Label>
+              <Input
+                type="email"
+                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                placeholder="liana.santoso@gmail.com"
+                value={newForm.parentEmail}
+                onChange={(e) => setNewForm({ ...newForm, parentEmail: e.target.value })}
+                data-testid="intake-parent-email"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Cabang Tujuan *</Label>
+              <Select value={newForm.branchId} onValueChange={(val) => setNewForm({ ...newForm, branchId: val })}>
+                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                  {BRANCHES.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      📍 {b.name} ({b.city})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <DialogFooter className="mt-4 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl border-slate-200 text-xs font-bold h-9"
-                onClick={() => setNewIntakeOpen(false)}
-              >
-                Cancel
+              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setNewIntakeOpen(false)}>
+                Batal
               </Button>
-              <Button
-                type="submit"
-                className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs"
-              >
-                {newForm.isWaitingList ? "Add to Waiting List" : "Register Intake"}
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs" data-testid="submit-intake-button">
+                Daftarkan ke Pipeline
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Fast Track Booking Modal */}
-      {quickScheduleClientId && (
-        <AddScheduleModal
-          open={scheduleModalOpen}
-          onOpenChange={(open) => {
-            setScheduleModalOpen(open);
-            if (!open) setQuickScheduleClientId(null);
-          }}
-          defaults={{
-            clientId: quickScheduleClientId,
-            lockClient: true,
-            type: "assessment",
-            lockType: true,
-          }}
-          onCreated={() =>
-            updateClient(quickScheduleClientId, {
-              status: "assessment_scheduled",
-              isWaitingList: false,
-            })
-          }
-        />
-      )}
     </div>
   );
 }

@@ -1,72 +1,287 @@
-[
-  {
-    "id": "cr-001", "clientId": "c-009", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 7,
-    "leaveQuota": 3, "leaveUsed": 1, "purchaseDate": "2025-06-15", "isRenewal": false, "invoiceId": "inv-009",
-    "history": [
-      { "date": "2026-01-05", "scheduleId": "sch-p901", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-12", "scheduleId": "sch-001", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-19", "scheduleId": "sch-008", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-26", "scheduleId": "sch-l901", "action": "leave", "creditChange": 0 }
-    ]
-  },
-  {
-    "id": "cr-002", "clientId": "c-010", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 2,
-    "leaveQuota": 3, "leaveUsed": 0, "purchaseDate": "2025-08-20", "isRenewal": false, "invoiceId": "inv-010",
-    "history": [
-      { "date": "2025-12-10", "scheduleId": "sch-p1001", "action": "used", "creditChange": -1 },
-      { "date": "2025-12-17", "scheduleId": "sch-p1002", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-14", "scheduleId": "sch-002", "action": "used", "creditChange": -1 }
-    ]
-  },
-  {
-    "id": "cr-003", "clientId": "c-011", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 0,
-    "leaveQuota": 3, "leaveUsed": 2, "purchaseDate": "2025-09-05", "isRenewal": false, "invoiceId": "inv-011",
-    "history": [
-      { "date": "2025-12-16", "scheduleId": "sch-p1101", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-06", "scheduleId": "sch-003", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-13", "scheduleId": "sch-010", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-20", "scheduleId": "sch-l1101", "action": "leave", "creditChange": 0 }
-    ]
-  },
-  {
-    "id": "cr-004", "clientId": "c-012", "packageName": "5 Sessions", "totalCredit": 5, "remainingCredit": 5,
-    "leaveQuota": 3, "leaveUsed": 1, "purchaseDate": "2026-01-10", "isRenewal": false, "invoiceId": "inv-012",
-    "history": [
-      { "date": "2026-01-22", "scheduleId": "sch-004", "action": "leave", "creditChange": 0 }
-    ]
-  },
-  {
-    "id": "cr-005", "clientId": "c-013", "packageName": "20 Sessions", "totalCredit": 20, "remainingCredit": 12,
-    "leaveQuota": 3, "leaveUsed": 0, "purchaseDate": "2025-10-01", "isRenewal": false, "invoiceId": "inv-013",
-    "history": [
-      { "date": "2025-11-07", "scheduleId": "sch-p1301", "action": "used", "creditChange": -1 },
-      { "date": "2025-12-05", "scheduleId": "sch-p1302", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-16", "scheduleId": "sch-005", "action": "used", "creditChange": -1 }
-    ]
-  },
-  {
-    "id": "cr-006", "clientId": "c-014", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 1,
-    "leaveQuota": 3, "leaveUsed": 4, "purchaseDate": "2025-07-12", "isRenewal": false, "invoiceId": "inv-014",
-    "history": [
-      { "date": "2025-11-20", "scheduleId": "sch-p1401", "action": "used", "creditChange": -1 },
-      { "date": "2025-12-04", "scheduleId": "sch-l1401", "action": "leave", "creditChange": 0 },
-      { "date": "2025-12-18", "scheduleId": "sch-l1402", "action": "leave", "creditChange": 0 },
-      { "date": "2026-01-08", "scheduleId": "sch-l1403", "action": "leave", "creditChange": 0 },
-      { "date": "2026-01-15", "scheduleId": "sch-006", "action": "leave", "creditChange": 0 }
-    ]
-  },
-  {
-    "id": "cr-007", "clientId": "c-015", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 10,
-    "leaveQuota": 3, "leaveUsed": 0, "purchaseDate": "2026-01-28", "isRenewal": false, "invoiceId": "inv-015",
-    "history": []
-  },
-  {
-    "id": "cr-008", "clientId": "c-016", "packageName": "10 Sessions", "totalCredit": 10, "remainingCredit": 4,
-    "leaveQuota": 3, "leaveUsed": 1, "purchaseDate": "2025-11-03", "isRenewal": false, "invoiceId": "inv-016",
-    "history": [
-      { "date": "2025-12-08", "scheduleId": "sch-p1601", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-05", "scheduleId": "sch-p1602", "action": "used", "creditChange": -1 },
-      { "date": "2026-01-12", "scheduleId": "sch-l1601", "action": "leave", "creditChange": 0 }
-    ]
-  }
-]
+{
+  "masterPackages": [
+    { "id": "pkg-reguler", "name": "Paket Reguler", "credits": 10, "price": 2500000, "description": "10 Sesi Terapi Reguler (Occupational / Sensory / Speech Therapy)" },
+    { "id": "pkg-vip", "name": "Paket VIP", "credits": 10, "price": 3500000, "description": "10 Sesi Terapi Spesialis VIP (1-on-1 Senior Clinical Practitioner + Priority Room)" },
+    { "id": "pkg-consult", "name": "Paket Konsultasi", "credits": 1, "price": 500000, "description": "1 Sesi Konsultasi Klinis Lanjutan & Review Evaluasi Program Terapi" },
+    { "id": "pkg-sensory-intensive", "name": "Paket Sensori Intensif", "credits": 15, "price": 4200000, "description": "15 Sesi Stimulasi Sensori & Motor Planning Intensif" }
+  ],
+  "records": [
+    {
+      "id": "cr-001",
+      "clientId": "c-009",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        { "id": "cp-009-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 7, "cancelCount": 1, "status": "active" },
+        { "id": "cp-009-2", "packageId": "pkg-vip", "packageName": "Paket VIP (5x)", "totalCredit": 5, "remainingCredit": 4, "cancelCount": 0, "status": "active" }
+      ],
+      "cancelCountTotal": 1,
+      "history": [
+        { "id": "hist-1", "date": "2026-01-05", "scheduleId": "sch-p901", "packageId": "cp-009-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi terapi OT Reguler selesai" },
+        { "id": "hist-2", "date": "2026-01-12", "scheduleId": "sch-001", "packageId": "cp-009-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi sensori integrasi selesai" },
+        { "id": "hist-3", "date": "2026-01-19", "scheduleId": "sch-008", "packageId": "cp-009-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi gross motor selesai" },
+        { "id": "hist-4", "date": "2026-01-26", "scheduleId": "sch-l901", "packageId": "cp-009-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit) - Kuota izin wajar" },
+        { "id": "hist-5", "date": "2026-02-02", "scheduleId": "sch-v901", "packageId": "cp-009-2", "packageName": "Paket VIP (5x)", "action": "used", "creditChange": -1, "note": "Sesi terapi VIP 1-on-1 selesai" }
+      ]
+    },
+    {
+      "id": "cr-002",
+      "clientId": "c-012",
+      "branchId": "branch-sby-timur",
+      "packages": [],
+      "cancelCountTotal": 0,
+      "history": []
+    },
+    {
+      "id": "cr-003",
+      "clientId": "c-013",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        { "id": "cp-013-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 1, "cancelCount": 2, "status": "active" }
+      ],
+      "cancelCountTotal": 2,
+      "history": [
+        { "id": "hist-6", "date": "2026-01-08", "scheduleId": "sch-0131", "packageId": "cp-013-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-7", "date": "2026-01-15", "scheduleId": "sch-0132", "packageId": "cp-013-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
+        { "id": "hist-8", "date": "2026-01-22", "scheduleId": "sch-0133", "packageId": "cp-013-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-2 (Izin Keluarga)" }
+      ]
+    },
+    {
+      "id": "cr-004",
+      "clientId": "c-014",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        { "id": "cp-014-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 5, "cancelCount": 4, "status": "active" }
+      ],
+      "cancelCountTotal": 4,
+      "history": [
+        { "id": "hist-9", "date": "2026-01-07", "scheduleId": "sch-0141", "packageId": "cp-014-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
+        { "id": "hist-10", "date": "2026-01-14", "scheduleId": "sch-0142", "packageId": "cp-014-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-2 (Izin)" },
+        { "id": "hist-11", "date": "2026-01-21", "scheduleId": "sch-0143", "packageId": "cp-014-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "bentrok_sekolah", "note": "Cancel ke-3 (Bentrok)" },
+        { "id": "hist-12", "date": "2026-01-28", "scheduleId": "sch-0144", "packageId": "cp-014-1", "packageName": "Paket Reguler (10x)", "action": "cancel_penalty", "creditChange": -1, "cancelReason": "tanpa_kabar", "note": "Cancel ke-4 (Tanpa Kabar) - Penalti memotong 1 kredit asli!" }
+      ]
+    },
+    {
+      "id": "cr-005",
+      "clientId": "c-017",
+      "branchId": "branch-citraland",
+      "packages": [
+        { "id": "cp-017-1", "packageId": "pkg-vip", "packageName": "Paket VIP (10x)", "totalCredit": 10, "remainingCredit": 8, "cancelCount": 1, "status": "active" }
+      ],
+      "cancelCountTotal": 1,
+      "history": [
+        { "id": "hist-13", "date": "2026-01-10", "scheduleId": "sch-0171", "packageId": "cp-017-1", "packageName": "Paket VIP (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-14", "date": "2026-01-17", "scheduleId": "sch-0172", "packageId": "cp-017-1", "packageName": "Paket VIP (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-15", "date": "2026-01-24", "scheduleId": "sch-0173", "packageId": "cp-017-1", "packageName": "Paket VIP (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" }
+      ]
+    },
+    {
+      "id": "cr-006",
+      "clientId": "c-018",
+      "branchId": "branch-citraland",
+      "packages": [
+        { "id": "cp-018-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 9, "cancelCount": 0, "status": "active" }
+      ],
+      "cancelCountTotal": 0,
+      "history": [
+        { "id": "hist-16", "date": "2026-01-26", "scheduleId": "sch-0181", "packageId": "cp-018-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi pertama selesai" }
+      ]
+    },
+    {
+      "id": "cr-007",
+      "clientId": "c-020",
+      "branchId": "branch-citraland",
+      "packages": [],
+      "cancelCountTotal": 0,
+      "history": []
+    },
+    {
+      "id": "cr-008",
+      "clientId": "c-022",
+      "branchId": "branch-citraland",
+      "packages": [
+        { "id": "cp-022-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 8, "cancelCount": 0, "status": "active" }
+      ],
+      "cancelCountTotal": 0,
+      "history": [
+        { "id": "hist-17", "date": "2026-01-11", "scheduleId": "sch-0221", "packageId": "cp-022-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-18", "date": "2026-01-18", "scheduleId": "sch-0222", "packageId": "cp-022-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" }
+      ]
+    },
+    {
+      "id": "cr-009",
+      "clientId": "c-025",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        { "id": "cp-025-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 6, "cancelCount": 2, "status": "active" },
+        { "id": "cp-025-2", "packageId": "pkg-vip", "packageName": "Paket VIP (5x)", "totalCredit": 5, "remainingCredit": 3, "cancelCount": 0, "status": "active" }
+      ],
+      "cancelCountTotal": 2,
+      "history": [
+        { "id": "hist-19", "date": "2026-01-09", "scheduleId": "sch-0251", "packageId": "cp-025-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-20", "date": "2026-01-16", "scheduleId": "sch-0252", "packageId": "cp-025-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-21", "date": "2026-01-23", "scheduleId": "sch-0253", "packageId": "cp-025-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
+        { "id": "hist-22", "date": "2026-01-30", "scheduleId": "sch-0254", "packageId": "cp-025-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-2 (Izin)" }
+      ]
+    },
+    {
+      "id": "cr-010",
+      "clientId": "c-027",
+      "branchId": "branch-sby-barat",
+      "packages": [],
+      "cancelCountTotal": 0,
+      "history": []
+    },
+    {
+      "id": "cr-011",
+      "clientId": "c-028",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        { "id": "cp-028-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 4, "cancelCount": 5, "status": "active" }
+      ],
+      "cancelCountTotal": 5,
+      "history": [
+        { "id": "hist-23", "date": "2026-01-06", "scheduleId": "sch-0281", "packageId": "cp-028-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
+        { "id": "hist-24", "date": "2026-01-13", "scheduleId": "sch-0282", "packageId": "cp-028-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-2 (Sakit)" },
+        { "id": "hist-25", "date": "2026-01-20", "scheduleId": "sch-0283", "packageId": "cp-028-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-3 (Izin)" },
+        { "id": "hist-26", "date": "2026-01-27", "scheduleId": "sch-0284", "packageId": "cp-028-1", "packageName": "Paket Reguler (10x)", "action": "cancel_penalty", "creditChange": -1, "cancelReason": "tanpa_kabar", "note": "Cancel ke-4 (Tanpa Kabar) - Penalti memotong 1 kredit!" },
+        { "id": "hist-27", "date": "2026-02-03", "scheduleId": "sch-0285", "packageId": "cp-028-1", "packageName": "Paket Reguler (10x)", "action": "cancel_penalty", "creditChange": -1, "cancelReason": "bentrok_sekolah", "note": "Cancel ke-5 (Bentrok Sekolah) - Penalti memotong 1 kredit!" }
+      ]
+    },
+    {
+      "id": "cr-012",
+      "clientId": "c-030",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        { "id": "cp-030-1", "packageId": "pkg-reguler", "packageName": "Paket Reguler (10x)", "totalCredit": 10, "remainingCredit": 7, "cancelCount": 1, "status": "active" }
+      ],
+      "cancelCountTotal": 1,
+      "history": [
+        { "id": "hist-28", "date": "2026-01-12", "scheduleId": "sch-0301", "packageId": "cp-030-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-29", "date": "2026-01-19", "scheduleId": "sch-0302", "packageId": "cp-030-1", "packageName": "Paket Reguler (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
+        { "id": "hist-30", "date": "2026-01-26", "scheduleId": "sch-0303", "packageId": "cp-030-1", "packageName": "Paket Reguler (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" }
+      ]
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv-001",
+      "invoiceNumber": "INV-2026-01-001",
+      "clientId": "c-009",
+      "clientName": "Kenzo Wirawan",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Paket Reguler (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "issuedAt": "2026-01-02T09:00:00Z",
+      "paidAt": "2026-01-02T11:30:00Z"
+    },
+    {
+      "id": "inv-002",
+      "invoiceNumber": "INV-2026-01-002",
+      "clientId": "c-010",
+      "clientName": "Ayla Khansa",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-vip",
+      "packageName": "Paket VIP (10 Sesi)",
+      "credits": 10,
+      "amount": 3500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "issuedAt": "2026-01-12T10:00:00Z",
+      "paidAt": null
+    },
+    {
+      "id": "inv-003",
+      "invoiceNumber": "INV-2026-01-003",
+      "clientId": "c-017",
+      "clientName": "Gibran Al-Farisi",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-vip",
+      "packageName": "Paket VIP (10 Sesi)",
+      "credits": 10,
+      "amount": 3500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "issuedAt": "2025-12-01T10:00:00Z",
+      "paidAt": "2025-12-01T14:20:00Z"
+    },
+    {
+      "id": "inv-004",
+      "invoiceNumber": "INV-2026-01-004",
+      "clientId": "c-018",
+      "clientName": "Alvaro Rayyan",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Paket Reguler (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "issuedAt": "2026-01-25T11:30:00Z",
+      "paidAt": null
+    },
+    {
+      "id": "inv-005",
+      "invoiceNumber": "INV-2026-01-005",
+      "clientId": "c-025",
+      "clientName": "Kenzie Bramantyo",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Paket Reguler (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "issuedAt": "2025-11-12T09:00:00Z",
+      "paidAt": "2025-11-12T13:00:00Z"
+    },
+    {
+      "id": "inv-006",
+      "invoiceNumber": "INV-2026-01-006",
+      "clientId": "c-028",
+      "clientName": "Fiona Elysia",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Paket Reguler (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "issuedAt": "2025-09-01T10:00:00Z",
+      "paidAt": "2025-09-01T15:00:00Z"
+    },
+    {
+      "id": "inv-007",
+      "invoiceNumber": "INV-2026-01-007",
+      "clientId": "c-030",
+      "clientName": "Chelsea Valerie",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Paket Reguler (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "issuedAt": "2025-08-15T09:00:00Z",
+      "paidAt": "2025-08-15T11:00:00Z"
+    },
+    {
+      "id": "inv-008",
+      "invoiceNumber": "INV-2026-02-001",
+      "clientId": "c-019",
+      "clientName": "Mikaela Chandra",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-consult",
+      "packageName": "Asesmen B-OTA & Konsultasi",
+      "credits": 1,
+      "amount": 750000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "issuedAt": "2026-01-28T14:30:00Z",
+      "paidAt": null
+    }
+  ]
+}

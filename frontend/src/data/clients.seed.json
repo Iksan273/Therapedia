@@ -1,607 +1,582 @@
 [
   {
-    "id": "c-001",
-    "status": "inquiry",
-    "clientName": "Liam Carter",
-    "parentName": "Daniel Carter",
-    "parentContact": "+1 555-0141",
-    "parentEmail": "daniel.carter@example.com",
-    "dob": "2019-04-12",
-    "serviceType": null,
-    "assessmentCategoryId": null,
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1001",
-    "_createdDaysAgo": 2,
-    "parentComplaint": "Gets overwhelmed by loud noises and often has meltdowns at school.",
-    "concernTags": [
-      "sensory",
-      "behavior"
-    ]
-  },
-  {
-    "id": "c-002",
-    "status": "inquiry",
-    "clientName": "Sofia Nguyen",
-    "parentName": "Linh Nguyen",
-    "parentContact": "+1 555-0187",
-    "parentEmail": "linh.nguyen@example.com",
-    "dob": "2020-09-03",
-    "serviceType": null,
-    "assessmentCategoryId": null,
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1002",
-    "_createdDaysAgo": 4,
-    "parentComplaint": "Avoids playing with other children and rarely makes eye contact.",
-    "concernTags": [
-      "social",
-      "speech"
-    ]
-  },
-  {
-    "id": "c-003",
-    "status": "inquiry",
-    "clientName": "Ethan Brooks",
-    "parentName": "Rachel Brooks",
-    "parentContact": "+1 555-0134",
-    "parentEmail": "rachel.brooks@example.com",
-    "dob": "2018-11-27",
-    "serviceType": null,
-    "assessmentCategoryId": null,
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1003",
-    "_createdDaysAgo": 6,
-    "parentComplaint": "Very picky eater, refuses most food textures and gags easily.",
-    "concernTags": [
-      "feeding",
-      "sensory"
-    ]
-  },
-  {
-    "id": "c-004",
-    "status": "inquiry",
-    "clientName": "Amara Okafor",
-    "parentName": "Chidi Okafor",
-    "parentContact": "+1 555-0158",
-    "parentEmail": "chidi.okafor@example.com",
-    "dob": "2021-02-18",
-    "serviceType": null,
-    "assessmentCategoryId": null,
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1004",
-    "_createdDaysAgo": 9,
-    "parentComplaint": "Seems behind on motor milestones, walks unsteadily and falls often.",
-    "concernTags": [
-      "motor"
-    ]
-  },
-  {
-    "id": "c-005",
-    "status": "inquiry",
-    "clientName": "Noah Kim",
-    "parentName": "Grace Kim",
-    "parentContact": "+1 555-0172",
-    "parentEmail": "grace.kim@example.com",
-    "dob": "2019-07-30",
-    "serviceType": null,
-    "assessmentCategoryId": null,
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1005",
-    "_createdDaysAgo": 12,
-    "parentComplaint": "Difficulty holding crayons and using utensils compared to peers.",
-    "concernTags": [
-      "motor"
-    ]
-  },
-  {
-    "id": "c-006",
-    "status": "pending",
-    "clientName": "Zoe Martinez",
-    "parentName": "Carlos Martinez",
-    "parentContact": "+1 555-0119",
-    "parentEmail": "carlos.martinez@example.com",
-    "dob": "2019-12-08",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-001",
-    "assessmentAccessCode": "ASM-2201",
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1006",
-    "_createdDaysAgo": 15,
-    "parentComplaint": "Extremely sensitive to touch and clothing tags, daily dressing battles.",
-    "concernTags": [
-      "sensory",
-      "behavior"
-    ]
-  },
-  {
-    "id": "c-007",
-    "status": "pending",
-    "clientName": "Lucas Wright",
-    "parentName": "Emily Wright",
-    "parentContact": "+1 555-0163",
-    "parentEmail": "emily.wright@example.com",
-    "dob": "2020-05-21",
-    "serviceType": "consultation",
-    "assessmentCategoryId": null,
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1007",
-    "_createdDaysAgo": 17,
-    "parentComplaint": "Parents want guidance on managing transitions and daily routines.",
-    "concernTags": [
-      "behavior",
-      "attention"
-    ]
-  },
-  {
-    "id": "c-008",
-    "status": "assessment_scheduled",
-    "clientName": "Mia Thompson",
-    "parentName": "Sarah Thompson",
-    "parentContact": "+1 555-0195",
-    "parentEmail": "sarah.thompson@example.com",
-    "dob": "2018-08-15",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-002",
-    "assessmentAccessCode": "ASM-2203",
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": null,
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1008",
-    "_createdDaysAgo": 20,
-    "parentComplaint": "Trouble with handwriting and buttoning clothes at school.",
-    "concernTags": [
-      "motor"
-    ]
-  },
-  {
     "id": "c-009",
+    "clientName": "Kenzo Wirawan",
+    "dob": "2020-04-15",
+    "parentName": "Hendra Wirawan",
+    "parentContact": "081234567890",
+    "parentEmail": "hendra.wirawan@gmail.com",
+    "clientAccessCode": "TDC-1001",
+    "branchId": "branch-sby-timur",
     "status": "admitted",
-    "clientName": "Oliver Bennett",
-    "parentName": "Hannah Bennett",
-    "parentContact": "+1 555-0102",
-    "parentEmail": "hannah.bennett@example.com",
-    "dob": "2019-01-05",
-    "_birthdayThisMonth": true,
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-001",
-    "assessmentAccessCode": "ASM-9001",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1KenzoWirawanTherapediaSBYT",
+    "assessmentCodes": [
+      { "code": "ASM-1001", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" },
+      { "code": "ASM-1002", "categoryId": "cat-002", "name": "School Companion Profile" }
+    ],
     "assessmentAnswers": [
       {
-        "questionId": "q-101",
-        "answer": "Yes"
+        "categoryId": "cat-001",
+        "categoryName": "Sensory & Developmental Profile (B-OTA / F-OTA)",
+        "answers": [
+          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises, bright lights, or sudden sensory inputs?", "answer": "4 - Frequent", "score": 4 },
+          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched unexpectedly or tactile textures?", "answer": "3 - Hesitant / Uncomfortable", "score": 3 },
+          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning, swinging, or jumping more than peers?", "answer": "5 - Dangerous / Constant craving", "score": 5 },
+          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils, crayons, or manipulate small items independently?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
+          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes in daily routines or activity transitions?", "answer": "4 - Frequent tantrums", "score": 4 },
+          { "questionId": "q-106", "domain": "Parental Observation", "question": "Describe any food textures, clothing tags, or specific calming strategies that help your child.", "answer": "Sangat sensitif terhadap label baju dan menolak makanan bertekstur bubur kental. Merasa tenang bila diayun pelan.", "score": null }
+        ]
       },
       {
-        "questionId": "q-102",
-        "answer": "Becomes upset"
-      },
-      {
-        "questionId": "q-103",
-        "answer": "Yes"
-      },
-      {
-        "questionId": "q-104",
-        "answer": "Avoids crunchy foods and clothing tags. Prefers soft cotton."
-      },
-      {
-        "questionId": "q-105",
-        "answer": "Often"
-      },
-      {
-        "questionId": "q-106",
-        "answer": "Deep pressure hugs and a quiet corner with dim light."
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile",
+        "answers": [
+          { "questionId": "q-scp-01", "domain": "Classroom Attention", "question": "Ability to sustain sitting and focus during 20-30 minutes teacher-led instruction:", "answer": "4 - Frequently leaves seat", "score": 4 },
+          { "questionId": "q-scp-02", "domain": "Instruction Following", "question": "Response to multi-step instructions given by teachers in a noisy classroom:", "answer": "3 - Needs repeated singular instruction", "score": 3 },
+          { "questionId": "q-scp-03", "domain": "Peer Socialization", "question": "Interaction with classmates during unstructured school times (recess, lunch, playground):", "answer": "2 - Joins parallel play comfortably", "score": 2 },
+          { "questionId": "q-scp-04", "domain": "Academic Material Handling", "question": "Management of school supplies, books, pencil case, scissors, and writing posture at desk:", "answer": "3 - Slumps over desk / Drops supplies frequently", "score": 3 },
+          { "questionId": "q-scp-05", "domain": "School Sensory Regulation", "question": "Tolerance to school sensory triggers (bell sounds, cafeteria noise, school uniform fabric):", "answer": "4 - Flees / Panics in loud school areas", "score": 4 },
+          { "questionId": "q-scp-06", "domain": "Educator / Shadow Note", "question": "Specific accommodations, shadow teacher notes, or classroom behavioral observations:", "answer": "Guru kelas melaporkan Kenzo memerlukan headphone peredam suara saat jam istirahat dan bel sekolah.", "score": null }
+        ]
       }
     ],
-    "assessmentReportNote": "Oliver shows moderate tactile and auditory sensitivity. Recommended weekly OT with a sensory-diet home program. Re-evaluate in 12 weeks.",
-    "invoice": {
-      "id": "inv-009",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-oliver-0125.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 8,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1009",
-    "_createdDaysAgo": 260,
-    "parentComplaint": "Overreacts to noise and avoids messy play like sand or paint.",
-    "concernTags": [
-      "sensory"
-    ]
+    "invoiceStatus": "paid",
+    "createdAt": "2026-01-02T08:30:00Z"
   },
   {
     "id": "c-010",
-    "status": "admitted",
-    "clientName": "Ava Sullivan",
-    "parentName": "Patrick Sullivan",
-    "parentContact": "+1 555-0126",
-    "parentEmail": "patrick.sullivan@example.com",
-    "dob": "2020-03-19",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-003",
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": "Gross motor delays in bilateral coordination. Weekly therapy recommended.",
-    "invoice": {
-      "id": "inv-010",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-ava-0325.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 6,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1010",
-    "_createdDaysAgo": 200,
-    "parentComplaint": "Clumsy, trips often and struggles with ball games at the park.",
-    "concernTags": [
-      "motor"
-    ]
+    "clientName": "Ayla Khansa",
+    "dob": "2021-08-20",
+    "parentName": "drg. Maya Pramitha",
+    "parentContact": "081345678901",
+    "parentEmail": "maya.pramitha@gmail.com",
+    "clientAccessCode": "TDC-1002",
+    "branchId": "branch-sby-timur",
+    "status": "assessment_done",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1AylaKhansaTherapediaSBYT",
+    "assessmentCodes": [
+      { "code": "ASM-2011", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" },
+      { "code": "ASM-2012", "categoryId": "cat-002", "name": "School Companion Profile" }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Sensory & Developmental Profile (B-OTA / F-OTA)",
+        "answers": [
+          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises, bright lights, or sudden sensory inputs?", "answer": "3 - Sometimes", "score": 3 },
+          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched unexpectedly or tactile textures?", "answer": "4 - Highly distressed", "score": 4 },
+          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning, swinging, or jumping more than peers?", "answer": "2 - Mild seeker", "score": 2 },
+          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils, crayons, or manipulate small items independently?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
+          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes in daily routines or activity transitions?", "answer": "3 - Shows anxiety / Resistance", "score": 3 },
+          { "questionId": "q-106", "domain": "Parental Observation", "question": "Describe any food textures, clothing tags, or specific calming strategies that help your child.", "answer": "Menolak menyentuh pasir dan lem, sangat menyukai pelukan erat saat cemas.", "score": null }
+        ]
+      },
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile",
+        "answers": [
+          { "questionId": "q-scp-01", "domain": "Classroom Attention", "question": "Ability to sustain sitting and focus during 20-30 minutes teacher-led instruction:", "answer": "2 - Fidgets slightly but attends", "score": 2 },
+          { "questionId": "q-scp-02", "domain": "Instruction Following", "question": "Response to multi-step instructions given by teachers in a noisy classroom:", "answer": "2 - Follows 2-step with verbal cue", "score": 2 },
+          { "questionId": "q-scp-03", "domain": "Peer Socialization", "question": "Interaction with classmates during unstructured school times (recess, lunch, playground):", "answer": "3 - Plays beside but struggles to share", "score": 3 },
+          { "questionId": "q-scp-04", "domain": "Academic Material Handling", "question": "Management of school supplies, books, pencil case, scissors, and writing posture at desk:", "answer": "2 - Slightly messy but manages", "score": 2 },
+          { "questionId": "q-scp-05", "domain": "School Sensory Regulation", "question": "Tolerance to school sensory triggers (bell sounds, cafeteria noise, school uniform fabric):", "answer": "3 - Shows irritability / Clingy", "score": 3 },
+          { "questionId": "q-scp-06", "domain": "Educator / Shadow Note", "question": "Specific accommodations, shadow teacher notes, or classroom behavioral observations:", "answer": "Ayla membutuhkan dampingan saat sesi prakarya yang menggunakan cat air atau lem.", "score": null }
+        ]
+      }
+    ],
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-01-10T10:15:00Z"
   },
   {
     "id": "c-011",
-    "status": "admitted",
-    "clientName": "Elijah Foster",
-    "parentName": "Monica Foster",
-    "parentContact": "+1 555-0148",
-    "parentEmail": "monica.foster@example.com",
-    "dob": "2018-06-14",
-    "_birthdayThisMonth": true,
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-002",
-    "assessmentAccessCode": null,
+    "clientName": "Bima Wicaksono",
+    "dob": "2019-11-03",
+    "parentName": "Agus Wicaksono",
+    "parentContact": "081567890123",
+    "parentEmail": "agus.wicaksono@yahoo.com",
+    "clientAccessCode": "TDC-1003",
+    "branchId": "branch-sby-timur",
+    "status": "service_selected",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [
+      { "code": "ASM-1003", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" }
+    ],
     "assessmentAnswers": [],
-    "assessmentReportNote": "Fine motor delays affecting pre-writing skills. Weekly OT with handwriting focus.",
-    "invoice": {
-      "id": "inv-011",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-elijah-0425.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 5,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1011",
-    "_createdDaysAgo": 170,
-    "parentComplaint": "Weak pencil grip and refuses drawing or colouring activities.",
-    "concernTags": [
-      "motor"
-    ]
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-01-15T14:20:00Z"
   },
   {
     "id": "c-012",
+    "clientName": "Zahra Farzana",
+    "dob": "2022-01-25",
+    "parentName": "Fauzi Farzana",
+    "parentContact": "081678901234",
+    "parentEmail": "fauzi.farzana@outlook.com",
+    "clientAccessCode": "TDC-1004",
+    "branchId": "branch-sby-timur",
     "status": "admitted",
-    "clientName": "Isabella Rossi",
-    "parentName": "Marco Rossi",
-    "parentContact": "+1 555-0139",
-    "parentEmail": "marco.rossi@example.com",
-    "dob": "2021-10-02",
-    "serviceType": "consultation",
-    "assessmentCategoryId": null,
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": null,
-    "invoice": {
-      "id": "inv-012",
-      "amount": 150,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-isabella-1225.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 1,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1012",
-    "_createdDaysAgo": 45,
-    "parentComplaint": "Seeking consultation on sleep routine and emotional regulation.",
-    "concernTags": [
-      "behavior"
-    ]
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1ZahraFarzanaTherapediaSBYT",
+    "assessmentCodes": [
+      { "code": "ASM-1004", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Sensory & Developmental Profile (B-OTA / F-OTA)",
+        "answers": [
+          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises, bright lights, or sudden sensory inputs?", "answer": "4 - Frequent", "score": 4 },
+          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched unexpectedly or tactile textures?", "answer": "2 - Mild startle", "score": 2 },
+          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning, swinging, or jumping more than peers?", "answer": "4 - Intense seeker", "score": 4 },
+          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils, crayons, or manipulate small items independently?", "answer": "4 - Needs heavy assistance", "score": 4 },
+          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes in daily routines or activity transitions?", "answer": "3 - Shows anxiety / Resistance", "score": 3 },
+          { "questionId": "q-106", "domain": "Parental Observation", "question": "Describe any food textures, clothing tags, or specific calming strategies that help your child.", "answer": "Anak aktif bergerak tanpa jeda, mudah terstimulasi suara musik keras.", "score": null }
+        ]
+      }
+    ],
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-01-18T09:00:00Z"
   },
   {
     "id": "c-013",
+    "clientName": "Keano Arsakha",
+    "dob": "2020-09-12",
+    "parentName": "Dewi Arsakha",
+    "parentContact": "081789012345",
+    "parentEmail": "dewi.arsakha@gmail.com",
+    "clientAccessCode": "TDC-1005",
+    "branchId": "branch-sby-timur",
     "status": "admitted",
-    "clientName": "Mason Clarke",
-    "parentName": "Jennifer Clarke",
-    "parentContact": "+1 555-0111",
-    "parentEmail": "jennifer.clarke@example.com",
-    "dob": "2019-09-26",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-004",
-    "assessmentAccessCode": null,
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1KeanoArsakhaTherapedia",
+    "assessmentCodes": [],
     "assessmentAnswers": [],
-    "assessmentReportNote": "Social-emotional regulation goals. Weekly sessions with parent coaching.",
-    "invoice": {
-      "id": "inv-013",
-      "amount": 450,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-mason-0925.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 4,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1013",
-    "_createdDaysAgo": 140,
-    "parentComplaint": "Frequent emotional outbursts and difficulty sharing with siblings.",
-    "concernTags": [
-      "behavior",
-      "social"
-    ]
+    "invoiceStatus": "paid",
+    "createdAt": "2025-11-20T11:00:00Z"
   },
   {
     "id": "c-014",
+    "clientName": "Clara Salsabila",
+    "dob": "2021-03-30",
+    "parentName": "Rizki Salsabila",
+    "parentContact": "081890123456",
+    "parentEmail": "rizki.salsabila@gmail.com",
+    "clientAccessCode": "TDC-1006",
+    "branchId": "branch-sby-timur",
     "status": "admitted",
-    "clientName": "Harper Diaz",
-    "parentName": "Luis Diaz",
-    "parentContact": "+1 555-0177",
-    "parentEmail": "luis.diaz@example.com",
-    "dob": "2018-03-11",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-001",
-    "assessmentAccessCode": null,
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1ClaraSalsabilaTherapedia",
+    "assessmentCodes": [],
     "assessmentAnswers": [],
-    "assessmentReportNote": "Sensory modulation difficulties. Weekly OT recommended.",
-    "invoice": {
-      "id": "inv-014",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-harper-0625.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 7,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1014",
-    "_createdDaysAgo": 230,
-    "parentComplaint": "Sensory-seeking behaviour, constantly climbing and crashing into things.",
-    "concernTags": [
-      "sensory",
-      "motor"
-    ]
+    "invoiceStatus": "paid",
+    "createdAt": "2025-10-15T08:00:00Z"
   },
   {
     "id": "c-015",
-    "status": "admitted",
-    "clientName": "Aiden Murphy",
-    "parentName": "Colleen Murphy",
-    "parentContact": "+1 555-0153",
-    "parentEmail": "colleen.murphy@example.com",
-    "dob": "2020-11-22",
-    "_birthdayThisMonth": true,
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-003",
-    "assessmentAccessCode": null,
+    "clientName": "Davin Pratama",
+    "dob": "2019-07-08",
+    "parentName": "Irwan Pratama",
+    "parentContact": "081901234567",
+    "parentEmail": "irwan.pratama@gmail.com",
+    "clientAccessCode": "TDC-1007",
+    "branchId": "branch-sby-timur",
+    "status": "done_assessment",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1DavinPratamaTherapedia",
+    "assessmentCodes": [{ "code": "ASM-1007", "categoryId": "cat-001", "name": "Sensory Profile" }],
     "assessmentAnswers": [],
-    "assessmentReportNote": "Core strength and postural control goals. Weekly gross-motor OT.",
-    "invoice": {
-      "id": "inv-015",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-aiden-1125.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 2,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1015",
-    "_createdDaysAgo": 75,
-    "parentComplaint": "Poor posture and tires very quickly during physical play.",
-    "concernTags": [
-      "motor"
-    ]
+    "invoiceStatus": "paid",
+    "createdAt": "2026-01-20T13:45:00Z"
   },
   {
     "id": "c-016",
-    "status": "admitted",
-    "clientName": "Chloe Anderson",
-    "parentName": "Mark Anderson",
-    "parentContact": "+1 555-0168",
-    "parentEmail": "mark.anderson@example.com",
-    "dob": "2019-05-09",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-004",
-    "assessmentAccessCode": null,
+    "clientName": "Elysia Quinn",
+    "dob": "2022-05-18",
+    "parentName": "Stella Quinn",
+    "parentContact": "081234098765",
+    "parentEmail": "stella.quinn@gmail.com",
+    "clientAccessCode": "TDC-1008",
+    "branchId": "branch-sby-timur",
+    "status": "discontinued",
+    "serviceType": "consult_w_report",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
     "assessmentAnswers": [],
-    "assessmentReportNote": "Attention and transition support goals. Weekly sessions.",
-    "invoice": {
-      "id": "inv-016",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-chloe-1025.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 3,
-    "dateOfDischarge": null,
-    "dischargeReason": null,
-    "dischargeNote": null,
-    "clientAccessCode": "TDC-1016",
-    "_createdDaysAgo": 110,
-    "parentComplaint": "Hard time focusing and switching between activities without tears.",
-    "concernTags": [
-      "attention",
-      "behavior"
-    ]
+    "invoiceStatus": "unpaid",
+    "notes": "Orang tua memilih observasi mandiri di rumah karena jarak tempuh dari Sidoarjo terlalu jauh.",
+    "createdAt": "2026-01-22T15:30:00Z"
   },
   {
     "id": "c-017",
-    "status": "discharged",
-    "clientName": "Grace Liu",
-    "parentName": "Wei Liu",
-    "parentContact": "+1 555-0122",
-    "parentEmail": "wei.liu@example.com",
-    "dob": "2017-04-25",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-002",
-    "assessmentAccessCode": null,
-    "assessmentAnswers": [],
-    "assessmentReportNote": "Graduated all fine-motor goals.",
-    "invoice": {
-      "id": "inv-017",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-grace-0824.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 14,
-    "dateOfDischarge": null,
-    "_dischargeMonthsAgo": 1,
-    "dischargeReason": "graduate",
-    "dischargeNote": "Met all therapy goals. Family thrilled with progress.",
-    "clientAccessCode": "TDC-1017",
-    "_createdDaysAgo": 440,
-    "parentComplaint": "Handwriting difficulties affecting confidence at school.",
-    "concernTags": [
-      "motor"
-    ]
+    "clientName": "Gibran Al-Farisi",
+    "dob": "2020-12-05",
+    "parentName": "Taufik Al-Farisi",
+    "parentContact": "081345123456",
+    "parentEmail": "taufik.alfarisi@yahoo.com",
+    "clientAccessCode": "TDC-2001",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "therapy",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1GibranAlFarisiCitraland",
+    "assessmentCodes": [
+      { "code": "ASM-2001", "categoryId": "cat-001", "name": "Sensory Profile" },
+      { "code": "ASM-2002", "categoryId": "cat-002", "name": "School Companion Profile" }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Sensory & Developmental Profile",
+        "answers": [
+          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "2 - Seldom", "score": 2 },
+          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "1 - Calm / Well-adapted", "score": 1 },
+          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "4 - Intense seeker", "score": 4 },
+          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
+          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "2 - Needs brief prompt", "score": 2 }
+        ]
+      }
+    ],
+    "invoiceStatus": "paid",
+    "createdAt": "2025-12-01T09:00:00Z"
   },
   {
     "id": "c-018",
-    "status": "discharged",
-    "clientName": "Ryan Park",
-    "parentName": "Susan Park",
-    "parentContact": "+1 555-0184",
-    "parentEmail": "susan.park@example.com",
-    "dob": "2018-10-07",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-001",
-    "assessmentAccessCode": null,
+    "clientName": "Alvaro Rayyan",
+    "dob": "2021-02-14",
+    "parentName": "Siska Rayyan",
+    "parentContact": "081298765432",
+    "parentEmail": "siska.rayyan@gmail.com",
+    "clientAccessCode": "TDC-1009",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1AlvaroRayyanCitraland",
+    "assessmentCodes": [],
     "assessmentAnswers": [],
-    "assessmentReportNote": "Sensory integration program in progress at discharge.",
-    "invoice": {
-      "id": "inv-018",
-      "amount": 250,
-      "status": "paid",
-      "proofOfPaymentUrl": "receipt-ryan-0524.pdf"
-    },
-    "dateOfJoin": null,
-    "_joinMonthsAgo": 20,
-    "dateOfDischarge": null,
-    "_dischargeMonthsAgo": 3,
-    "dischargeReason": "moving",
-    "dischargeNote": "Family relocated out of state. Referral letter provided.",
-    "clientAccessCode": "TDC-1018",
-    "_createdDaysAgo": 620,
-    "parentComplaint": "Sensory sensitivities disrupting daily family routines.",
-    "concernTags": [
-      "sensory"
-    ]
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-01-25T11:20:00Z"
   },
   {
     "id": "c-019",
-    "status": "discontinued",
-    "clientName": "Ella Novak",
-    "parentName": "Peter Novak",
-    "parentContact": "+1 555-0190",
-    "parentEmail": "peter.novak@example.com",
-    "dob": "2020-01-16",
-    "serviceType": "assessment",
-    "assessmentCategoryId": "cat-004",
-    "assessmentAccessCode": "ASM-2299",
+    "clientName": "Mikaela Chandra",
+    "dob": "2021-10-10",
+    "parentName": "Erwin Chandra",
+    "parentContact": "081765432109",
+    "parentEmail": "erwin.chandra@gmail.com",
+    "clientAccessCode": "TDC-2003",
+    "branchId": "branch-citraland",
+    "status": "assessment_scheduled",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1MikaelaChandraCitraland",
+    "assessmentCodes": [
+      { "code": "ASM-3001", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" }
+    ],
     "assessmentAnswers": [
       {
-        "questionId": "q-401",
-        "answer": "No"
-      },
-      {
-        "questionId": "q-402",
-        "answer": "Frequent meltdowns"
-      },
-      {
-        "questionId": "q-403",
-        "answer": "No"
-      },
-      {
-        "questionId": "q-404",
-        "answer": "Physical outbursts"
-      },
-      {
-        "questionId": "q-405",
-        "answer": "Prefers to play alone, struggles with sharing."
-      },
-      {
-        "questionId": "q-406",
-        "answer": "Better emotional regulation at preschool."
+        "categoryId": "cat-001",
+        "categoryName": "Sensory & Developmental Profile",
+        "answers": [
+          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "4 - Frequent", "score": 4 },
+          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "4 - Highly distressed", "score": 4 },
+          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "3 - Moderate craving", "score": 3 },
+          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "2 - Emerging tripod grip", "score": 2 },
+          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "4 - Frequent tantrums", "score": 4 }
+        ]
       }
     ],
-    "assessmentReportNote": null,
-    "invoice": {
-      "id": "inv-019",
-      "amount": 250,
-      "status": "unpaid",
-      "proofOfPaymentUrl": null
-    },
-    "dateOfJoin": null,
-    "dateOfDischarge": null,
-    "_dischargeMonthsAgo": 2,
-    "dischargeReason": "expectation_not_met",
-    "dischargeNote": "Family expected faster results and chose another provider.",
-    "clientAccessCode": "TDC-1019",
-    "_createdDaysAgo": 90,
-    "parentComplaint": "Aggressive behaviour at preschool and difficulty socializing.",
-    "concernTags": [
-      "behavior",
-      "social"
-    ]
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-01-28T14:00:00Z"
+  },
+  {
+    "id": "c-020",
+    "clientName": "Rafa Raditya",
+    "dob": "2022-04-05",
+    "parentName": "Doni Raditya",
+    "parentContact": "081876543210",
+    "parentEmail": "doni.raditya@gmail.com",
+    "clientAccessCode": "TDC-2004",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1RafaRadityaCitraland",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-02-01T08:30:00Z"
+  },
+  {
+    "id": "c-021",
+    "clientName": "Seline Aurelia",
+    "dob": "2020-06-22",
+    "parentName": "Fenny Aurelia",
+    "parentContact": "081987654321",
+    "parentEmail": "fenny.aurelia@gmail.com",
+    "clientAccessCode": "TDC-2005",
+    "branchId": "branch-citraland",
+    "status": "inquiry",
+    "serviceType": "consult_w_report",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-02-05T10:00:00Z"
+  },
+  {
+    "id": "c-022",
+    "clientName": "Arka Danendra",
+    "dob": "2019-09-17",
+    "parentName": "Wahyu Danendra",
+    "parentContact": "081234567111",
+    "parentEmail": "wahyu.danendra@gmail.com",
+    "clientAccessCode": "TDC-2006",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1ArkaDanendraCitraland",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "createdAt": "2025-10-10T11:00:00Z"
+  },
+  {
+    "id": "c-023",
+    "clientName": "Naura Syakira",
+    "dob": "2021-05-12",
+    "parentName": "Imam Syakira",
+    "parentContact": "081345678222",
+    "parentEmail": "imam.syakira@gmail.com",
+    "clientAccessCode": "TDC-2007",
+    "branchId": "branch-citraland",
+    "status": "done_consult",
+    "serviceType": "consult_wo_report",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "createdAt": "2026-01-14T09:30:00Z"
+  },
+  {
+    "id": "c-024",
+    "clientName": "Marvelino Tan",
+    "dob": "2020-03-08",
+    "parentName": "Susanto Tan",
+    "parentContact": "081456789333",
+    "parentEmail": "susanto.tan@gmail.com",
+    "clientAccessCode": "TDC-2008",
+    "branchId": "branch-citraland",
+    "status": "discontinued",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "notes": "Orang tua relokasi pekerjaan ke Jakarta.",
+    "createdAt": "2026-01-16T14:15:00Z"
+  },
+  {
+    "id": "c-025",
+    "clientName": "Kenzie Bramantyo",
+    "dob": "2020-01-19",
+    "parentName": "Bramantyo Hidayat",
+    "parentContact": "081567890444",
+    "parentEmail": "bramantyo.h@gmail.com",
+    "clientAccessCode": "TDC-3001",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1KenzieBramantyoSBYB",
+    "assessmentCodes": [
+      { "code": "ASM-4011", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" },
+      { "code": "ASM-4012", "categoryId": "cat-002", "name": "School Companion Profile" }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Sensory Profile",
+        "answers": [
+          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "5 - Severe / Meltdown", "score": 5 },
+          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "3 - Hesitant / Uncomfortable", "score": 3 },
+          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "4 - Intense seeker", "score": 4 },
+          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
+          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "4 - Frequent tantrums", "score": 4 }
+        ]
+      },
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile",
+        "answers": [
+          { "questionId": "q-scp-01", "domain": "Classroom Attention", "question": "Ability to sustain sitting and focus:", "answer": "4 - Frequently leaves seat", "score": 4 },
+          { "questionId": "q-scp-02", "domain": "Instruction Following", "question": "Response to multi-step instructions:", "answer": "4 - Needs physical guiding / demonstration", "score": 4 },
+          { "questionId": "q-scp-03", "domain": "Peer Socialization", "question": "Interaction with classmates:", "answer": "4 - Easily frustrated by peer interference", "score": 4 },
+          { "questionId": "q-scp-04", "domain": "Academic Material Handling", "question": "Management of school supplies:", "answer": "3 - Slumps over desk", "score": 3 },
+          { "questionId": "q-scp-05", "domain": "School Sensory Regulation", "question": "Tolerance to school sensory triggers:", "answer": "4 - Flees in loud school areas", "score": 4 },
+          { "questionId": "q-scp-06", "domain": "Educator / Shadow Note", "question": "Specific accommodations:", "answer": "Perlu pendampingan penuh untuk transisi jam mata pelajaran.", "score": null }
+        ]
+      }
+    ],
+    "invoiceStatus": "paid",
+    "createdAt": "2025-11-12T08:00:00Z"
+  },
+  {
+    "id": "c-026",
+    "clientName": "Alea Natasha",
+    "dob": "2021-11-28",
+    "parentName": "Vera Natasha",
+    "parentContact": "081678901555",
+    "parentEmail": "vera.natasha@gmail.com",
+    "clientAccessCode": "TDC-3002",
+    "branchId": "branch-sby-barat",
+    "status": "assessment_done",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1AleaNatashaSBYB",
+    "assessmentCodes": [
+      { "code": "ASM-4001", "categoryId": "cat-001", "name": "Sensory Profile" }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Sensory Profile",
+        "answers": [
+          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "2 - Seldom", "score": 2 },
+          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "2 - Mild startle", "score": 2 },
+          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "2 - Mild seeker", "score": 2 },
+          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "2 - Emerging tripod grip", "score": 2 },
+          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "2 - Needs brief prompt", "score": 2 }
+        ]
+      }
+    ],
+    "invoiceStatus": "paid",
+    "createdAt": "2026-01-20T10:00:00Z"
+  },
+  {
+    "id": "c-027",
+    "clientName": "Revan Putra",
+    "dob": "2022-03-14",
+    "parentName": "Bagus Putra",
+    "parentContact": "081789012666",
+    "parentEmail": "bagus.putra@gmail.com",
+    "clientAccessCode": "TDC-3003",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1RevanPutraSBYB",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-01-29T13:00:00Z"
+  },
+  {
+    "id": "c-028",
+    "clientName": "Fiona Elysia",
+    "dob": "2020-07-21",
+    "parentName": "Cynthia Elysia",
+    "parentContact": "081890123777",
+    "parentEmail": "cynthia.elysia@gmail.com",
+    "clientAccessCode": "TDC-3004",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1FionaElysiaSBYB",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "createdAt": "2025-09-01T09:00:00Z"
+  },
+  {
+    "id": "c-029",
+    "clientName": "Rayyan Daniswara",
+    "dob": "2021-04-18",
+    "parentName": "Aditya Daniswara",
+    "parentContact": "081901234888",
+    "parentEmail": "aditya.daniswara@gmail.com",
+    "clientAccessCode": "TDC-3005",
+    "branchId": "branch-sby-barat",
+    "status": "assessment_scheduled",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1RayyanDaniswaraSBYB",
+    "assessmentCodes": [
+      { "code": "ASM-4005", "categoryId": "cat-001", "name": "Sensory Profile" }
+    ],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-02-02T11:00:00Z"
+  },
+  {
+    "id": "c-030",
+    "clientName": "Chelsea Valerie",
+    "dob": "2020-09-29",
+    "parentName": "Grace Valerie",
+    "parentContact": "081234567999",
+    "parentEmail": "grace.valerie@gmail.com",
+    "clientAccessCode": "TDC-3006",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "therapy",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1ChelseaValerieSBYB",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "createdAt": "2025-08-15T08:30:00Z"
+  },
+  {
+    "id": "c-031",
+    "clientName": "Jonathan Lee",
+    "dob": "2022-08-11",
+    "parentName": "David Lee",
+    "parentContact": "081345678000",
+    "parentEmail": "david.lee@gmail.com",
+    "clientAccessCode": "TDC-3007",
+    "branchId": "branch-sby-barat",
+    "status": "inquiry",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "createdAt": "2026-02-08T09:15:00Z"
+  },
+  {
+    "id": "c-032",
+    "clientName": "Althaf Xavier",
+    "dob": "2019-10-31",
+    "parentName": "Rendra Xavier",
+    "parentContact": "081456789111",
+    "parentEmail": "rendra.xavier@gmail.com",
+    "clientAccessCode": "TDC-3008",
+    "branchId": "branch-sby-barat",
+    "status": "discontinued",
+    "serviceType": "consult_w_report",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "notes": "Orang tua memilih konsultasi dokter spesialis anak terlebih dahulu.",
+    "createdAt": "2026-01-18T16:00:00Z"
   }
 ]

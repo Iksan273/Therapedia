@@ -1,10 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  BadgeCheck,
-  Ban,
   Check,
   Copy,
   FileText,
@@ -12,17 +10,21 @@ import {
   Phone,
   Mail,
   Receipt,
-  Repeat,
-  Search,
-  UserCheck,
-  Printer,
+  ExternalLink,
   Calendar,
   CalendarPlus,
   Sparkles,
-  ShieldCheck,
   CheckCircle2,
+  AlertCircle,
+  Building2,
+  Plus,
+  Eye,
+  School,
+  XCircle,
   Clock,
-  Send,
+  Printer,
+  FileQuestion,
+  UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -38,8 +41,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { StatusBadge, ConcernTag } from "@/components/common/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { AddScheduleModal } from "@/components/calendar/AddScheduleModal";
 import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
@@ -47,862 +49,862 @@ import { useCredits } from "@/context/CreditsContext";
 import { useAssessments } from "@/context/AssessmentsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import {
-  DISCHARGE_REASONS,
-  PACKAGE_OPTIONS,
-  CONCERN_TAGS,
-  SESSION_TYPES,
+  CLINICAL_SERVICES,
+  BRANCHES,
   calcAge,
   fmtDate,
   genCode,
+  fmtCurrency,
   todayStr,
-  uid,
 } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
-const Step = ({ index, title, done, muted, isLast = false, children }) => (
-  <div className={cn("flex gap-4 sm:gap-5", muted && "opacity-60")}>
-    <div className="flex flex-col items-center">
-      <div
-        className={cn(
-          "w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-200 shadow-xs",
-          done
-            ? "bg-emerald-600 text-white shadow-emerald-600/20"
-            : muted
-            ? "bg-slate-100 text-slate-400 border border-slate-200"
-            : "bg-sky-50 text-sky-700 border-2 border-sky-400/80 shadow-sky-600/10"
-        )}
-      >
-        {done ? <Check className="w-4 h-4 stroke-[3]" /> : index}
-      </div>
-      {!isLast && <div className="w-0.5 flex-1 bg-slate-200 my-1.5" />}
-    </div>
-    <div className="pb-8 flex-1 min-w-0">
-      <p className="text-sm font-bold text-slate-900 mb-2.5 mt-1">{title}</p>
-      {children}
-    </div>
-  </div>
-);
-
 export default function ClientDetailInquiry() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { clients, updateClient } = useClients();
-  const { schedules, updateSchedule } = useSchedules();
-  const { addRecord } = useCredits();
-  const { categories, getCategory } = useAssessments();
+  const { schedules } = useSchedules();
+  const { getInvoicesForClient, addRecord, getRecordForClient } = useCredits();
+  const { categories } = useAssessments();
   const { getTherapist } = useTherapists();
 
   const client = clients.find((c) => c.id === id);
 
-  const [selCategory, setSelCategory] = useState("");
-  const [reportText, setReportText] = useState(null);
-  const [invoiceAmount, setInvoiceAmount] = useState("");
-  const [proofText, setProofText] = useState("");
-  const [paidDialogOpen, setPaidDialogOpen] = useState(false);
-  const [scheduleModal, setScheduleModal] = useState({ open: false, defaults: {} });
-  const [admitOpen, setAdmitOpen] = useState(false);
-  const [packageKey, setPackageKey] = useState("10");
-  const [customCredits, setCustomCredits] = useState("");
-  const [discOpen, setDiscOpen] = useState(false);
-  const [discReason, setDiscReason] = useState("");
-  const [discNote, setDiscNote] = useState("");
+  // Modals & local state
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [discontinueOpen, setDiscontinueOpen] = useState(false);
+  const [discontinueReason, setDiscontinueReason] = useState("");
+  const [newQuestionnaireCategory, setNewQuestionnaireCategory] = useState("cat-001");
 
-  const assessmentSchedules = useMemo(
-    () => schedules.filter((s) => s.clientId === id && s.type === "assessment"),
-    [schedules, id]
-  );
-  const therapySchedules = useMemo(
-    () => schedules.filter((s) => s.clientId === id && s.type === "therapy"),
-    [schedules, id]
-  );
+  // Invoices & Credits
+  const invoices = client ? getInvoicesForClient(client.id) : [];
+  const latestInvoice = invoices.length > 0 ? invoices[0] : null;
+  const creditRecord = client ? getRecordForClient(client.id) : null;
+  const remainingCredit = creditRecord ? creditRecord.remainingCredit : 0;
+
+  // Schedules associated with this client
+  const clientSchedules = useMemo(() => {
+    if (!client) return [];
+    return schedules.filter((s) => s.clientId === client.id);
+  }, [client, schedules]);
+
+  // Multiple assessment sessions support
+  const assessmentSessions = useMemo(() => {
+    return clientSchedules.filter((s) => s.type === "assessment");
+  }, [clientSchedules]);
+
+  // Multiple clinical services support (with backwards compatibility)
+  const selectedServices = useMemo(() => {
+    if (!client) return [];
+    if (Array.isArray(client.serviceTypes) && client.serviceTypes.length > 0) {
+      return client.serviceTypes;
+    }
+    return client.serviceType ? [client.serviceType] : [];
+  }, [client]);
 
   if (!client) {
     return (
-      <EmptyState
-        icon={Search}
-        title="Client not found"
-        subtitle="This client may have been removed after a demo reset."
-        action={
-          <Link to="/admin-inquiry/pipeline">
-            <Button variant="outline">Back to pipeline</Button>
-          </Link>
-        }
-      />
+      <div className="p-8 text-center space-y-3">
+        <p className="text-base text-slate-600">Client tidak ditemukan di pipeline inquiry.</p>
+        <Button onClick={() => navigate("/admin-inquiry/pipeline")} variant="outline" className="rounded-xl text-xs">
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> Kembali ke Pipeline
+        </Button>
+      </div>
     );
   }
 
-  const category = getCategory(client.assessmentCategoryId);
-  const isConsultation = client.serviceType === "consultation";
-  const assessmentCompleted = assessmentSchedules.some((s) => s.status === "completed");
-  const isTerminal = ["admitted", "discontinued", "discharged"].includes(client.status);
-  const answersFilled = client.assessmentAnswers && client.assessmentAnswers.length > 0;
+  const br = BRANCHES.find((b) => b.id === client.branchId);
 
-  const handleServiceType = (value) => {
-    updateClient(id, {
-      serviceType: value,
-      status: client.status === "inquiry" ? "pending" : client.status,
-    });
-    toast.success(`Service type set to ${value}.`);
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} disalin ke clipboard!`);
   };
 
-  const handleGenerateCode = () => {
-    const catId = selCategory || client.assessmentCategoryId;
-    if (!catId) {
-      toast.error("Choose an assessment category first.");
+  // STEP 2: Handle Multi-Service Selection
+  const handleToggleService = (serviceValue) => {
+    const current = selectedServices;
+    const next = current.includes(serviceValue)
+      ? current.filter((s) => s !== serviceValue)
+      : [...current, serviceValue];
+
+    const allowsSchool = next.some((s) => {
+      const found = CLINICAL_SERVICES.find((cs) => cs.value === s);
+      return found?.allowsSchoolCompanion;
+    });
+
+    updateClient(client.id, {
+      serviceTypes: next,
+      serviceType: next[0] || "",
+      hasSchoolCompanionProfile: allowsSchool ? client.hasSchoolCompanionProfile : false,
+      status: next.length > 0 && client.status === "inquiry" ? "service_selected" : client.status,
+    });
+    toast.success(next.includes(serviceValue) ? "Layanan klinis ditambahkan." : "Layanan klinis dibatalkan.");
+  };
+
+  const handleToggleSchoolCompanion = (checked) => {
+    updateClient(client.id, {
+      hasSchoolCompanionProfile: Boolean(checked),
+    });
+    toast.success(checked ? "School Companion Profile diaktifkan." : "School Companion Profile dinonaktifkan.");
+  };
+
+  // STEP 3: Generate Multi-Questionnaire Code
+  const handleGenerateQuestionnaireCode = () => {
+    const selectedCat = categories.find((c) => c.id === newQuestionnaireCategory) || categories[0];
+    const newCode = genCode("ASM");
+    const existingCodes = client.assessmentCodes || [];
+
+    const updatedCodes = [
+      ...existingCodes,
+      {
+        code: newCode,
+        categoryId: selectedCat.id,
+        name: selectedCat.categoryName,
+        createdAt: todayStr(),
+      },
+    ];
+
+    updateClient(client.id, {
+      assessmentCodes: updatedCodes,
+      status: ["inquiry", "service_selected"].includes(client.status) ? "assessment_scheduled" : client.status,
+    });
+
+    toast.success(`Kode kuesioner baru '${newCode}' (${selectedCat.categoryName}) berhasil dibuat!`);
+  };
+
+  // STEP 6: Save GDrive Client Link
+  const handleSaveGDriveLink = (url) => {
+    updateClient(client.id, {
+      gdriveClientLink: url.trim(),
+    });
+    toast.success("Link Google Drive client tersimpan.");
+  };
+
+  // STEP 8: Final Decision Outcomes
+  const handleOutcomeAdmit = () => {
+    // Admit to Active Client (even if credit is 0!)
+    updateClient(client.id, {
+      status: "admitted",
+      finalOutcome: "admitted",
+      dateOfJoin: todayStr(),
+    });
+
+    // Ensure credit record exists (even with 0 packages)
+    if (!creditRecord) {
+      addRecord({
+        id: `cr-${client.id}`,
+        clientId: client.id,
+        branchId: client.branchId,
+        packages: [],
+        cancelCountTotal: 0,
+        history: [],
+      });
+    }
+
+    toast.success(`${client.clientName} resmi menjadi Active Client! Sesi terapi sudah dapat dijadwalkan.`);
+  };
+
+  const handleOutcomeDoneConsult = () => {
+    updateClient(client.id, {
+      status: "done_consult",
+      finalOutcome: "done_consult",
+    });
+    toast.info("Status client ditandai: Done Consult (Konsultasi Selesai).");
+  };
+
+  const handleOutcomeDoneAssessment = () => {
+    updateClient(client.id, {
+      status: "done_assessment",
+      finalOutcome: "done_assessment",
+    });
+    toast.info("Status client ditandai: Done Assessment (Laporan Selesai).");
+  };
+
+  const handleOutcomeDiscontinue = () => {
+    if (!discontinueReason.trim()) {
+      toast.error("Mohon tuliskan alasan discontinue.");
       return;
     }
-    const code = genCode("ASM");
-    updateClient(id, { assessmentCategoryId: catId, assessmentAccessCode: code });
-    toast.success(`Assessment code ${code} generated — simulated as sent to ${client.parentName}.`);
-  };
-
-  const copyCode = (text) => {
-    navigator.clipboard.writeText(text).then(
-      () => toast.success("Copied to clipboard."),
-      () => toast.error("Copy failed — note it manually.")
-    );
-  };
-
-  const handleMarkAssessmentCompleted = (sched) => {
-    updateSchedule(sched.id, { status: "completed" });
-    if (["pending", "assessment_scheduled", "inquiry"].includes(client.status)) {
-      updateClient(id, { status: "assessment_done" });
-    }
-    toast.success("Assessment session marked completed.");
-  };
-
-  const handleSaveReport = () => {
-    const text = reportText != null ? reportText : client.assessmentReportNote || "";
-    if (!text.trim()) {
-      toast.error("Write the report note first.");
-      return;
-    }
-    updateClient(id, {
-      assessmentReportNote: text.trim(),
-      status: ["pending", "assessment_scheduled", "assessment_done"].includes(client.status)
-        ? "report_ready"
-        : client.status,
-    });
-    toast.success("Assessment report saved.");
-  };
-
-  const handleCreateInvoice = () => {
-    const amount = Number(invoiceAmount);
-    if (!amount || amount <= 0) {
-      toast.error("Enter a valid invoice amount.");
-      return;
-    }
-    updateClient(id, { invoice: { id: uid(), amount, status: "unpaid", proofOfPaymentUrl: null } });
-    toast.success(`Invoice of $${amount} created (unpaid).`);
-  };
-
-  const handleMarkPaid = () => {
-    updateClient(id, {
-      invoice: { ...client.invoice, status: "paid", proofOfPaymentUrl: proofText.trim() || "proof-of-payment.txt" },
-    });
-    setPaidDialogOpen(false);
-    toast.success("Invoice marked as paid.");
-  };
-
-  const handleAdmit = () => {
-    let creditsAmount;
-    let packageName;
-    if (packageKey === "custom") {
-      creditsAmount = Number(customCredits);
-      packageName = `Custom (${creditsAmount} sessions)`;
-      if (!creditsAmount || creditsAmount <= 0) {
-        toast.error("Enter a valid custom package size.");
-        return;
-      }
-    } else {
-      const opt = PACKAGE_OPTIONS.find((p) => p.key === packageKey);
-      creditsAmount = opt.credits;
-      packageName = opt.label.split(" (")[0];
-    }
-    addRecord({
-      id: uid(),
-      clientId: id,
-      packageName,
-      totalCredit: creditsAmount,
-      remainingCredit: creditsAmount,
-      leaveQuota: 3,
-      leaveUsed: 0,
-      purchaseDate: todayStr(),
-      isRenewal: false,
-      invoiceId: client.invoice ? client.invoice.id : null,
-      history: [],
-    });
-    updateClient(id, { status: "admitted", dateOfJoin: todayStr(), isWaitingList: false });
-    setAdmitOpen(false);
-    toast.success(`${client.clientName} admitted with ${creditsAmount} credits!`);
-  };
-
-  const handleDiscontinue = () => {
-    if (!discReason) {
-      toast.error("Select a reason to discontinue.");
-      return;
-    }
-    updateClient(id, {
+    updateClient(client.id, {
       status: "discontinued",
-      dischargeReason: discReason,
-      dischargeNote: discNote.trim() || null,
-      dateOfDischarge: todayStr(),
+      finalOutcome: "discontinued",
+      dischargeReason: "other",
+      dischargeNote: discontinueReason.trim(),
     });
-    setDiscOpen(false);
-    toast.success("Client marked as discontinued.");
+    setDiscontinueOpen(false);
+    toast.warning("Status client ditandai: Discontinued.");
   };
 
   return (
-    <div className="max-w-4xl space-y-6" data-testid="client-detail-inquiry-page">
-      <Link
-        to="/admin-inquiry/pipeline"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-sky-700 transition-colors group"
-        data-testid="client-detail-back-link"
-      >
-        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-        Back to Intake Pipeline
-      </Link>
-
-      {/* Patient Profile Card */}
-      <Card className="clinical-card rounded-2xl border-slate-200/90 overflow-hidden">
-        <div className="h-2 w-full bg-gradient-to-r from-sky-500 via-teal-500 to-indigo-500" />
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
-            <div className="flex items-start gap-4">
-              <div className="w-13 h-13 rounded-2xl bg-sky-100 text-sky-800 font-bold text-xl flex items-center justify-center shrink-0 border border-sky-200/80 shadow-xs">
-                {client.clientName[0]}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900" data-testid="client-detail-name">
-                    {client.clientName}
-                  </h1>
-                  <StatusBadge status={client.status} data-testid="client-detail-status-badge" />
-                </div>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  Age {calcAge(client.dob) != null ? calcAge(client.dob) : "—"} · DOB {fmtDate(client.dob)} · Intake {fmtDate(client.createdAt)}
-                </p>
-                <div className="flex flex-wrap items-center gap-4 mt-3 text-xs sm:text-sm text-slate-600">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <UserCheck className="w-4 h-4 text-sky-600" /> {client.parentName}
-                  </span>
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <Phone className="w-4 h-4 text-sky-600" /> {client.parentContact}
-                  </span>
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <Mail className="w-4 h-4 text-sky-600" /> {client.parentEmail}
-                  </span>
-                </div>
-              </div>
+    <div className="space-y-6 max-w-5xl mx-auto" data-testid="client-detail-inquiry-page">
+      {/* Top Breadcrumb & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-100 h-9"
+            onClick={() => navigate("/admin-inquiry/pipeline")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" /> Pipeline
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900">{client.clientName}</h1>
+              <StatusBadge status={client.status} />
             </div>
-
-            <div className="flex flex-col sm:items-end gap-2 shrink-0">
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 text-center sm:text-right">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Access Code</p>
-                <button
-                  type="button"
-                  onClick={() => copyCode(client.clientAccessCode)}
-                  className="font-mono text-sm font-bold text-sky-700 hover:text-sky-800 flex items-center gap-1.5 mt-0.5 justify-center sm:justify-end"
-                  data-testid="client-detail-access-code"
-                >
-                  {client.clientAccessCode}
-                  <Copy className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-              </div>
-              <Link to={`/print/client/${id}`} className="w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-1.5 rounded-xl border-slate-200 text-xs font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-800"
-                  data-testid="inquiry-print-report-button"
-                >
-                  <Printer className="w-3.5 h-3.5" /> Print Summary Report
-                </Button>
-              </Link>
-            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Kode Akses Portal: <strong className="font-mono text-slate-800">{client.clientAccessCode}</strong> • Cabang: {br ? br.name : "Surabaya"}
+            </p>
           </div>
+        </div>
 
-          {client.parentComplaint && (
-            <div className="mt-4 rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5" data-testid="client-detail-complaint">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-1">
-                Parent Concerns & Intake Notes:
-              </p>
-              <p className="text-xs sm:text-sm text-slate-700 leading-relaxed italic">
-                “{client.parentComplaint}”
-              </p>
-            </div>
+        {/* Quick jump actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          {client.gdriveClientLink && (
+            <a
+              href={client.gdriveClientLink}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors shadow-2xs"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> GDrive Client
+            </a>
           )}
 
-          <div className="mt-4 pt-3 border-t border-slate-100">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Concern Tags <span className="normal-case font-normal">(Click to toggle tags)</span>
+          <Link
+            to={`/admin-inquiry/parent-assessment/${client.id}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors shadow-2xs"
+          >
+            <FileText className="w-3.5 h-3.5" /> Tabel Psikologi & PDF
+          </Link>
+        </div>
+      </div>
+
+      {/* 8 NON-SEQUENTIAL PIPELINE STEPS */}
+      <div className="space-y-4">
+        {/* STEP 1: DATA NEW INTAKE */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-sky-100 text-sky-800 font-bold text-xs flex items-center justify-center">
+                1
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">Data New Intake</CardTitle>
+                <CardDescription className="text-xs text-slate-500">Profil anak, kontak orang tua, dan lokasi cabang</CardDescription>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+              <Check className="w-4 h-4" /> Lengkap
+            </span>
+          </CardHeader>
+          <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Nama Anak</span>
+              <p className="font-bold text-slate-900 mt-0.5">{client.clientName}</p>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Tanggal Lahir / Usia</span>
+              <p className="font-semibold text-slate-800 mt-0.5">
+                {fmtDate(client.dob)} ({calcAge(client.dob)} th)
+              </p>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Nama Orang Tua</span>
+              <p className="font-semibold text-slate-800 mt-0.5">{client.parentName}</p>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Kontak WhatsApp & Email</span>
+              <p className="font-semibold text-slate-800 mt-0.5">{client.parentContact}</p>
+              <p className="text-[11px] text-slate-500">{client.parentEmail || "—"}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* STEP 2: PILIH LAYANAN KLINIS (MULTI-LAYANAN) */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center">
+                2
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">
+                  Pilih Layanan Klinis ({selectedServices.length} Layanan Dipilih)
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Klien dapat memilih lebih dari satu layanan klinis secara bersamaan
+                </CardDescription>
+              </div>
+            </div>
+
+            {selectedServices.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {selectedServices.map((val) => {
+                  const srv = CLINICAL_SERVICES.find((s) => s.value === val);
+                  return (
+                    <span
+                      key={val}
+                      className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-lg border border-purple-200"
+                    >
+                      ✓ {srv?.shortLabel || val}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            <p className="text-[11px] text-slate-500 font-medium">
+              💡 Klik pada kartu untuk memilih atau membatalkan pilihan layanan (bisa memilih kombinasi multi-disiplin):
             </p>
-            <div className="flex flex-wrap gap-1.5" data-testid="concern-tags-editor">
-              {CONCERN_TAGS.map((t) => {
-                const active = (client.concernTags || []).includes(t.value);
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {CLINICAL_SERVICES.map((srv) => {
+                const isSelected = selectedServices.includes(srv.value);
                 return (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => {
-                      const cur = client.concernTags || [];
-                      updateClient(id, {
-                        concernTags: active ? cur.filter((v) => v !== t.value) : [...cur, t.value],
-                      });
-                    }}
+                  <div
+                    key={srv.value}
+                    onClick={() => handleToggleService(srv.value)}
                     className={cn(
-                      "rounded-full px-3 py-1 text-xs font-semibold border transition-all cursor-pointer",
-                      active
-                        ? `${t.cls} ring-1 ring-inset shadow-xs`
-                        : "bg-white border-slate-200 text-slate-400 opacity-60 hover:opacity-100 hover:border-slate-300"
+                      "p-3 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-2 select-none",
+                      isSelected
+                        ? "bg-purple-50/70 border-purple-300 ring-2 ring-purple-300/50 shadow-2xs"
+                        : "bg-slate-50/80 border-slate-200 hover:bg-white hover:border-slate-300"
                     )}
-                    data-testid={`concern-tag-toggle-${t.value}`}
                   >
-                    {t.label}
-                  </button>
+                    <div className="flex items-start gap-2 min-w-0">
+                      <div
+                        className={cn(
+                          "w-4 h-4 rounded mt-0.5 flex items-center justify-center border shrink-0 transition-colors",
+                          isSelected ? "bg-purple-600 border-purple-600 text-white" : "border-slate-300 bg-white"
+                        )}
+                      >
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-xs text-slate-900">{srv.label}</span>
+                          {srv.category && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-200/60 text-slate-600">
+                              {srv.category}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {srv.allowsSchoolCompanion ? "Mendukung tambahan School Companion Profile" : "Asesmen / Intervensi Mandiri"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
-          </div>
 
-          {client.status === "admitted" && (
-            <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-sm text-emerald-800 flex items-center gap-2.5 font-medium" data-testid="client-admitted-banner">
-              <BadgeCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-              Admitted on {fmtDate(client.dateOfJoin)}. Sessions and credits are actively managed from Admin Schedule.
-            </div>
-          )}
-          {client.status === "discontinued" && (
-            <div className="mt-4 rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-sm text-rose-800 flex items-center gap-2.5 font-medium" data-testid="client-discontinued-banner">
-              <Ban className="w-5 h-5 text-rose-600 shrink-0" />
-              Discontinued on {fmtDate(client.dateOfDischarge)}{client.dischargeNote ? ` — ${client.dischargeNote}` : ""}.
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 8-Step Admission Timeline Checklist */}
-      <Card className="clinical-card rounded-2xl border-slate-200/90">
-        <CardHeader className="border-b border-slate-100 pb-4">
-          <CardTitle className="text-base font-bold text-slate-900">Clinical Intake & Admission Timeline</CardTitle>
-          <CardDescription className="text-xs text-slate-500">
-            Step-by-step intake progression from service classification to final clinic admission.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          {/* Step 1: Multi-Service Discipline Selection */}
-          <Step
-            index={1}
-            title="1. Clinical Services & Disciplines"
-            done={Boolean((client.serviceTypes && client.serviceTypes.length > 0) || client.serviceType)}
-          >
-            <div className="space-y-2">
-              <p className="text-xs text-slate-500 font-medium">
-                Select one or more active therapy disciplines and clinical programs for this client:
-              </p>
-              <div className="flex flex-wrap gap-1.5" data-testid="service-type-multi-select">
-                {SESSION_TYPES.map((srv) => {
-                  const currentServices = client.serviceTypes || (client.serviceType ? [client.serviceType] : []);
-                  const active = currentServices.includes(srv.value);
-
-                  return (
-                    <button
-                      key={srv.value}
-                      type="button"
-                      disabled={isTerminal}
-                      onClick={() => {
-                        let updated;
-                        if (active) {
-                          if (currentServices.length === 1) return; // Keep at least one
-                          updated = currentServices.filter((v) => v !== srv.value);
-                        } else {
-                          updated = [...currentServices, srv.value];
-                        }
-                        updateClient(id, {
-                          serviceTypes: updated,
-                          serviceType: updated[0] || "assessment",
-                          status: client.status === "inquiry" ? "pending" : client.status,
-                        });
-                        toast.success(`Updated clinical services for ${client.clientName}.`);
-                      }}
-                      className={cn(
-                        "px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer",
-                        active
-                          ? "bg-sky-600 border-sky-600 text-white shadow-2xs"
-                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                      )}
-                    >
-                      {srv.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </Step>
-
-          {/* Step 2: Assessment Category & Access Code */}
-          <Step
-            index={2}
-            title="2. Assessment Category & Parent Access Code"
-            done={Boolean(client.assessmentAccessCode)}
-            muted={isConsultation}
-          >
-            {isConsultation ? (
-              <p className="text-xs text-slate-400 italic">Not applicable for direct consultation services.</p>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2.5">
-                  <Select
-                    value={selCategory || client.assessmentCategoryId || ""}
-                    onValueChange={setSelCategory}
-                    disabled={isTerminal}
-                  >
-                    <SelectTrigger className="w-64 bg-white border-slate-200 rounded-xl" data-testid="assessment-category-select">
-                      <SelectValue placeholder="Choose assessment category..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200">
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.categoryName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    onClick={handleGenerateCode}
-                    disabled={isTerminal}
-                    className="gap-2 rounded-xl border-slate-200 font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-800"
-                    data-testid="generate-assessment-code-button"
-                  >
-                    <KeyRound className="w-4 h-4 text-sky-600" />
-                    {client.assessmentAccessCode ? "Regenerate Code" : "Generate Code"}
-                  </Button>
-                </div>
-                {client.assessmentAccessCode && (
-                  <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-sky-50/80 border border-sky-200 flex-wrap">
-                    <span className="font-mono text-sm font-black bg-white text-sky-900 border border-sky-300 rounded-lg px-3 py-1.5 shadow-2xs" data-testid="assessment-access-code-chip">
-                      {client.assessmentAccessCode}
-                    </span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 rounded-lg hover:bg-sky-100"
-                      onClick={() => copyCode(client.assessmentAccessCode)}
-                      aria-label="Copy assessment code"
-                      data-testid="copy-assessment-code-button"
-                    >
-                      <Copy className="w-4 h-4 text-sky-700" />
-                    </Button>
-                    <span className="text-xs text-sky-800 font-medium">
-                      Code ready for parent to complete assessment questionnaire before appointment.
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          </Step>
-
-          {/* Step 3: Fast-Track Unified Assessment Scheduling */}
-          <Step
-            index={3}
-            title="3. Schedule Assessment Session & Parent Confirmation"
-            done={assessmentSchedules.length > 0}
-            muted={isConsultation}
-          >
-            {isConsultation ? (
-              <p className="text-xs text-slate-400 italic">Not applicable for consultation services.</p>
-            ) : (
-              <div className="space-y-3">
-                {assessmentSchedules.map((s) => {
-                  const t = getTherapist(s.therapistId);
-                  const cleanPhone = client.parentContact ? client.parentContact.replace(/[^0-9]/g, "") : "";
-                  const waMsg = encodeURIComponent(
-                    `Hello ${client.parentName},\n\nThe clinical assessment appointment for ${client.clientName} has been confirmed at Therapedia:\n📅 Date: ${fmtDate(s.date)}\n⏰ Time: ${s.startTime} - ${s.endTime}\n👨‍⚕️ Therapist: ${t ? t.name : "Clinical Specialist"}\n🔑 Questionnaire Access Code: *${client.assessmentAccessCode || client.clientAccessCode}*\n\nPlease complete the intake questionnaire on the portal before your session. Thank you!`
-                  );
-                  return (
-                    <div
-                      key={s.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-200/90 bg-sky-50/40 p-4 text-sm shadow-2xs"
-                      data-testid={`assessment-schedule-row-${s.id}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
-                          <Calendar className="w-4 h-4 text-sky-600" />
-                        </div>
-                        <div>
-                          <p className="font-extrabold text-slate-900 text-xs sm:text-sm">{fmtDate(s.date)} · <span className="tabular-nums font-semibold text-slate-600">{s.startTime}–{s.endTime}</span></p>
-                          <p className="text-xs text-slate-500 font-medium mt-0.5">Therapist: <strong className="text-slate-800">{t ? t.name : "Assigned Practitioner"}</strong></p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <StatusBadge status={s.status} />
-                        {cleanPhone && (
-                          <a
-                            href={`https://wa.me/${cleanPhone}?text=${waMsg}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors"
-                            title="Send WhatsApp Confirmation with Appointment & Assessment Code"
-                          >
-                            <Send className="w-3.5 h-3.5" /> Send WA Invite
-                          </a>
-                        )}
-                        {s.status === "scheduled" && !isTerminal && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs font-semibold rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                            onClick={() => handleMarkAssessmentCompleted(s)}
-                            data-testid={`mark-assessment-completed-${s.id}`}
-                          >
-                            <Check className="w-3.5 h-3.5 mr-1" /> Mark Done
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {!isTerminal && (
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <Button
-                      className="gap-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-10 shadow-xs"
-                      onClick={() => {
-                        // Auto generate code if not yet generated
-                        if (!client.assessmentAccessCode) {
-                          const catId = selCategory || client.assessmentCategoryId || (categories[0] ? categories[0].id : null);
-                          const code = genCode("ASM");
-                          updateClient(id, { assessmentCategoryId: catId, assessmentAccessCode: code });
-                        }
-                        setScheduleModal({
-                          open: true,
-                          defaults: { clientId: id, lockClient: true, type: "assessment", lockType: true },
-                          onCreated: () => updateClient(id, { status: "assessment_scheduled" }),
-                        });
-                      }}
-                      data-testid="offer-schedule-button"
-                    >
-                      <CalendarPlus className="w-4 h-4" /> Book Assessment Slot Now
-                    </Button>
-                    <span className="text-xs text-slate-400 font-medium">
-                      Locks therapist timetable slot & marks pipeline as Assessment Scheduled.
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          </Step>
-
-          {/* Step 4: Parent Assessment Answers */}
-          <Step index={4} title="4. Parent Assessment Answers" done={answersFilled} muted={isConsultation}>
-            {isConsultation ? (
-              <p className="text-xs text-slate-400 italic">Not applicable for consultation services.</p>
-            ) : answersFilled && category ? (
-              <div className="space-y-2" data-testid="assessment-answers-list">
-                {client.assessmentAnswers.map((a) => {
-                  const q = category.questions.find((qq) => qq.id === a.questionId);
-                  return (
-                    <div key={a.questionId} className="rounded-xl bg-slate-50 border border-slate-200/80 p-3">
-                      <p className="text-xs font-bold text-slate-600">{q ? q.question : a.questionId}</p>
-                      <p className="text-sm font-semibold text-slate-900 mt-1">{a.answer}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
-                Awaiting parent submission with access code{" "}
-                <span className="font-mono font-bold text-sky-700">{client.assessmentAccessCode || "..."}</span>.
-              </div>
-            )}
-          </Step>
-
-          {/* Step 5: Clinical Assessment Report */}
-          <Step
-            index={5}
-            title="5. Clinical Findings & Assessment Report"
-            done={Boolean(client.assessmentReportNote)}
-            muted={isConsultation}
-          >
-            {isConsultation ? (
-              <p className="text-xs text-slate-400 italic">Not applicable for consultation services.</p>
-            ) : !assessmentCompleted && !client.assessmentReportNote ? (
-              <p className="text-xs text-slate-400 italic">
-                Report editor becomes available once the assessment session is completed.
-              </p>
-            ) : (
-              <div className="space-y-2.5">
-                <Textarea
-                  rows={3}
-                  className="bg-white border-slate-200 rounded-xl"
-                  value={reportText != null ? reportText : client.assessmentReportNote || ""}
-                  onChange={(e) => setReportText(e.target.value)}
-                  placeholder="Summarize assessment findings, sensory/motor goals, and recommended weekly therapy frequency..."
-                  disabled={isTerminal && !client.assessmentReportNote}
-                  data-testid="assessment-report-textarea"
+            {/* School Companion Toggle (for B-OTA and F-OTA) */}
+            {selectedServices.some((s) => {
+              const f = CLINICAL_SERVICES.find((cs) => cs.value === s);
+              return f?.allowsSchoolCompanion;
+            }) && (
+              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50/50 border border-purple-200">
+                <Checkbox
+                  id="schoolCompanion"
+                  checked={client.hasSchoolCompanionProfile}
+                  onCheckedChange={handleToggleSchoolCompanion}
                 />
-                {!isTerminal && (
-                  <Button
-                    variant="outline"
-                    className="gap-2 rounded-xl border-slate-200 font-semibold text-xs"
-                    onClick={handleSaveReport}
-                    data-testid="save-report-button"
-                  >
-                    <FileText className="w-4 h-4 text-sky-600" /> Save Report Note
-                  </Button>
-                )}
+                <Label htmlFor="schoolCompanion" className="text-xs font-bold text-purple-950 cursor-pointer flex items-center gap-1.5">
+                  <School className="w-4 h-4 text-purple-600" /> Sertakan School Companion Profile (+ Kuesioner Adaptasi Lingkungan Sekolah)
+                </Label>
               </div>
             )}
-          </Step>
+          </CardContent>
+        </Card>
 
-          {/* Step 6: Invoice & Payment */}
-          <Step index={6} title="6. Invoice & Payment Settlement" done={Boolean(client.invoice && client.invoice.status === "paid")}>
-            {!client.invoice ? (
-              <div className="flex flex-wrap gap-2.5 items-center">
-                <Input
-                  type="number"
-                  min="1"
-                  className="w-36 bg-white border-slate-200 rounded-xl"
-                  placeholder="Amount ($)"
-                  value={invoiceAmount}
-                  onChange={(e) => setInvoiceAmount(e.target.value)}
-                  disabled={isTerminal}
-                  data-testid="invoice-amount-input"
-                />
-                <Button
-                  variant="outline"
-                  className="gap-2 rounded-xl border-slate-200 font-semibold text-xs text-slate-700 hover:bg-sky-50"
-                  onClick={handleCreateInvoice}
-                  disabled={isTerminal}
-                  data-testid="create-invoice-button"
-                >
-                  <Receipt className="w-4 h-4 text-sky-600" /> Issue Invoice
-                </Button>
+        {/* STEP 3: QUESTIONNAIRE CODE GENERATOR (MULTI-CODE) */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center">
+                3
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">Questionnaire Code Generator</CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Generate lebih dari 1 kode kuesioner unik (misal Asesmen Utama + School Companion Profile)
+                </CardDescription>
               </div>
-            ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="flex items-center gap-3">
-                  <span className="text-base font-bold text-slate-900 tabular-nums">${client.invoice.amount}</span>
-                  <StatusBadge status={client.invoice.status} data-testid="invoice-status-badge" />
-                  {client.invoice.proofOfPaymentUrl && (
-                    <span className="text-xs text-slate-500 font-medium">Receipt: {client.invoice.proofOfPaymentUrl}</span>
-                  )}
-                </div>
-                {client.invoice.status === "unpaid" && !isTerminal && (
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs"
-                    onClick={() => setPaidDialogOpen(true)}
-                    data-testid="mark-paid-button"
-                  >
-                    Mark as Paid
-                  </Button>
-                )}
-              </div>
-            )}
-          </Step>
-
-          {/* Step 7: Schedule Therapy Sessions */}
-          <Step index={7} title="7. Schedule Therapy Sessions" done={therapySchedules.length > 0}>
-            <div className="space-y-2.5">
-              {therapySchedules.length > 0 && (
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  {therapySchedules.length} therapy session slot(s) placed on timetable.
-                </div>
-              )}
-              {!isTerminal && (
-                <Button
-                  variant="outline"
-                  className="gap-2 rounded-xl border-slate-200 font-semibold text-xs text-slate-700 hover:bg-sky-50"
-                  onClick={() =>
-                    setScheduleModal({
-                      open: true,
-                      defaults: { clientId: id, lockClient: true, type: "therapy", lockType: true, defaultRecurring: true },
-                      onCreated: () => updateClient(id, { status: "scheduling" }),
-                    })
-                  }
-                  data-testid="set-recurring-schedule-button"
-                >
-                  <Repeat className="w-4 h-4 text-sky-600" /> Schedule Therapy Sessions
-                </Button>
-              )}
             </div>
-          </Step>
-
-          {/* Step 8: Final Decision (Admit / Discontinue) */}
-          <Step index={8} title="8. Final Admission Decision" isLast={true} done={isTerminal}>
-            {isTerminal ? (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-xs font-bold text-slate-600">Decision Outcome:</span>
-                <StatusBadge status={client.status} />
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl gap-2 shadow-sm shadow-emerald-600/20"
-                  onClick={() => setAdmitOpen(true)}
-                  data-testid="admit-client-button"
-                >
-                  <UserCheck className="w-4 h-4" /> Admit to Clinic Care
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2 rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 font-semibold"
-                  onClick={() => setDiscOpen(true)}
-                  data-testid="discontinue-client-button"
-                >
-                  <Ban className="w-4 h-4" /> Discontinue Inquiry
-                </Button>
-              </div>
-            )}
-          </Step>
-        </CardContent>
-      </Card>
-
-      {/* Offer / Recurring schedule modal */}
-      <AddScheduleModal
-        open={scheduleModal.open}
-        onOpenChange={(open) => setScheduleModal((m) => ({ ...m, open }))}
-        defaults={scheduleModal.defaults}
-        onCreated={scheduleModal.onCreated}
-      />
-
-      {/* Mark paid dialog */}
-      <Dialog open={paidDialogOpen} onOpenChange={setPaidDialogOpen}>
-        <DialogContent className="max-w-sm rounded-2xl p-6 border-slate-200">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900">Mark Invoice as Paid</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Attach proof of payment or reference number for billing compliance.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <Input
-              className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
-              placeholder="e.g. transfer-receipt-4921.pdf"
-              value={proofText}
-              onChange={(e) => setProofText(e.target.value)}
-              data-testid="proof-of-payment-input"
-            />
-          </div>
-          <DialogFooter className="mt-4 gap-2">
-            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setPaidDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl"
-              onClick={handleMarkPaid}
-              data-testid="confirm-mark-paid-button"
-            >
-              Confirm Settlement
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Admit dialog */}
-      <Dialog open={admitOpen} onOpenChange={setAdmitOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="admit-dialog">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900">Admit {client.clientName}</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Select the initial therapy package. Session credits will be initialized into the active roster.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3.5 pt-2">
-            <Label className="text-xs font-bold text-slate-700">Initial Therapy Package</Label>
-            <Select value={packageKey} onValueChange={setPackageKey}>
-              <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white" data-testid="admit-package-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200">
-                {PACKAGE_OPTIONS.map((p) => (
-                  <SelectItem key={p.key} value={p.key}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-                <SelectItem value="custom">Custom Package Size...</SelectItem>
-              </SelectContent>
-            </Select>
-            {packageKey === "custom" && (
-              <Input
-                type="number"
-                min="1"
-                placeholder="Number of sessions"
-                className="rounded-xl border-slate-200 bg-white"
-                value={customCredits}
-                onChange={(e) => setCustomCredits(e.target.value)}
-                data-testid="admit-custom-credits-input"
-              />
-            )}
-          </div>
-          <DialogFooter className="mt-5 gap-2">
-            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setAdmitOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl"
-              onClick={handleAdmit}
-              data-testid="confirm-admit-button"
-            >
-              Admit & Initialize Credits
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Discontinue dialog */}
-      <Dialog open={discOpen} onOpenChange={setDiscOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="discontinue-dialog">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900">Discontinue {client.clientName}</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Provide the discontinuation reason and any exit context for clinical records.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <div>
-              <Label className="text-xs font-bold text-slate-700">Reason for Dropout / Discontinuation</Label>
-              <Select value={discReason} onValueChange={setDiscReason}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white mt-1" data-testid="discontinue-reason-select">
-                  <SelectValue placeholder="Select primary reason..." />
+            <span className="text-xs font-bold text-slate-600">
+              Total {(client.assessmentCodes || []).length} Kode Terbit
+            </span>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={newQuestionnaireCategory} onValueChange={setNewQuestionnaireCategory}>
+                <SelectTrigger className="w-72 h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                  {DISCHARGE_REASONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.categoryName}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <Button
+                onClick={handleGenerateQuestionnaireCode}
+                className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-10 gap-1.5 shadow-xs"
+              >
+                <Plus className="w-4 h-4" /> Generate Kode Kuesioner
+              </Button>
             </div>
-            <div>
-              <Label className="text-xs font-bold text-slate-700">Clinical Exit Note</Label>
-              <Textarea
-                rows={3}
-                placeholder="Summary notes on discontinuation context..."
-                className="rounded-xl border-slate-200 bg-white mt-1"
-                value={discNote}
-                onChange={(e) => setDiscNote(e.target.value)}
-                data-testid="discontinue-note-input"
+
+            {/* List of Generated Codes */}
+            {(client.assessmentCodes || []).length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {client.assessmentCodes.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2"
+                  >
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        {item.name}
+                      </span>
+                      <p className="font-mono font-black text-sm text-slate-900 mt-0.5">{item.code}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 rounded-lg text-slate-500 hover:text-sky-700"
+                        onClick={() => copyToClipboard(item.code, `Kode ${item.name}`)}
+                        title="Salin Kode"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                      <Link
+                        to="/assessment"
+                        className="inline-flex items-center justify-center h-8 px-2.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-sky-700 hover:bg-sky-50"
+                      >
+                        Buka Form
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center">
+                4
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">
+                  Schedule Assessment ({assessmentSessions.length} Sesi Terjadwal)
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Booking sesi asesmen klinis dengan praktisi terapis di kalender (bisa dijadwalkan lebih dari 1 sesi)
+                </CardDescription>
+              </div>
+            </div>
+
+            {/* BUTTON ALWAYS VISIBLE TO SCHEDULE MULTIPLE ASSESSMENTS */}
+            <Button
+              size="sm"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-8 gap-1.5 shadow-xs"
+              onClick={() => setScheduleModalOpen(true)}
+            >
+              <CalendarPlus className="w-3.5 h-3.5" />
+              {assessmentSessions.length === 0 ? "Jadwalkan Asesmen" : "+ Tambah Jadwal Asesmen"}
+            </Button>
+          </CardHeader>
+          <CardContent className="p-4 text-xs text-slate-600 space-y-3">
+            {assessmentSessions.length === 0 ? (
+              <div className="p-6 text-center border border-dashed border-slate-200 rounded-xl space-y-2">
+                <p className="text-slate-400 italic">Belum ada sesi asesmen klinis yang dijadwalkan untuk klien ini.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl text-xs font-bold text-sky-700 border-sky-200 hover:bg-sky-50"
+                  onClick={() => setScheduleModalOpen(true)}
+                >
+                  <CalendarPlus className="w-3.5 h-3.5 mr-1" /> Jadwalkan Sesi Asesmen Pertama
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 pb-1">
+                  <span>Daftar Sesi Asesmen Terjadwal:</span>
+                  <span className="text-emerald-700 font-bold">
+                    {assessmentSessions.filter((s) => s.status === "completed").length} dari {assessmentSessions.length} Selesai
+                  </span>
+                </div>
+
+                {assessmentSessions.map((s, sIdx) => {
+                  const therapist = getTherapist(s.therapistId);
+                  return (
+                    <div
+                      key={s.id}
+                      className="p-3 rounded-xl bg-slate-50/80 border border-slate-200 flex items-center justify-between gap-3 hover:bg-white hover:border-slate-300 transition-all shadow-2xs"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                          {sIdx + 1}
+                        </span>
+                        <div>
+                          <p className="font-bold text-slate-900 text-xs">
+                            Sesi Asesmen #{sIdx + 1} — {therapist?.name || "Terapis Klinis"}
+                            {therapist?.specialty && (
+                              <span className="ml-1 text-[10px] font-medium text-slate-500">
+                                ({therapist.specialty})
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Tanggal: <strong>{fmtDate(s.date)}</strong> • Jam: <strong>{s.startTime} – {s.endTime}</strong>
+                          </p>
+                          {s.notes && (
+                            <p className="text-[10px] text-slate-400 italic mt-0.5">
+                              Catatan: {s.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <StatusBadge status={s.status} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* STEP 5: PARENT ASSESSMENT ANSWER (PSYCHOLOGICAL TABLE & PDF) */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-teal-100 text-teal-800 font-bold text-xs flex items-center justify-center">
+                5
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">Parent Assessment Answer</CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Hasil kuesioner ortu & sekolah dalam bentuk format Tabel Psikologi Klinis & Pratinjau PDF
+                </CardDescription>
+              </div>
+            </div>
+            <Link
+              to={`/admin-inquiry/parent-assessment/${client.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition-colors shadow-2xs"
+            >
+              <Eye className="w-3.5 h-3.5" /> Buka Laporan Tabel Psikologi
+            </Link>
+          </CardHeader>
+          <CardContent className="p-4 text-xs text-slate-600">
+            {(client.assessmentAnswers || []).length > 0 ? (
+              <div className="space-y-2">
+                <p className="font-semibold text-slate-800">
+                  Tersedia {(client.assessmentAnswers || []).length} kuesioner terisi lengkap:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {client.assessmentAnswers.map((a, i) => (
+                    <span key={i} className="px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 font-bold text-teal-800 text-[11px]">
+                      ✓ {a.categoryName} ({a.answers?.length || 0} butir terisi)
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-400 italic">Orang tua belum mengisi kuesioner asesmen.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* STEP 6: GOOGLE DRIVE CLIENT LINK */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-sky-100 text-sky-800 font-bold text-xs flex items-center justify-center">
+                6
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">Google Drive Client Link</CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Folder arsip berkas asesmen, video observasi, dan dokumen klinis (dapat diakses Asesor & Terapis)
+                </CardDescription>
+              </div>
+            </div>
+            {client.gdriveClientLink && (
+              <a
+                href={client.gdriveClientLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Buka Folder
+              </a>
+            )}
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="flex gap-2">
+              <Input
+                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-mono"
+                placeholder="https://drive.google.com/drive/folders/..."
+                defaultValue={client.gdriveClientLink || ""}
+                onBlur={(e) => handleSaveGDriveLink(e.target.value)}
               />
+              <Button
+                variant="outline"
+                className="rounded-xl border-slate-200 text-xs font-bold shrink-0 h-10"
+                onClick={(e) => {
+                  const input = e.currentTarget.previousSibling;
+                  if (input) handleSaveGDriveLink(input.value);
+                }}
+              >
+                Simpan Link
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* STEP 7: INVOICE & BUKTI TRANSFER */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">
+                7
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">Tagihan Invoice & Bukti Pembayaran</CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Diskusi via WA → Tagihan diinput Finance → Ortu upload bukti transfer di portal
+                </CardDescription>
+              </div>
+            </div>
+            {latestInvoice ? (
+              <span
+                className={cn(
+                  "px-3 py-1 rounded-lg text-xs font-bold border",
+                  latestInvoice.status === "paid"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200"
+                )}
+              >
+                {latestInvoice.status === "paid" ? "🟢 LUNAS TERVERIFIKASI" : "🔴 MENUNGGU PEMBAYARAN"}
+              </span>
+            ) : (
+              <span className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                🔴 BELUM ADA INVOICE
+              </span>
+            )}
+          </CardHeader>
+          <CardContent className="p-4 text-xs text-slate-600">
+            {latestInvoice ? (
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-slate-900">
+                    {latestInvoice.invoiceNumber} — {latestInvoice.packageName}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Nominal: {fmtCurrency(latestInvoice.amount)} • Terbit: {fmtDate(latestInvoice.createdAt)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {latestInvoice.proofOfPaymentUrl ? (
+                    <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Bukti Terlampir
+                    </span>
+                  ) : (
+                    <span className="text-xs text-amber-600 italic">Menunggu upload slip dari ortu</span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200 text-amber-900">
+                Tagihan belum diinput oleh Finance. Setelah diskusi paket dengan orang tua melalui WhatsApp, tim Finance akan memasukkan invoice tagihan agar orang tua dapat mengupload bukti transfer.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* STEP 8: FINAL DECISION OUTCOMES */}
+        <Card className="rounded-2xl border-2 border-slate-300 bg-white shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/70 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">
+                8
+              </span>
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">Final Decision Outcomes</CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Tentukan keputusan kelanjutan alur client di Therapedia
+                </CardDescription>
+              </div>
+            </div>
+            {client.finalOutcome && (
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                Outcome: {client.finalOutcome.toUpperCase()}
+              </span>
+            )}
+          </CardHeader>
+          <CardContent className="p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Option 1: Admit to Active Client */}
+              <div
+                onClick={handleOutcomeAdmit}
+                className={cn(
+                  "p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 text-left group",
+                  client.status === "admitted"
+                    ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-300/40"
+                    : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/20"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-extrabold text-sm text-emerald-900">Admit to Active</p>
+                    <UserCheck className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Masuk ke Active Client Roster & siap dijadwalkan. <strong>Bisa di-admit meski kredit masih 0</strong> (slot kalender berstatus Frozen ❄️).
+                  </p>
+                </div>
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg w-full">
+                  {client.status === "admitted" ? "✓ Active Client" : "Admit Client"}
+                </Button>
+              </div>
+
+              {/* Option 2: Done Consult */}
+              <div
+                onClick={handleOutcomeDoneConsult}
+                className={cn(
+                  "p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 text-left group",
+                  client.status === "done_consult"
+                    ? "bg-amber-50 border-amber-500 ring-2 ring-amber-300/40"
+                    : "bg-white border-slate-200 hover:border-amber-400 hover:bg-amber-50/20"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-extrabold text-sm text-amber-900">Done Consult</p>
+                    <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Sesi konsultasi evaluasi selesai. Tidak melanjutkan sesi terapi berkala di klinik.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="border-amber-300 text-amber-900 hover:bg-amber-100 font-bold text-xs rounded-lg w-full">
+                  Tandai Selesai Konsul
+                </Button>
+              </div>
+
+              {/* Option 3: Done Assessment */}
+              <div
+                onClick={handleOutcomeDoneAssessment}
+                className={cn(
+                  "p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 text-left group",
+                  client.status === "done_assessment"
+                    ? "bg-indigo-50 border-indigo-500 ring-2 ring-indigo-300/40"
+                    : "bg-white border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/20"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-extrabold text-sm text-indigo-900">Done Assessment</p>
+                    <FileText className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Asesmen & penyerahan laporan klinis selesai. Tidak melanjutkan terapi aktif di cabang ini.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="border-indigo-300 text-indigo-900 hover:bg-indigo-100 font-bold text-xs rounded-lg w-full">
+                  Tandai Selesai Asesmen
+                </Button>
+              </div>
+
+              {/* Option 4: Discontinue */}
+              <div
+                onClick={() => setDiscontinueOpen(true)}
+                className={cn(
+                  "p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 text-left group",
+                  client.status === "discontinued"
+                    ? "bg-rose-50 border-rose-500 ring-2 ring-rose-300/40"
+                    : "bg-white border-slate-200 hover:border-rose-400 hover:bg-rose-50/20"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-extrabold text-sm text-rose-900">Discontinue</p>
+                    <XCircle className="w-4 h-4 text-rose-600" />
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Batal atau tidak melanjutkan proses intake. Sertakan catatan alasan pembatalan.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="border-rose-300 text-rose-900 hover:bg-rose-100 font-bold text-xs rounded-lg w-full">
+                  Discontinue
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Discontinue Modal */}
+      <Dialog open={discontinueOpen} onOpenChange={setDiscontinueOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-rose-600" /> Konfirmasi Discontinue Client
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Tuliskan alasan mengapa client membatalkan atau tidak melanjutkan alur intake.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <Textarea
+              className="rounded-xl border-slate-200 bg-slate-50 text-xs min-h-[90px]"
+              placeholder="e.g. Keluarga pindah domisili, atau memutuskan terapi di kota lain..."
+              value={discontinueReason}
+              onChange={(e) => setDiscontinueReason(e.target.value)}
+            />
           </div>
-          <DialogFooter className="mt-5 gap-2">
-            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setDiscOpen(false)}>
-              Cancel
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setDiscontinueOpen(false)}>
+              Batal
             </Button>
             <Button
-              className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl"
-              onClick={handleDiscontinue}
-              data-testid="confirm-discontinue-button"
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs"
+              onClick={handleOutcomeDiscontinue}
             >
-              Confirm Discontinuation
+              Simpan Discontinue
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Schedule Modal for Assessment */}
+      <AddScheduleModal
+        open={scheduleModalOpen}
+        onOpenChange={setScheduleModalOpen}
+        defaults={{
+          clientId: client.id,
+          lockClient: true,
+          type: "assessment",
+        }}
+        defaultClientId={client.id}
+        defaultType="assessment"
+      />
     </div>
   );
 }
-

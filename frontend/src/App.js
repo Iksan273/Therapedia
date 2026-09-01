@@ -9,21 +9,22 @@ import { CreditsProvider } from "@/context/CreditsContext";
 import { AssessmentsProvider } from "@/context/AssessmentsContext";
 import AppLayout from "@/components/layout/AppLayout";
 import RoleSelect from "@/pages/RoleSelect";
-import PublicInquiryForm from "@/pages/PublicInquiryForm";
 import AssessmentFill from "@/pages/AssessmentFill";
 import DashboardInquiry from "@/pages/adminInquiry/DashboardInquiry";
 import InquiryPipeline from "@/pages/adminInquiry/InquiryPipeline";
 import ClientDetailInquiry from "@/pages/adminInquiry/ClientDetailInquiry";
 import AssessmentMasterData from "@/pages/adminInquiry/AssessmentMasterData";
-import WaitingListHub from "@/pages/adminInquiry/WaitingListHub";
+import ParentAssessmentView from "@/pages/adminInquiry/ParentAssessmentView";
 import DashboardSchedule from "@/pages/adminSchedule/DashboardSchedule";
 import ActiveClients from "@/pages/adminSchedule/ActiveClients";
 import ActiveClientDetail from "@/pages/adminSchedule/ActiveClientDetail";
 import CalendarPage from "@/pages/adminSchedule/CalendarPage";
 import MySchedule from "@/pages/therapist/MySchedule";
-import TherapistClientDetail from "@/pages/therapist/TherapistClientDetail";
 import ClientDashboard from "@/pages/client/ClientDashboard";
-import PrintClientReport from "@/pages/PrintClientReport";
+import DashboardRevenue from "@/pages/master/DashboardRevenue";
+import UserManagement from "@/pages/master/UserManagement";
+import RoleModuleAccess from "@/pages/master/RoleModuleAccess";
+import FinancePortal from "@/pages/finance/FinancePortal";
 
 const RequireRole = ({ role, children }) => {
   const { auth } = useAuth();
@@ -48,30 +49,73 @@ function App() {
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<RoleSelect />} />
-                    <Route path="/inquiry" element={<PublicInquiryForm />} />
                     <Route path="/assessment" element={<AssessmentFill />} />
 
+                    {/* ROLE MASTER */}
                     <Route
-                      path="/admin-inquiry"
+                      path="/master"
                       element={
-                        <RequireRole role="admin_inquiry">
+                        <RequireRole role="master">
                           <AppLayout />
                         </RequireRole>
                       }
                     >
-                      <Route index element={<DashboardInquiry />} />
-                      <Route path="pipeline" element={<InquiryPipeline />} />
-                      <Route path="waiting-list" element={<WaitingListHub />} />
-                      <Route path="clients/:id" element={<ClientDetailInquiry />} />
-                      <Route path="assessments" element={<AssessmentMasterData />} />
+                      <Route index element={<Navigate to="/master/revenue" replace />} />
+                      <Route path="revenue" element={<DashboardRevenue />} />
+                      <Route path="users" element={<UserManagement />} />
+                      <Route path="rbac" element={<RoleModuleAccess />} />
                     </Route>
 
+                    {/* ROLE MANAGER */}
+                    <Route
+                      path="/manager"
+                      element={
+                        <RequireRole role="manager">
+                          <AppLayout />
+                        </RequireRole>
+                      }
+                    >
+                      <Route index element={<Navigate to="/manager/revenue" replace />} />
+                      <Route path="revenue" element={<DashboardRevenue />} />
+                    </Route>
+
+                    {/* ROLE FINANCE */}
+                    <Route
+                      path="/finance"
+                      element={
+                        <RequireAnyRole roles={["master", "finance"]}>
+                          <AppLayout />
+                        </RequireAnyRole>
+                      }
+                    >
+                      <Route index element={<FinancePortal />} />
+                    </Route>
+
+                    {/* ADMIN INQUIRY PIPELINE */}
+                    <Route
+                      path="/admin-inquiry"
+                      element={
+                        <RequireAnyRole roles={["master", "manager", "admin_inquiry", "therapist"]}>
+                          <AppLayout />
+                        </RequireAnyRole>
+                      }
+                    >
+                      <Route index element={<DashboardInquiry />} />
+                      <Route path="dashboard" element={<DashboardInquiry />} />
+                      <Route path="pipeline" element={<InquiryPipeline />} />
+                      <Route path="pipeline/:id" element={<ClientDetailInquiry />} />
+                      <Route path="clients/:id" element={<ClientDetailInquiry />} />
+                      <Route path="assessments" element={<AssessmentMasterData />} />
+                      <Route path="parent-assessment/:id" element={<ParentAssessmentView />} />
+                    </Route>
+
+                    {/* ADMIN SCHEDULE TIMETABLE & ACTIVE CLIENTS */}
                     <Route
                       path="/admin-schedule"
                       element={
-                        <RequireRole role="admin_schedule">
+                        <RequireAnyRole roles={["master", "manager", "admin_schedule", "finance"]}>
                           <AppLayout />
-                        </RequireRole>
+                        </RequireAnyRole>
                       }
                     >
                       <Route index element={<DashboardSchedule />} />
@@ -80,6 +124,7 @@ function App() {
                       <Route path="clients/:id" element={<ActiveClientDetail />} />
                     </Route>
 
+                    {/* THERAPIST PORTAL */}
                     <Route
                       path="/therapist"
                       element={
@@ -89,9 +134,10 @@ function App() {
                       }
                     >
                       <Route index element={<MySchedule />} />
-                      <Route path="clients/:id" element={<TherapistClientDetail />} />
+                      <Route path="parent-assessment/:id" element={<ParentAssessmentView />} />
                     </Route>
 
+                    {/* PARENT PORTAL */}
                     <Route
                       path="/client"
                       element={
@@ -102,15 +148,6 @@ function App() {
                     >
                       <Route index element={<ClientDashboard />} />
                     </Route>
-
-                    <Route
-                      path="/print/client/:id"
-                      element={
-                        <RequireAnyRole roles={["admin_inquiry", "admin_schedule", "therapist"]}>
-                          <PrintClientReport />
-                        </RequireAnyRole>
-                      }
-                    />
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
