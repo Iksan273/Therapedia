@@ -14,10 +14,11 @@ import {
   ShieldCheck,
   Search,
   ArrowUpRight,
-  Sparkles,
   Layers,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  Image as ImageIcon
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,9 +37,11 @@ import {
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
+import { PaymentProofViewerModal } from "@/components/common/PaymentProofViewerModal";
 import { useCredits } from "@/context/CreditsContext";
 import { useClients } from "@/context/ClientsContext";
 import { BRANCHES, fmtCurrency, fmtDate } from "@/lib/appUtils";
+import { getProofFileType } from "@/lib/fileUploadUtils";
 import { cn } from "@/lib/utils";
 
 export default function FinancePortal() {
@@ -54,7 +57,7 @@ export default function FinancePortal() {
   const { clients } = useClients();
 
   const [activeTab, setActiveTab] = useState("verification"); // verification | billing | renewal | history | packages
-  const [proofPreviewUrl, setProofPreviewUrl] = useState(null);
+  const [selectedProofInvoice, setSelectedProofInvoice] = useState(null);
 
   // Issue Invoice Modal State
   const [issueOpen, setIssueOpen] = useState(false);
@@ -317,14 +320,24 @@ export default function FinancePortal() {
                             <p className="font-bold text-slate-900 tabular-nums">{fmtCurrency(inv.amount)}</p>
                           </TableCell>
                           <TableCell className="text-xs min-w-[160px] whitespace-nowrap">
-                            {inv.proofOfPaymentUrl ? (
+                            {inv.proofOfPaymentUrl || inv.proofUrl ? (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 gap-1.5 text-xs text-sky-700 border-sky-200 bg-sky-50/60 rounded-xl whitespace-nowrap cursor-pointer"
-                                onClick={() => setProofPreviewUrl(inv.proofOfPaymentUrl)}
+                                className="h-8 gap-1.5 text-xs text-sky-700 border-sky-200 bg-sky-50/70 hover:bg-sky-100 rounded-xl whitespace-nowrap cursor-pointer font-semibold shadow-2xs"
+                                onClick={() => setSelectedProofInvoice(inv)}
                               >
-                                <Eye className="w-3.5 h-3.5" /> Lihat Struk
+                                {getProofFileType(inv.proofOfPaymentUrl || inv.proofUrl, inv.proofFileType, inv.proofFileName) === "pdf" ? (
+                                  <>
+                                    <FileText className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Lihat Dokumen PDF</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5 text-sky-600" />
+                                    <span>Lihat Foto Slip</span>
+                                  </>
+                                )}
                               </Button>
                             ) : (
                               <span className="text-xs text-rose-500 font-medium italic whitespace-nowrap">Belum upload slip</span>
@@ -409,6 +422,7 @@ export default function FinancePortal() {
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[180px] whitespace-nowrap">Paket Layanan</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Nominal</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Tanggal</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[140px] whitespace-nowrap">Bukti Transfer</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[130px] whitespace-nowrap">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -427,6 +441,30 @@ export default function FinancePortal() {
                         <TableCell className="text-xs font-semibold text-slate-800 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
                         <TableCell className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">{fmtCurrency(inv.amount)}</TableCell>
                         <TableCell className="text-xs text-slate-500 tabular-nums min-w-[130px] whitespace-nowrap">{fmtDate(inv.createdAt)}</TableCell>
+                        <TableCell className="text-xs min-w-[140px] whitespace-nowrap">
+                          {inv.proofOfPaymentUrl || inv.proofUrl ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2.5 text-[11px] font-semibold text-slate-700 hover:text-sky-700 border-slate-200 hover:bg-sky-50 rounded-lg gap-1.5 cursor-pointer"
+                              onClick={() => setSelectedProofInvoice(inv)}
+                            >
+                              {getProofFileType(inv.proofOfPaymentUrl || inv.proofUrl, inv.proofFileType, inv.proofFileName) === "pdf" ? (
+                                <>
+                                  <FileText className="w-3 h-3 text-rose-600" />
+                                  <span>Lihat PDF</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="w-3 h-3 text-sky-600" />
+                                  <span>Lihat Foto</span>
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right pr-6 min-w-[130px] whitespace-nowrap">
                           <StatusBadge status={inv.status} />
                         </TableCell>
@@ -615,26 +653,15 @@ export default function FinancePortal() {
         </TabsContent>
       </Tabs>
 
-      {/* Slip Preview Modal */}
-      <Dialog open={Boolean(proofPreviewUrl)} onOpenChange={() => setProofPreviewUrl(null)}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-sky-600" /> Pratinjau Bukti Transfer
-            </DialogTitle>
-          </DialogHeader>
-          <div className="my-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 max-h-96 flex items-center justify-center">
-            {proofPreviewUrl && (
-              <img src={proofPreviewUrl} alt="Bukti Transfer" className="w-full h-auto object-cover max-h-96" />
-            )}
-          </div>
-          <DialogFooter>
-            <Button className="rounded-xl w-full text-xs font-bold" onClick={() => setProofPreviewUrl(null)}>
-              Tutup Pratinjau
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Pratinjau Foto & Dokumen Bukti Transfer Modal */}
+      <PaymentProofViewerModal
+        isOpen={Boolean(selectedProofInvoice)}
+        onClose={() => setSelectedProofInvoice(null)}
+        invoice={selectedProofInvoice}
+        onApprove={handleApprovePayment}
+        onReject={handleRejectPayment}
+        isFinanceView={true}
+      />
 
       {/* Issue Invoice Modal */}
       <Dialog open={issueOpen} onOpenChange={setIssueOpen}>

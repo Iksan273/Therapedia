@@ -6,7 +6,6 @@ import {
   Plus,
   Inbox,
   Filter,
-  Sparkles,
   User,
   Calendar,
   Layers,
@@ -45,7 +44,7 @@ import { cn } from "@/lib/utils";
 
 const STAGE_COLUMNS = [
   { status: "inquiry", label: "1. New Intake", accent: "bg-sky-500", desc: "Data awal masuk" },
-  { status: "service_selected", label: "2. Layanan Dipilih", accent: "bg-purple-500", desc: "B-OTA, F-OTA, Consultion" },
+  { status: "service_selected", label: "2. Layanan Dipilih", accent: "bg-purple-500", desc: "BOT-A, FOT-A, Consultation" },
   { status: "assessment_scheduled", label: "3. Asesmen Terjadwal", accent: "bg-blue-500", desc: "Kode kuesioner aktif" },
   { status: "assessment_done", label: "4. Asesmen Selesai", accent: "bg-teal-500", desc: "GDrive & Tabel Psikologi" },
   { status: "admitted", label: "5. Active Client", accent: "bg-emerald-500", desc: "Lanjut sesi terapi" },

@@ -1297,7 +1297,7 @@
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
-        "categoryName": "Sensory & Developmental Profile (B-OTA / F-OTA)",
+        "categoryName": "Sensory & Developmental Profile (BOT-A / FOT-A)",
         "answers": [
           {
             "questionId": "q-101",

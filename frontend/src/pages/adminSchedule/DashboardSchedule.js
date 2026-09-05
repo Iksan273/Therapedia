@@ -21,7 +21,6 @@ import {
   Filter,
   CheckCircle2,
   XCircle,
-  Sparkles,
   ArrowRight,
   TrendingUp,
   Building2,
@@ -679,7 +678,7 @@ export default function DashboardSchedule() {
 
                     <a
                       href={`https://wa.me/${c.parentContact.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                        `Halo ${c.parentName}, segenap keluarga besar Therapedia mengucapkan Selamat Ulang Tahun untuk ananda ${c.clientName}! Semoga senantiasa sehat dan bertumbuh optimal. 🎂✨`
+                        `Halo ${c.parentName}, segenap keluarga besar Therapedia mengucapkan Selamat Ulang Tahun untuk ananda ${c.clientName}! Semoga senantiasa sehat dan bertumbuh optimal. 🎂`
                       )}`}
                       target="_blank"
                       rel="noreferrer"

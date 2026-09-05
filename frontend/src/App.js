@@ -20,8 +20,10 @@ import ActiveClients from "@/pages/adminSchedule/ActiveClients";
 import ActiveClientDetail from "@/pages/adminSchedule/ActiveClientDetail";
 import CalendarPage from "@/pages/adminSchedule/CalendarPage";
 import MySchedule from "@/pages/therapist/MySchedule";
+import TherapistClientDetail from "@/pages/therapist/TherapistClientDetail";
 import ClientDashboard from "@/pages/client/ClientDashboard";
 import DashboardRevenue from "@/pages/master/DashboardRevenue";
+import BranchPerformance from "@/pages/master/BranchPerformance";
 import UserManagement from "@/pages/master/UserManagement";
 import RoleModuleAccess from "@/pages/master/RoleModuleAccess";
 import FinancePortal from "@/pages/finance/FinancePortal";
@@ -62,6 +64,7 @@ function App() {
                     >
                       <Route index element={<Navigate to="/master/revenue" replace />} />
                       <Route path="revenue" element={<DashboardRevenue />} />
+                      <Route path="branch-performance" element={<BranchPerformance />} />
                       <Route path="users" element={<UserManagement />} />
                       <Route path="rbac" element={<RoleModuleAccess />} />
                     </Route>
@@ -134,6 +137,7 @@ function App() {
                       }
                     >
                       <Route index element={<MySchedule />} />
+                      <Route path="clients/:id" element={<TherapistClientDetail />} />
                       <Route path="parent-assessment/:id" element={<ParentAssessmentView />} />
                     </Route>
 

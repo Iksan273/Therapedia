@@ -9,7 +9,7 @@ import {
   FileText,
   Cake,
   Clock,
-  Sparkles,
+  CalendarPlus,
   User,
   ShieldCheck,
   CheckCircle2,
@@ -63,7 +63,7 @@ const TEMPLATE_TYPES = [
     id: "slot_offer",
     title: "Open Therapy Slot Offer (Waiting List)",
     shortLabel: "Waiting List Offer",
-    icon: Sparkles,
+    icon: CalendarPlus,
   },
   {
     id: "birthday_greeting",
@@ -139,7 +139,7 @@ The clinical assessment appointment has been confirmed:
 
 Please take 5-10 minutes to complete the intake questionnaire on the Therapedia Assessment Portal prior to your appointment.
 
-Feel free to reply if you have any questions. We look forward to welcoming you! 🙏✨`;
+Feel free to reply if you have any questions. We look forward to welcoming you! 🙏`;
       }
 
       case "session_reminder": {
@@ -209,7 +209,7 @@ Given high demand, please confirm within 24 hours if you would like to reserve t
 The entire team and clinical therapists at Therapedia wish:
 🎉 *A very Happy ${nextAge}th Birthday to dear ${child}!* 🎂🎈
 
-May the coming year bring boundless joy, vibrant health, and wonderful developmental growth. Thank you for being a cherished part of the Therapedia family! 💖✨`;
+May the coming year bring boundless joy, vibrant health, and wonderful developmental growth. Thank you for being a cherished part of the Therapedia family! 💖`;
       }
 
       default:

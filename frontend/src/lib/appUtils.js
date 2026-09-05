@@ -51,10 +51,13 @@ export const STATUS_META = {
   unpaid: { label: "Belum Lunas", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
   paid: { label: "Lunas Terverifikasi", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
   frozen: { label: "Frozen (0 Kredit)", cls: "bg-cyan-50 text-cyan-900 border border-cyan-400 font-bold ring-1 ring-cyan-400/40" },
-  b_ota: { label: "B-OTA", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
-  f_ota: { label: "F-OTA", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
-  consult_wo_report: { label: "Consultion without Report", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
-  consult_w_report: { label: "Consultion with written report", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
+  b_ota: { label: "BOT-A", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
+  f_ota: { label: "FOT-A", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
+  bot_a: { label: "BOT-A", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
+  fot_a: { label: "FOT-A", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
+  consult_wo_report: { label: "Consultation without Report", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
+  consult_w_report: { label: "Consultation with written report", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
+  assessment: { label: "Asesmen Klinis", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
   therapy: { label: "Terapi Reguler", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
   therapy_vip: { label: "Terapi VIP", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
   therapy_speech: { label: "Terapi Wicara", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
@@ -71,20 +74,16 @@ export const CONCERN_TAGS = [
 ];
 
 export const INTAKE_SERVICES = [
-  { value: "b_ota", label: "B-OTA", shortLabel: "B-OTA", fullLabel: "B-OTA (Brief Occupational Therapy Assessment)", allowsSchoolCompanion: true, category: "Asesmen", description: "Brief Occupational Therapy Assessment & Sensory Screening" },
-  { value: "f_ota", label: "F-OTA", shortLabel: "F-OTA", fullLabel: "F-OTA (Full Occupational Therapy Assessment)", allowsSchoolCompanion: true, category: "Asesmen", description: "Full Occupational Therapy Comprehensive Assessment" },
-  { value: "consult_wo_report", label: "Consultion without Report", shortLabel: "Consultion without Report", fullLabel: "Consultion without Report", allowsSchoolCompanion: false, category: "Konsultasi", description: "Konsultasi tatap muka evaluasi klinis tanpa laporan tertulis" },
-  { value: "consult_w_report", label: "Consultion with written report", shortLabel: "Consultion with written report", fullLabel: "Consultion with written report", allowsSchoolCompanion: false, category: "Konsultasi", description: "Konsultasi klinis mendalam dengan laporan tertulis resmi" },
+  { value: "b_ota", label: "BOT-A (Brief Occupational Therapy Assessment)", shortLabel: "BOT-A", fullLabel: "BOT-A (Brief Occupational Therapy Assessment)", allowsSchoolCompanion: true, category: "Asesmen", description: "Brief Occupational Therapy Assessment & Sensory Screening" },
+  { value: "f_ota", label: "FOT-A (Full Occupational Therapy Assessment)", shortLabel: "FOT-A", fullLabel: "FOT-A (Full Occupational Therapy Assessment)", allowsSchoolCompanion: true, category: "Asesmen", description: "Full Occupational Therapy Comprehensive Assessment" },
+  { value: "consult_wo_report", label: "Consultation without Report", shortLabel: "Consultation w/o Report", fullLabel: "Consultation without Report", allowsSchoolCompanion: false, category: "Konsultasi", description: "Konsultasi tatap muka evaluasi klinis tanpa laporan tertulis" },
+  { value: "consult_w_report", label: "Consultation with written report", shortLabel: "Consultation w/ Report", fullLabel: "Consultation with written report", allowsSchoolCompanion: false, category: "Konsultasi", description: "Konsultasi klinis mendalam dengan laporan tertulis resmi" },
 ];
 
 export const CLINICAL_SERVICES = INTAKE_SERVICES;
-
-export const SESSION_TYPES = [
-  ...INTAKE_SERVICES,
-  { value: "therapy", label: "Terapi Reguler (OT & Sensori)", shortLabel: "Terapi OT", category: "Terapi" },
-  { value: "therapy_speech", label: "Terapi Wicara (Speech Therapy)", shortLabel: "Terapi Wicara", category: "Terapi" },
-  { value: "therapy_physio", label: "Fisioterapi Pediatrik", shortLabel: "Fisioterapi", category: "Terapi" },
-];
+export const ASSESSMENT_SERVICES = INTAKE_SERVICES;
+export const THERAPY_SERVICES = INTAKE_SERVICES;
+export const SESSION_TYPES = INTAKE_SERVICES;
 
 export const CANCEL_REASONS = [
   { value: "sakit", label: "Sakit / Kondisi Medis" },

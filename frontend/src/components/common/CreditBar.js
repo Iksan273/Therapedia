@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertTriangle, Ban, Sparkles } from "lucide-react";
+import { AlertTriangle, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Credit progress with threshold badges:

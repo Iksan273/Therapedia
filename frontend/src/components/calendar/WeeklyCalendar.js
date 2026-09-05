@@ -1,5 +1,6 @@
 import React from "react";
 import { addDays, format, isToday } from "date-fns";
+import { FileText } from "lucide-react";
 import { CALENDAR_HOURS, timeToMin } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
@@ -139,7 +140,14 @@ export const WeeklyCalendar = ({
                             {isFrozen && <span title="Frozen — Zero session credits remaining" className="text-xs">❄️</span>}
                           </div>
                           <div className="flex items-center justify-between text-[10px] opacity-80 tabular-nums mt-1 font-medium">
-                            <span>{s.startTime}–{s.endTime}</span>
+                            <span className="flex items-center gap-1">
+                              <span>{s.startTime}–{s.endTime}</span>
+                              {(s.activitySection || s.noteSection || s.progressNote || s.homeworkSection) && (
+                                <span className="inline-flex items-center text-emerald-700 font-bold" title="Laporan klinis terisi">
+                                  <FileText className="w-2.5 h-2.5" />
+                                </span>
+                              )}
+                            </span>
                             {isFrozen && <span className="font-bold text-cyan-900">Frozen</span>}
                           </div>
                         </button>

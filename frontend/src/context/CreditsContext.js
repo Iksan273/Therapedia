@@ -168,11 +168,20 @@ function creditsReducer(state, action) {
     case "UPLOAD_PAYMENT_PROOF": {
       return {
         ...state,
-        invoices: (state.invoices || []).map((inv) =>
-          inv.id === action.invoiceId || inv.clientId === action.clientId
-            ? { ...inv, proofOfPaymentUrl: action.proofUrl }
-            : inv
-        ),
+        invoices: (state.invoices || []).map((inv) => {
+          const matches = action.invoiceId ? inv.id === action.invoiceId : inv.clientId === action.clientId;
+          if (!matches) return inv;
+
+          return {
+            ...inv,
+            proofOfPaymentUrl: action.proofUrl,
+            proofUrl: action.proofUrl,
+            proofFileName: action.fileName || inv.proofFileName || (action.fileType?.includes("pdf") ? "bukti-transfer.pdf" : "bukti-transfer.jpg"),
+            proofFileType: action.fileType || inv.proofFileType || "image/jpeg",
+            proofFileSize: action.fileSize != null ? action.fileSize : inv.proofFileSize,
+            proofUploadedAt: action.uploadedAt || new Date().toISOString(),
+          };
+        }),
       };
     }
 
@@ -186,7 +195,8 @@ function creditsReducer(state, action) {
               ...inv,
               status: action.status,
               paidAt: isApproving ? todayStr() : null,
-              proofOfPaymentUrl: action.proofUrl || inv.proofOfPaymentUrl,
+              proofOfPaymentUrl: action.proofUrl || inv.proofOfPaymentUrl || inv.proofUrl,
+              proofUrl: action.proofUrl || inv.proofUrl || inv.proofOfPaymentUrl,
             }
           : inv
       );
@@ -332,8 +342,8 @@ export const CreditsProvider = ({ children }) => {
     dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date });
   const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount }) =>
     dispatch({ type: "ISSUE_INVOICE", clientId, clientName, branchId, packageId, packageName, amount });
-  const uploadPaymentProof = ({ invoiceId, clientId, proofUrl }) =>
-    dispatch({ type: "UPLOAD_PAYMENT_PROOF", invoiceId, clientId, proofUrl });
+  const uploadPaymentProof = ({ invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt }) =>
+    dispatch({ type: "UPLOAD_PAYMENT_PROOF", invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt });
   const verifyPaymentProof = ({ invoiceId, status, proofUrl, creditsToAdd }) =>
     dispatch({ type: "VERIFY_PAYMENT_PROOF", invoiceId, status, proofUrl, creditsToAdd });
   const renewClientCredit = ({ clientId, clientName, branchId, packageId, packageName, credits, amount }) =>

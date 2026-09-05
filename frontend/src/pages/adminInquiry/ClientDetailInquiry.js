@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Calendar,
   CalendarPlus,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   Building2,
@@ -43,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { AddScheduleModal } from "@/components/calendar/AddScheduleModal";
+import { PaymentProofViewerModal } from "@/components/common/PaymentProofViewerModal";
 import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
@@ -81,6 +81,7 @@ export default function ClientDetailInquiry() {
   const latestInvoice = invoices.length > 0 ? invoices[0] : null;
   const creditRecord = client ? getRecordForClient(client.id) : null;
   const remainingCredit = creditRecord ? creditRecord.remainingCredit : 0;
+  const [proofModalOpen, setProofModalOpen] = useState(false);
 
   // Schedules associated with this client
   const clientSchedules = useMemo(() => {
@@ -272,12 +273,7 @@ export default function ClientDetailInquiry() {
             </a>
           )}
 
-          <Link
-            to={`/admin-inquiry/parent-assessment/${client.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors shadow-2xs"
-          >
-            <FileText className="w-3.5 h-3.5" /> Tabel Psikologi & PDF
-          </Link>
+          
         </div>
       </div>
 
@@ -401,23 +397,6 @@ export default function ClientDetailInquiry() {
                 );
               })}
             </div>
-
-            {/* School Companion Toggle (for B-OTA and F-OTA) */}
-            {selectedServices.some((s) => {
-              const f = CLINICAL_SERVICES.find((cs) => cs.value === s);
-              return f?.allowsSchoolCompanion;
-            }) && (
-              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50/50 border border-purple-200">
-                <Checkbox
-                  id="schoolCompanion"
-                  checked={client.hasSchoolCompanionProfile}
-                  onCheckedChange={handleToggleSchoolCompanion}
-                />
-                <Label htmlFor="schoolCompanion" className="text-xs font-bold text-purple-950 cursor-pointer flex items-center gap-1.5">
-                  <School className="w-4 h-4 text-purple-600" /> Sertakan School Companion Profile (+ Kuesioner Adaptasi Lingkungan Sekolah)
-                </Label>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -721,10 +700,15 @@ export default function ClientDetailInquiry() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {latestInvoice.proofOfPaymentUrl ? (
-                    <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Bukti Terlampir
-                    </span>
+                  {latestInvoice.proofOfPaymentUrl || latestInvoice.proofUrl ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200 font-bold flex items-center gap-1.5 rounded-lg cursor-pointer"
+                      onClick={() => setProofModalOpen(true)}
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Lihat Bukti Transfer
+                    </Button>
                   ) : (
                     <span className="text-xs text-amber-600 italic">Menunggu upload slip dari ortu</span>
                   )}
@@ -900,10 +884,19 @@ export default function ClientDetailInquiry() {
         defaults={{
           clientId: client.id,
           lockClient: true,
+          lockType: true,
           type: "assessment",
         }}
         defaultClientId={client.id}
         defaultType="assessment"
+      />
+
+      {/* Pratinjau Bukti Pembayaran Modal */}
+      <PaymentProofViewerModal
+        isOpen={proofModalOpen}
+        onClose={() => setProofModalOpen(false)}
+        invoice={latestInvoice}
+        isFinanceView={false}
       />
     </div>
   );

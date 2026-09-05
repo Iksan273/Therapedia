@@ -7,12 +7,10 @@ import {
   ChevronsUpDown,
   Repeat,
   CalendarPlus,
-  Sparkles,
   Layers,
   Clock,
   UserCheck,
   Calendar,
-  Zap,
   Trash2,
   PlusCircle,
   Settings2,
@@ -97,13 +95,7 @@ export const AddScheduleModal = ({
   const [isRecurring, setIsRecurring] = useState(true);
   const [recurringWeeks, setRecurringWeeks] = useState("12");
 
-  // Optional: Pre-book recurring therapy session when booking an initial assessment
-  const [bundleTherapy, setBundleTherapy] = useState(false);
-  const [bundleDays, setBundleDays] = useState(["Monday", "Wednesday"]);
-  const [bundleDayConfigs, setBundleDayConfigs] = useState({});
-  const [bundleIsRecurring, setBundleIsRecurring] = useState(true);
-  const [bundleWeeks, setBundleWeeks] = useState("12");
-  const [bundleStartDate, setBundleStartDate] = useState("");
+  const [selectedService, setSelectedService] = useState("b_ota");
 
   const fallbackTherapistId = therapists[0]?.id || "";
 
@@ -139,27 +131,11 @@ export const AddScheduleModal = ({
     // Initialize default day config for Monday & Wednesday
     setSelectedDays(["Monday", "Wednesday"]);
     setDayConfigs({
-      Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: defaultsType },
-      Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: defaultsType },
+      Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: "b_ota" },
+      Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: "b_ota" },
     });
     setIsRecurring(Boolean(defaultsRecurring || true));
     setRecurringWeeks("12");
-
-    // Reset bundled therapy booking
-    setBundleTherapy(false);
-    setBundleDays(["Monday", "Wednesday"]);
-    setBundleDayConfigs({
-      Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: "therapy" },
-      Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: "therapy" },
-    });
-    setBundleIsRecurring(true);
-    setBundleWeeks("12");
-    try {
-      const baseDate = parseISO(initialDate);
-      setBundleStartDate(format(addWeeks(baseDate, 1), "yyyy-MM-dd"));
-    } catch (e) {
-      setBundleStartDate(todayStr());
-    }
   }, [
     open,
     defaultsClientId,
@@ -226,46 +202,7 @@ export const AddScheduleModal = ({
   };
 
   // Helper for bundle day config
-  const updateBundleDayConfig = (dayId, field, value) => {
-    setBundleDayConfigs((prev) => {
-      const cur = prev[dayId] || {
-        startTime: "14:00",
-        endTime: "15:00",
-        therapistId: defaultTherapistId,
-        type: "therapy",
-      };
-      const updated = { ...cur, [field]: value };
-      if (field === "startTime" && timeToMin(updated.endTime) <= timeToMin(value)) {
-        const [h, m] = value.split(":").map(Number);
-        updated.endTime = `${String(Math.min(h + 1, 18)).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      }
-      return { ...prev, [dayId]: updated };
-    });
-  };
-
-  const toggleBundleSelectDay = (dayId) => {
-    setBundleDays((prev) => {
-      if (prev.includes(dayId)) {
-        if (prev.length === 1) return prev;
-        return prev.filter((d) => d !== dayId);
-      } else {
-        if (!bundleDayConfigs[dayId]) {
-          setBundleDayConfigs((configs) => ({
-            ...configs,
-            [dayId]: {
-              startTime: "14:00",
-              endTime: "15:00",
-              therapistId: defaultTherapistId,
-              type: "therapy",
-            },
-          }));
-        }
-        return [...prev, dayId];
-      }
-    });
-  };
-
-  const isAssessmentType = defaultType === "assessment";
+  const isAssessmentType = defaultsType === "assessment" || defaultTypeProp === "assessment" || defaultType === "assessment";
 
   // Check conflicts for single session mode
   const singleConflicts = useMemo(() => {
@@ -298,7 +235,8 @@ export const AddScheduleModal = ({
         clientId,
         branchId: selectedClient?.branchId || "branch-sby-timur",
         creditPackageId: isAssessmentType ? null : (singleCreditPackageId || (clientPackages[0]?.id || null)),
-        type: defaultType,
+        type: isAssessmentType ? "assessment" : "therapy",
+        serviceType: selectedService,
         therapistId: defaultTherapistId,
         date,
         startTime: defaultStartTime,
@@ -312,9 +250,9 @@ export const AddScheduleModal = ({
       };
       addSchedule(singleBase);
       createdList.push(singleBase);
-      toast.success(`${isAssessmentType ? "Assessment session" : "Session"} scheduled for ${date}.`);
+      toast.success(`${isAssessmentType ? "Sesi asesmen" : "Sesi terapi"} berhasil dijadwalkan untuk ${date}.`);
     } else {
-      // Multi-day pattern
+      // Multi-day pattern (therapy only)
       if (selectedDays.length === 0) {
         toast.error("Please select at least one day for the weekly schedule.");
         return;
@@ -325,7 +263,8 @@ export const AddScheduleModal = ({
         clientId,
         branchId: selectedClient?.branchId || "branch-sby-timur",
         creditPackageId: clientPackages[0]?.id || null,
-        type: defaultType,
+        type: "therapy",
+        serviceType: selectedService,
         therapistId: defaultTherapistId,
         date,
         startTime: defaultStartTime,
@@ -351,30 +290,6 @@ export const AddScheduleModal = ({
       }
     }
 
-    // Handle optional bundled therapy schedule on assessment
-    if (isAssessmentType && bundleTherapy) {
-      const bundleWeeksCount = bundleIsRecurring ? parseInt(bundleWeeks, 10) || 12 : 1;
-      const thStartDate = bundleStartDate || date;
-      const baseBundle = {
-        id: uid(),
-        clientId,
-        type: "therapy",
-        therapistId: defaultTherapistId,
-        date: thStartDate,
-        startTime: "14:00",
-        endTime: "15:00",
-        status: "scheduled",
-        notes: `Pre-booked recurring therapy package alongside initial intake assessment.`,
-      };
-
-      const bundledList = buildRecurringSchedules(baseBundle, bundleWeeksCount, bundleDays, bundleDayConfigs);
-      addSchedules(bundledList);
-      createdList.push(...bundledList);
-      toast.success(
-        `⚡ Also pre-booked ${bundledList.length} therapy sessions starting ${thStartDate}!`
-      );
-    }
-
     if (onCreated) onCreated(createdList[0], createdList);
     onOpenChange(false);
   };
@@ -392,12 +307,14 @@ export const AddScheduleModal = ({
             </div>
             <div>
               <DialogTitle className="text-base sm:text-lg font-extrabold text-slate-900">
-                {defaults.lockType
-                  ? `Book Clinical ${defaultType.toUpperCase()} Appointment`
+                {isAssessmentType
+                  ? "Penjadwalan Asesmen Klinis"
                   : "Clinical Schedule & Weekly Timetable Planner"}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 mt-0.5">
-                Configure flexible single dates or multi-day weekly patterns with custom times per day.
+                {isAssessmentType
+                  ? "Jadwalkan sesi evaluasi asesmen intake awal bersama praktisi terapis (Tanpa kuota kredit)."
+                  : "Configure flexible single dates or multi-day weekly patterns with custom times per day."}
               </DialogDescription>
             </div>
           </div>
@@ -493,10 +410,12 @@ export const AddScheduleModal = ({
             <div className="space-y-3 p-4 rounded-2xl border border-slate-200 bg-slate-50/50">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700">Clinical Service Discipline</Label>
-                  <Select value={defaultType} onValueChange={setDefaultType} disabled={Boolean(defaults.lockType)}>
+                  <Label className="text-xs font-bold text-slate-700">
+                    {isAssessmentType ? "Layanan Asesmen Klinis" : "Layanan Klinis"}
+                  </Label>
+                  <Select value={selectedService} onValueChange={setSelectedService}>
                     <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
-                      <SelectValue placeholder="Select discipline..." />
+                      <SelectValue placeholder="Pilih layanan klinis..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200">
                       {SESSION_TYPES.map((t) => (
@@ -820,158 +739,13 @@ export const AddScheduleModal = ({
               {/* Real-time Calculation Badge */}
               <div className="p-2.5 rounded-xl bg-sky-100/70 border border-sky-200 text-xs font-semibold text-sky-900 flex items-center justify-between">
                 <span>
-                  ✨ Summary: <strong>{selectedDays.length} sessions/week</strong>{" "}
+                  Summary: <strong>{selectedDays.length} sessions/week</strong>{" "}
                   {isRecurring ? `× ${recurringWeeks} weeks = ${selectedDays.length * parseInt(recurringWeeks, 10)} total sessions` : "for 1 week"}
                 </span>
                 <span className="font-mono text-[11px] text-sky-800 bg-white px-2 py-0.5 rounded-md border border-sky-300">
                   {selectedDays.map((d) => d.slice(0, 3)).join(", ")}
                 </span>
               </div>
-            </div>
-          )}
-
-          {/* OPTIONAL: Pre-book recurring therapy session when booking an initial assessment */}
-          {isAssessmentType && (
-            <div className="space-y-3 rounded-2xl border border-purple-200 bg-purple-50/40 p-3.5 transition-all">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                    <Zap className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-purple-950">Also Pre-book Recurring Therapy Schedule?</p>
-                    <p className="text-[11px] text-purple-700">Optional: reserve regular therapy slots immediately after assessment</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={bundleTherapy}
-                  onCheckedChange={setBundleTherapy}
-                  data-testid="bundle-therapy-toggle"
-                />
-              </div>
-
-              {bundleTherapy && (
-                <div className="space-y-3 pt-2.5 border-t border-purple-200/70">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Label className="text-[11px] font-bold text-slate-700">Select Therapy Days in Week:</Label>
-                    <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-purple-200">
-                      {WEEKDAY_OPTIONS.map((day) => {
-                        const isSel = bundleDays.includes(day.id);
-                        return (
-                          <button
-                            key={day.id}
-                            type="button"
-                            onClick={() => toggleBundleSelectDay(day.id)}
-                            className={cn(
-                              "px-2 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer",
-                              isSel
-                                ? "bg-purple-600 text-white shadow-2xs"
-                                : "text-slate-600 hover:bg-slate-100"
-                            )}
-                          >
-                            {day.short}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Bundled Day Configs */}
-                  <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-                    {bundleDays.map((dayId) => {
-                      const cfg = bundleDayConfigs[dayId] || {
-                        startTime: "14:00",
-                        endTime: "15:00",
-                        therapistId: defaultTherapistId,
-                        type: "therapy",
-                      };
-                      return (
-                        <div key={dayId} className="p-2.5 rounded-xl bg-white border border-purple-200 text-xs grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          <div>
-                            <span className="font-bold text-purple-900 block text-[11px]">{dayId}</span>
-                            <Select value={cfg.startTime} onValueChange={(val) => updateBundleDayConfig(dayId, "startTime", val)}>
-                              <SelectTrigger className="h-7 text-xs rounded-lg mt-0.5">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl border-slate-200">
-                                {TIME_OPTIONS.slice(0, -1).map((t) => (
-                                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 block text-[11px]">End Time</span>
-                            <Select value={cfg.endTime} onValueChange={(val) => updateBundleDayConfig(dayId, "endTime", val)}>
-                              <SelectTrigger className="h-7 text-xs rounded-lg mt-0.5">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl border-slate-200">
-                                {TIME_OPTIONS.filter((t) => timeToMin(t) > timeToMin(cfg.startTime)).map((t) => (
-                                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 block text-[11px]">Therapist</span>
-                            <Select value={cfg.therapistId} onValueChange={(val) => updateBundleDayConfig(dayId, "therapistId", val)}>
-                              <SelectTrigger className="h-7 text-xs rounded-lg mt-0.5 truncate">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl border-slate-200">
-                                {therapists.map((t) => (
-                                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <span className="text-slate-500 block text-[11px]">Service</span>
-                            <Select value={cfg.type} onValueChange={(val) => updateBundleDayConfig(dayId, "type", val)}>
-                              <SelectTrigger className="h-7 text-xs rounded-lg mt-0.5 truncate">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl border-slate-200">
-                                {SESSION_TYPES.map((t) => (
-                                  <SelectItem key={t.value} value={t.value}>{t.shortLabel || t.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-bold text-slate-700">Therapy Start Date</Label>
-                      <Input
-                        type="date"
-                        className="rounded-xl border-slate-200 bg-white text-xs h-8"
-                        value={bundleStartDate}
-                        onChange={(e) => setBundleStartDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-bold text-slate-700">Package Recurrence</Label>
-                      <Select value={bundleWeeks} onValueChange={setBundleWeeks}>
-                        <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-8 font-semibold">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-slate-200">
-                          <SelectItem value="1">1 Week Only</SelectItem>
-                          <SelectItem value="4">4 Weeks (1 Month)</SelectItem>
-                          <SelectItem value="8">8 Weeks (2 Months)</SelectItem>
-                          <SelectItem value="12">12 Weeks (3 Months - Standard)</SelectItem>
-                          <SelectItem value="24">24 Weeks (6 Months)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

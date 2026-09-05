@@ -1,6 +1,6 @@
 import React from "react";
 import { format } from "date-fns";
-import { CalendarPlus, Plus, Sparkles, Clock, CalendarDays } from "lucide-react";
+import { CalendarPlus, Plus, Clock, CalendarDays, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -14,8 +14,9 @@ const STATUS_BAR = {
 };
 
 // Single-day agenda list — mobile-friendly alternative to the weekly grid.
-export const DayAgenda = ({ day, schedules, getClientName, getTherapistName, onSessionClick, onAddClick }) => {
-  const dayStr = format(day, "yyyy-MM-dd");
+export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapistName, onSessionClick, onAddClick }) => {
+  const activeDay = day || date || new Date();
+  const dayStr = format(activeDay, "yyyy-MM-dd");
   const sessions = schedules
     .filter((s) => s.date === dayStr)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -69,7 +70,9 @@ export const DayAgenda = ({ day, schedules, getClientName, getTherapistName, onS
                   <p className={cn("text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate", s.status === "cancelled" && "line-through text-slate-400")}>
                     {getClientName(s.clientId)}
                   </p>
-                  <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">Therapist: {getTherapistName(s.therapistId)}</p>
+                  <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
+                    Therapist: {getTherapistName ? getTherapistName(s.therapistId) : "—"}
+                  </p>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     <StatusBadge status={s.type} />
                     <StatusBadge status={s.status} />
@@ -78,6 +81,15 @@ export const DayAgenda = ({ day, schedules, getClientName, getTherapistName, onS
                         Weekly Recurring
                       </span>
                     )}
+                    {s.activitySection || s.noteSection || s.progressNote || s.homeworkSection ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                        <FileText className="w-3 h-3 text-emerald-600" /> Laporan Terisi
+                      </span>
+                    ) : s.status !== "cancelled" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                        <FileText className="w-3 h-3 text-slate-400" /> Belum Ada Laporan
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </button>

@@ -9,7 +9,6 @@ import {
   UserCog,
   ChevronRight,
   ShieldCheck,
-  Sparkles,
   CalendarDays,
   FileCheck2,
   TrendingUp,
@@ -131,7 +130,6 @@ export default function RoleSelect() {
 
           <div className="mb-6">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200/80 text-sky-800 text-xs font-semibold mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
               Multi-Branch Pediatric Healthcare Ecosystem
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
@@ -195,7 +193,7 @@ export default function RoleSelect() {
             <RoleCard
               icon={ClipboardList}
               title="Role Admin Inquiry & Intake"
-              description="Pipeline non-sekuensial, pilih layanan B-OTA/F-OTA, multi-kode asesmen, link GDrive"
+              description="Pipeline non-sekuensial, pilih layanan BOT-A/FOT-A, multi-kode asesmen, link GDrive"
               badge="Intake Hub"
               onClick={() => enterRole({ role: "admin_inquiry", staffName: "Rina (Admin Inquiry)" }, "/admin-inquiry/pipeline")}
               testid="role-select-admin-inquiry-button"

@@ -10,9 +10,9 @@ import {
   FileText,
   ArrowRight,
   ShieldAlert,
-  Sparkles,
   ExternalLink,
   BookOpen,
+  StickyNote,
   Home
 } from "lucide-react";
 import {
@@ -45,7 +45,7 @@ import {
 } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
-export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBase }) => {
+export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBase, readOnly = false }) => {
   const { auth } = useAuth();
   const { clients, updateClient } = useClients();
   const { therapists, getTherapist } = useTherapists();
@@ -60,8 +60,9 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const [cancelReason, setCancelReason] = useState("sakit");
   const [cancelNote, setCancelNote] = useState("");
 
-  // Report sections (Activity & Homework)
+  // Report sections (Activity, Note & Homework)
   const [activitySection, setActivitySection] = useState("");
+  const [noteSection, setNoteSection] = useState("");
   const [homeworkSection, setHomeworkSection] = useState("");
 
   // Reschedule form
@@ -76,6 +77,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       setCancelReason(schedule.cancelReason || "sakit");
       setCancelNote(schedule.notes || "");
       setActivitySection(schedule.activitySection || "");
+      setNoteSection(schedule.noteSection || schedule.progressNote || "");
       setHomeworkSection(schedule.homeworkSection || "");
       setNewDate(schedule.date);
       setNewStart(schedule.startTime);
@@ -105,7 +107,10 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const actionable = schedule.status === "scheduled" || schedule.status === "rescheduled";
 
   // Role permissions
-  const canMarkCompleted = ["master", "admin_schedule"].includes(auth.role);
+  const canManageSchedule = ["master", "admin_schedule"].includes(auth.role);
+  const canMarkCompleted = canManageSchedule;
+  const canCancel = canManageSchedule;
+  const canReschedule = canManageSchedule;
   const isTherapist = auth.role === "therapist";
 
   // Target credit package for this session
@@ -113,13 +118,17 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     (p) => p.id === schedule.creditPackageId || p.packageId === schedule.creditPackageId
   ) || record?.packages?.[0];
 
-  // Save clinical report (Activity Section & Homework Section)
+  // Save clinical report (Activity, Note & Homework) - anytime
   const handleSaveReport = () => {
+    const now = new Date().toISOString();
     updateSchedule(schedule.id, {
       activitySection: activitySection.trim(),
+      noteSection: noteSection.trim(),
+      progressNote: noteSection.trim(), // Keep progressNote in sync
       homeworkSection: homeworkSection.trim(),
+      reportUpdatedAt: now,
     });
-    toast.success("Laporan sesi klinis (Activity & Homework) berhasil disimpan.");
+    toast.success("Laporan sesi klinis (Activity, Note & Homework) berhasil disimpan.");
   };
 
   // Complete session (restricted to admin_schedule & master)
@@ -132,7 +141,10 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     updateSchedule(schedule.id, {
       status: "completed",
       activitySection: activitySection.trim(),
+      noteSection: noteSection.trim(),
+      progressNote: noteSection.trim(),
       homeworkSection: homeworkSection.trim(),
+      reportUpdatedAt: new Date().toISOString(),
     });
 
     if (schedule.type === "therapy" && record) {
@@ -155,8 +167,13 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     onOpenChange(false);
   };
 
-  // Cancel session with reason and penalty rule > 3x
+  // Cancel session with reason and penalty rule > 3x (Admin Schedule only)
   const handleCancel = () => {
+    if (!canCancel) {
+      toast.error("Hanya Admin Schedule yang berhak membatalkan sesi.");
+      return;
+    }
+
     const nextCancelCount = (record?.cancelCountTotal || 0) + 1;
 
     updateSchedule(schedule.id, {
@@ -182,8 +199,13 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     onOpenChange(false);
   };
 
-  // Reschedule session
+  // Reschedule session (Admin Schedule only)
   const handleReschedule = () => {
+    if (!canReschedule) {
+      toast.error("Hanya Admin Schedule yang berhak mereschedule atau memindahkan sesi.");
+      return;
+    }
+
     if (rescheduleConflicts.length > 0) {
       toast.error("Terdapat bentrok jadwal pada waktu yang dipilih.");
       return;
@@ -223,7 +245,14 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                 </SheetDescription>
               </div>
             </div>
-            <StatusBadge status={schedule.status} />
+            <div className="flex items-center gap-2">
+              {readOnly && (
+                <span className="text-[10px] font-extrabold uppercase bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded-full">
+                  Read-Only
+                </span>
+              )}
+              <StatusBadge status={schedule.status} />
+            </div>
           </div>
         </SheetHeader>
 
@@ -236,12 +265,18 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               <p className="text-[11px] text-slate-500">{therapist?.specialty}</p>
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase text-slate-400">Paket Kredit Sesi</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400">
+                {schedule.type === "assessment" ? "Tipe Sesi" : "Paket Kredit Sesi"}
+              </span>
               <p className="font-bold text-slate-900 mt-0.5">
-                {targetPackage ? targetPackage.packageName : "Default (0 Kredit)"}
+                {schedule.type === "assessment"
+                  ? "Sesi Asesmen Klinis"
+                  : (targetPackage ? targetPackage.packageName : "Default (0 Kredit)")}
               </p>
               <p className="text-[11px] text-slate-500">
-                Sisa Saldo: {record?.remainingCredit ?? 0} Sesi
+                {schedule.type === "assessment"
+                  ? "Tanpa Kuota Kredit"
+                  : `Sisa Saldo: ${record?.remainingCredit ?? 0} Sesi`}
               </p>
             </div>
           </div>
@@ -249,6 +284,13 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
           {/* Quick links for therapist / assessor */}
           {client && (
             <div className="flex flex-wrap items-center gap-2">
+              <Link
+                to={isTherapist ? `/therapist/clients/${client.id}` : `/admin-schedule/clients/${client.id}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold hover:bg-emerald-100 transition-colors shadow-2xs"
+                data-testid="session-modal-client-profile-link"
+              >
+                <User className="w-3.5 h-3.5 text-emerald-700" /> Profil Lengkap Client
+              </Link>
               {client.gdriveClientLink && (
                 <a
                   href={client.gdriveClientLink}
@@ -261,7 +303,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               )}
               {(client.assessmentAnswers || []).length > 0 && (
                 <Link
-                  to={`/admin-inquiry/parent-assessment/${client.id}`}
+                  to={isTherapist ? `/therapist/parent-assessment/${client.id}` : `/admin-inquiry/parent-assessment/${client.id}`}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 font-bold hover:bg-purple-100 transition-colors shadow-2xs"
                 >
                   <FileText className="w-3.5 h-3.5" /> Lihat Hasil Kuesioner Ortu
@@ -274,16 +316,48 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
           <div className="space-y-4 pt-2 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-sky-600" /> Laporan Sesi Klinis Terapis
-                </h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-sky-600" /> Laporan Sesi Klinis Terapis
+                  </h4>
+                  {activitySection?.trim() && noteSection?.trim() && homeworkSection?.trim() ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      ✓ Laporan Lengkap (3/3)
+                    </span>
+                  ) : activitySection?.trim() || noteSection?.trim() || homeworkSection?.trim() ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                      ⚠️ Sebagian Terisi ({[activitySection?.trim(), noteSection?.trim(), homeworkSection?.trim()].filter(Boolean).length}/3)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                      Belum Diisi (0/3)
+                    </span>
+                  )}
+                  {readOnly && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
+                      Read-Only
+                    </span>
+                  )}
+                </div>
                 <p className="text-slate-500 text-[11px] mt-0.5">
-                  Dapat diisi kapan saja (sekarang, nanti, atau setelah sesi selesai).
+                  {readOnly ? (
+                    "Dokumentasi laporan sesi untuk ditinjau (read-only)."
+                  ) : (
+                    "Dapat diisi & disimpan kapan saja (Activity, Note & Homework)."
+                  )}
+                  {schedule.reportUpdatedAt && (
+                    <span className="ml-1 text-slate-400 font-medium">
+                      • Terakhir disimpan: {fmtDate(schedule.reportUpdatedAt.slice(0, 10))}
+                    </span>
+                  )}
                 </p>
               </div>
-              <Button size="sm" onClick={handleSaveReport} className="rounded-xl text-xs font-bold h-8 bg-sky-600 hover:bg-sky-700 text-white">
-                Simpan Laporan
-              </Button>
+
+              {!readOnly && (
+                <Button size="sm" onClick={handleSaveReport} className="rounded-xl text-xs font-bold h-8 bg-sky-600 hover:bg-sky-700 text-white shadow-xs" data-testid="save-report-button">
+                  Simpan Laporan
+                </Button>
+              )}
             </div>
 
             {/* 1. Activity Section */}
@@ -291,61 +365,129 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               <Label className="font-bold text-slate-800 flex items-center gap-2 text-xs">
                 <BookOpen className="w-4 h-4 text-sky-600" /> 1. Activity Section (Aktivitas Sesi)
               </Label>
-              <Textarea
-                className="rounded-xl border-slate-200 bg-white text-xs min-h-[85px] leading-relaxed p-3"
-                placeholder="Dokumentasi aktivitas klinis yang dilakukan bersama anak (stimulasi sensori, motor planning, latihan fokus)..."
-                value={activitySection}
-                onChange={(e) => setActivitySection(e.target.value)}
-              />
+              {readOnly ? (
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs min-h-[60px] leading-relaxed text-slate-800" data-testid="readonly-activity-section">
+                  {activitySection ? (
+                    <p className="whitespace-pre-wrap">{activitySection}</p>
+                  ) : (
+                    <p className="text-slate-400 italic">Belum ada dokumentasi aktivitas klinis pada sesi ini.</p>
+                  )}
+                </div>
+              ) : (
+                <Textarea
+                  className="rounded-xl border-slate-200 bg-white text-xs min-h-[85px] leading-relaxed p-3"
+                  placeholder="Dokumentasi aktivitas klinis yang dilakukan bersama anak (stimulasi sensori, motor planning, latihan fokus)..."
+                  value={activitySection}
+                  onChange={(e) => setActivitySection(e.target.value)}
+                  data-testid="textarea-activity-section"
+                />
+              )}
             </div>
 
-            {/* 2. Homework Section */}
+            {/* 2. Note Section */}
             <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200/90">
               <Label className="font-bold text-slate-800 flex items-center gap-2 text-xs">
-                <Home className="w-4 h-4 text-emerald-600" /> 2. Homework Section (Aktivitas Rumah untuk Ortu)
+                <StickyNote className="w-4 h-4 text-amber-600" /> 2. Note Section (Catatan Evaluasi & Observasi Terapis)
               </Label>
-              <Textarea
-                className="rounded-xl border-slate-200 bg-white text-xs min-h-[85px] leading-relaxed p-3"
-                placeholder="Panduan latihan mandiri yang dapat diterapkan orang tua di rumah agar stimulasi berkelanjutan..."
-                value={homeworkSection}
-                onChange={(e) => setHomeworkSection(e.target.value)}
-              />
+              {readOnly ? (
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs min-h-[60px] leading-relaxed text-slate-800" data-testid="readonly-note-section">
+                  {noteSection ? (
+                    <p className="whitespace-pre-wrap">{noteSection}</p>
+                  ) : (
+                    <p className="text-slate-400 italic">Belum ada catatan observasi klinis terapis pada sesi ini.</p>
+                  )}
+                </div>
+              ) : (
+                <Textarea
+                  className="rounded-xl border-slate-200 bg-white text-xs min-h-[85px] leading-relaxed p-3"
+                  placeholder="Catatan perkembangan, observasi perilaku, mood anak, respon stimulasi, atau catatan klinis penting..."
+                  value={noteSection}
+                  onChange={(e) => setNoteSection(e.target.value)}
+                  data-testid="textarea-note-section"
+                />
+              )}
+            </div>
+
+            {/* 3. Homework Section */}
+            <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200/90">
+              <Label className="font-bold text-slate-800 flex items-center gap-2 text-xs">
+                <Home className="w-4 h-4 text-emerald-600" /> 3. Homework Section (Aktivitas Rumah untuk Ortu)
+              </Label>
+              {readOnly ? (
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs min-h-[60px] leading-relaxed text-slate-800" data-testid="readonly-homework-section">
+                  {homeworkSection ? (
+                    <p className="whitespace-pre-wrap">{homeworkSection}</p>
+                  ) : (
+                    <p className="text-slate-400 italic">Belum ada panduan latihan rumah yang didokumentasikan.</p>
+                  )}
+                </div>
+              ) : (
+                <Textarea
+                  className="rounded-xl border-slate-200 bg-white text-xs min-h-[85px] leading-relaxed p-3"
+                  placeholder="Panduan latihan mandiri yang dapat diterapkan orang tua di rumah agar stimulasi berkelanjutan..."
+                  value={homeworkSection}
+                  onChange={(e) => setHomeworkSection(e.target.value)}
+                  data-testid="textarea-homework-section"
+                />
+              )}
             </div>
           </div>
 
-          {/* ACTION MODES: COMPLETE / CANCEL / RESCHEDULE */}
-          {actionable && (
+          {/* READ-ONLY BANNER OR ACTION MODES: COMPLETE / CANCEL / RESCHEDULE */}
+          {readOnly ? (
+            <div className="pt-4 border-t border-slate-200">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2 leading-relaxed" data-testid="session-modal-readonly-notice">
+                <span className="font-bold text-slate-800">🔒 Mode Baca (Read-Only):</span>
+                <span>Riwayat sesi klinis pada profil client ini bersifat read-only. Pengisian & revisi laporan sesi aktif dilakukan melalui menu <strong>My Clinical Schedule</strong>.</span>
+              </div>
+            </div>
+          ) : actionable ? (
             <div className="pt-4 border-t border-slate-200 space-y-4">
               {mode === "view" && (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      className="rounded-xl border-slate-200 font-bold text-xs h-10 hover:bg-slate-100"
-                      onClick={() => setMode("reschedule")}
-                    >
-                      Reschedule Sesi
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-10"
-                      onClick={() => setMode("cancel")}
-                    >
-                      Batalkan Sesi (Cancel)
-                    </Button>
-                  </div>
+                  {canManageSchedule ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          variant="outline"
+                          className="rounded-xl border-slate-200 font-bold text-xs h-10 hover:bg-slate-100"
+                          onClick={() => setMode("reschedule")}
+                          data-testid="session-reschedule-button"
+                        >
+                          Reschedule Sesi
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 font-bold text-xs h-10"
+                          onClick={() => setMode("cancel")}
+                          data-testid="session-cancel-button"
+                        >
+                          Batalkan Sesi (Cancel)
+                        </Button>
+                      </div>
 
-                  {/* Complete Button Protection */}
-                  {canMarkCompleted ? (
-                    <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl h-11 shadow-sm shadow-emerald-600/20 gap-2"
-                      onClick={handleComplete}
-                    >
-                      <CheckCircle2 className="w-4 h-4" /> Tandai Selesai (Completed Sesi)
-                    </Button>
+                      <Button
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl h-11 shadow-sm shadow-emerald-600/20 gap-2"
+                        onClick={handleComplete}
+                        data-testid="session-complete-button"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Tandai Selesai (Completed Sesi)
+                      </Button>
+                    </>
                   ) : (
-                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium leading-relaxed">
-                      🔒 <strong>Role Therapist:</strong> Anda dapat mengisi dan menyimpan laporan (Activity & Homework). Penyelesaian status sesi (Mark Completed) dilakukan secara resmi oleh <strong>Admin Schedule</strong>.
+                    /* Role Therapist: No Cancel / Reschedule / Complete - Centralized to Admin Jadwal */
+                    <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/90 text-xs space-y-2" data-testid="therapist-action-notice">
+                      <div className="flex items-center gap-2 font-bold text-amber-950">
+                        <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Kewenangan Jadwal Terpusat di Admin Jadwal</span>
+                      </div>
+                      <p className="text-amber-900/90 leading-relaxed text-[11px]">
+                        Sesuai SOP klinis Therapedia, pembatalan (<strong>Cancel</strong>), penjadwalan ulang (<strong>Reschedule</strong>), dan verifikasi kehadiran (<strong>Completed</strong>) dikelola secara terpusat oleh <strong>Admin Jadwal</strong>.
+                      </p>
+                      <div className="flex items-center gap-2 font-semibold text-emerald-800 bg-white/80 border border-emerald-200/80 rounded-xl p-2.5 text-[11px]">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Therapist berwenang mendokumentasikan <strong>Laporan Sesi Klinis (Activity & Homework)</strong> di atas kapanpun.</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -483,7 +625,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>

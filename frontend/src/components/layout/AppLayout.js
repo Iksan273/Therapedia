@@ -19,7 +19,8 @@ import {
   Receipt,
   UserCog,
   ShieldAlert,
-  ChevronDown
+  ChevronDown,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -48,6 +49,7 @@ const NAV_CONFIG = {
     shortRole: "Master Director",
     items: [
       { to: "/master/revenue", label: "Revenue All-Branch", icon: TrendingUp, end: true, testid: "nav-master-revenue" },
+      { to: "/master/branch-performance", label: "Performa Inquiry All-Branch", icon: BarChart3, testid: "nav-master-branch-performance" },
       { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, testid: "nav-master-inquiry-dashboard" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "nav-master-pipeline" },
       { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, testid: "nav-master-calendar" },

@@ -10,7 +10,6 @@ import {
   User,
   Phone,
   Mail,
-  Sparkles,
   Clock,
   CheckCircle2,
   CalendarDays,

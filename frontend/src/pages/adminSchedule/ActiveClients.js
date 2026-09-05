@@ -6,7 +6,6 @@ import {
   Cake,
   BarChart3,
   ChevronRight,
-  Sparkles,
   Calendar,
   Search,
   Building2,
@@ -603,7 +602,7 @@ export default function ActiveClients() {
                       <span className="text-xs text-slate-600 font-medium">Ortu: {c.parentName}</span>
                       <a
                         href={`https://wa.me/${c.parentContact.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                          `Halo ${c.parentName}, segenap tim Therapedia mengucapkan Selamat Ulang Tahun untuk ${c.clientName}! 🎂✨`
+                          `Halo ${c.parentName}, segenap tim Therapedia mengucapkan Selamat Ulang Tahun untuk ${c.clientName}! 🎂`
                         )}`}
                         target="_blank"
                         rel="noreferrer"

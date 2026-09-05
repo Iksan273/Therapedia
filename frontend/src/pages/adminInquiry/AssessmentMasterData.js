@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import {
   ClipboardList,
   Pencil,
   Plus,
   Trash2,
-  Sparkles,
   Layers,
   ListChecks,
   KeyRound,
@@ -24,7 +23,7 @@ import {
   MessageSquare,
   Activity,
   UserCheck,
-  Award,
+  FolderTree,
   Eye,
   ChevronsUpDown,
   BookOpen
@@ -190,8 +189,8 @@ export default function AssessmentMasterData() {
   const [selectedType, setSelectedType] = useState("ALL");
   const [selectedDomainId, setSelectedDomainId] = useState("ALL");
 
-  // Collapsed / Expanded sections tracker
-  const [collapsedSections, setCollapsedSections] = useState({});
+  // Collapsed / Expanded sections tracker (default: all collapsed)
+  const [expandedSections, setExpandedSections] = useState({});
 
   // Dialog states
   const [catDialog, setCatDialog] = useState({ open: false, editingId: null, name: "", domain: "" });
@@ -238,6 +237,15 @@ export default function AssessmentMasterData() {
         ? cat.sections.reduce((sAcc, s) => sAcc + (s.questions?.length || 0), 0)
         : (cat.questions?.length || 0);
       return acc + qCount;
+    }, 0);
+  }, [categories]);
+
+  const totalDomainsOverall = useMemo(() => {
+    return categories.reduce((acc, cat) => {
+      const dCount = cat.sections && cat.sections.length > 0
+        ? cat.sections.length
+        : (cat.domain ? 1 : (cat.questions?.length ? 1 : 0));
+      return acc + dCount;
     }, 0);
   }, [categories]);
 
@@ -314,25 +322,40 @@ export default function AssessmentMasterData() {
     return filteredSections.reduce((acc, s) => acc + (s.filteredQuestions?.length || 0), 0);
   }, [filteredSections]);
 
-  // Toggle collapse state for a section
+  // Toggle collapse / expand state for a section (default is collapsed)
   const toggleSectionCollapse = (secId) => {
-    setCollapsedSections((prev) => ({
+    setExpandedSections((prev) => ({
       ...prev,
       [secId]: !prev[secId],
     }));
   };
 
   const expandAllSections = () => {
-    setCollapsedSections({});
+    const allExpanded = {};
+    filteredSections.forEach((s) => {
+      allExpanded[s.sectionId] = true;
+    });
+    setExpandedSections(allExpanded);
   };
 
   const collapseAllSections = () => {
-    const allCollapsed = {};
-    filteredSections.forEach((s) => {
-      allCollapsed[s.sectionId] = true;
-    });
-    setCollapsedSections(allCollapsed);
+    setExpandedSections({});
   };
+
+  const areAllExpanded = useMemo(() => {
+    if (filteredSections.length === 0) return false;
+    return filteredSections.every((s) => Boolean(expandedSections[s.sectionId]));
+  }, [filteredSections, expandedSections]);
+
+  const areAllCollapsed = useMemo(() => {
+    if (filteredSections.length === 0) return true;
+    return filteredSections.every((s) => !expandedSections[s.sectionId]);
+  }, [filteredSections, expandedSections]);
+
+  // Otomatis tutup semua saat ganti template kategori
+  useEffect(() => {
+    setExpandedSections({});
+  }, [selectedCatId]);
 
   // Generate Questionnaire Code Modal
   const openGenModal = (preferredCatId = "") => {
@@ -772,20 +795,20 @@ export default function AssessmentMasterData() {
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Standar Baku</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Domain</span>
             <span className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black text-xs">
-              <Award className="w-4 h-4" />
+              <FolderTree className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-base sm:text-lg font-black text-purple-900 mt-1 truncate">Winnie Dunn CSP2</p>
-          <p className="text-[11px] text-slate-500 font-medium">Beery VMI, ASHA, WeeFIM</p>
+          <p className="text-2xl sm:text-3xl font-black text-purple-700">{totalDomainsOverall}</p>
+          <p className="text-[11px] text-slate-500 font-medium">Domain observasi klinis ({activeCategory?.sections?.length || 0} di template aktif)</p>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Distribusi Kuadran</span>
             <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black text-xs">
-              <Sparkles className="w-4 h-4" />
+              <Layers className="w-4 h-4" />
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-1">
@@ -1061,22 +1084,35 @@ export default function AssessmentMasterData() {
                   </SelectContent>
                 </Select>
 
-                {/* Expand / Collapse All */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-10 rounded-xl text-xs font-bold text-slate-600 border-slate-200 hover:bg-slate-50 cursor-pointer"
-                  onClick={() => {
-                    if (Object.keys(collapsedSections).length > 0) {
-                      expandAllSections();
-                    } else {
-                      collapseAllSections();
-                    }
-                  }}
-                >
-                  <ChevronsUpDown className="w-3.5 h-3.5 mr-1" />
-                  {Object.keys(collapsedSections).length > 0 ? "Buka Semua" : "Tutup Semua"}
-                </Button>
+                {/* Pilihan Buka Semua / Tutup Semua (Default: Tutup Semua) */}
+                <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50/80 p-0.5 shadow-2xs h-10">
+                  <button
+                    type="button"
+                    onClick={expandAllSections}
+                    className={cn(
+                      "h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                      areAllExpanded
+                        ? "bg-white text-slate-900 shadow-xs border border-slate-200/80 font-black"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                    )}
+                    title="Buka seluruh domain dan butir pertanyaan"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" /> Buka Semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={collapseAllSections}
+                    className={cn(
+                      "h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                      areAllCollapsed
+                        ? "bg-slate-900 text-white shadow-xs font-black"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                    )}
+                    title="Tutup seluruh domain dan butir pertanyaan (Default)"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" /> Tutup Semua
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1127,7 +1163,8 @@ export default function AssessmentMasterData() {
           {/* 6. DOMAIN SECTIONS & QUESTIONS LIST (NO CRAMPED MAX-H-72 SCROLLBOX) */}
           <div className="space-y-6">
             {filteredSections.map((sec, sIdx) => {
-              const isCollapsed = Boolean(collapsedSections[sec.sectionId]);
+              const isExpanded = Boolean(expandedSections[sec.sectionId]);
+              const isCollapsed = !isExpanded;
               const visibleQuestions = sec.filteredQuestions || [];
 
               return (
@@ -1557,7 +1594,7 @@ export default function AssessmentMasterData() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-7 border-slate-200 shadow-xl">
           <DialogHeader className="space-y-1.5">
             <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-emerald-600" />
+              <ClipboardList className="w-5 h-5 text-emerald-600" />
               {qDialog.editingId ? "Edit Butir Pertanyaan Klinis" : "Tambah Butir Pertanyaan Baru"}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 font-medium">

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, Activity, Sparkles, HelpCircle, MessageCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, Activity, HelpCircle, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

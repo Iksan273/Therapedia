@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ExternalLink,
   ClipboardList,
-  Sparkles,
   School,
   CheckCircle2,
   Calendar,
@@ -481,7 +480,7 @@ export default function ParentAssessmentView() {
       {/* Filter domain dropdown for fast navigation when items are 100++ (Non-print) */}
       <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 print:hidden">
         <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
-          <Sparkles className="w-4 h-4 text-emerald-700" />
+          <Layers className="w-4 h-4 text-emerald-700" />
           <span>Navigasi Domain Sensorik ({totalQuestionsCount} Pertanyaan):</span>
         </div>
         <div className="flex items-center gap-2">
@@ -852,17 +851,6 @@ export default function ParentAssessmentView() {
             </Table>
           </div>
         )}
-
-        {/* CLINICAL SUMMARY / INTERPRETASI HASIL ASESOR */}
-        <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 space-y-2 text-xs">
-          <p className="font-black flex items-center gap-1.5 text-emerald-950 text-sm">
-            <Sparkles className="w-4 h-4 text-emerald-700" /> Ringkasan Kesimpulan & Interpretasi Klinis:
-          </p>
-          <p className="leading-relaxed text-slate-700">
-            {client.assessmentReportNote ||
-              `Berdasarkan data kuesioner ${isSchoolCompanion ? "School Companion Profile" : "Child Sensory Profile 2 (Winnie Dunn)"}, ananda menunjukkan kecenderungan skor tinggi pada kuadran Avoiding (AV: ${quadrantTotals.AV}) dan Sensory Sensitivity (SN: ${quadrantTotals.SN}), khususnya pada domain Pemrosesan Auditori dan Taktil. Disarankan untuk memasukkan program desensitisasi bertahap, akomodasi lingkungan belajar yang minim distraksi suara latar, serta integrasi stimulasi proprioseptif menenangkan.`}
-          </p>
-        </div>
 
         {/* TANDA TANGAN DOKUMEN CETAK (PRINT-READY) */}
         <div className="pt-8 grid grid-cols-2 gap-8 text-xs text-center border-t border-slate-200">
