@@ -180,7 +180,7 @@ export default function Home() {
             <span className="text-xs font-bold tracking-wide">
               Pediatric Developmental Center • Multisite Healthcare System
             </span>
-            <Sparkles className="w-3.5 h-3.5 text-sky-500 ml-0.5" />
+           
           </motion.div>
 
           {/* Centered Main Title: Welcome to Therapedia */}
