@@ -8,6 +8,8 @@ import { SchedulesProvider } from "@/context/SchedulesContext";
 import { CreditsProvider } from "@/context/CreditsContext";
 import { AssessmentsProvider } from "@/context/AssessmentsContext";
 import AppLayout from "@/components/layout/AppLayout";
+import Home from "@/pages/Home";
+import Login from "@/pages/Login";
 import RoleSelect from "@/pages/RoleSelect";
 import AssessmentFill from "@/pages/AssessmentFill";
 import DashboardInquiry from "@/pages/adminInquiry/DashboardInquiry";
@@ -30,13 +32,13 @@ import FinancePortal from "@/pages/finance/FinancePortal";
 
 const RequireRole = ({ role, children }) => {
   const { auth } = useAuth();
-  if (auth.role !== role) return <Navigate to="/" replace />;
+  if (auth.role !== role) return <Navigate to="/roles" replace />;
   return children;
 };
 
 const RequireAnyRole = ({ roles, children }) => {
   const { auth } = useAuth();
-  if (!roles.includes(auth.role)) return <Navigate to="/" replace />;
+  if (!roles.includes(auth.role)) return <Navigate to="/roles" replace />;
   return children;
 };
 
@@ -50,7 +52,9 @@ function App() {
               <AssessmentsProvider>
                 <BrowserRouter>
                   <Routes>
-                    <Route path="/" element={<RoleSelect />} />
+                    <Route path="/" element={<Home />} />
+                    <Route path="/roles" element={<RoleSelect />} />
+                    <Route path="/login" element={<Login />} />
                     <Route path="/assessment" element={<AssessmentFill />} />
 
                     {/* ROLE MASTER */}

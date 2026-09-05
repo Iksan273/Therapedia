@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   ClipboardList,
@@ -8,6 +9,7 @@ import {
   Stethoscope,
   UserCog,
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
   CalendarDays,
   FileCheck2,
@@ -15,7 +17,8 @@ import {
   Receipt,
   Crown,
   Building2,
-  ArrowRight
+  ArrowRight,
+  LogIn
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,50 +33,56 @@ const HERO_IMG =
   "https://images.unsplash.com/photo-1637665759389-41818b867562?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NjV8MHwxfHNlYXJjaHwxfHxwZWRpYXRyaWMlMjBvY2N1cGF0aW9uYWwlMjB0aGVyYXB5JTIwY2xpbmljJTIwd2FpdGluZyUyMHJvb20lMjBicmlnaHQlMjBuYXR1cmFsJTIwbGlnaHR8ZW58MHx8fGJsdWV8MTc4NzA1OTg4OXww&ixlib=rb-4.1.0&q=85";
 
 const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, testid }) => (
-  <Card
-    className={cn(
-      "clinical-card rounded-2xl cursor-pointer transition-all duration-200 group border",
-      active
-        ? "border-sky-500 bg-sky-50/40 shadow-md ring-2 ring-sky-400/30"
-        : "border-slate-200/90 hover:border-sky-300 hover:shadow-md hover:bg-white active:scale-[0.99]"
-    )}
-    onClick={onClick}
-    data-testid={testid}
+  <motion.div
+    whileHover={{ scale: 1.01, y: -1 }}
+    whileTap={{ scale: 0.99 }}
+    transition={{ duration: 0.15 }}
   >
-    <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-4 min-w-0">
+    <Card
+      className={cn(
+        "clinical-card rounded-2xl cursor-pointer transition-all duration-200 group border",
+        active
+          ? "border-sky-500 bg-sky-50/40 shadow-md ring-2 ring-sky-400/30"
+          : "border-slate-200/90 hover:border-sky-300 hover:shadow-md hover:bg-white"
+      )}
+      onClick={onClick}
+      data-testid={testid}
+    >
+      <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div
+            className={cn(
+              "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-2xs",
+              active
+                ? "bg-sky-600 text-white shadow-sky-600/20"
+                : "bg-sky-50 text-sky-700 border border-sky-100 group-hover:bg-sky-600 group-hover:text-white"
+            )}
+          >
+            <Icon className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug">{title}</p>
+              {badge && (
+                <span className="text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">
+                  {badge}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed truncate sm:whitespace-normal">{description}</p>
+          </div>
+        </div>
         <div
           className={cn(
-            "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-2xs",
-            active
-              ? "bg-sky-600 text-white shadow-sky-600/20"
-              : "bg-sky-50 text-sky-700 border border-sky-100 group-hover:bg-sky-600 group-hover:text-white"
+            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+            active ? "bg-sky-100 text-sky-700" : "text-slate-400 group-hover:text-sky-600 group-hover:bg-sky-50"
           )}
         >
-          <Icon className="w-5 h-5 stroke-[2.2]" />
+          <ChevronRight className="w-4 h-4" />
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug">{title}</p>
-            {badge && (
-              <span className="text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">
-                {badge}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-1 leading-relaxed truncate sm:whitespace-normal">{description}</p>
-        </div>
-      </div>
-      <div
-        className={cn(
-          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-          active ? "bg-sky-100 text-sky-700" : "text-slate-400 group-hover:text-sky-600 group-hover:bg-sky-50"
-        )}
-      >
-        <ChevronRight className="w-4 h-4" />
-      </div>
-    </CardContent>
-  </Card>
+      </CardContent>
+    </Card>
+  </motion.div>
 );
 
 export default function RoleSelect() {
@@ -117,6 +126,26 @@ export default function RoleSelect() {
       {/* Left: role selection */}
       <div className="flex-1 flex flex-col justify-between px-6 sm:px-10 lg:px-14 py-8 sm:py-10 max-w-2xl mx-auto lg:mx-0 w-full">
         <div>
+          {/* Top navigation helper bar */}
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200/80">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-sky-700 transition-colors group"
+              data-testid="role-select-back-to-home"
+            >
+              <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              <span>Kembali ke Home Screen</span>
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50/90 border border-sky-200/80 px-3 py-1.5 rounded-xl hover:bg-sky-100/80 transition-colors shadow-2xs"
+              data-testid="role-select-login-button"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Halaman Login</span>
+            </Link>
+          </div>
+
           {/* Header branding */}
           <div className="flex items-center gap-3 mb-6">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-sky-500/20">
@@ -141,7 +170,12 @@ export default function RoleSelect() {
           </div>
 
           {/* 7 Role Cards */}
-          <div className="space-y-2.5">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-2.5"
+          >
             {/* 1. MASTER */}
             <RoleCard
               icon={Crown}
@@ -311,7 +345,7 @@ export default function RoleSelect() {
                 )}
               </form>
             )}
-          </div>
+          </motion.div>
         </div>
 
         {/* Bottom links */}
