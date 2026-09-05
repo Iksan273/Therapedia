@@ -302,16 +302,16 @@ export default function CalendarPage() {
       {/* Date controls and filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-9 w-9" onClick={goPrev} aria-label="Previous" data-testid="calendar-prev-week-button">
+          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-10 w-10 shadow-2xs" onClick={goPrev} aria-label="Previous" data-testid="calendar-prev-week-button">
             <ChevronLeft className="w-4 h-4 text-slate-600" />
           </Button>
-          <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-semibold text-slate-700 h-9" onClick={goToday} data-testid="calendar-today-button">
+          <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-bold text-slate-700 h-10 px-4 shadow-2xs" onClick={goToday} data-testid="calendar-today-button">
             Today
           </Button>
-          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-9 w-9" onClick={goNext} aria-label="Next" data-testid="calendar-next-week-button">
+          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-10 w-10 shadow-2xs" onClick={goNext} aria-label="Next" data-testid="calendar-next-week-button">
             <ChevronRight className="w-4 h-4 text-slate-600" />
           </Button>
-          <span className="text-sm font-bold text-slate-900 ml-2 tabular-nums" data-testid="calendar-week-label">
+          <span className="text-sm font-black text-slate-900 ml-2 tabular-nums tracking-tight" data-testid="calendar-week-label">
             {label}
           </span>
         </div>
@@ -352,9 +352,9 @@ export default function CalendarPage() {
             type="button"
             onClick={() => setShowDischarged(!showDischarged)}
             className={cn(
-              "px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer",
+              "px-3.5 h-10 text-xs font-bold rounded-xl border transition-all flex items-center gap-2 cursor-pointer shadow-2xs",
               showDischarged
-                ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+                ? "bg-slate-900 text-white border-slate-900"
                 : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
             )}
             title="Toggle visibility of discharged clients"
@@ -369,7 +369,7 @@ export default function CalendarPage() {
           </div>
 
           <Select value={therapistFilter} onValueChange={setTherapistFilter}>
-            <SelectTrigger className="w-44 sm:w-48 h-9 text-xs rounded-xl border-slate-200 bg-white font-medium" data-testid="calendar-therapist-filter">
+            <SelectTrigger className="w-44 sm:w-48 h-10 text-xs rounded-xl border-slate-200 bg-white font-semibold" data-testid="calendar-therapist-filter">
               <SelectValue placeholder="Filter therapist" />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-200">

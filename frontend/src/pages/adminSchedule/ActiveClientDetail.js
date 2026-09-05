@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import {
   ArrowLeft,
   CalendarPlus,
@@ -19,7 +20,9 @@ import {
   ExternalLink,
   MessageCircle,
   Activity,
-  History
+  History,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,11 +70,17 @@ export default function ActiveClientDetail() {
 
   // Schedules associated with this client
   const clientSchedules = useMemo(() => {
-    if (!client) return [];
-    return schedules
-      .filter((s) => s.clientId === client.id)
-      .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  }, [client, schedules]);
+    return schedules.filter((s) => s.clientId === id).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [schedules, id]);
+
+  // Session history pagination
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyPageSize = 8;
+  const totalHistoryPages = Math.ceil(clientSchedules.length / historyPageSize) || 1;
+  const paginatedSchedules = useMemo(() => {
+    const start = (historyPage - 1) * historyPageSize;
+    return clientSchedules.slice(start, start + historyPageSize);
+  }, [clientSchedules, historyPage, historyPageSize]);
 
   // Derive weekly recurring timetable pattern: "Jadwal setiap hari apa dan sama siapa therapist nya"
   const weeklyRoutines = useMemo(() => {
@@ -138,100 +147,103 @@ export default function ActiveClientDetail() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto" data-testid="active-client-detail-page">
+    <div className="space-y-6 max-w-6xl mx-auto" data-testid="active-client-detail-page">
       {/* Header Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <Button
             variant="outline"
             size="sm"
-            className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-100 h-9"
+            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 h-10 px-3.5 font-bold text-xs shadow-2xs"
             onClick={() => navigate("/admin-schedule/clients")}
           >
-            <ArrowLeft className="w-4 h-4 mr-1" /> Roster
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Roster
           </Button>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900">{client.clientName}</h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{client.clientName}</h1>
               <StatusBadge status={client.status} />
               {isFrozen && (
-                <span className="text-xs font-extrabold text-cyan-900 bg-cyan-100 border border-cyan-300 px-2 py-0.5 rounded-lg">
+                <span className="text-xs font-extrabold text-cyan-900 bg-cyan-100 border border-cyan-300 px-2.5 py-0.5 rounded-lg">
                   ❄️ Sesi Frozen (0 Kredit)
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-1">
               Kode Akses: <strong className="font-mono text-slate-800">{client.clientAccessCode}</strong> • Cabang: {br ? br.name : "Surabaya"}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {client.gdriveClientLink && (
             <a
               href={client.gdriveClientLink}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 shadow-2xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 shadow-2xs transition-colors h-10"
             >
               <ExternalLink className="w-3.5 h-3.5" /> GDrive Client
             </a>
           )}
 
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-9 gap-1.5 shadow-xs"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-10 px-4 gap-2 shadow-xs"
             onClick={() => setAddOpen(true)}
           >
-            <CalendarPlus className="w-3.5 h-3.5" /> Jadwalkan Sesi Baru
+            <CalendarPlus className="w-4 h-4" /> Jadwalkan Sesi Baru
           </Button>
         </div>
       </div>
 
       {/* Overview Demographics Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Child & Parent Demographics */}
-        <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs p-5 md:col-span-2 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-              <User className="w-4 h-4 text-sky-600" /> Informasi Demografis Client
+        <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs p-6 lg:col-span-2 space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+            <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+                <User className="w-4 h-4" />
+              </div>
+              Informasi Demografis Client
             </h3>
-            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">
+            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
               Bergabung: {fmtDate(client.dateOfJoin || client.createdAt)}
             </span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-            <div>
-              <span className="text-[10px] font-bold uppercase text-slate-400">Nama Anak</span>
-              <p className="font-bold text-slate-900 mt-0.5">{client.clientName}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Nama Anak</span>
+              <p className="font-bold text-slate-900 mt-1 text-sm">{client.clientName}</p>
             </div>
-            <div>
-              <span className="text-[10px] font-bold uppercase text-slate-400">Tanggal Lahir / Usia</span>
-              <p className="font-semibold text-slate-800 mt-0.5">
+            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir / Usia</span>
+              <p className="font-bold text-slate-800 mt-1 text-sm">
                 {fmtDate(client.dob)} ({calcAge(client.dob)} th)
               </p>
             </div>
-            <div>
-              <span className="text-[10px] font-bold uppercase text-slate-400">Orang Tua / Wali</span>
-              <p className="font-semibold text-slate-800 mt-0.5">{client.parentName}</p>
+            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Orang Tua / Wali</span>
+              <p className="font-bold text-slate-800 mt-1 text-sm">{client.parentName}</p>
             </div>
-            <div>
-              <span className="text-[10px] font-bold uppercase text-slate-400">Kontak WhatsApp</span>
-              <p className="font-semibold text-slate-800 mt-0.5">{client.parentContact}</p>
-              <p className="text-[10px] text-slate-500">{client.parentEmail}</p>
+            <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kontak WhatsApp</span>
+              <p className="font-bold text-slate-800 mt-1 text-sm">{client.parentContact}</p>
+              <p className="text-[11px] text-slate-500 truncate mt-0.5">{client.parentEmail}</p>
             </div>
           </div>
         </Card>
 
         {/* Credit Package Card (NO renewal here - managed by Finance) */}
-        <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs p-5 space-y-3 flex flex-col justify-between">
+        <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs p-6 space-y-4 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-teal-600" /> Saldo Kredit Sesi
               </h3>
               <span
                 className={cn(
-                  "px-2 py-0.5 rounded-lg text-xs font-bold",
+                  "px-2.5 py-1 rounded-lg text-xs font-bold",
                   isFrozen ? "bg-cyan-100 text-cyan-900" : remCredit <= 2 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
                 )}
               >
@@ -239,17 +251,17 @@ export default function ActiveClientDetail() {
               </span>
             </div>
 
-            <div className="space-y-2 pt-3 text-xs">
+            <div className="space-y-2.5 pt-3.5 text-xs">
               {pkgs.length === 0 ? (
-                <p className="text-xs text-rose-600 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                <p className="text-xs text-rose-600 font-bold bg-rose-50 p-3 rounded-xl border border-rose-200 leading-relaxed">
                   Client belum memiliki paket kredit (Kredit 0). Sesi kalender otomatis berstatus Frozen ❄️.
                 </p>
               ) : (
                 pkgs.map((p) => (
-                  <div key={p.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div key={p.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-900">{p.packageName}</p>
-                      <p className="text-[10px] text-slate-500">Status: {p.status}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Status: {p.status}</p>
                     </div>
                     <span className="font-mono font-extrabold text-sm text-slate-800">
                       {p.remainingCredit} / {p.totalCredit}
@@ -260,15 +272,15 @@ export default function ActiveClientDetail() {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100">
-            <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <div className="pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between text-xs text-slate-500">
               <span>Renewal Paket Kredit:</span>
               <span className="font-bold text-slate-700">Dikelola Role Finance</span>
             </div>
             <Button
               size="sm"
               variant="outline"
-              className="w-full mt-2 rounded-xl text-xs font-bold text-sky-700 border-sky-200 hover:bg-sky-50"
+              className="w-full mt-2.5 rounded-xl text-xs font-bold text-sky-700 border-sky-200 hover:bg-sky-50 h-10"
               onClick={() => navigate("/finance")}
             >
               Buka Finance Hub untuk Renewal
@@ -279,37 +291,37 @@ export default function ActiveClientDetail() {
 
       {/* JADWAL RUTIN MINGGUAN (HARI APA SAJA & SAMA SIAPA TERAPISNYA) */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
+          <CardTitle className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
             <CalendarDays className="w-4 h-4 text-sky-600" />
             Jadwal Rutin Mingguan Client (Hari & Terapis Pendamping)
           </CardTitle>
-          <CardDescription className="text-xs text-slate-500">
+          <CardDescription className="text-xs text-slate-500 mt-0.5">
             Rangkuman jadwal mingguan anak: hari apa saja, jam berapa, dan terapis yang menangani
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4">
+        <CardContent className="p-5 sm:p-6">
           {weeklyRoutines.length === 0 ? (
-            <div className="py-6 text-center text-xs text-slate-400">
+            <div className="py-8 text-center text-xs text-slate-400">
               Belum ada jadwal rutin mingguan aktif untuk client ini.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {weeklyRoutines.map((routine, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 rounded-xl bg-sky-50/50 border border-sky-200/80 space-y-1.5 text-xs shadow-2xs"
+                  className="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/90 space-y-2 text-xs shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-sm text-sky-900">{routine.day}</span>
-                    <span className="font-mono text-[11px] text-sky-700 font-bold bg-white px-2 py-0.5 rounded border border-sky-200">
+                    <span className="font-mono text-xs text-sky-800 font-bold bg-white px-2.5 py-0.5 rounded-lg border border-sky-200 shadow-2xs">
                       {routine.time}
                     </span>
                   </div>
-                  <div className="pt-1 border-t border-sky-200/60 flex items-center justify-between">
+                  <div className="pt-2 border-t border-sky-200/60 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-900">{routine.therapistName}</p>
-                      <p className="text-[10px] text-slate-500">{routine.specialty}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">{routine.specialty}</p>
                     </div>
                   </div>
                 </div>
@@ -336,36 +348,36 @@ export default function ActiveClientDetail() {
             </span>
           )}
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {clientSchedules.length === 0 ? (
             <EmptyState icon={Calendar} title="Belum ada sesi" subtitle="Belum ada sesi tercatat untuk client ini." />
           ) : (
-            <Table>
+            <Table className="min-w-[860px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                  <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Tanggal & Jam</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Terapis</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Paket Kredit</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Status</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Alasan Cancel / Catatan</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs text-right pr-6">Detail</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[180px] whitespace-nowrap">Tanggal & Jam</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Terapis</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Paket Kredit</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Status</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[220px]">Alasan Cancel / Catatan</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[100px] whitespace-nowrap">Detail</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clientSchedules.map((s) => {
+                {paginatedSchedules.map((s) => {
                   const th = getTherapist(s.therapistId);
                   const pkg = pkgs.find((p) => p.id === s.creditPackageId || p.packageId === s.creditPackageId);
                   return (
                     <TableRow key={s.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs">
-                      <TableCell className="pl-6 py-3 font-semibold text-slate-900">
+                      <TableCell className="pl-6 py-3 font-semibold text-slate-900 min-w-[180px] whitespace-nowrap">
                         {fmtDate(s.date)} • <span className="font-mono text-slate-500">{s.startTime}–{s.endTime}</span>
                       </TableCell>
-                      <TableCell className="font-medium text-slate-700">{th?.name || "—"}</TableCell>
-                      <TableCell className="font-medium text-slate-700">{pkg ? pkg.packageName : "Default"}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{th?.name || "—"}</TableCell>
+                      <TableCell className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{pkg ? pkg.packageName : "Default"}</TableCell>
+                      <TableCell className="min-w-[130px] whitespace-nowrap">
                         <StatusBadge status={s.status} />
                       </TableCell>
-                      <TableCell className="text-slate-500 max-w-xs truncate">
+                      <TableCell className="text-slate-500 min-w-[220px]">
                         {s.status === "cancelled" ? (
                           <span className="font-bold text-rose-700">
                             {s.cancelReason ? `[${s.cancelReason.toUpperCase()}] ${s.notes || ""}` : s.notes || "Dibatalkan"}
@@ -376,11 +388,11 @@ export default function ActiveClientDetail() {
                           s.notes || "—"
                         )}
                       </TableCell>
-                      <TableCell className="text-right pr-6">
+                      <TableCell className="text-right pr-6 min-w-[100px] whitespace-nowrap">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 rounded-lg text-xs font-bold text-sky-700 hover:bg-sky-50"
+                          className="h-8 rounded-lg text-xs font-bold text-sky-700 hover:bg-sky-50 whitespace-nowrap cursor-pointer"
                           onClick={() => {
                             setSelectedSession(s);
                             setSessionOpen(true);
@@ -396,6 +408,39 @@ export default function ActiveClientDetail() {
             </Table>
           )}
         </CardContent>
+
+        {/* Pagination controls for session history */}
+        {clientSchedules.length > 0 && (
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
+            <span className="font-medium">
+              Menampilkan {(historyPage - 1) * historyPageSize + 1} –{" "}
+              {Math.min(historyPage * historyPageSize, clientSchedules.length)} dari {clientSchedules.length} sesi
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                disabled={historyPage <= 1}
+                onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+              </Button>
+              <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
+                {historyPage} / {totalHistoryPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                disabled={historyPage >= totalHistoryPages}
+                onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages, p + 1))}
+              >
+                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Discharge Client Button (Footer) */}

@@ -392,8 +392,8 @@ export default function ClientDetailInquiry() {
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {srv.allowsSchoolCompanion ? "Mendukung tambahan School Companion Profile" : "Asesmen / Intervensi Mandiri"}
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                          {srv.description || (srv.allowsSchoolCompanion ? "Mendukung tambahan School Companion Profile" : "Layanan Klinis Intake")}
                         </p>
                       </div>
                     </div>

@@ -240,30 +240,30 @@ May the coming year bring boundless joy, vibrant health, and wonderful developme
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[calc(100dvh-3rem)] p-5 sm:p-6" data-testid="whatsapp-automation-modal">
-        <DialogHeader className="pb-1">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+      <DialogContent className="max-w-xl max-h-[calc(100dvh-2.5rem)] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl" data-testid="whatsapp-automation-modal">
+        <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0 shadow-xs">
               <MessageCircle className="w-5 h-5" />
             </div>
             <div>
               <DialogTitle className="text-base sm:text-lg font-extrabold text-slate-900">
                 WhatsApp Communication Hub
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
+              <DialogDescription className="text-xs text-slate-500 mt-0.5">
                 Pre-formatted clinical notification templates ready to dispatch directly to parent WhatsApp.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-3 py-1 text-xs">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
           {/* Target Client & Template Selector */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className="space-y-1">
-              <Label className="text-[11px] font-bold text-slate-700">Patient / Parent</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Patient / Parent</Label>
               <Select value={selectedClientId} onValueChange={(val) => { setSelectedClientId(val); setIsEditing(false); }}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-9 font-semibold">
+                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
                   <SelectValue placeholder="Select patient..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200 max-h-56">
@@ -276,10 +276,10 @@ May the coming year bring boundless joy, vibrant health, and wonderful developme
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-[11px] font-bold text-slate-700">Message Template</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Message Template</Label>
               <Select value={templateType} onValueChange={(val) => { setTemplateType(val); setIsEditing(false); }}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-9 font-semibold">
+                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -294,33 +294,36 @@ May the coming year bring boundless joy, vibrant health, and wonderful developme
           </div>
 
           {/* Quick Scenario Buttons */}
-          <div className="flex flex-wrap gap-1">
-            {TEMPLATE_TYPES.map((t) => {
-              const active = templateType === t.id;
-              const IconComp = t.icon;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => { setTemplateType(t.id); setIsEditing(false); }}
-                  className={cn(
-                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer",
-                    active
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                  )}
-                >
-                  <IconComp className="w-3 h-3" />
-                  {t.shortLabel}
-                </button>
-              );
-            })}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Quick Template Scenarios</Label>
+            <div className="flex flex-wrap gap-2">
+              {TEMPLATE_TYPES.map((t) => {
+                const active = templateType === t.id;
+                const IconComp = t.icon;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => { setTemplateType(t.id); setIsEditing(false); }}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+                      active
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                    )}
+                  >
+                    <IconComp className="w-3.5 h-3.5" />
+                    {t.shortLabel}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Preview Box */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label className="text-[11px] font-bold text-slate-700">
+              <Label className="text-xs font-bold text-slate-700">
                 {isEditing ? "Edit Message Text" : "Message Preview"}
               </Label>
               <button
@@ -329,7 +332,7 @@ May the coming year bring boundless joy, vibrant health, and wonderful developme
                   if (!isEditing) setCustomMessage(generatedMessage);
                   setIsEditing(!isEditing);
                 }}
-                className="text-[11px] text-sky-700 font-bold hover:underline cursor-pointer"
+                className="text-xs text-sky-700 font-bold hover:underline cursor-pointer"
               >
                 {isEditing ? "Reset to Template" : "✏️ Customise Message"}
               </button>
@@ -338,12 +341,12 @@ May the coming year bring boundless joy, vibrant health, and wonderful developme
             {isEditing ? (
               <Textarea
                 rows={6}
-                className="rounded-xl border-slate-300 bg-white text-xs leading-relaxed font-sans"
+                className="rounded-xl border-slate-300 bg-white text-xs leading-relaxed font-sans p-3"
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
               />
             ) : (
-              <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/90 text-xs text-slate-800 font-sans whitespace-pre-line leading-relaxed max-h-40 sm:max-h-48 overflow-y-auto shadow-2xs">
+              <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/90 text-xs text-slate-800 font-sans whitespace-pre-line leading-relaxed max-h-44 sm:max-h-52 overflow-y-auto shadow-2xs">
                 {generatedMessage}
               </div>
             )}
@@ -351,9 +354,9 @@ May the coming year bring boundless joy, vibrant health, and wonderful developme
 
           {/* Patient Target Info Badge */}
           {client && (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <div className="flex items-center gap-1.5 truncate">
-                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <div className="flex items-center gap-2 truncate">
+                <User className="w-4 h-4 text-slate-400 shrink-0" />
                 <span className="truncate">Recipient: <strong className="text-slate-900">{client.parentName}</strong> ({client.clientName})</span>
               </div>
               <span className="font-mono font-bold text-emerald-700 shrink-0 ml-2">
@@ -363,16 +366,16 @@ May the coming year bring boundless joy, vibrant health, and wonderful developme
           )}
         </div>
 
-        <DialogFooter className="mt-3 gap-2">
-          <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-bold gap-1.5 h-9" onClick={handleCopy}>
-            <Copy className="w-3.5 h-3.5" /> Copy Message
+        <DialogFooter className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 shrink-0 flex items-center justify-end gap-2.5">
+          <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-bold gap-2 h-10 px-4" onClick={handleCopy}>
+            <Copy className="w-4 h-4 text-slate-500" /> Copy Message
           </Button>
           <Button
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs gap-1.5 shadow-xs h-9"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs gap-2 shadow-xs h-10 px-5"
             onClick={handleSendWA}
             data-testid="confirm-send-whatsapp-button"
           >
-            <Send className="w-3.5 h-3.5" /> Launch WhatsApp
+            <Send className="w-4 h-4" /> Launch WhatsApp
           </Button>
         </DialogFooter>
       </DialogContent>

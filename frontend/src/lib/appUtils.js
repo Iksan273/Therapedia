@@ -53,11 +53,8 @@ export const STATUS_META = {
   frozen: { label: "Frozen (0 Kredit)", cls: "bg-cyan-50 text-cyan-900 border border-cyan-400 font-bold ring-1 ring-cyan-400/40" },
   b_ota: { label: "B-OTA", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
   f_ota: { label: "F-OTA", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
-  speech_assessment: { label: "Asesmen Wicara", cls: "bg-blue-50 text-blue-700 border border-blue-200/70" },
-  psychology_assessment: { label: "Asesmen Psikologi", cls: "bg-pink-50 text-pink-700 border border-pink-200/70" },
-  physio_assessment: { label: "Asesmen Fisioterapi", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
-  consult_w_report: { label: "Consult W/ Report", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
-  consult_wo_report: { label: "Consult W/O Report", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
+  consult_wo_report: { label: "Consultion without Report", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
+  consult_w_report: { label: "Consultion with written report", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
   therapy: { label: "Terapi Reguler", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
   therapy_vip: { label: "Terapi VIP", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
   therapy_speech: { label: "Terapi Wicara", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
@@ -73,20 +70,21 @@ export const CONCERN_TAGS = [
   { value: "school", label: "School Readiness", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
 ];
 
-export const CLINICAL_SERVICES = [
-  { value: "b_ota", label: "B-OTA (Brief Occupational Therapy Assessment)", shortLabel: "B-OTA", allowsSchoolCompanion: true, category: "Asesmen" },
-  { value: "f_ota", label: "F-OTA (Full Occupational Therapy Assessment)", shortLabel: "F-OTA", allowsSchoolCompanion: true, category: "Asesmen" },
-  { value: "speech_assessment", label: "Asesmen Terapi Wicara & Bahasa (Speech & Language)", shortLabel: "Asesmen Wicara", allowsSchoolCompanion: false, category: "Asesmen" },
-  { value: "psychology_assessment", label: "Asesmen Psikologi Klinis & Perilaku Anak", shortLabel: "Asesmen Psikologi", allowsSchoolCompanion: true, category: "Asesmen" },
-  { value: "physio_assessment", label: "Asesmen Fisioterapi Pediatrik & Motorik", shortLabel: "Asesmen Fisioterapi", allowsSchoolCompanion: false, category: "Asesmen" },
-  { value: "consult_w_report", label: "Consultation with Written Report", shortLabel: "Consult W/ Report", allowsSchoolCompanion: false, category: "Konsultasi" },
-  { value: "consult_wo_report", label: "Consultation without Written Report", shortLabel: "Consult W/O Report", allowsSchoolCompanion: false, category: "Konsultasi" },
-  { value: "therapy", label: "Occupational & Sensory Therapy Session", shortLabel: "Terapi OT & Sensori", allowsSchoolCompanion: false, category: "Terapi" },
-  { value: "therapy_speech", label: "Speech & Language Therapy Session", shortLabel: "Terapi Wicara", allowsSchoolCompanion: false, category: "Terapi" },
-  { value: "therapy_physio", label: "Pediatric Physiotherapy Session", shortLabel: "Fisioterapi Anak", allowsSchoolCompanion: false, category: "Terapi" },
+export const INTAKE_SERVICES = [
+  { value: "b_ota", label: "B-OTA", shortLabel: "B-OTA", fullLabel: "B-OTA (Brief Occupational Therapy Assessment)", allowsSchoolCompanion: true, category: "Asesmen", description: "Brief Occupational Therapy Assessment & Sensory Screening" },
+  { value: "f_ota", label: "F-OTA", shortLabel: "F-OTA", fullLabel: "F-OTA (Full Occupational Therapy Assessment)", allowsSchoolCompanion: true, category: "Asesmen", description: "Full Occupational Therapy Comprehensive Assessment" },
+  { value: "consult_wo_report", label: "Consultion without Report", shortLabel: "Consultion without Report", fullLabel: "Consultion without Report", allowsSchoolCompanion: false, category: "Konsultasi", description: "Konsultasi tatap muka evaluasi klinis tanpa laporan tertulis" },
+  { value: "consult_w_report", label: "Consultion with written report", shortLabel: "Consultion with written report", fullLabel: "Consultion with written report", allowsSchoolCompanion: false, category: "Konsultasi", description: "Konsultasi klinis mendalam dengan laporan tertulis resmi" },
 ];
 
-export const SESSION_TYPES = CLINICAL_SERVICES;
+export const CLINICAL_SERVICES = INTAKE_SERVICES;
+
+export const SESSION_TYPES = [
+  ...INTAKE_SERVICES,
+  { value: "therapy", label: "Terapi Reguler (OT & Sensori)", shortLabel: "Terapi OT", category: "Terapi" },
+  { value: "therapy_speech", label: "Terapi Wicara (Speech Therapy)", shortLabel: "Terapi Wicara", category: "Terapi" },
+  { value: "therapy_physio", label: "Fisioterapi Pediatrik", shortLabel: "Fisioterapi", category: "Terapi" },
+];
 
 export const CANCEL_REASONS = [
   { value: "sakit", label: "Sakit / Kondisi Medis" },

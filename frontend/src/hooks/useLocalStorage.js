@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from "react";
 
-export const STORAGE_PREFIX = "therapedia_v2_";
+export const STORAGE_PREFIX = "therapedia_v4_";
 
 // Reducer-backed state persisted to localStorage.
 // Loads from localStorage on mount; falls back to seedFactory() when empty/corrupted.

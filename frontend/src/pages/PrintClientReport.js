@@ -69,14 +69,14 @@ export default function PrintClientReport() {
 
   return (
     <div className="min-h-screen bg-slate-100/70 print:bg-white py-8 print:py-0 px-4 print:px-0" data-testid="print-client-report-page">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Action bar — hidden when printing */}
-        <div className="flex items-center justify-between mb-5 print:hidden">
-          <Button variant="outline" className="gap-2 rounded-xl border-slate-200 text-xs font-semibold" onClick={() => navigate(-1)} data-testid="print-report-back-button">
+        <div className="flex items-center justify-between mb-6 print:hidden">
+          <Button variant="outline" className="gap-2 rounded-xl border-slate-200 text-xs font-bold h-10 px-4 shadow-2xs" onClick={() => navigate(-1)} data-testid="print-report-back-button">
             <ArrowLeft className="w-4 h-4" /> Back to profile
           </Button>
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white gap-2 font-bold rounded-xl text-xs h-10 shadow-xs"
+            className="bg-sky-600 hover:bg-sky-700 text-white gap-2 font-bold rounded-xl text-xs h-10 px-5 shadow-xs"
             onClick={() => window.print()}
             data-testid="print-report-print-button"
           >
@@ -85,7 +85,7 @@ export default function PrintClientReport() {
         </div>
 
         {/* Printable medical document */}
-        <div className="bg-white rounded-2xl print:rounded-none border border-slate-200/90 print:border-0 shadow-sm print:shadow-none p-8 print:p-2 space-y-6">
+        <div className="bg-white rounded-2xl print:rounded-none border border-slate-200/90 print:border-0 shadow-sm print:shadow-none p-8 sm:p-10 print:p-2 space-y-6">
           {/* Letterhead */}
           <div className="flex items-start justify-between border-b-2 border-sky-600 pb-5">
             <div className="flex items-center gap-3.5">
@@ -105,7 +105,7 @@ export default function PrintClientReport() {
 
           {/* Client information */}
           <Section title="Client & Caregiver Demographics">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3.5 bg-slate-50/70 p-4 rounded-xl border border-slate-200/70">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/70">
               <InfoItem label="Client Full Name" value={client.clientName} />
               <InfoItem label="Date of Birth" value={`${fmtDate(client.dob)} (${calcAge(client.dob) != null ? `${calcAge(client.dob)} yrs` : "\u2014"})`} />
               <InfoItem label="Enrollment Status" value={<StatusBadge status={client.status} />} />
@@ -145,26 +145,35 @@ export default function PrintClientReport() {
                     <p className="text-xs text-slate-700 leading-relaxed font-medium" data-testid="print-report-note">{client.assessmentReportNote}</p>
                   </div>
                 )}
-                {client.assessmentAnswers && client.assessmentAnswers.length > 0 && category && (
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-bold text-slate-600">Questionnaire Responses</p>
-                    <table className="w-full text-xs border border-slate-200 rounded-xl overflow-hidden">
-                      <tbody>
-                        {client.assessmentAnswers.map((a, i) => {
-                          const q = category.questions.find((qq) => qq.id === a.questionId);
-                          return (
-                            <tr key={a.questionId} className={i % 2 === 0 ? "bg-slate-50/60 print:bg-white" : ""}>
-                              <td className="px-3.5 py-2 border-b border-slate-200 text-slate-600 w-3/5 align-top text-xs font-medium">
-                                {q ? q.question : a.questionId}
-                              </td>
-                              <td className="px-3.5 py-2 border-b border-slate-200 font-bold text-slate-900 align-top text-xs">{a.answer}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                {client.assessmentAnswers && client.assessmentAnswers.length > 0 && category && (() => {
+                  const allQuestions = category.questions || (category.sections ? category.sections.flatMap((s) => s.questions || []) : []);
+                  const rawAnswers = Array.isArray(client.assessmentAnswers[0]?.answers)
+                    ? client.assessmentAnswers[0].answers
+                    : client.assessmentAnswers;
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-bold text-slate-600">Questionnaire Responses ({rawAnswers.length} Items)</p>
+                      <table className="w-full text-xs border border-slate-200 rounded-xl overflow-hidden">
+                        <tbody>
+                          {rawAnswers.map((a, i) => {
+                            const q = allQuestions.find((qq) => qq.id === a.questionId || qq.itemNo === a.itemNo);
+                            return (
+                              <tr key={a.questionId || i} className={i % 2 === 0 ? "bg-slate-50/60 print:bg-white" : ""}>
+                                <td className="px-3.5 py-2 border-b border-slate-200 text-slate-600 w-3/5 align-top text-xs font-medium">
+                                  <span className="font-bold text-slate-800 mr-2">{a.itemNo || i + 1}.</span>
+                                  {q ? q.question : a.question || a.questionId}
+                                </td>
+                                <td className="px-3.5 py-2 border-b border-slate-200 font-bold text-slate-900 align-top text-xs">
+                                  {a.answer || (a.score !== undefined ? `${a.score} Poin` : "—")}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </Section>

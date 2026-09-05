@@ -503,7 +503,15 @@ export default function ParentAssessmentView() {
       {/* ========================================================================= */}
       {/* CLINICAL ASSESSMENT REPORT DOCUMENT (EXACT LAYOUT OF IMAGE 1 & IMAGE 2)   */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6 print:border-none print:shadow-none print:p-0 print:m-0 text-slate-900 font-sans">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-8 space-y-6 print:border-none print:shadow-none print:p-0 print:m-0 text-slate-900 font-sans">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .print-avoid-break { break-inside: avoid !important; page-break-inside: avoid !important; }
+            table { break-inside: auto; }
+            tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+          }
+        `}} />
         
         {/* DOCUMENT HEADER / CLINICAL TITLE (Matching Image 1) */}
         <div className="border-b-2 border-emerald-600 pb-5 space-y-4">
@@ -620,32 +628,47 @@ export default function ParentAssessmentView() {
           </div>
         </div>
 
-        {/* SUMMARY KUADRAN SENSORIK PILLS */}
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-1.5 font-bold text-slate-700">
-            <ClipboardList className="w-4 h-4 text-emerald-600" />
-            <span>Rekapitulasi Skor Mentah Kuadran:</span>
+        {/* SUMMARY KUADRAN SENSORIK CARDS (RESPONSIVE 4-CARD GRID) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+            <div className="flex items-center gap-1.5">
+              <ClipboardList className="w-4 h-4 text-emerald-600" />
+              <span>Rekapitulasi Skor Mentah Kuadran:</span>
+            </div>
+            <span className="text-[11px] text-slate-500 font-medium">Total: {totalQuestionsCount} Butir Instrumen</span>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded text-[10px] bg-blue-600 text-white font-black">AV</span>
-              <span className="font-semibold text-slate-600">Avoiding:</span>
-              <span className="font-black text-blue-900">{quadrantTotals.AV}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+            <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-blue-600 text-white font-black">AV</span>
+                <span className="text-xl font-black text-blue-900">{quadrantTotals.AV}</span>
+              </div>
+              <p className="text-xs font-bold text-blue-950 mt-1">Avoiding</p>
+              <p className="text-[10px] text-blue-700">Penghindar Sensori</p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded text-[10px] bg-lime-600 text-white font-black">SN</span>
-              <span className="font-semibold text-slate-600">Sensitivity:</span>
-              <span className="font-black text-lime-900">{quadrantTotals.SN}</span>
+            <div className="p-3 bg-lime-50/80 rounded-xl border border-lime-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-lime-600 text-white font-black">SN</span>
+                <span className="text-xl font-black text-lime-900">{quadrantTotals.SN}</span>
+              </div>
+              <p className="text-xs font-bold text-lime-950 mt-1">Sensitivity</p>
+              <p className="text-[10px] text-lime-700">Sensitivitas Sensorik</p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded text-[10px] bg-pink-600 text-white font-black">RG</span>
-              <span className="font-semibold text-slate-600">Registration:</span>
-              <span className="font-black text-pink-900">{quadrantTotals.RG}</span>
+            <div className="p-3 bg-pink-50/80 rounded-xl border border-pink-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-pink-600 text-white font-black">RG</span>
+                <span className="text-xl font-black text-pink-900">{quadrantTotals.RG}</span>
+              </div>
+              <p className="text-xs font-bold text-pink-950 mt-1">Registration</p>
+              <p className="text-[10px] text-pink-700">Pendaftaran Rendah</p>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500 text-white font-black">SK</span>
-              <span className="font-semibold text-slate-600">Seeking:</span>
-              <span className="font-black text-amber-900">{quadrantTotals.SK}</span>
+            <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500 text-white font-black">SK</span>
+                <span className="text-xl font-black text-amber-900">{quadrantTotals.SK}</span>
+              </div>
+              <p className="text-xs font-bold text-amber-950 mt-1">Seeking</p>
+              <p className="text-[10px] text-amber-700">Pencari Sensori</p>
             </div>
           </div>
         </div>
@@ -656,26 +679,26 @@ export default function ParentAssessmentView() {
         {viewMode === "clinical" && (
           <div className="space-y-6">
             {displayedSections.map((sec) => (
-              <div key={sec.id} className="border border-emerald-600 rounded-xl overflow-hidden shadow-2xs">
-                <div className="bg-emerald-700 text-white px-4 py-2 flex items-center justify-between">
-                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider">
+              <div key={sec.id} className="border border-emerald-600 rounded-xl overflow-hidden shadow-2xs print-avoid-break">
+                <div className="bg-emerald-700 text-white px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider min-w-0 flex-1 break-words leading-snug">
                     {sec.title}
                   </h3>
-                  <span className="text-[11px] font-bold bg-emerald-800/80 px-2 py-0.5 rounded">
-                    {sec.items.length} Item Pertanyaan
+                  <span className="text-[10px] sm:text-[11px] font-bold bg-emerald-800/80 px-2 py-0.5 rounded shrink-0">
+                    {sec.items.length} Item
                   </span>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse">
+                  <table className="w-full text-xs text-left border-collapse min-w-[540px] sm:min-w-0">
                     <thead>
                       <tr className="bg-emerald-100/70 border-b border-emerald-300 font-bold text-slate-800 text-[11px]">
-                        <th className="py-2 px-3 text-center w-16">Kuadran</th>
-                        <th className="py-2 px-3 text-center w-12 border-l border-emerald-200">Item</th>
-                        <th className="py-2 px-4 border-l border-emerald-200">
+                        <th className="py-2 px-2 sm:px-3 text-center w-14 sm:w-16">Kuadran</th>
+                        <th className="py-2 px-1 sm:px-3 text-center w-10 sm:w-12 border-l border-emerald-200">Item</th>
+                        <th className="py-2 px-2 sm:px-4 border-l border-emerald-200 min-w-[220px] sm:min-w-0">
                           <span>{sec.leadText || "Anakku ..."}</span>
                         </th>
-                        <th className="py-2 px-4 text-center w-28 border-l border-emerald-200 bg-emerald-200/50 text-emerald-950 font-black">
+                        <th className="py-2 px-2 sm:px-4 text-center w-24 sm:w-28 border-l border-emerald-200 bg-emerald-200/50 text-emerald-950 font-black">
                           Penilaian<br /><span className="text-[10px] font-normal">Skor (0 - 5)</span>
                         </th>
                       </tr>
@@ -684,19 +707,19 @@ export default function ParentAssessmentView() {
                       {sec.items.map((it) => {
                         const quad = QUADRANT_STYLES[it.quadrant] || { badge: "bg-slate-600 text-white font-bold" };
                         return (
-                          <tr key={it.itemNo} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="py-2 px-3 text-center">
-                              <span className={cn("inline-block px-2 py-0.5 rounded text-[10px]", quad.badge)}>
+                          <tr key={it.itemNo} className="hover:bg-slate-50/70 transition-colors print-avoid-break">
+                            <td className="py-2 px-2 sm:px-3 text-center">
+                              <span className={cn("inline-block px-1.5 sm:px-2 py-0.5 rounded text-[10px]", quad.badge)}>
                                 {it.quadrant}
                               </span>
                             </td>
-                            <td className="py-2 px-3 text-center font-bold text-slate-700 border-l border-slate-200">
+                            <td className="py-2 px-1 sm:px-3 text-center font-bold text-slate-700 border-l border-slate-200">
                               {it.itemNo}
                             </td>
-                            <td className="py-2 px-4 text-slate-800 leading-snug border-l border-slate-200 font-medium">
+                            <td className="py-2 px-2 sm:px-4 text-slate-800 leading-snug border-l border-slate-200 font-medium">
                               {it.question}
                             </td>
-                            <td className="py-2 px-4 text-center font-black text-blue-600 text-base border-l border-slate-200 bg-blue-50/20">
+                            <td className="py-2 px-2 sm:px-4 text-center font-black text-blue-600 text-sm sm:text-base border-l border-slate-200 bg-blue-50/20">
                               {it.score}
                             </td>
                           </tr>
@@ -705,10 +728,10 @@ export default function ParentAssessmentView() {
 
                       {/* SUB-TOTAL ROW PER DOMAIN (Matching Image 1: Skor Mentah AUDITORI: 21) */}
                       <tr className="bg-emerald-100/80 font-black border-t-2 border-emerald-600 text-emerald-950">
-                        <td colSpan={3} className="py-2.5 px-4 text-right uppercase tracking-wider text-xs">
+                        <td colSpan={3} className="py-2 px-3 sm:px-4 text-right uppercase tracking-wider text-xs">
                           Skor Mentah {sec.domain}
                         </td>
-                        <td className="py-2.5 px-4 text-center text-base text-blue-800 font-black border-l border-emerald-300 bg-blue-100/50">
+                        <td className="py-2 px-2 sm:px-4 text-center text-sm sm:text-base text-blue-800 font-black border-l border-emerald-300 bg-blue-100/50">
                           {sec.rawScoreSum}
                         </td>
                       </tr>
@@ -731,23 +754,23 @@ export default function ParentAssessmentView() {
             </div>
 
             {displayedSections.map((sec) => (
-              <div key={sec.id} className="border border-emerald-600 rounded-xl overflow-hidden shadow-2xs">
-                <div className="bg-emerald-700 text-white px-4 py-2 font-black text-xs uppercase tracking-wider">
+              <div key={sec.id} className="border border-emerald-600 rounded-xl overflow-hidden shadow-2xs print-avoid-break">
+                <div className="bg-emerald-700 text-white px-3 sm:px-4 py-2.5 font-black text-xs uppercase tracking-wider break-words leading-snug">
                   {sec.title}
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse">
+                  <table className="w-full text-xs text-left border-collapse min-w-[520px] sm:min-w-0">
                     <thead>
                       <tr className="bg-emerald-600 text-white font-black text-xs">
-                        <th className="py-2 px-3 text-center w-14">Item</th>
-                        <th className="py-2 px-4 border-l border-emerald-500">{sec.title}</th>
-                        <th className="py-2 px-3 text-center w-12 border-l border-emerald-500">5</th>
-                        <th className="py-2 px-3 text-center w-12 border-l border-emerald-500">4</th>
-                        <th className="py-2 px-3 text-center w-12 border-l border-emerald-500">3</th>
-                        <th className="py-2 px-3 text-center w-12 border-l border-emerald-500">2</th>
-                        <th className="py-2 px-3 text-center w-12 border-l border-emerald-500">1</th>
-                        <th className="py-2 px-3 text-center w-12 border-l border-emerald-500 bg-emerald-800">0</th>
+                        <th className="py-2 px-2 sm:px-3 text-center w-12 sm:w-14">Item</th>
+                        <th className="py-2 px-2 sm:px-4 border-l border-emerald-500 min-w-[200px] sm:min-w-0">{sec.title}</th>
+                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">5</th>
+                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">4</th>
+                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">3</th>
+                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">2</th>
+                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">1</th>
+                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500 bg-emerald-800">0</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">

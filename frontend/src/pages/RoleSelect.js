@@ -41,11 +41,11 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
     onClick={onClick}
     data-testid={testid}
   >
-    <CardContent className="p-3.5 sm:p-4 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-3.5 min-w-0">
+    <CardContent className="p-4 sm:p-5 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-4 min-w-0">
         <div
           className={cn(
-            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-xs",
+            "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-2xs",
             active
               ? "bg-sky-600 text-white shadow-sky-600/20"
               : "bg-sky-50 text-sky-700 border border-sky-100 group-hover:bg-sky-600 group-hover:text-white"
@@ -55,19 +55,19 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-bold text-sm sm:text-[15px] text-slate-900 leading-snug">{title}</p>
+            <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug">{title}</p>
             {badge && (
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">
                 {badge}
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed truncate sm:whitespace-normal">{description}</p>
+          <p className="text-xs text-slate-500 mt-1 leading-relaxed truncate sm:whitespace-normal">{description}</p>
         </div>
       </div>
       <div
         className={cn(
-          "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
           active ? "bg-sky-100 text-sky-700" : "text-slate-400 group-hover:text-sky-600 group-hover:bg-sky-50"
         )}
       >

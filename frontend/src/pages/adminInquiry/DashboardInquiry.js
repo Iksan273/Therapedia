@@ -312,12 +312,12 @@ export default function DashboardInquiry() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* 1. Branch Filter */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-600">Cabang Klinik</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Cabang Klinik</label>
               <Select value={branchFilter} onValueChange={setBranchFilter}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
                   <SelectValue placeholder="Pilih Cabang" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -332,10 +332,10 @@ export default function DashboardInquiry() {
             </div>
 
             {/* 2. Period Filter */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-600">Rentang Waktu</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Rentang Waktu</label>
               <Select value={periodPreset} onValueChange={setPeriodPreset}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
                   <SelectValue placeholder="Pilih Periode" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -350,33 +350,33 @@ export default function DashboardInquiry() {
             </div>
 
             {/* 3. Service Filter */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-600">Pilihan Layanan</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Layanan Klinis</label>
               <Select value={serviceFilter} onValueChange={setServiceFilter}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
-                  <SelectValue placeholder="Semua Layanan" />
+                <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                  <SelectValue placeholder="Pilih Layanan" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="all">Semua Layanan Klinis</SelectItem>
+                  <SelectItem value="all">Semua Layanan</SelectItem>
                   {CLINICAL_SERVICES.map((s) => (
                     <SelectItem key={s.value} value={s.value}>
-                      {s.shortLabel}
+                      {s.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* 4. Status / Stage Filter */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-600">Status / Tahapan</label>
+            {/* 4. Status Pipeline Filter */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Status Pipeline</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
-                  <SelectValue placeholder="Semua Tahap" />
+                <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                  <SelectValue placeholder="Pilih Status" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="all">Semua Tahapan Pipeline</SelectItem>
-                  <SelectItem value="inquiry">Inquiry Baru</SelectItem>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="inquiry_received">Inquiry Baru</SelectItem>
                   <SelectItem value="service_selected">Layanan Dipilih</SelectItem>
                   <SelectItem value="assessment_scheduled">Asesmen Terjadwal</SelectItem>
                   <SelectItem value="assessment_done">Asesmen Selesai</SelectItem>

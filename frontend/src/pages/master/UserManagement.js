@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   UserCog,
@@ -9,7 +9,9 @@ import {
   ShieldCheck,
   Trash2,
   CheckCircle2,
-  Search
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +60,15 @@ export default function UserManagement() {
     }
     return true;
   });
+
+  // Staff Table Pagination
+  const [staffPage, setStaffPage] = useState(1);
+  const staffPageSize = 8;
+  const totalStaffPages = Math.ceil(filteredStaff.length / staffPageSize) || 1;
+  const paginatedStaff = useMemo(() => {
+    const start = (staffPage - 1) * staffPageSize;
+    return filteredStaff.slice(start, start + staffPageSize);
+  }, [filteredStaff, staffPage, staffPageSize]);
 
   const handleAddSubmit = (e) => {
     e.preventDefault();
@@ -141,47 +152,47 @@ export default function UserManagement() {
 
       {/* Staff Table */}
       <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[850px] w-full">
             <TableHeader>
               <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Profil Staff</TableHead>
-                <TableHead className="font-bold text-slate-700 text-xs">Email Akun</TableHead>
-                <TableHead className="font-bold text-slate-700 text-xs">Penugasan Cabang</TableHead>
-                <TableHead className="font-bold text-slate-700 text-xs">Peran (Role)</TableHead>
-                <TableHead className="font-bold text-slate-700 text-xs text-right pr-6">Aksi</TableHead>
+                <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[200px] whitespace-nowrap">Profil Staff</TableHead>
+                <TableHead className="font-bold text-slate-700 text-xs min-w-[190px] whitespace-nowrap">Email Akun</TableHead>
+                <TableHead className="font-bold text-slate-700 text-xs min-w-[170px] whitespace-nowrap">Penugasan Cabang</TableHead>
+                <TableHead className="font-bold text-slate-700 text-xs min-w-[160px] whitespace-nowrap">Peran (Role)</TableHead>
+                <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[90px] whitespace-nowrap">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStaff.map((u) => {
+              {paginatedStaff.map((u) => {
                 const br = BRANCHES.find((b) => b.id === u.branchId);
                 const roleMeta = ROLE_OPTIONS.find((r) => r.value === u.role);
                 return (
                   <TableRow key={u.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                    <TableCell className="py-3.5 pl-6">
+                    <TableCell className="py-3.5 pl-6 min-w-[200px] whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-800 font-bold text-xs flex items-center justify-center shrink-0">
                           {u.name[0]}
                         </div>
-                        <p className="font-bold text-sm text-slate-900">{u.name}</p>
+                        <p className="font-bold text-sm text-slate-900 whitespace-nowrap">{u.name}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs font-mono text-slate-600">{u.email}</TableCell>
-                    <TableCell className="text-xs">
-                      <span className="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                    <TableCell className="text-xs font-mono text-slate-600 min-w-[190px] whitespace-nowrap">{u.email}</TableCell>
+                    <TableCell className="text-xs min-w-[170px] whitespace-nowrap">
+                      <span className="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
                         📍 {br ? br.name : "Surabaya"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs">
-                      <span className="font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-lg">
+                    <TableCell className="text-xs min-w-[160px] whitespace-nowrap">
+                      <span className="font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-lg inline-flex items-center whitespace-nowrap">
                         {roleMeta ? roleMeta.label : u.role}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right pr-6">
+                    <TableCell className="text-right pr-6 min-w-[90px] whitespace-nowrap">
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                         onClick={() => handleRemove(u.id, u.name)}
                         title="Hapus Staff"
                       >
@@ -194,6 +205,39 @@ export default function UserManagement() {
             </TableBody>
           </Table>
         </CardContent>
+
+        {/* Pagination for Staff Table */}
+        {filteredStaff.length > 0 && (
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
+            <span className="font-medium">
+              Menampilkan {(staffPage - 1) * staffPageSize + 1} –{" "}
+              {Math.min(staffPage * staffPageSize, filteredStaff.length)} dari {filteredStaff.length} staff
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                disabled={staffPage <= 1}
+                onClick={() => setStaffPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+              </Button>
+              <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
+                {staffPage} / {totalStaffPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                disabled={staffPage >= totalStaffPages}
+                onClick={() => setStaffPage((p) => Math.min(totalStaffPages, p + 1))}
+              >
+                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Add Staff Dialog */}

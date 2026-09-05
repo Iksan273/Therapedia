@@ -382,12 +382,12 @@ export const AddScheduleModal = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-2xl max-h-[calc(100dvh-2.5rem)] overflow-y-auto p-5 sm:p-6"
+        className="max-w-2xl max-h-[calc(100dvh-2.5rem)] flex flex-col p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl"
         data-testid="add-schedule-modal"
       >
-        <DialogHeader className="pb-1">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold shrink-0">
+        <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold shrink-0 shadow-xs">
               <CalendarPlus className="w-5 h-5" />
             </div>
             <div>
@@ -396,14 +396,14 @@ export const AddScheduleModal = ({
                   ? `Book Clinical ${defaultType.toUpperCase()} Appointment`
                   : "Clinical Schedule & Weekly Timetable Planner"}
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
+              <DialogDescription className="text-xs text-slate-500 mt-0.5">
                 Configure flexible single dates or multi-day weekly patterns with custom times per day.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 pt-1 text-xs">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs">
           {/* Patient Selection */}
           <div className="space-y-1">
             <Label className="text-xs font-bold text-slate-700">Child / Client</Label>
@@ -620,7 +620,7 @@ export const AddScheduleModal = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-slate-200">
                   {WEEKDAY_OPTIONS.map((day) => {
                     const isSel = selectedDays.includes(day.id);
                     return (
@@ -629,7 +629,7 @@ export const AddScheduleModal = ({
                         type="button"
                         onClick={() => toggleSelectDay(day.id)}
                         className={cn(
-                          "px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                          "min-w-[36px] h-9 px-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center",
                           isSel
                             ? "bg-sky-600 text-white shadow-2xs"
                             : "text-slate-600 hover:bg-slate-100"
@@ -677,14 +677,14 @@ export const AddScheduleModal = ({
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                        <div className="space-y-0.5">
-                          <Label className="text-[10px] font-bold text-slate-500">Start Time</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Start Time</Label>
                           <Select
                             value={cfg.startTime}
                             onValueChange={(val) => updateDayConfig(dayId, "startTime", val)}
                           >
-                            <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200">
+                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -695,13 +695,13 @@ export const AddScheduleModal = ({
                           </Select>
                         </div>
 
-                        <div className="space-y-0.5">
-                          <Label className="text-[10px] font-bold text-slate-500">End Time</Label>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">End Time</Label>
                           <Select
                             value={cfg.endTime}
                             onValueChange={(val) => updateDayConfig(dayId, "endTime", val)}
                           >
-                            <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200">
+                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -712,13 +712,13 @@ export const AddScheduleModal = ({
                           </Select>
                         </div>
 
-                        <div className="space-y-0.5">
-                          <Label className="text-[10px] font-bold text-slate-500">Therapist</Label>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Therapist</Label>
                           <Select
                             value={cfg.therapistId}
                             onValueChange={(val) => updateDayConfig(dayId, "therapistId", val)}
                           >
-                            <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 truncate">
+                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold truncate">
                               <SelectValue placeholder="Therapist" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -731,13 +731,13 @@ export const AddScheduleModal = ({
                           </Select>
                         </div>
 
-                        <div className="space-y-0.5">
-                          <Label className="text-[10px] font-bold text-slate-500">Service</Label>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Service</Label>
                           <Select
                             value={cfg.type}
                             onValueChange={(val) => updateDayConfig(dayId, "type", val)}
                           >
-                            <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 truncate">
+                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold truncate">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -750,13 +750,13 @@ export const AddScheduleModal = ({
                           </Select>
                         </div>
 
-                        <div className="space-y-0.5 col-span-2 sm:col-span-1">
-                          <Label className="text-[10px] font-bold text-slate-500">Paket Kredit</Label>
+                        <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Paket Kredit</Label>
                           <Select
                             value={cfg.creditPackageId || (clientPackages[0]?.id || "none")}
                             onValueChange={(val) => updateDayConfig(dayId, "creditPackageId", val === "none" ? null : val)}
                           >
-                            <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 truncate">
+                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold truncate">
                               <SelectValue placeholder="Pilih Paket" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -1005,17 +1005,17 @@ export const AddScheduleModal = ({
           )}
         </div>
 
-        <DialogFooter className="mt-4 gap-2">
+        <DialogFooter className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 shrink-0 flex items-center justify-end gap-2.5">
           <Button
             variant="outline"
-            className="rounded-xl border-slate-200 text-xs font-bold h-9"
+            className="rounded-xl border-slate-200 text-xs font-bold h-10 px-4"
             onClick={() => onOpenChange(false)}
             data-testid="add-schedule-cancel-button"
           >
             Cancel
           </Button>
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-9 shadow-xs"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-10 px-5 shadow-xs"
             onClick={handleSubmit}
             data-testid="add-schedule-submit-button"
           >

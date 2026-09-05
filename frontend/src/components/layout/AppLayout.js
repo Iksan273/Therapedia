@@ -378,19 +378,19 @@ const AppLayout = () => {
           </div>
 
           {/* Desktop header title & branch switcher */}
-          <div className="hidden md:flex items-center gap-3 text-sm text-slate-500">
-            <span className="font-bold text-slate-900">Therapedia Developmental Center</span>
-            <span className="text-slate-300">/</span>
+          <div className="hidden md:flex items-center gap-3 text-sm text-slate-500 min-w-0">
+            <span className="font-bold text-slate-900 truncate">Therapedia Developmental Center</span>
+            <span className="text-slate-300 shrink-0">/</span>
 
             {/* Branch Switcher */}
             {canSwitchBranch ? (
-              <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2 py-1 shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2.5 py-1 shadow-2xs shrink-0">
                 <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                 <Select value={activeBranch} onValueChange={setActiveBranch}>
-                  <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 gap-1.5">
+                  <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 gap-1.5 cursor-pointer">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200">
+                  <SelectContent className="rounded-xl border-slate-200 shadow-lg">
                     <SelectItem value="all">🏢 All Branches (Semua Cabang)</SelectItem>
                     {BRANCHES.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
@@ -401,7 +401,7 @@ const AppLayout = () => {
                 </Select>
               </div>
             ) : (
-              <span className="text-slate-700 font-semibold bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200 text-xs flex items-center gap-1">
+              <span className="text-slate-700 font-semibold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-xs flex items-center gap-1.5 shrink-0">
                 <Building2 className="w-3.5 h-3.5 text-sky-600" />
                 {BRANCHES.find((b) => b.id === (auth.branchId || activeBranch))?.name || "Surabaya Timur"}
               </span>
@@ -409,12 +409,12 @@ const AppLayout = () => {
           </div>
 
           {/* Right actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {isStaff && (
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors shadow-2xs font-bold text-xs h-9"
+                className="gap-2 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors shadow-2xs font-bold text-xs h-9 px-3.5"
                 onClick={() => setWaModalOpen(true)}
                 title="WhatsApp Hub"
               >
@@ -426,7 +426,7 @@ const AppLayout = () => {
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 rounded-xl border-slate-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs font-semibold text-xs h-9"
+              className="gap-2 rounded-xl border-slate-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs font-semibold text-xs h-9 px-3.5"
               onClick={handleSwitchRole}
               data-testid="topbar-switch-role-button"
             >
@@ -437,7 +437,7 @@ const AppLayout = () => {
         </header>
 
         {/* Main Content View */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1440px] w-full mx-auto">
+        <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <Outlet />
         </main>
       </div>

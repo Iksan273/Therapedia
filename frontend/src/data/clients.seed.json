@@ -13,37 +13,615 @@
     "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1KenzoWirawanTherapediaSBYT",
     "assessmentCodes": [
-      { "code": "ASM-1001", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" },
-      { "code": "ASM-1002", "categoryId": "cat-002", "name": "School Companion Profile" }
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-2015",
+        "status": "completed"
+      }
     ],
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
-        "categoryName": "Sensory & Developmental Profile (B-OTA / F-OTA)",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "submittedAt": "2026-08-30T08:12:02.596Z",
         "answers": [
-          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises, bright lights, or sudden sensory inputs?", "answer": "4 - Frequent", "score": 4 },
-          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched unexpectedly or tactile textures?", "answer": "3 - Hesitant / Uncomfortable", "score": 3 },
-          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning, swinging, or jumping more than peers?", "answer": "5 - Dangerous / Constant craving", "score": 5 },
-          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils, crayons, or manipulate small items independently?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
-          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes in daily routines or activity transitions?", "answer": "4 - Frequent tantrums", "score": 4 },
-          { "questionId": "q-106", "domain": "Parental Observation", "question": "Describe any food textures, clothing tags, or specific calming strategies that help your child.", "answer": "Sangat sensitif terhadap label baju dan menolak makanan bertekstur bubur kental. Merasa tenang bila diayun pelan.", "score": null }
-        ]
-      },
-      {
-        "categoryId": "cat-002",
-        "categoryName": "School Companion Profile",
-        "answers": [
-          { "questionId": "q-scp-01", "domain": "Classroom Attention", "question": "Ability to sustain sitting and focus during 20-30 minutes teacher-led instruction:", "answer": "4 - Frequently leaves seat", "score": 4 },
-          { "questionId": "q-scp-02", "domain": "Instruction Following", "question": "Response to multi-step instructions given by teachers in a noisy classroom:", "answer": "3 - Needs repeated singular instruction", "score": 3 },
-          { "questionId": "q-scp-03", "domain": "Peer Socialization", "question": "Interaction with classmates during unstructured school times (recess, lunch, playground):", "answer": "2 - Joins parallel play comfortably", "score": 2 },
-          { "questionId": "q-scp-04", "domain": "Academic Material Handling", "question": "Management of school supplies, books, pencil case, scissors, and writing posture at desk:", "answer": "3 - Slumps over desk / Drops supplies frequently", "score": 3 },
-          { "questionId": "q-scp-05", "domain": "School Sensory Regulation", "question": "Tolerance to school sensory triggers (bell sounds, cafeteria noise, school uniform fabric):", "answer": "4 - Flees / Panics in loud school areas", "score": 4 },
-          { "questionId": "q-scp-06", "domain": "Educator / Shadow Note", "question": "Specific accommodations, shadow teacher notes, or classroom behavioral observations:", "answer": "Guru kelas melaporkan Kenzo memerlukan headphone peredam suara saat jam istirahat dan bel sekolah.", "score": null }
+          {
+            "questionId": "q-01",
+            "itemNo": 1,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menutup telinga untuk melindunginya dari suara-suara",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-04",
+            "itemNo": 4,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-05",
+            "itemNo": 5,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak memperdulikan saya atau mengabaikan saya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-07",
+            "itemNo": 7,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-08",
+            "itemNo": 8,
+            "quadrant": "RG",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "mendekatkan telinga ke sumber suara (mainan berbunyi, TV, speaker) untuk mendengarkan lebih intens",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-11",
+            "itemNo": 11,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar kontras",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-12",
+            "itemNo": 12,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang melihat detil-detil rumit pada obyek atau terpaku pada roda yang berputar",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "membutuhkan bantuan untuk menemukan benda yang sebenarnya terlihat jelas oleh orang lain",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-14",
+            "itemNo": 14,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-15",
+            "itemNo": 15,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "terpaku melihat orang-orang atau kendaraan yang bergerak aktif di dalam ruangan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "domain": "Pemrosesan VISUAL",
+            "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "menabrak atau tersandung barang yang berada langsung di jalur pandang jalannya",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang memandang pantulan cermin, kilauan lampu senter, atau animasi gadget secara berulang",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-19",
+            "itemNo": 19,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak potong kuku, keramas, cuci muka)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menjadi rewel ketika mengenakan sepatu, label baju kasar, atau kaos kaki berjahitan tebal",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-21",
+            "itemNo": 21,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir basah, atau karpet bertekstur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menyentuh orang atau meraba permukaan benda secara berlebihan hingga mengganggu orang lain",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-23",
+            "itemNo": 23,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-24",
+            "itemNo": 24,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menarik diri atau cemas saat disentuh secara tiba-tiba atau saat dipeluk orang lain",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-25",
+            "itemNo": 25,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "senang mengelus bahan selimut berbulu, permukaan kasar, atau mengusap permukaan dingin",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "bereaksi berlebihan atau menangis keras terhadap luka goresan kecil yang tidak berdarah",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-27",
+            "itemNo": 27,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak mengeluh sakit meskipun mengalami benturan atau memar yang cukup keras",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-29",
+            "itemNo": 29,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-31",
+            "itemNo": 31,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "senang melakukan putaran tubuh berulang-ulang tanpa memperlihatkan rasa pusing",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "takut mencoba alat bermain bergerak di playground seperti ayunan tinggi atau jungkat-jungkit",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-33",
+            "itemNo": 33,
+            "quadrant": "RG",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "tampak lamban dan pasif bergerak dibandingkan anak-anak sebayanya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-34",
+            "itemNo": 34,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mengambil risiko fisik berbahaya seperti melompat dari perabotan tinggi tanpa perhitungan",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-35",
+            "itemNo": 35,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencengkeram pegangan tangga atau memegang tangan pendamping dengan sangat erat saat menuruni tangga",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah panik dan kehilangan orientasi tubuh saat posisi kepala berubah cepat ke belakang",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-38",
+            "itemNo": 38,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menggertakkan gigi, meremas mainan terlalu kuat hingga pecah, atau menghentakkan langkah kaki",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-41",
+            "itemNo": 41,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "salah mengira tenaga yang dibutuhkan, menekan alat tulis terlalu pelan atau terlalu tembus kertas",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-42",
+            "itemNo": 42,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "gemar menyelip di ruang sempit (di balik sofa, bawah kasur, atau di antara tumpukan bantal)",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-43",
+            "itemNo": 43,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "kesulitan meniru gerakan atau pose fisik sederhana tanpa panduan sentuhan langsung",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "suka membantu mengangkat atau menyeret beban berat (seperti gallon air, tas berat, kardus)",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-45",
+            "itemNo": 45,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering tersandung kakinya sendiri atau tampak goyah saat berjalan di permukaan datar",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-46",
+            "itemNo": 46,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "pemilih makanan ekstrem (picky eater), menolak makanan dengan tekstur lembek, berserat, atau bercampur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-47",
+            "itemNo": 47,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "memasukkan benda bukan makanan ke mulut (menggigit kerah baju, pensil, jari tangan, atau mainan)",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-48",
+            "itemNo": 48,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mudah tersedak atau muntah (gagging) saat mencoba menu makanan dengan konsistensi baru",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mengunyah makanan di satu sisi mulut saja atau menumpuk makanan di pipi (pocketing) tanpa menelan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-50",
+            "itemNo": 50,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sangat menyukai makanan yang memiliki rasa tajam (sangat pedas, asam kuat, sangat gurih asin, atau es batu)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak sikat gigi atau mengeluh sakit terhadap sensasi busa dan rasa pasta gigi",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-52",
+            "itemNo": 52,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sering meneteskan air liur (drooling) di luar masa pertumbuhan gigi susu",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-53",
+            "itemNo": 53,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "suka membuat bunyi decak lidah, meniup bibir hingga berbusa, atau mengunyah es batu berulang kali",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak makan bila jenis makanan yang berbeda bersentuhan satu sama lain di piring",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-55",
+            "itemNo": 55,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa, takut, atau marah",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-57",
+            "itemNo": 57,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "enggan melakukan kontak mata selama percakapan berlangsung",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-58",
+            "itemNo": 58,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mudah kewalahan (sensory overload) dan rewel di tempat ramai seperti pusat perbelanjaan atau pesta",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "tampak melamun atau lamban menyadari bahwa orang di sekitarnya sedang berinteraksi dengannya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-60",
+            "itemNo": 60,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "bertindak impulsif dan kesulitan menunggu giliran saat bermain bersama",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-61",
+            "itemNo": 61,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "menolak mencoba aktivitas atau permainan baru yang belum pernah dilihat sebelumnya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "suasana hati mudah berubah drastis tanpa pemicu yang tampak jelas oleh keluarga",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-63",
+            "itemNo": 63,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mencari kontak fisik berlebih (memeluk orang asing secara erat tanpa batasan sosial)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-64",
+            "itemNo": 64,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memerlukan instruksi dipanggil berulang kali untuk menyadari bahwa dirinya diajak bicara",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-65",
+            "itemNo": 65,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memilih mengisolasi diri ke tempat sepi saat suara atau suasana rumah mulai ramai",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          }
         ]
       }
     ],
     "invoiceStatus": "paid",
-    "createdAt": "2026-01-02T08:30:00Z"
+    "createdAt": "2026-01-02T08:30:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-2015",
+    "assessmentReportNote": "Profil sensorik regulasi emosi dan pemrosesan oral-motor (65 butir). Ananda Kenzo menunjukkan respons defensif taktil dan oral sensory avoidance yang memicu perilaku picky eating. Telah disusun diet sensori rumahan dan program desensitisasi oral."
   },
   {
     "id": "c-010",
@@ -59,37 +637,615 @@
     "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1AylaKhansaTherapediaSBYT",
     "assessmentCodes": [
-      { "code": "ASM-2011", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" },
-      { "code": "ASM-2012", "categoryId": "cat-002", "name": "School Companion Profile" }
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-2011",
+        "status": "completed"
+      }
     ],
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
-        "categoryName": "Sensory & Developmental Profile (B-OTA / F-OTA)",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "submittedAt": "2026-08-30T08:12:02.594Z",
         "answers": [
-          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises, bright lights, or sudden sensory inputs?", "answer": "3 - Sometimes", "score": 3 },
-          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched unexpectedly or tactile textures?", "answer": "4 - Highly distressed", "score": 4 },
-          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning, swinging, or jumping more than peers?", "answer": "2 - Mild seeker", "score": 2 },
-          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils, crayons, or manipulate small items independently?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
-          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes in daily routines or activity transitions?", "answer": "3 - Shows anxiety / Resistance", "score": 3 },
-          { "questionId": "q-106", "domain": "Parental Observation", "question": "Describe any food textures, clothing tags, or specific calming strategies that help your child.", "answer": "Menolak menyentuh pasir dan lem, sangat menyukai pelukan erat saat cemas.", "score": null }
-        ]
-      },
-      {
-        "categoryId": "cat-002",
-        "categoryName": "School Companion Profile",
-        "answers": [
-          { "questionId": "q-scp-01", "domain": "Classroom Attention", "question": "Ability to sustain sitting and focus during 20-30 minutes teacher-led instruction:", "answer": "2 - Fidgets slightly but attends", "score": 2 },
-          { "questionId": "q-scp-02", "domain": "Instruction Following", "question": "Response to multi-step instructions given by teachers in a noisy classroom:", "answer": "2 - Follows 2-step with verbal cue", "score": 2 },
-          { "questionId": "q-scp-03", "domain": "Peer Socialization", "question": "Interaction with classmates during unstructured school times (recess, lunch, playground):", "answer": "3 - Plays beside but struggles to share", "score": 3 },
-          { "questionId": "q-scp-04", "domain": "Academic Material Handling", "question": "Management of school supplies, books, pencil case, scissors, and writing posture at desk:", "answer": "2 - Slightly messy but manages", "score": 2 },
-          { "questionId": "q-scp-05", "domain": "School Sensory Regulation", "question": "Tolerance to school sensory triggers (bell sounds, cafeteria noise, school uniform fabric):", "answer": "3 - Shows irritability / Clingy", "score": 3 },
-          { "questionId": "q-scp-06", "domain": "Educator / Shadow Note", "question": "Specific accommodations, shadow teacher notes, or classroom behavioral observations:", "answer": "Ayla membutuhkan dampingan saat sesi prakarya yang menggunakan cat air atau lem.", "score": null }
+          {
+            "questionId": "q-01",
+            "itemNo": 1,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menutup telinga untuk melindunginya dari suara-suara",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-04",
+            "itemNo": 4,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-05",
+            "itemNo": 5,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak memperdulikan saya atau mengabaikan saya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-07",
+            "itemNo": 7,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-08",
+            "itemNo": 8,
+            "quadrant": "RG",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "mendekatkan telinga ke sumber suara (mainan berbunyi, TV, speaker) untuk mendengarkan lebih intens",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-11",
+            "itemNo": 11,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar kontras",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-12",
+            "itemNo": 12,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang melihat detil-detil rumit pada obyek atau terpaku pada roda yang berputar",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "membutuhkan bantuan untuk menemukan benda yang sebenarnya terlihat jelas oleh orang lain",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-14",
+            "itemNo": 14,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-15",
+            "itemNo": 15,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "terpaku melihat orang-orang atau kendaraan yang bergerak aktif di dalam ruangan",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "domain": "Pemrosesan VISUAL",
+            "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "menabrak atau tersandung barang yang berada langsung di jalur pandang jalannya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang memandang pantulan cermin, kilauan lampu senter, atau animasi gadget secara berulang",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-19",
+            "itemNo": 19,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak potong kuku, keramas, cuci muka)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menjadi rewel ketika mengenakan sepatu, label baju kasar, atau kaos kaki berjahitan tebal",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-21",
+            "itemNo": 21,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir basah, atau karpet bertekstur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menyentuh orang atau meraba permukaan benda secara berlebihan hingga mengganggu orang lain",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-23",
+            "itemNo": 23,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-24",
+            "itemNo": 24,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menarik diri atau cemas saat disentuh secara tiba-tiba atau saat dipeluk orang lain",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-25",
+            "itemNo": 25,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "senang mengelus bahan selimut berbulu, permukaan kasar, atau mengusap permukaan dingin",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "bereaksi berlebihan atau menangis keras terhadap luka goresan kecil yang tidak berdarah",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-27",
+            "itemNo": 27,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak mengeluh sakit meskipun mengalami benturan atau memar yang cukup keras",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-29",
+            "itemNo": 29,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-31",
+            "itemNo": 31,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "senang melakukan putaran tubuh berulang-ulang tanpa memperlihatkan rasa pusing",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "takut mencoba alat bermain bergerak di playground seperti ayunan tinggi atau jungkat-jungkit",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-33",
+            "itemNo": 33,
+            "quadrant": "RG",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "tampak lamban dan pasif bergerak dibandingkan anak-anak sebayanya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-34",
+            "itemNo": 34,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mengambil risiko fisik berbahaya seperti melompat dari perabotan tinggi tanpa perhitungan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-35",
+            "itemNo": 35,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencengkeram pegangan tangga atau memegang tangan pendamping dengan sangat erat saat menuruni tangga",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah panik dan kehilangan orientasi tubuh saat posisi kepala berubah cepat ke belakang",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-38",
+            "itemNo": 38,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menggertakkan gigi, meremas mainan terlalu kuat hingga pecah, atau menghentakkan langkah kaki",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-41",
+            "itemNo": 41,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "salah mengira tenaga yang dibutuhkan, menekan alat tulis terlalu pelan atau terlalu tembus kertas",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-42",
+            "itemNo": 42,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "gemar menyelip di ruang sempit (di balik sofa, bawah kasur, atau di antara tumpukan bantal)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-43",
+            "itemNo": 43,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "kesulitan meniru gerakan atau pose fisik sederhana tanpa panduan sentuhan langsung",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "suka membantu mengangkat atau menyeret beban berat (seperti gallon air, tas berat, kardus)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-45",
+            "itemNo": 45,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering tersandung kakinya sendiri atau tampak goyah saat berjalan di permukaan datar",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-46",
+            "itemNo": 46,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "pemilih makanan ekstrem (picky eater), menolak makanan dengan tekstur lembek, berserat, atau bercampur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-47",
+            "itemNo": 47,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "memasukkan benda bukan makanan ke mulut (menggigit kerah baju, pensil, jari tangan, atau mainan)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-48",
+            "itemNo": 48,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mudah tersedak atau muntah (gagging) saat mencoba menu makanan dengan konsistensi baru",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mengunyah makanan di satu sisi mulut saja atau menumpuk makanan di pipi (pocketing) tanpa menelan",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-50",
+            "itemNo": 50,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sangat menyukai makanan yang memiliki rasa tajam (sangat pedas, asam kuat, sangat gurih asin, atau es batu)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak sikat gigi atau mengeluh sakit terhadap sensasi busa dan rasa pasta gigi",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-52",
+            "itemNo": 52,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sering meneteskan air liur (drooling) di luar masa pertumbuhan gigi susu",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-53",
+            "itemNo": 53,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "suka membuat bunyi decak lidah, meniup bibir hingga berbusa, atau mengunyah es batu berulang kali",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak makan bila jenis makanan yang berbeda bersentuhan satu sama lain di piring",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-55",
+            "itemNo": 55,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa, takut, atau marah",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-57",
+            "itemNo": 57,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "enggan melakukan kontak mata selama percakapan berlangsung",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-58",
+            "itemNo": 58,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mudah kewalahan (sensory overload) dan rewel di tempat ramai seperti pusat perbelanjaan atau pesta",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "tampak melamun atau lamban menyadari bahwa orang di sekitarnya sedang berinteraksi dengannya",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-60",
+            "itemNo": 60,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "bertindak impulsif dan kesulitan menunggu giliran saat bermain bersama",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-61",
+            "itemNo": 61,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "menolak mencoba aktivitas atau permainan baru yang belum pernah dilihat sebelumnya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "suasana hati mudah berubah drastis tanpa pemicu yang tampak jelas oleh keluarga",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-63",
+            "itemNo": 63,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mencari kontak fisik berlebih (memeluk orang asing secara erat tanpa batasan sosial)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-64",
+            "itemNo": 64,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memerlukan instruksi dipanggil berulang kali untuk menyadari bahwa dirinya diajak bicara",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-65",
+            "itemNo": 65,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memilih mengisolasi diri ke tempat sepi saat suara atau suasana rumah mulai ramai",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          }
         ]
       }
     ],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-01-10T10:15:00Z"
+    "createdAt": "2026-01-10T10:15:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-2011",
+    "assessmentReportNote": "Berdasarkan evaluasi Child Sensory Profile 2 (Winnie Dunn) dengan 65 butir observasi, ananda Ayla menunjukkan profil sensorik dominan pada kuadran Avoiding (AV) dan Sensory Seeking (SK). Pada domain Pemrosesan Auditori dan Taktil, ananda memiliki sensitivitas tinggi terhadap kebisingan tiba-tiba serta defensif taktil terhadap pakaian berlabel tebal. Di sisi lain, pada domain Proprioseptif dan Vestibular, ananda aktif mencari input berat (menabrakkan diri, melompat). Rekomendasi: Sesi terapi integrasi sensori 2x seminggu dengan protokol sikat Wilbarger, akomodasi ear-muff di lingkungan bising, serta diet sensori aktivitas proprioceptive heavy work sebelum jam belajar."
   },
   {
     "id": "c-011",
@@ -105,11 +1261,18 @@
     "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [
-      { "code": "ASM-1003", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" }
+      {
+        "code": "ASM-1003",
+        "categoryId": "cat-001",
+        "name": "Sensory & Developmental Profile"
+      }
     ],
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-01-15T14:20:00Z"
+    "createdAt": "2026-01-15T14:20:00Z",
+    "serviceTypes": [
+      "b_ota"
+    ]
   },
   {
     "id": "c-012",
@@ -125,24 +1288,67 @@
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ZahraFarzanaTherapediaSBYT",
     "assessmentCodes": [
-      { "code": "ASM-1004", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" }
+      {
+        "code": "ASM-1004",
+        "categoryId": "cat-001",
+        "name": "Sensory & Developmental Profile"
+      }
     ],
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
         "categoryName": "Sensory & Developmental Profile (B-OTA / F-OTA)",
         "answers": [
-          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises, bright lights, or sudden sensory inputs?", "answer": "4 - Frequent", "score": 4 },
-          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched unexpectedly or tactile textures?", "answer": "2 - Mild startle", "score": 2 },
-          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning, swinging, or jumping more than peers?", "answer": "4 - Intense seeker", "score": 4 },
-          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils, crayons, or manipulate small items independently?", "answer": "4 - Needs heavy assistance", "score": 4 },
-          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes in daily routines or activity transitions?", "answer": "3 - Shows anxiety / Resistance", "score": 3 },
-          { "questionId": "q-106", "domain": "Parental Observation", "question": "Describe any food textures, clothing tags, or specific calming strategies that help your child.", "answer": "Anak aktif bergerak tanpa jeda, mudah terstimulasi suara musik keras.", "score": null }
+          {
+            "questionId": "q-101",
+            "domain": "Sensory Modulation",
+            "question": "Does your child overreact to loud noises, bright lights, or sudden sensory inputs?",
+            "answer": "4 - Frequent",
+            "score": 4
+          },
+          {
+            "questionId": "q-102",
+            "domain": "Tactile Processing",
+            "question": "How does your child respond to being touched unexpectedly or tactile textures?",
+            "answer": "2 - Mild startle",
+            "score": 2
+          },
+          {
+            "questionId": "q-103",
+            "domain": "Vestibular & Proprioception",
+            "question": "Does your child seek out excessive spinning, swinging, or jumping more than peers?",
+            "answer": "4 - Intense seeker",
+            "score": 4
+          },
+          {
+            "questionId": "q-104",
+            "domain": "Fine Motor & Visual",
+            "question": "Can your child grasp utensils, crayons, or manipulate small items independently?",
+            "answer": "4 - Needs heavy assistance",
+            "score": 4
+          },
+          {
+            "questionId": "q-105",
+            "domain": "Emotional Regulation",
+            "question": "How does your child handle changes in daily routines or activity transitions?",
+            "answer": "3 - Shows anxiety / Resistance",
+            "score": 3
+          },
+          {
+            "questionId": "q-106",
+            "domain": "Parental Observation",
+            "question": "Describe any food textures, clothing tags, or specific calming strategies that help your child.",
+            "answer": "Anak aktif bergerak tanpa jeda, mudah terstimulasi suara musik keras.",
+            "score": null
+          }
         ]
       }
     ],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-01-18T09:00:00Z"
+    "createdAt": "2026-01-18T09:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-013",
@@ -154,13 +1360,16 @@
     "clientAccessCode": "TDC-1005",
     "branchId": "branch-sby-timur",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1KeanoArsakhaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "paid",
-    "createdAt": "2025-11-20T11:00:00Z"
+    "createdAt": "2025-11-20T11:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-014",
@@ -172,13 +1381,16 @@
     "clientAccessCode": "TDC-1006",
     "branchId": "branch-sby-timur",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ClaraSalsabilaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "paid",
-    "createdAt": "2025-10-15T08:00:00Z"
+    "createdAt": "2025-10-15T08:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-015",
@@ -193,10 +1405,607 @@
     "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1DavinPratamaTherapedia",
-    "assessmentCodes": [{ "code": "ASM-1007", "categoryId": "cat-001", "name": "Sensory Profile" }],
-    "assessmentAnswers": [],
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-003",
+        "categoryName": "Fine Motor & Visual Motor Integration Profile",
+        "code": "ASM-2014",
+        "status": "completed"
+      }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-003",
+        "categoryName": "Fine Motor & Visual Motor Integration Profile",
+        "submittedAt": "2026-08-30T08:12:02.595Z",
+        "answers": [
+          {
+            "questionId": "q-fm-01",
+            "itemNo": 1,
+            "quadrant": "SN",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "memegang pensil dengan pola dynamic tripod grip yang matang sesuai tahapan usianya",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-02",
+            "itemNo": 2,
+            "quadrant": "RG",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "mampu mempertahankan genggaman pensil tanpa membuat ibu jari membungkus jari telunjuk kaku",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "menggerakkan jari-jemari fleksibel saat menulis, bukan menggerakkan seluruh bahu lengan",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-04",
+            "itemNo": 4,
+            "quadrant": "SK",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "memutar pensil dari ujung runcing ke ujung penghapus dengan satu tangan (in-hand rotation)",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-05",
+            "itemNo": 5,
+            "quadrant": "SK",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "memindahkan manik-manik kecil dari telapak tangan ke ujung jari (palm-to-finger translation)",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "mengambil benda kecil (seperti kancing atau beras) menggunakan ujung ibu jari dan telunjuk (pincer grasp)",
+            "answer": "1 - Sangat kesulitan / Menolak aktivitas (10%)",
+            "score": 1
+          },
+          {
+            "questionId": "q-fm-07",
+            "itemNo": 7,
+            "quadrant": "RG",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "tangan dominan (kanan/kiri) sudah konsisten dan tidak berganti-ganti tangan saat menulis",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-08",
+            "itemNo": 8,
+            "quadrant": "SN",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "tangan pembantu menahan kertas dengan stabil di atas meja saat tangan aktif menulis",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-09",
+            "itemNo": 9,
+            "quadrant": "RG",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "mampu meremas spons atau meremas plastisin dengan tenaga jari yang merata",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "domain": "Pola Genggaman Pensil & Manipulasi Tangan",
+            "question": "melepaskan genggaman koin secara presisi ke dalam celengan bermulut sempit",
+            "answer": "4 - Mampu dengan dorongan verbal minimal (75%)",
+            "score": 4
+          },
+          {
+            "questionId": "q-fm-11",
+            "itemNo": 11,
+            "quadrant": "SN",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "membuka dan menutup tutup botol ulir dengan koordinasi kedua belah tangan",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-12",
+            "itemNo": 12,
+            "quadrant": "SN",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "meronce manik-manik ke dalam benang tanpa menjatuhkan manik-manik",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "menahan penggaris dengan satu tangan sambil menarik garis lurus dengan tangan lainnya",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-14",
+            "itemNo": 14,
+            "quadrant": "SK",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "merobek kertas menjadi potongan simetris menggunakan kedua ibu jari dan telunjuk",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-15",
+            "itemNo": 15,
+            "quadrant": "SN",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "melipat kertas menjadi dua bagian yang sejajar mengikuti garis lipatan",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-16",
+            "itemNo": 16,
+            "quadrant": "SK",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "menyusun kepingan puzzle 24-48 potong dengan mengarahkan orientasi sudut kepingan",
+            "answer": "1 - Sangat kesulitan / Menolak aktivitas (10%)",
+            "score": 1
+          },
+          {
+            "questionId": "q-fm-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "memegang rautan dengan satu tangan dan memutar pensil dengan tangan yang lain",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "merentangkan dan mengikat karet gelang pada silinder wadah mainan",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-19",
+            "itemNo": 19,
+            "quadrant": "AV",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "membuka bungkus plastik kemasan biskuit dengan menarik kedua sisi berlawanan arah",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-20",
+            "itemNo": 20,
+            "quadrant": "SN",
+            "domain": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+            "question": "menyusun menara balok kayu hingga 10 tingkat secara stabil tanpa roboh",
+            "answer": "4 - Mampu dengan dorongan verbal minimal (75%)",
+            "score": 4
+          },
+          {
+            "questionId": "q-fm-21",
+            "itemNo": 21,
+            "quadrant": "SN",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "memegang gunting anak dengan posisi ibu jari di lubang atas dan membuka-menutup lancar",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-22",
+            "itemNo": 22,
+            "quadrant": "RG",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "menggunting kertas mengikuti garis lurus sepanjang 15 cm tanpa melenceng",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-23",
+            "itemNo": 23,
+            "quadrant": "SN",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "menggunting garis lengkung dan lingkaran dengan memutar kertas secara berkesinambungan",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-24",
+            "itemNo": 24,
+            "quadrant": "SN",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "menggunting bentuk bersudut (segitiga, bujur sangkar) dengan rapi",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-25",
+            "itemNo": 25,
+            "quadrant": "RG",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "mengoleskan lem stik secukupnya pada kertas tanpa meremas atau mengotori meja",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "menempelkan potongan kertas tepat di dalam batas garis yang disediakan",
+            "answer": "1 - Sangat kesulitan / Menolak aktivitas (10%)",
+            "score": 1
+          },
+          {
+            "questionId": "q-fm-27",
+            "itemNo": 27,
+            "quadrant": "SK",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "merakit balok konstruksi sesuai kartu pola instruksi bertahap",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "memotong adonan plastisin menggunakan pisau tumpul mainan dengan gerakan mengiris rapi",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-29",
+            "itemNo": 29,
+            "quadrant": "RG",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "melubangi kertas menggunakan perforator satu lubang dengan tenaga jari mandiri",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "domain": "Keterampilan Menggunting & Merakit",
+            "question": "merekatkan selotip dengan menarik dan memotongnya pada dispenser perekat",
+            "answer": "4 - Mampu dengan dorongan verbal minimal (75%)",
+            "score": 4
+          },
+          {
+            "questionId": "q-fm-31",
+            "itemNo": 31,
+            "quadrant": "SN",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "meniru goresan garis vertikal, horizontal, dan lingkaran secara akurat sesuai model",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-32",
+            "itemNo": 32,
+            "quadrant": "SN",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "meniru bentuk tanda tambah (+), garis silang (/ dan ), serta bujur sangkar",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-33",
+            "itemNo": 33,
+            "quadrant": "SN",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "meniru bentuk segitiga dan tanda silang (X) secara proporsional",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-34",
+            "itemNo": 34,
+            "quadrant": "RG",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "menyalin huruf kapital alfabet (A-Z) dengan urutan goresan garis yang benar",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-35",
+            "itemNo": 35,
+            "quadrant": "RG",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "menyalin angka 1-20 tanpa mengalami rotasi arah atau terbalik (mirror writing)",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "menulis nama panggilan sendiri dengan ukuran huruf proporsional dan jelas terbaca",
+            "answer": "1 - Sangat kesulitan / Menolak aktivitas (10%)",
+            "score": 1
+          },
+          {
+            "questionId": "q-fm-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "mempertahankan tulisan di atas garis buku tanpa melayang naik atau turun",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-38",
+            "itemNo": 38,
+            "quadrant": "RG",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "menjaga spasi jarak yang konsisten antar kata yang ditulis",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-39",
+            "itemNo": 39,
+            "quadrant": "SN",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "mewarnai bidang gambar berukuran sedang tanpa keluar melewati garis batas",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "domain": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+            "question": "menyelesaikan permainan labirin garis sederhana tanpa menyentuh dinding rute",
+            "answer": "4 - Mampu dengan dorongan verbal minimal (75%)",
+            "score": 4
+          },
+          {
+            "questionId": "q-fm-41",
+            "itemNo": 41,
+            "quadrant": "AV",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "membuka dan memasang kancing kemeja berukuran sedang secara mandiri",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-42",
+            "itemNo": 42,
+            "quadrant": "SN",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "menyatukan pangkal ritsleting jaket dan menariknya ke atas (zipper engagement)",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-43",
+            "itemNo": 43,
+            "quadrant": "SN",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "membuka dan merekatkan perekat velcro pada sepatu atau sandal",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-44",
+            "itemNo": 44,
+            "quadrant": "RG",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "mengikat tali sepatu menjadi simpul pita yang terikat kuat",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-45",
+            "itemNo": 45,
+            "quadrant": "SN",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "memegang sendok dan garpu dengan orientasi genggaman jari yang benar saat makan",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-46",
+            "itemNo": 46,
+            "quadrant": "SN",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "menggunakan garpu untuk menusuk potongan buah tanpa menjatuhkannya",
+            "answer": "1 - Sangat kesulitan / Menolak aktivitas (10%)",
+            "score": 1
+          },
+          {
+            "questionId": "q-fm-47",
+            "itemNo": 47,
+            "quadrant": "RG",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "menuangkan air dari teko kecil ke dalam gelas tanpa tumpah",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-48",
+            "itemNo": 48,
+            "quadrant": "SK",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "mengoleskan selai pada permukaan roti menggunakan pisau tumpul",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-49",
+            "itemNo": 49,
+            "quadrant": "SK",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "membuka bungkus permen kecil atau membuka klip jepit kertas",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-50",
+            "itemNo": 50,
+            "quadrant": "RG",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "memeras air dari kain lap kecil basah dengan kekuatan perasan kedua tangan",
+            "answer": "4 - Mampu dengan dorongan verbal minimal (75%)",
+            "score": 4
+          },
+          {
+            "questionId": "q-fm-51",
+            "itemNo": 51,
+            "quadrant": "SN",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "memutar keran air putar dan menutupnya kembali hingga rapat",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-52",
+            "itemNo": 52,
+            "quadrant": "SN",
+            "domain": "Kemandirian Bina Diri / ADL Motorik Halus",
+            "question": "menusukkan sedotan minuman ke lubang kemasan kotak susu",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-53",
+            "itemNo": 53,
+            "quadrant": "RG",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "mampu menulis terus menerus selama 10 menit tanpa mengeluh jari pegal atau kram",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-54",
+            "itemNo": 54,
+            "quadrant": "RG",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "memiliki kekuatan remasan tangan (grip strength) yang sesuai dengan standar usianya",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-55",
+            "itemNo": 55,
+            "quadrant": "SN",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "lengkungan telapak tangan (palmar arches) terbentuk baik saat memegang bola tenis",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "mampu memisahkan gerakan sisi ibu jari dari sisi kelingking saat bekerja",
+            "answer": "1 - Sangat kesulitan / Menolak aktivitas (10%)",
+            "score": 1
+          },
+          {
+            "questionId": "q-fm-57",
+            "itemNo": 57,
+            "quadrant": "SK",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "mampu mengetukkan ujung setiap jari secara bergantian ke ibu jari (finger opposition)",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-58",
+            "itemNo": 58,
+            "quadrant": "SK",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "menekan tombol tuts alat musik atau keyboard dengan setiap jari secara individual",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-59",
+            "itemNo": 59,
+            "quadrant": "SN",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "mampu menggerakkan ibu jari membentuk putaran sirkumduksi tanpa hambatan",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-60",
+            "itemNo": 60,
+            "quadrant": "RG",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "mempertahankan pergelangan tangan sedikit terangkat (ekstensi) saat menulis",
+            "answer": "4 - Mampu dengan dorongan verbal minimal (75%)",
+            "score": 4
+          },
+          {
+            "questionId": "q-fm-61",
+            "itemNo": 61,
+            "quadrant": "SK",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "menekan tuas botol semprotan spray air menggunakan jari telunjuk mandiri",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "menjepitkan penjepit jemuran plastik dengan ibu jari dan jari telunjuk",
+            "answer": "3 - Mampu separuh dengan bantuan berkala (50%)",
+            "score": 3
+          },
+          {
+            "questionId": "q-fm-63",
+            "itemNo": 63,
+            "quadrant": "RG",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "tidak memperlihatkan tremor atau gemetar halus saat mengarahkan pensil ke titik kecil",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          },
+          {
+            "questionId": "q-fm-64",
+            "itemNo": 64,
+            "quadrant": "SK",
+            "domain": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+            "question": "mampu meremas playdough atau terapi putty resistensi sedang selama 5 menit",
+            "answer": "2 - Membutuhkan bantuan fisik bertahap (25%)",
+            "score": 2
+          }
+        ]
+      }
+    ],
     "invoiceStatus": "paid",
-    "createdAt": "2026-01-20T13:45:00Z"
+    "createdAt": "2026-01-20T13:45:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "assessmentCategoryId": "cat-003",
+    "assessmentAccessCode": "ASM-2014",
+    "assessmentReportNote": "Asesmen Motorik Halus & Visual Motor Integration (64 Butir). Davin memperlihatkan keterlambatan pada pola genggaman pensil (masih static quadrupod grip) dan koordinasi bilateral saat menggunting serta meronce. Kekuatan otot intrinsik tangan dan lengkungan palmar arch masih belum optimal, menyebabkan ananda cepat lelah saat menulis lebih dari 3 kalimat. Rekomendasi: Terapi okupasi fokus pada penguatan otot intrinsik tangan (playdough resistive exercises), pematangan dynamic tripod grip menggunakan triangular pencil grip, dan latihan bilateral integration."
   },
   {
     "id": "c-016",
@@ -215,7 +2024,10 @@
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
     "notes": "Orang tua memilih observasi mandiri di rumah karena jarak tempuh dari Sidoarjo terlalu jauh.",
-    "createdAt": "2026-01-22T15:30:00Z"
+    "createdAt": "2026-01-22T15:30:00Z",
+    "serviceTypes": [
+      "consult_w_report"
+    ]
   },
   {
     "id": "c-017",
@@ -227,28 +2039,69 @@
     "clientAccessCode": "TDC-2001",
     "branchId": "branch-citraland",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1GibranAlFarisiCitraland",
     "assessmentCodes": [
-      { "code": "ASM-2001", "categoryId": "cat-001", "name": "Sensory Profile" },
-      { "code": "ASM-2002", "categoryId": "cat-002", "name": "School Companion Profile" }
+      {
+        "code": "ASM-2001",
+        "categoryId": "cat-001",
+        "name": "Sensory Profile"
+      },
+      {
+        "code": "ASM-2002",
+        "categoryId": "cat-002",
+        "name": "School Companion Profile"
+      }
     ],
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
         "categoryName": "Sensory & Developmental Profile",
         "answers": [
-          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "2 - Seldom", "score": 2 },
-          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "1 - Calm / Well-adapted", "score": 1 },
-          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "4 - Intense seeker", "score": 4 },
-          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
-          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "2 - Needs brief prompt", "score": 2 }
+          {
+            "questionId": "q-101",
+            "domain": "Sensory Modulation",
+            "question": "Does your child overreact to loud noises?",
+            "answer": "2 - Seldom",
+            "score": 2
+          },
+          {
+            "questionId": "q-102",
+            "domain": "Tactile Processing",
+            "question": "How does your child respond to being touched?",
+            "answer": "1 - Calm / Well-adapted",
+            "score": 1
+          },
+          {
+            "questionId": "q-103",
+            "domain": "Vestibular & Proprioception",
+            "question": "Does your child seek out excessive spinning?",
+            "answer": "4 - Intense seeker",
+            "score": 4
+          },
+          {
+            "questionId": "q-104",
+            "domain": "Fine Motor & Visual",
+            "question": "Can your child grasp utensils?",
+            "answer": "3 - Fisted / Awkward grip",
+            "score": 3
+          },
+          {
+            "questionId": "q-105",
+            "domain": "Emotional Regulation",
+            "question": "How does your child handle changes?",
+            "answer": "2 - Needs brief prompt",
+            "score": 2
+          }
         ]
       }
     ],
     "invoiceStatus": "paid",
-    "createdAt": "2025-12-01T09:00:00Z"
+    "createdAt": "2025-12-01T09:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-018",
@@ -260,13 +2113,16 @@
     "clientAccessCode": "TDC-1009",
     "branchId": "branch-citraland",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1AlvaroRayyanCitraland",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-01-25T11:20:00Z"
+    "createdAt": "2026-01-25T11:20:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-019",
@@ -282,23 +2138,63 @@
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1MikaelaChandraCitraland",
     "assessmentCodes": [
-      { "code": "ASM-3001", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" }
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-2016",
+        "status": "ready"
+      }
     ],
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
         "categoryName": "Sensory & Developmental Profile",
         "answers": [
-          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "4 - Frequent", "score": 4 },
-          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "4 - Highly distressed", "score": 4 },
-          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "3 - Moderate craving", "score": 3 },
-          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "2 - Emerging tripod grip", "score": 2 },
-          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "4 - Frequent tantrums", "score": 4 }
+          {
+            "questionId": "q-101",
+            "domain": "Sensory Modulation",
+            "question": "Does your child overreact to loud noises?",
+            "answer": "4 - Frequent",
+            "score": 4
+          },
+          {
+            "questionId": "q-102",
+            "domain": "Tactile Processing",
+            "question": "How does your child respond to being touched?",
+            "answer": "4 - Highly distressed",
+            "score": 4
+          },
+          {
+            "questionId": "q-103",
+            "domain": "Vestibular & Proprioception",
+            "question": "Does your child seek out excessive spinning?",
+            "answer": "3 - Moderate craving",
+            "score": 3
+          },
+          {
+            "questionId": "q-104",
+            "domain": "Fine Motor & Visual",
+            "question": "Can your child grasp utensils?",
+            "answer": "2 - Emerging tripod grip",
+            "score": 2
+          },
+          {
+            "questionId": "q-105",
+            "domain": "Emotional Regulation",
+            "question": "How does your child handle changes?",
+            "answer": "4 - Frequent tantrums",
+            "score": 4
+          }
         ]
       }
     ],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-01-28T14:00:00Z"
+    "createdAt": "2026-01-28T14:00:00Z",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-2016"
   },
   {
     "id": "c-020",
@@ -310,13 +2206,16 @@
     "clientAccessCode": "TDC-2004",
     "branchId": "branch-citraland",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RafaRadityaCitraland",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-02-01T08:30:00Z"
+    "createdAt": "2026-02-01T08:30:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-021",
@@ -334,7 +2233,10 @@
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-02-05T10:00:00Z"
+    "createdAt": "2026-02-05T10:00:00Z",
+    "serviceTypes": [
+      "consult_w_report"
+    ]
   },
   {
     "id": "c-022",
@@ -346,13 +2248,16 @@
     "clientAccessCode": "TDC-2006",
     "branchId": "branch-citraland",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ArkaDanendraCitraland",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "paid",
-    "createdAt": "2025-10-10T11:00:00Z"
+    "createdAt": "2025-10-10T11:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-023",
@@ -370,7 +2275,10 @@
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "paid",
-    "createdAt": "2026-01-14T09:30:00Z"
+    "createdAt": "2026-01-14T09:30:00Z",
+    "serviceTypes": [
+      "consult_wo_report"
+    ]
   },
   {
     "id": "c-024",
@@ -389,7 +2297,10 @@
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
     "notes": "Orang tua relokasi pekerjaan ke Jakarta.",
-    "createdAt": "2026-01-16T14:15:00Z"
+    "createdAt": "2026-01-16T14:15:00Z",
+    "serviceTypes": [
+      "b_ota"
+    ]
   },
   {
     "id": "c-025",
@@ -405,36 +2316,113 @@
     "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1KenzieBramantyoSBYB",
     "assessmentCodes": [
-      { "code": "ASM-4011", "categoryId": "cat-001", "name": "Sensory & Developmental Profile" },
-      { "code": "ASM-4012", "categoryId": "cat-002", "name": "School Companion Profile" }
+      {
+        "code": "ASM-4011",
+        "categoryId": "cat-001",
+        "name": "Sensory & Developmental Profile"
+      },
+      {
+        "code": "ASM-4012",
+        "categoryId": "cat-002",
+        "name": "School Companion Profile"
+      }
     ],
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
         "categoryName": "Sensory Profile",
         "answers": [
-          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "5 - Severe / Meltdown", "score": 5 },
-          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "3 - Hesitant / Uncomfortable", "score": 3 },
-          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "4 - Intense seeker", "score": 4 },
-          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "3 - Fisted / Awkward grip", "score": 3 },
-          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "4 - Frequent tantrums", "score": 4 }
+          {
+            "questionId": "q-101",
+            "domain": "Sensory Modulation",
+            "question": "Does your child overreact to loud noises?",
+            "answer": "5 - Severe / Meltdown",
+            "score": 5
+          },
+          {
+            "questionId": "q-102",
+            "domain": "Tactile Processing",
+            "question": "How does your child respond to being touched?",
+            "answer": "3 - Hesitant / Uncomfortable",
+            "score": 3
+          },
+          {
+            "questionId": "q-103",
+            "domain": "Vestibular & Proprioception",
+            "question": "Does your child seek out excessive spinning?",
+            "answer": "4 - Intense seeker",
+            "score": 4
+          },
+          {
+            "questionId": "q-104",
+            "domain": "Fine Motor & Visual",
+            "question": "Can your child grasp utensils?",
+            "answer": "3 - Fisted / Awkward grip",
+            "score": 3
+          },
+          {
+            "questionId": "q-105",
+            "domain": "Emotional Regulation",
+            "question": "How does your child handle changes?",
+            "answer": "4 - Frequent tantrums",
+            "score": 4
+          }
         ]
       },
       {
         "categoryId": "cat-002",
         "categoryName": "School Companion Profile",
         "answers": [
-          { "questionId": "q-scp-01", "domain": "Classroom Attention", "question": "Ability to sustain sitting and focus:", "answer": "4 - Frequently leaves seat", "score": 4 },
-          { "questionId": "q-scp-02", "domain": "Instruction Following", "question": "Response to multi-step instructions:", "answer": "4 - Needs physical guiding / demonstration", "score": 4 },
-          { "questionId": "q-scp-03", "domain": "Peer Socialization", "question": "Interaction with classmates:", "answer": "4 - Easily frustrated by peer interference", "score": 4 },
-          { "questionId": "q-scp-04", "domain": "Academic Material Handling", "question": "Management of school supplies:", "answer": "3 - Slumps over desk", "score": 3 },
-          { "questionId": "q-scp-05", "domain": "School Sensory Regulation", "question": "Tolerance to school sensory triggers:", "answer": "4 - Flees in loud school areas", "score": 4 },
-          { "questionId": "q-scp-06", "domain": "Educator / Shadow Note", "question": "Specific accommodations:", "answer": "Perlu pendampingan penuh untuk transisi jam mata pelajaran.", "score": null }
+          {
+            "questionId": "q-scp-01",
+            "domain": "Classroom Attention",
+            "question": "Ability to sustain sitting and focus:",
+            "answer": "4 - Frequently leaves seat",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-02",
+            "domain": "Instruction Following",
+            "question": "Response to multi-step instructions:",
+            "answer": "4 - Needs physical guiding / demonstration",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-03",
+            "domain": "Peer Socialization",
+            "question": "Interaction with classmates:",
+            "answer": "4 - Easily frustrated by peer interference",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-04",
+            "domain": "Academic Material Handling",
+            "question": "Management of school supplies:",
+            "answer": "3 - Slumps over desk",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-05",
+            "domain": "School Sensory Regulation",
+            "question": "Tolerance to school sensory triggers:",
+            "answer": "4 - Flees in loud school areas",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-06",
+            "domain": "Educator / Shadow Note",
+            "question": "Specific accommodations:",
+            "answer": "Perlu pendampingan penuh untuk transisi jam mata pelajaran.",
+            "score": null
+          }
         ]
       }
     ],
     "invoiceStatus": "paid",
-    "createdAt": "2025-11-12T08:00:00Z"
+    "createdAt": "2025-11-12T08:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-026",
@@ -450,23 +2438,1186 @@
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1AleaNatashaSBYB",
     "assessmentCodes": [
-      { "code": "ASM-4001", "categoryId": "cat-001", "name": "Sensory Profile" }
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-2012",
+        "status": "completed"
+      },
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile (School / Classroom Function)",
+        "code": "ASM-2013",
+        "status": "completed"
+      }
     ],
     "assessmentAnswers": [
       {
         "categoryId": "cat-001",
-        "categoryName": "Sensory Profile",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "submittedAt": "2026-08-30T08:12:02.595Z",
         "answers": [
-          { "questionId": "q-101", "domain": "Sensory Modulation", "question": "Does your child overreact to loud noises?", "answer": "2 - Seldom", "score": 2 },
-          { "questionId": "q-102", "domain": "Tactile Processing", "question": "How does your child respond to being touched?", "answer": "2 - Mild startle", "score": 2 },
-          { "questionId": "q-103", "domain": "Vestibular & Proprioception", "question": "Does your child seek out excessive spinning?", "answer": "2 - Mild seeker", "score": 2 },
-          { "questionId": "q-104", "domain": "Fine Motor & Visual", "question": "Can your child grasp utensils?", "answer": "2 - Emerging tripod grip", "score": 2 },
-          { "questionId": "q-105", "domain": "Emotional Regulation", "question": "How does your child handle changes?", "answer": "2 - Needs brief prompt", "score": 2 }
+          {
+            "questionId": "q-01",
+            "itemNo": 1,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menutup telinga untuk melindunginya dari suara-suara",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-04",
+            "itemNo": 4,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-05",
+            "itemNo": 5,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak memperdulikan saya atau mengabaikan saya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-07",
+            "itemNo": 7,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-08",
+            "itemNo": 8,
+            "quadrant": "RG",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "mendekatkan telinga ke sumber suara (mainan berbunyi, TV, speaker) untuk mendengarkan lebih intens",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-11",
+            "itemNo": 11,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar kontras",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-12",
+            "itemNo": 12,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang melihat detil-detil rumit pada obyek atau terpaku pada roda yang berputar",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "membutuhkan bantuan untuk menemukan benda yang sebenarnya terlihat jelas oleh orang lain",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-14",
+            "itemNo": 14,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-15",
+            "itemNo": 15,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "terpaku melihat orang-orang atau kendaraan yang bergerak aktif di dalam ruangan",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "domain": "Pemrosesan VISUAL",
+            "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "menabrak atau tersandung barang yang berada langsung di jalur pandang jalannya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang memandang pantulan cermin, kilauan lampu senter, atau animasi gadget secara berulang",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-19",
+            "itemNo": 19,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak potong kuku, keramas, cuci muka)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menjadi rewel ketika mengenakan sepatu, label baju kasar, atau kaos kaki berjahitan tebal",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-21",
+            "itemNo": 21,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir basah, atau karpet bertekstur",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menyentuh orang atau meraba permukaan benda secara berlebihan hingga mengganggu orang lain",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-23",
+            "itemNo": 23,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-24",
+            "itemNo": 24,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menarik diri atau cemas saat disentuh secara tiba-tiba atau saat dipeluk orang lain",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-25",
+            "itemNo": 25,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "senang mengelus bahan selimut berbulu, permukaan kasar, atau mengusap permukaan dingin",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "bereaksi berlebihan atau menangis keras terhadap luka goresan kecil yang tidak berdarah",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-27",
+            "itemNo": 27,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak mengeluh sakit meskipun mengalami benturan atau memar yang cukup keras",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-29",
+            "itemNo": 29,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-31",
+            "itemNo": 31,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "senang melakukan putaran tubuh berulang-ulang tanpa memperlihatkan rasa pusing",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "takut mencoba alat bermain bergerak di playground seperti ayunan tinggi atau jungkat-jungkit",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-33",
+            "itemNo": 33,
+            "quadrant": "RG",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "tampak lamban dan pasif bergerak dibandingkan anak-anak sebayanya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-34",
+            "itemNo": 34,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mengambil risiko fisik berbahaya seperti melompat dari perabotan tinggi tanpa perhitungan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-35",
+            "itemNo": 35,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencengkeram pegangan tangga atau memegang tangan pendamping dengan sangat erat saat menuruni tangga",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah panik dan kehilangan orientasi tubuh saat posisi kepala berubah cepat ke belakang",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-38",
+            "itemNo": 38,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menggertakkan gigi, meremas mainan terlalu kuat hingga pecah, atau menghentakkan langkah kaki",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-41",
+            "itemNo": 41,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "salah mengira tenaga yang dibutuhkan, menekan alat tulis terlalu pelan atau terlalu tembus kertas",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-42",
+            "itemNo": 42,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "gemar menyelip di ruang sempit (di balik sofa, bawah kasur, atau di antara tumpukan bantal)",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-43",
+            "itemNo": 43,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "kesulitan meniru gerakan atau pose fisik sederhana tanpa panduan sentuhan langsung",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "suka membantu mengangkat atau menyeret beban berat (seperti gallon air, tas berat, kardus)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-45",
+            "itemNo": 45,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering tersandung kakinya sendiri atau tampak goyah saat berjalan di permukaan datar",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-46",
+            "itemNo": 46,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "pemilih makanan ekstrem (picky eater), menolak makanan dengan tekstur lembek, berserat, atau bercampur",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-47",
+            "itemNo": 47,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "memasukkan benda bukan makanan ke mulut (menggigit kerah baju, pensil, jari tangan, atau mainan)",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-48",
+            "itemNo": 48,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mudah tersedak atau muntah (gagging) saat mencoba menu makanan dengan konsistensi baru",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mengunyah makanan di satu sisi mulut saja atau menumpuk makanan di pipi (pocketing) tanpa menelan",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-50",
+            "itemNo": 50,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sangat menyukai makanan yang memiliki rasa tajam (sangat pedas, asam kuat, sangat gurih asin, atau es batu)",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak sikat gigi atau mengeluh sakit terhadap sensasi busa dan rasa pasta gigi",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-52",
+            "itemNo": 52,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sering meneteskan air liur (drooling) di luar masa pertumbuhan gigi susu",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-53",
+            "itemNo": 53,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "suka membuat bunyi decak lidah, meniup bibir hingga berbusa, atau mengunyah es batu berulang kali",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak makan bila jenis makanan yang berbeda bersentuhan satu sama lain di piring",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-55",
+            "itemNo": 55,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa, takut, atau marah",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-57",
+            "itemNo": 57,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "enggan melakukan kontak mata selama percakapan berlangsung",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-58",
+            "itemNo": 58,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mudah kewalahan (sensory overload) dan rewel di tempat ramai seperti pusat perbelanjaan atau pesta",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "tampak melamun atau lamban menyadari bahwa orang di sekitarnya sedang berinteraksi dengannya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-60",
+            "itemNo": 60,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "bertindak impulsif dan kesulitan menunggu giliran saat bermain bersama",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-61",
+            "itemNo": 61,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "menolak mencoba aktivitas atau permainan baru yang belum pernah dilihat sebelumnya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "suasana hati mudah berubah drastis tanpa pemicu yang tampak jelas oleh keluarga",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-63",
+            "itemNo": 63,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mencari kontak fisik berlebih (memeluk orang asing secara erat tanpa batasan sosial)",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-64",
+            "itemNo": 64,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memerlukan instruksi dipanggil berulang kali untuk menyadari bahwa dirinya diajak bicara",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-65",
+            "itemNo": 65,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memilih mengisolasi diri ke tempat sepi saat suara atau suasana rumah mulai ramai",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          }
+        ]
+      },
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile (School / Classroom Function)",
+        "submittedAt": "2026-08-30T08:12:02.595Z",
+        "answers": [
+          {
+            "questionId": "q-scp-01",
+            "itemNo": 1,
+            "quadrant": "SN",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "mampu mempertahankan posisi duduk dan fokus selama 20-30 menit saat guru menjelaskan instruksi",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "tampak gelisah dan sering menoleh saat ada siswa lain yang bergerak atau berbicara pelan di dekatnya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-03",
+            "itemNo": 3,
+            "quadrant": "SK",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "meninggalkan tempat duduk tanpa izin atau berkeliling kelas saat proses belajar mengajar berlangsung",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-scp-04",
+            "itemNo": 4,
+            "quadrant": "RG",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "meletakkan kepala di atas meja atau menopang dagu dengan tangan karena tampak lesu saat pelajaran",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-05",
+            "itemNo": 5,
+            "quadrant": "SN",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "perhatian mudah teralihkan oleh hiasan dinding, jendela kelas, atau suara orang di luar lorong",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-06",
+            "itemNo": 6,
+            "quadrant": "SK",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "mengetuk-ngetukkan penggaris atau pensil ke meja secara ritmis saat mendengarkan penjelasan guru",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-07",
+            "itemNo": 7,
+            "quadrant": "RG",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "tampak lambat memulai lembar kerja meskipun teman-temannya sudah mulai mengerjakan",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-08",
+            "itemNo": 8,
+            "quadrant": "AV",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "gelisah dan menutup buku jika ada suara kipas angin atau pendingin ruangan (AC) yang berdengung",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "domain": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
+            "question": "bergoyang ke depan dan ke belakang di kursi saat mendengarkan cerita guru",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "mampu mengikuti instruksi 2-3 langkah secara berurutan tanpa perlu didorong secara fisik",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-11",
+            "itemNo": 11,
+            "quadrant": "RG",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "membutuhkan guru pembimbing khusus (shadow teacher) untuk memulai setiap langkah pengerjaan tugas",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-12",
+            "itemNo": 12,
+            "quadrant": "AV",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "menolak beralih dari satu mata pelajaran ke mata pelajaran lain jika tugas sebelumnya belum selesai",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-13",
+            "itemNo": 13,
+            "quadrant": "SK",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "terburu-buru mengerjakan tugas tanpa menyimak instruksi lengkap hingga terjadi banyak kesalahan",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-scp-14",
+            "itemNo": 14,
+            "quadrant": "RG",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "lupa menyiapkan buku atau peralatan belajar yang baru saja diminta guru",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-15",
+            "itemNo": 15,
+            "quadrant": "SN",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "merasa cemas atau bingung ketika ada pergantian guru piket atau jadwal mendadak",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "bereaksi menolak atau menangis saat diminta maju ke depan kelas untuk menjawab soal",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "membutuhkan pemanggilan nama langsung dari jarak dekat agar menyadari instruksi kelas",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "domain": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
+            "question": "menyela pembicaraan guru saat sedang menerangkan materi kepada seluruh murid",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-scp-19",
+            "itemNo": 19,
+            "quadrant": "SK",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "berinteraksi dan berbagi alat permainan secara kooperatif dengan teman sekelas",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "mudah terpicu marah atau agresif jika gilirannya disela oleh teman bermain",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-21",
+            "itemNo": 21,
+            "quadrant": "RG",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "mengisolasi diri dan lebih memilih bermain sendirian di sudut area sekolah",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "bermain terlalu kasar (mendorong atau menubruk teman) tanpa berniat jahat",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-23",
+            "itemNo": 23,
+            "quadrant": "AV",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "merasa tidak nyaman berada di tengah kerumunan siswa saat antre di kantin atau baris upacara",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-24",
+            "itemNo": 24,
+            "quadrant": "SN",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "bereaksi emosional berlebihan saat kalah dalam permainan kelompok atau olahraga",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-25",
+            "itemNo": 25,
+            "quadrant": "RG",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "tidak menyadari ajakan bermain dari teman sebaya kecuali ditepuk secara fisik",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-26",
+            "itemNo": 26,
+            "quadrant": "SK",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "gemar mengejar teman atau berlari kencang tanpa memperhatikan batas area aman bermain",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-27",
+            "itemNo": 27,
+            "quadrant": "AV",
+            "domain": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
+            "question": "menolak bergabung dalam permainan olahraga tim seperti futsal atau lompat tali",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-28",
+            "itemNo": 28,
+            "quadrant": "RG",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "postur duduk membungkuk, menempel di meja, atau menopang kepala saat menulis",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-29",
+            "itemNo": 29,
+            "quadrant": "SN",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "pengelolaan alat tulis, buku, dan gunting rapi serta tidak mudah tercecer",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-30",
+            "itemNo": 30,
+            "quadrant": "SK",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "mematahkan ujung pensil atau krayon karena menekan terlalu kuat ke atas kertas",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-scp-31",
+            "itemNo": 31,
+            "quadrant": "RG",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "sering kehilangan penghapus, pensil, atau penggaris di kolong meja belajar",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "mengeluh tangannya pegal atau sakit setelah menulis 2 hingga 3 kalimat pendek",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-33",
+            "itemNo": 33,
+            "quadrant": "SK",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "meremas-remas lembar kertas atau memainkan staples saat sedang menunggu",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-scp-34",
+            "itemNo": 34,
+            "quadrant": "RG",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "buku tulis tampak kotor atau robek karena bekas hapusan yang berulang kali",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-35",
+            "itemNo": 35,
+            "quadrant": "SN",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "terganggu jika letak pensil atau buku di mejanya sedikit bergeser",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-36",
+            "itemNo": 36,
+            "quadrant": "SK",
+            "domain": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
+            "question": "suka memutar kursi atau menggeser meja belajar saat jam pelajaran berlangsung",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-37",
+            "itemNo": 37,
+            "quadrant": "AV",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "menutup telinga atau panik saat mendengar bel sekolah berbunyi keras atau suara kantin riuh",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-38",
+            "itemNo": 38,
+            "quadrant": "AV",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "menolak memakai seragam sekolah dengan bahan tertentu atau merasa tercekik oleh dasi",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-39",
+            "itemNo": 39,
+            "quadrant": "SN",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "terganggu oleh aroma spidol whiteboard, cat lukis, atau cairan pembersih lantai",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "senang menyentuh kain seragam teman atau mengusap dinding lorong sekolah",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-scp-41",
+            "itemNo": 41,
+            "quadrant": "AV",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "enggan masuk ke toilet sekolah karena merasa bau, gelap, atau suara bilas air bising",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-42",
+            "itemNo": 42,
+            "quadrant": "RG",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "tidak menyadari celana seragamnya kotor setelah terjatuh di halaman rumput",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-43",
+            "itemNo": 43,
+            "quadrant": "SN",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "menyipitkan mata atau mengeluh silau oleh lampu neon kelas atau cahaya luar jendela",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "suka mencium aroma buku baru, penghapus wangi buah, atau lem kertas",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-45",
+            "itemNo": 45,
+            "quadrant": "AV",
+            "domain": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
+            "question": "menghindari berjalan di dekat speaker pengeras suara saat upacara bendera",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-46",
+            "itemNo": 46,
+            "quadrant": "SN",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "mengalami ledakan emosi (meltdown) saat tugas yang diberikan dirasa terlalu sulit",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-47",
+            "itemNo": 47,
+            "quadrant": "AV",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "membutuhkan sudut tenang (calming corner) untuk menenangkan diri setelah jam ramai",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-48",
+            "itemNo": 48,
+            "quadrant": "RG",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "tampak apatis atau tidak bersemangat mengikuti kegiatan kelompok yang butuh kerja sama",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-49",
+            "itemNo": 49,
+            "quadrant": "SK",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "tertawa terbahak-bahak atau bertingkah konyol berlebihan untuk menarik perhatian",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-50",
+            "itemNo": 50,
+            "quadrant": "SN",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "mudah menangis jika mendapat koreksi atau teguran halus dari guru kelas",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "menolak berbicara (mutisme selektif) dengan guru baru atau tamu sekolah",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-52",
+            "itemNo": 52,
+            "quadrant": "SK",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "gelisah dan menggoyang tubuh saat mendengarkan pengumuman di auditorium",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-53",
+            "itemNo": 53,
+            "quadrant": "RG",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "lambat mengembalikan fokus setelah waktu istirahat usai dan pelajaran dimulai",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "domain": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+            "question": "cemas berlebihan saat ada simulasi bunyi alarm darurat sekolah berbunyi",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-55",
+            "itemNo": 55,
+            "quadrant": "SN",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "mandiri dalam membuka kotak bekal makan siang, sendok, dan menghabiskan makanannya",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-scp-56",
+            "itemNo": 56,
+            "quadrant": "AV",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "menolak makan bekal jika tercampur lauknya atau tidak sesuai menu biasa",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-scp-57",
+            "itemNo": 57,
+            "quadrant": "SK",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "makan terburu-buru hingga makanan berceceran di atas meja dan baju seragam",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-scp-58",
+            "itemNo": 58,
+            "quadrant": "RG",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "lupa mencuci tangan sebelum makan atau setelah dari toilet sekolah",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-59",
+            "itemNo": 59,
+            "quadrant": "SN",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "mampu merapikan dan mengancingkan celana seragam kembali setelah buang air",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-60",
+            "itemNo": 60,
+            "quadrant": "AV",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "menahan buang air kecil sepanjang hari karena takut menggunakan toilet sekolah",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-61",
+            "itemNo": 61,
+            "quadrant": "RG",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "tidak menyadari kancing kemeja seragamnya terpasang miring setelah pelajaran olahraga",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-scp-62",
+            "itemNo": 62,
+            "quadrant": "SK",
+            "domain": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+            "question": "suka menyiram air wastafel atau memainkan busa sabun cuci tangan berulang kali",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          }
         ]
       }
     ],
     "invoiceStatus": "paid",
-    "createdAt": "2026-01-20T10:00:00Z"
+    "createdAt": "2026-01-20T10:00:00Z",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-2012",
+    "assessmentReportNote": "Evaluasi ganda komprehensif (Child Sensory Profile 2: 65 butir & School Companion Profile: 62 butir). Ananda Alea memperlihatkan profil Sensory Sensitivity (SN) dan Low Registration (RG) pada atensi kelas dan pemrosesan instruksi. Di lingkungan sekolah, ananda sering melamun saat instruksi multi-tahap dan mudah terdistraksi suara lorong kelas. Direkomendasikan penyesuaian posisi duduk di baris depan dekat meja guru, instruksi bertahap 1-2 langkah dengan visual checklist, serta latihan integrasi sensori untuk meningkatkan endurance postur duduk."
   },
   {
     "id": "c-027",
@@ -478,13 +3629,16 @@
     "clientAccessCode": "TDC-3003",
     "branchId": "branch-sby-barat",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RevanPutraSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-01-29T13:00:00Z"
+    "createdAt": "2026-01-29T13:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-028",
@@ -496,13 +3650,16 @@
     "clientAccessCode": "TDC-3004",
     "branchId": "branch-sby-barat",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1FionaElysiaSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "paid",
-    "createdAt": "2025-09-01T09:00:00Z"
+    "createdAt": "2025-09-01T09:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-029",
@@ -514,15 +3671,25 @@
     "clientAccessCode": "TDC-3005",
     "branchId": "branch-sby-barat",
     "status": "assessment_scheduled",
-    "serviceType": "b_ota",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RayyanDaniswaraSBYB",
     "assessmentCodes": [
-      { "code": "ASM-4005", "categoryId": "cat-001", "name": "Sensory Profile" }
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile (School / Classroom Function)",
+        "code": "ASM-2017",
+        "status": "ready"
+      }
     ],
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-02-02T11:00:00Z"
+    "createdAt": "2026-02-02T11:00:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "assessmentCategoryId": "cat-002",
+    "assessmentAccessCode": "ASM-2017"
   },
   {
     "id": "c-030",
@@ -534,13 +3701,16 @@
     "clientAccessCode": "TDC-3006",
     "branchId": "branch-sby-barat",
     "status": "admitted",
-    "serviceType": "therapy",
+    "serviceType": "f_ota",
     "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ChelseaValerieSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "paid",
-    "createdAt": "2025-08-15T08:30:00Z"
+    "createdAt": "2025-08-15T08:30:00Z",
+    "serviceTypes": [
+      "f_ota"
+    ]
   },
   {
     "id": "c-031",
@@ -558,7 +3728,10 @@
     "assessmentCodes": [],
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
-    "createdAt": "2026-02-08T09:15:00Z"
+    "createdAt": "2026-02-08T09:15:00Z",
+    "serviceTypes": [
+      "b_ota"
+    ]
   },
   {
     "id": "c-032",
@@ -577,6 +3750,9 @@
     "assessmentAnswers": [],
     "invoiceStatus": "unpaid",
     "notes": "Orang tua memilih konsultasi dokter spesialis anak terlebih dahulu.",
-    "createdAt": "2026-01-18T16:00:00Z"
+    "createdAt": "2026-01-18T16:00:00Z",
+    "serviceTypes": [
+      "consult_w_report"
+    ]
   }
 ]

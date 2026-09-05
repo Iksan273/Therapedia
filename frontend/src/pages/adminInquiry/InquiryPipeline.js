@@ -45,7 +45,7 @@ import { cn } from "@/lib/utils";
 
 const STAGE_COLUMNS = [
   { status: "inquiry", label: "1. New Intake", accent: "bg-sky-500", desc: "Data awal masuk" },
-  { status: "service_selected", label: "2. Layanan Dipilih", accent: "bg-purple-500", desc: "B-OTA / F-OTA" },
+  { status: "service_selected", label: "2. Layanan Dipilih", accent: "bg-purple-500", desc: "B-OTA, F-OTA, Consultion" },
   { status: "assessment_scheduled", label: "3. Asesmen Terjadwal", accent: "bg-blue-500", desc: "Kode kuesioner aktif" },
   { status: "assessment_done", label: "4. Asesmen Selesai", accent: "bg-teal-500", desc: "GDrive & Tabel Psikologi" },
   { status: "admitted", label: "5. Active Client", accent: "bg-emerald-500", desc: "Lanjut sesi terapi" },
@@ -382,11 +382,11 @@ export default function InquiryPipeline() {
               </Select>
             </div>
 
-            <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setNewIntakeOpen(false)}>
+            <DialogFooter className="mt-5 gap-2.5 pt-2 border-t border-slate-100">
+              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs font-bold h-10 px-4" onClick={() => setNewIntakeOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs" data-testid="submit-intake-button">
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-10 px-5 shadow-xs" data-testid="submit-intake-button">
                 Daftarkan ke Pipeline
               </Button>
             </DialogFooter>

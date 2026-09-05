@@ -87,6 +87,7 @@ export default function ActiveClients() {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState(null);
 
+
   // Active clients list
   const activeList = useMemo(
     () => clients.filter((c) => (c.status === "admitted" || c.status === "active") && !c.dateOfDischarge),
@@ -117,6 +118,15 @@ export default function ActiveClients() {
       return true;
     });
   }, [activeList, branchFilter, searchTerm, creditFilter, getRecordForClient]);
+
+  // Pagination for Roster Table
+  const [rosterPage, setRosterPage] = useState(1);
+  const rosterPageSize = 10;
+  const totalRosterPages = Math.ceil(filteredActive.length / rosterPageSize) || 1;
+  const paginatedRoster = useMemo(() => {
+    const start = (rosterPage - 1) * rosterPageSize;
+    return filteredActive.slice(start, start + rosterPageSize);
+  }, [filteredActive, rosterPage, rosterPageSize]);
 
   // Birthday list for selected month
   const birthdayClients = useMemo(() => {
@@ -282,6 +292,15 @@ export default function ActiveClients() {
       .filter((item) => item.remaining <= 2);
   }, [activeList, getRecordForClient]);
 
+  // Renewal watchlist pagination
+  const [reminderPage, setReminderPage] = useState(1);
+  const reminderPageSize = 8;
+  const totalReminderPages = Math.ceil(renewalWatchlist.length / reminderPageSize) || 1;
+  const paginatedReminders = useMemo(() => {
+    const start = (reminderPage - 1) * reminderPageSize;
+    return renewalWatchlist.slice(start, start + reminderPageSize);
+  }, [renewalWatchlist, reminderPage, reminderPageSize]);
+
   return (
     <div className="space-y-6" data-testid="active-clients-page">
       {/* Header */}
@@ -319,14 +338,14 @@ export default function ActiveClients() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-white border border-slate-200 p-1 rounded-2xl shadow-2xs">
-          <TabsTrigger value="roster" className="rounded-xl text-xs font-bold gap-2">
+        <TabsList className="bg-slate-100/90 border border-slate-200/80 p-1.5 rounded-2xl shadow-2xs gap-1.5 flex flex-wrap h-auto">
+          <TabsTrigger value="roster" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <Users className="w-4 h-4 text-sky-600" /> Active Roster ({filteredActive.length})
           </TabsTrigger>
-          <TabsTrigger value="birthday" className="rounded-xl text-xs font-bold gap-2">
+          <TabsTrigger value="birthday" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <Cake className="w-4 h-4 text-pink-600" /> Birthday Hub ({birthdayClients.length})
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="rounded-xl text-xs font-bold gap-2">
+          <TabsTrigger value="analytics" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <BarChart3 className="w-4 h-4 text-purple-600" /> Advanced Analytics (100++ Caseload)
           </TabsTrigger>
         </TabsList>
@@ -361,23 +380,23 @@ export default function ActiveClients() {
 
           {/* Roster Table */}
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               {filteredActive.length === 0 ? (
                 <EmptyState icon={Users} title="Tidak ada client" subtitle="Tidak ada client aktif pada filter ini." />
               ) : (
-                <Table>
+                <Table className="min-w-[1080px] w-full">
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                      <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Profil Client</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs">Orang Tua & Kontak</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs">Cabang</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs">Paket Kredit Aktif</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs">Riwayat Cancel</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs text-right pr-6">Tindakan</TableHead>
+                      <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[260px] whitespace-nowrap">Profil Client</TableHead>
+                      <TableHead className="font-bold text-slate-700 text-xs min-w-[190px] whitespace-nowrap">Orang Tua & Kontak</TableHead>
+                      <TableHead className="font-bold text-slate-700 text-xs min-w-[170px] whitespace-nowrap">Cabang</TableHead>
+                      <TableHead className="font-bold text-slate-700 text-xs min-w-[240px] whitespace-nowrap">Paket Kredit Aktif</TableHead>
+                      <TableHead className="font-bold text-slate-700 text-xs min-w-[180px] whitespace-nowrap">Riwayat Cancel</TableHead>
+                      <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[170px] whitespace-nowrap">Tindakan</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredActive.map((c) => {
+                    {paginatedRoster.map((c) => {
                       const br = BRANCHES.find((b) => b.id === c.branchId);
                       const rec = getRecordForClient(c.id);
                       const rem = rec ? rec.remainingCredit : 0;
@@ -386,53 +405,53 @@ export default function ActiveClients() {
 
                       return (
                         <TableRow key={c.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                          <TableCell className="py-3.5 pl-6">
+                          <TableCell className="py-4 pl-6 min-w-[260px]">
                             <div className="flex items-center gap-3">
                               <div
                                 className={cn(
-                                  "w-9 h-9 rounded-xl font-bold text-xs flex items-center justify-center shrink-0",
+                                  "w-10 h-10 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
                                   isFrozen ? "bg-cyan-100 text-cyan-900 ring-1 ring-cyan-300" : "bg-sky-100 text-sky-800"
                                 )}
                               >
                                 {isFrozen ? "❄️" : c.clientName[0]}
                               </div>
-                              <div>
+                              <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <p className="font-bold text-sm text-slate-900">{c.clientName}</p>
+                                  <p className="font-bold text-sm text-slate-900 whitespace-nowrap">{c.clientName}</p>
                                   {isFrozen && (
-                                    <span className="text-[10px] font-extrabold text-cyan-900 bg-cyan-100 border border-cyan-300 px-1.5 py-0.2 rounded">
+                                    <span className="text-[10px] font-extrabold text-cyan-900 bg-cyan-100 border border-cyan-300 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
                                       Frozen
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-slate-500 font-medium">
-                                  {calcAge(c.dob)} th • Kode: <strong className="font-mono">{c.clientAccessCode}</strong>
+                                <p className="text-xs text-slate-500 font-medium mt-0.5 whitespace-nowrap">
+                                  {calcAge(c.dob)} th • Kode: <strong className="font-mono text-slate-700">{c.clientAccessCode}</strong>
                                 </p>
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs">
-                            <p className="font-semibold text-slate-800">{c.parentName}</p>
-                            <p className="text-[11px] text-slate-500">{c.parentContact}</p>
+                          <TableCell className="text-xs py-4 min-w-[190px]">
+                            <p className="font-semibold text-slate-800 whitespace-nowrap">{c.parentName}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5 whitespace-nowrap font-mono">{c.parentContact}</p>
                           </TableCell>
-                          <TableCell className="text-xs">
-                            <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          <TableCell className="text-xs py-4 min-w-[170px]">
+                            <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
                               📍 {br ? br.name : "Surabaya"}
                             </span>
                           </TableCell>
-                          <TableCell className="text-xs">
+                          <TableCell className="text-xs py-4 min-w-[240px]">
                             {pkgs.length === 0 ? (
-                              <span className="text-rose-600 font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
+                              <span className="text-rose-600 font-bold bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg inline-flex items-center whitespace-nowrap">
                                 0 Kredit (Menunggu Finance)
                               </span>
                             ) : (
-                              <div className="space-y-1">
+                              <div className="space-y-1.5">
                                 {pkgs.map((p) => (
-                                  <div key={p.id} className="flex items-center gap-1.5">
+                                  <div key={p.id} className="flex items-center gap-2 whitespace-nowrap">
                                     <span className="font-bold text-slate-800">{p.packageName}:</span>
                                     <span
                                       className={cn(
-                                        "font-mono font-bold px-1.5 py-0.2 rounded text-[11px]",
+                                        "font-mono font-bold px-2 py-0.5 rounded-md text-[11px] shrink-0",
                                         p.remainingCredit === 0
                                           ? "bg-rose-100 text-rose-800"
                                           : p.remainingCredit <= 2
@@ -447,10 +466,10 @@ export default function ActiveClients() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-xs font-medium">
+                          <TableCell className="text-xs font-medium py-4 min-w-[180px]">
                             <span
                               className={cn(
-                                "px-2 py-0.5 rounded font-bold text-[11px] border",
+                                "px-2.5 py-1 rounded-lg font-bold text-xs border inline-flex items-center whitespace-nowrap",
                                 (rec?.cancelCountTotal || 0) <= 3
                                   ? "bg-slate-100 text-slate-700 border-slate-200"
                                   : "bg-rose-100 text-rose-800 border-rose-300 font-extrabold"
@@ -460,12 +479,12 @@ export default function ActiveClients() {
                               {(rec?.cancelCountTotal || 0) > 3 && " (Kena Penalti)"}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex items-center justify-end gap-2">
+                          <TableCell className="text-right pr-6 py-4 min-w-[170px]">
+                            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 gap-1 rounded-xl text-xs font-bold border-slate-200 hover:bg-sky-50 hover:text-sky-700"
+                                className="h-9 px-3 gap-1.5 rounded-xl text-xs font-bold border-slate-200 hover:bg-sky-50 hover:text-sky-700 shrink-0 whitespace-nowrap cursor-pointer"
                                 onClick={() => {
                                   setSelectedClientId(c.id);
                                   setScheduleModalOpen(true);
@@ -475,7 +494,7 @@ export default function ActiveClients() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="h-8 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white"
+                                className="h-9 px-3.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-2xs shrink-0 whitespace-nowrap cursor-pointer"
                                 onClick={() => navigate(`/admin-schedule/clients/${c.id}`)}
                               >
                                 Detail
@@ -489,6 +508,39 @@ export default function ActiveClients() {
                 </Table>
               )}
             </CardContent>
+
+            {/* Pagination controls for Roster Table */}
+            {filteredActive.length > 0 && (
+              <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
+                <span className="font-medium">
+                  Menampilkan {(rosterPage - 1) * rosterPageSize + 1} –{" "}
+                  {Math.min(rosterPage * rosterPageSize, filteredActive.length)} dari {filteredActive.length} client
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                    disabled={rosterPage <= 1}
+                    onClick={() => setRosterPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+                  </Button>
+                  <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
+                    {rosterPage} / {totalRosterPages}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                    disabled={rosterPage >= totalRosterPages}
+                    onClick={() => setRosterPage((p) => Math.min(totalRosterPages, p + 1))}
+                  >
+                    Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
@@ -632,10 +684,10 @@ export default function ActiveClients() {
                   Completed vs Cancelled vs Rescheduled count per client
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 pt-6">
-                <div className="h-64 w-full">
+              <CardContent className="p-5 sm:p-6">
+                <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={clientAttendanceChartData} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                    <BarChart data={clientAttendanceChartData} margin={{ top: 10, right: 15, left: -10, bottom: 35 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                       <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} angle={-25} textAnchor="end" />
                       <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
@@ -762,29 +814,29 @@ export default function ActiveClients() {
                   </p>
                 </div>
               </CardHeader>
-              <CardContent className="p-0">
-                <Table>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table className="min-w-[760px] w-full">
                   <TableHeader>
                     <TableRow className="bg-amber-100/30 hover:bg-amber-100/30 border-b border-amber-200/60">
-                      <TableHead className="font-bold text-amber-950 text-xs py-3 pl-6">Client Name</TableHead>
-                      <TableHead className="font-bold text-amber-950 text-xs">Parent Contact</TableHead>
-                      <TableHead className="font-bold text-amber-950 text-xs">Remaining Credits</TableHead>
-                      <TableHead className="font-bold text-amber-950 text-xs text-right pr-6">Action</TableHead>
+                      <TableHead className="font-bold text-amber-950 text-xs py-3 pl-6 min-w-[200px] whitespace-nowrap">Client Name</TableHead>
+                      <TableHead className="font-bold text-amber-950 text-xs min-w-[220px] whitespace-nowrap">Parent Contact</TableHead>
+                      <TableHead className="font-bold text-amber-950 text-xs min-w-[180px] whitespace-nowrap">Remaining Credits</TableHead>
+                      <TableHead className="font-bold text-amber-950 text-xs text-right pr-6 min-w-[160px] whitespace-nowrap">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {renewalWatchlist.map(({ client, record }) => (
+                    {paginatedReminders.map(({ client, record }) => (
                       <TableRow key={client.id} className="border-b border-amber-200/40 hover:bg-amber-100/40 text-xs">
-                        <TableCell className="pl-6 font-bold text-slate-900">{client.clientName}</TableCell>
-                        <TableCell className="text-slate-600">{client.parentName} ({client.parentContact})</TableCell>
-                        <TableCell className="font-black text-amber-700">
+                        <TableCell className="pl-6 font-bold text-slate-900 min-w-[200px] whitespace-nowrap">{client.clientName}</TableCell>
+                        <TableCell className="text-slate-600 min-w-[220px] whitespace-nowrap">{client.parentName} ({client.parentContact})</TableCell>
+                        <TableCell className="font-black text-amber-700 min-w-[180px] whitespace-nowrap">
                           {record ? record.remainingCredit : 0} Sesi Tersisa
                         </TableCell>
-                        <TableCell className="text-right pr-6">
+                        <TableCell className="text-right pr-6 min-w-[160px] whitespace-nowrap">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 gap-1 border-amber-300 text-amber-900 hover:bg-amber-200 text-xs font-bold rounded-xl"
+                            className="h-8 gap-1 border-amber-300 text-amber-900 hover:bg-amber-200 text-xs font-bold rounded-xl whitespace-nowrap cursor-pointer"
                             onClick={() => navigate(`/admin-schedule/clients/${client.id}`)}
                           >
                             Tinjau Detail <ChevronRight className="w-3.5 h-3.5" />
@@ -795,6 +847,39 @@ export default function ActiveClients() {
                   </TableBody>
                 </Table>
               </CardContent>
+
+              {/* Pagination controls for Renewal Watchlist */}
+              {renewalWatchlist.length > 0 && (
+                <div className="p-4 border-t border-amber-200/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-900/80 bg-amber-50/40">
+                  <span className="font-medium">
+                    Menampilkan {(reminderPage - 1) * reminderPageSize + 1} –{" "}
+                    {Math.min(reminderPage * reminderPageSize, renewalWatchlist.length)} dari {renewalWatchlist.length} client
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2.5 rounded-xl text-xs font-semibold border-amber-300 text-amber-950 hover:bg-amber-100 cursor-pointer"
+                      disabled={reminderPage <= 1}
+                      onClick={() => setReminderPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+                    </Button>
+                    <span className="px-2.5 py-1 rounded-lg bg-white border border-amber-200 font-bold text-amber-950 text-xs shadow-2xs">
+                      {reminderPage} / {totalReminderPages}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2.5 rounded-xl text-xs font-semibold border-amber-300 text-amber-950 hover:bg-amber-100 cursor-pointer"
+                      disabled={reminderPage >= totalReminderPages}
+                      onClick={() => setReminderPage((p) => Math.min(totalReminderPages, p + 1))}
+                    >
+                      Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
           )}
 
@@ -810,18 +895,18 @@ export default function ActiveClients() {
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table className="min-w-[1020px] w-full">
                 <TableHeader>
                   <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                    <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Client & Kode</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs">Cabang</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs">Rasio Kehadiran</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs">Selesai</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs">Cancel Total</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs">Sisa Reguler</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs">Sisa VIP</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs pr-6">Status Kuota</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[200px] whitespace-nowrap">Client & Kode</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[160px] whitespace-nowrap">Cabang</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[160px] whitespace-nowrap">Rasio Kehadiran</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Selesai</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Cancel Total</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Sisa Reguler</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Sisa VIP</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs pr-6 min-w-[160px] whitespace-nowrap">Status Kuota</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -829,14 +914,16 @@ export default function ActiveClients() {
                     const br = BRANCHES.find((b) => b.id === row.branchId);
                     return (
                       <TableRow key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs">
-                        <TableCell className="pl-6 py-3">
+                        <TableCell className="pl-6 py-3 min-w-[200px] whitespace-nowrap">
                           <p className="font-bold text-slate-900">{row.clientName}</p>
                           <span className="font-mono text-[11px] text-slate-500">{row.clientAccessCode}</span>
                         </TableCell>
-                        <TableCell>
-                          <span className="font-semibold text-slate-700">📍 {br ? br.name : "Surabaya"}</span>
+                        <TableCell className="min-w-[160px] whitespace-nowrap">
+                          <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
+                            📍 {br ? br.name : "Surabaya"}
+                          </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="min-w-[160px] whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-2 rounded-full bg-slate-100 overflow-hidden">
                               <div
@@ -850,21 +937,21 @@ export default function ActiveClients() {
                             <span className="font-bold tabular-nums">{row.attendanceRate}%</span>
                           </div>
                         </TableCell>
-                        <TableCell className="font-bold text-emerald-700 tabular-nums">{row.completedCount} sesi</TableCell>
-                        <TableCell className="font-bold text-rose-700 tabular-nums">{row.cancelTotal}x</TableCell>
-                        <TableCell className="font-mono font-bold text-slate-800">{row.regulerRemaining}</TableCell>
-                        <TableCell className="font-mono font-bold text-purple-800">{row.vipRemaining}</TableCell>
-                        <TableCell className="pr-6">
+                        <TableCell className="font-bold text-emerald-700 tabular-nums min-w-[120px] whitespace-nowrap">{row.completedCount} sesi</TableCell>
+                        <TableCell className="font-bold text-rose-700 tabular-nums min-w-[120px] whitespace-nowrap">{row.cancelTotal}x</TableCell>
+                        <TableCell className="font-mono font-bold text-slate-800 min-w-[120px] whitespace-nowrap">{row.regulerRemaining}</TableCell>
+                        <TableCell className="font-mono font-bold text-purple-800 min-w-[120px] whitespace-nowrap">{row.vipRemaining}</TableCell>
+                        <TableCell className="pr-6 min-w-[160px] whitespace-nowrap">
                           {row.remainingCredit === 0 ? (
-                            <span className="px-2 py-0.5 rounded bg-cyan-100 text-cyan-900 border border-cyan-300 font-extrabold text-[11px]">
+                            <span className="px-2.5 py-1 rounded-lg bg-cyan-100 text-cyan-900 border border-cyan-300 font-extrabold text-[11px] inline-flex items-center gap-1 whitespace-nowrap">
                               ❄️ 0 Kredit (Frozen)
                             </span>
                           ) : row.remainingCredit <= 2 ? (
-                            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[11px]">
+                            <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[11px] inline-flex items-center whitespace-nowrap">
                               Menipis ({row.remainingCredit})
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[11px]">
+                            <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[11px] inline-flex items-center whitespace-nowrap">
                               Sehat ({row.remainingCredit})
                             </span>
                           )}
@@ -874,6 +961,7 @@ export default function ActiveClients() {
                   })}
                 </TableBody>
               </Table>
+            </CardContent>
 
               {/* Pagination controls for 100++ scale */}
               <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
@@ -905,9 +993,8 @@ export default function ActiveClients() {
                   </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </Card>
+          </TabsContent>
       </Tabs>
 
       {/* Add Schedule Modal */}

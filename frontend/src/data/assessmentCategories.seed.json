@@ -6,12 +6,12 @@
     "standardTitle": "Child Sensory Profile 2",
     "author": "Winnie Dunn, PhD, OTR, FAOTA",
     "scoringKey": {
-      "5": "Hampir selalu (90% atau lebih setiap waktu)",
-      "4": "Selalu / Sering (75% setiap waktu)",
-      "3": "Sebagian waktu / Kadang (50% setiap waktu)",
-      "2": "Terkadang / Jarang (25% setiap waktu)",
+      "0": "Tidak mengobservasi / Tidak meyakini berlaku",
       "1": "Hampir tidak pernah (10% setiap waktu)",
-      "0": "Tidak mengobservasi / Tidak meyakini berlaku"
+      "2": "Terkadang / Jarang (25% setiap waktu)",
+      "3": "Sebagian waktu / Kadang (50% setiap waktu)",
+      "4": "Selalu / Sering (75% setiap waktu)",
+      "5": "Hampir selalu (90% atau lebih setiap waktu)"
     },
     "sections": [
       {
@@ -19,14 +19,60 @@
         "title": "Pemrosesan AUDITORI",
         "leadText": "Anakku ...",
         "questions": [
-          { "id": "q-01", "itemNo": 1, "quadrant": "AV", "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))" },
-          { "id": "q-02", "itemNo": 2, "quadrant": "AV", "question": "menutup telinga untuk melindunginya dari suara-suara" },
-          { "id": "q-03", "itemNo": 3, "quadrant": "SN", "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala" },
-          { "id": "q-04", "itemNo": 4, "quadrant": "SN", "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya" },
-          { "id": "q-05", "itemNo": 5, "quadrant": "AV", "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)" },
-          { "id": "q-06", "itemNo": 6, "quadrant": "SN", "question": "terlihat tidak memperdulikan saya atau mengabaikan saya" },
-          { "id": "q-07", "itemNo": 7, "quadrant": "SN", "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)" },
-          { "id": "q-08", "itemNo": 8, "quadrant": "RG", "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri" }
+          {
+            "id": "q-01",
+            "itemNo": 1,
+            "quadrant": "AV",
+            "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))"
+          },
+          {
+            "id": "q-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "question": "menutup telinga untuk melindunginya dari suara-suara"
+          },
+          {
+            "id": "q-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala"
+          },
+          {
+            "id": "q-04",
+            "itemNo": 4,
+            "quadrant": "SN",
+            "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya"
+          },
+          {
+            "id": "q-05",
+            "itemNo": 5,
+            "quadrant": "AV",
+            "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)"
+          },
+          {
+            "id": "q-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "question": "terlihat tidak memperdulikan saya atau mengabaikan saya"
+          },
+          {
+            "id": "q-07",
+            "itemNo": 7,
+            "quadrant": "SN",
+            "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)"
+          },
+          {
+            "id": "q-08",
+            "itemNo": 8,
+            "quadrant": "RG",
+            "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri"
+          },
+          {
+            "id": "q-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "question": "mendekatkan telinga ke sumber suara (mainan berbunyi, TV, speaker) untuk mendengarkan lebih intens"
+          }
         ]
       },
       {
@@ -34,25 +80,121 @@
         "title": "Pemrosesan VISUAL",
         "leadText": "Anakku ...",
         "questions": [
-          { "id": "q-09", "itemNo": 9, "quadrant": "SN", "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup" },
-          { "id": "q-10", "itemNo": 10, "quadrant": "SK", "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar" },
-          { "id": "q-11", "itemNo": 11, "quadrant": "SK", "question": "senang melihat detil-detil pada obyek" },
-          { "id": "q-12", "itemNo": 12, "quadrant": "RG", "question": "membutuhkan bantuan untuk menemukan benda yang terlihat jelas oleh orang lain" },
-          { "id": "q-13", "itemNo": 13, "quadrant": "SN", "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya" },
-          { "id": "q-14", "itemNo": 14, "quadrant": "SK", "question": "melihat orang-orang yang bergerak di dalam ruangan" },
-          { "id": "q-15", "itemNo": 15, "quadrant": "AV", "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)" }
+          {
+            "id": "q-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup"
+          },
+          {
+            "id": "q-11",
+            "itemNo": 11,
+            "quadrant": "SK",
+            "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar kontras"
+          },
+          {
+            "id": "q-12",
+            "itemNo": 12,
+            "quadrant": "SK",
+            "question": "senang melihat detil-detil rumit pada obyek atau terpaku pada roda yang berputar"
+          },
+          {
+            "id": "q-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "question": "membutuhkan bantuan untuk menemukan benda yang sebenarnya terlihat jelas oleh orang lain"
+          },
+          {
+            "id": "q-14",
+            "itemNo": 14,
+            "quadrant": "SN",
+            "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya"
+          },
+          {
+            "id": "q-15",
+            "itemNo": 15,
+            "quadrant": "SK",
+            "question": "terpaku melihat orang-orang atau kendaraan yang bergerak aktif di dalam ruangan"
+          },
+          {
+            "id": "q-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)"
+          },
+          {
+            "id": "q-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "question": "menabrak atau tersandung barang yang berada langsung di jalur pandang jalannya"
+          },
+          {
+            "id": "q-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "question": "senang memandang pantulan cermin, kilauan lampu senter, atau animasi gadget secara berulang"
+          }
         ]
       },
       {
         "sectionId": "sec-tactile",
-        "title": "Pemrosesan SENTUHAN",
+        "title": "Pemrosesan SENTUHAN / TAKTIL",
         "leadText": "Anakku ...",
         "questions": [
-          { "id": "q-16", "itemNo": 16, "quadrant": "SN", "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak atau menangis saat memotong kuku, mencuci rambut, membasuh wajah)" },
-          { "id": "q-17", "itemNo": 17, "quadrant": "AV", "question": "menjadi rewel ketika mengenakan sepatu atau kaos kaki tertentu" },
-          { "id": "q-18", "itemNo": 18, "quadrant": "AV", "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir, atau karpet bertekstur" },
-          { "id": "q-19", "itemNo": 19, "quadrant": "SK", "question": "menyentuh orang atau benda secara berlebihan hingga mengganggu orang lain" },
-          { "id": "q-20", "itemNo": 20, "quadrant": "RG", "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya" }
+          {
+            "id": "q-19",
+            "itemNo": 19,
+            "quadrant": "SN",
+            "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak potong kuku, keramas, cuci muka)"
+          },
+          {
+            "id": "q-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "question": "menjadi rewel ketika mengenakan sepatu, label baju kasar, atau kaos kaki berjahitan tebal"
+          },
+          {
+            "id": "q-21",
+            "itemNo": 21,
+            "quadrant": "AV",
+            "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir basah, atau karpet bertekstur"
+          },
+          {
+            "id": "q-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "question": "menyentuh orang atau meraba permukaan benda secara berlebihan hingga mengganggu orang lain"
+          },
+          {
+            "id": "q-23",
+            "itemNo": 23,
+            "quadrant": "RG",
+            "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya"
+          },
+          {
+            "id": "q-24",
+            "itemNo": 24,
+            "quadrant": "AV",
+            "question": "menarik diri atau cemas saat disentuh secara tiba-tiba atau saat dipeluk orang lain"
+          },
+          {
+            "id": "q-25",
+            "itemNo": 25,
+            "quadrant": "SK",
+            "question": "senang mengelus bahan selimut berbulu, permukaan kasar, atau mengusap permukaan dingin"
+          },
+          {
+            "id": "q-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "question": "bereaksi berlebihan atau menangis keras terhadap luka goresan kecil yang tidak berdarah"
+          },
+          {
+            "id": "q-27",
+            "itemNo": 27,
+            "quadrant": "RG",
+            "question": "tidak mengeluh sakit meskipun mengalami benturan atau memar yang cukup keras"
+          }
         ]
       },
       {
@@ -60,9 +202,60 @@
         "title": "Pemrosesan GERAKAN / VESTIBULAR",
         "leadText": "Anakku ...",
         "questions": [
-          { "id": "q-21", "itemNo": 21, "quadrant": "SK", "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)" },
-          { "id": "q-22", "itemNo": 22, "quadrant": "AV", "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)" },
-          { "id": "q-23", "itemNo": 23, "quadrant": "SN", "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian" }
+          {
+            "id": "q-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)"
+          },
+          {
+            "id": "q-29",
+            "itemNo": 29,
+            "quadrant": "AV",
+            "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)"
+          },
+          {
+            "id": "q-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian"
+          },
+          {
+            "id": "q-31",
+            "itemNo": 31,
+            "quadrant": "SK",
+            "question": "senang melakukan putaran tubuh berulang-ulang tanpa memperlihatkan rasa pusing"
+          },
+          {
+            "id": "q-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "question": "takut mencoba alat bermain bergerak di playground seperti ayunan tinggi atau jungkat-jungkit"
+          },
+          {
+            "id": "q-33",
+            "itemNo": 33,
+            "quadrant": "RG",
+            "question": "tampak lamban dan pasif bergerak dibandingkan anak-anak sebayanya"
+          },
+          {
+            "id": "q-34",
+            "itemNo": 34,
+            "quadrant": "SK",
+            "question": "mengambil risiko fisik berbahaya seperti melompat dari perabotan tinggi tanpa perhitungan"
+          },
+          {
+            "id": "q-35",
+            "itemNo": 35,
+            "quadrant": "AV",
+            "question": "mencengkeram pegangan tangga atau memegang tangan pendamping dengan sangat erat saat menuruni tangga"
+          },
+          {
+            "id": "q-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "question": "mudah panik dan kehilangan orientasi tubuh saat posisi kepala berubah cepat ke belakang"
+          }
         ]
       },
       {
@@ -70,19 +263,194 @@
         "title": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
         "leadText": "Anakku ...",
         "questions": [
-          { "id": "q-24", "itemNo": 24, "quadrant": "RG", "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan" },
-          { "id": "q-25", "itemNo": 25, "quadrant": "SK", "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja" },
-          { "id": "q-26", "itemNo": 26, "quadrant": "RG", "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk" }
+          {
+            "id": "q-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan"
+          },
+          {
+            "id": "q-38",
+            "itemNo": 38,
+            "quadrant": "SK",
+            "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja"
+          },
+          {
+            "id": "q-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk"
+          },
+          {
+            "id": "q-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "question": "menggertakkan gigi, meremas mainan terlalu kuat hingga pecah, atau menghentakkan langkah kaki"
+          },
+          {
+            "id": "q-41",
+            "itemNo": 41,
+            "quadrant": "RG",
+            "question": "salah mengira tenaga yang dibutuhkan, menekan alat tulis terlalu pelan atau terlalu tembus kertas"
+          },
+          {
+            "id": "q-42",
+            "itemNo": 42,
+            "quadrant": "SK",
+            "question": "gemar menyelip di ruang sempit (di balik sofa, bawah kasur, atau di antara tumpukan bantal)"
+          },
+          {
+            "id": "q-43",
+            "itemNo": 43,
+            "quadrant": "RG",
+            "question": "kesulitan meniru gerakan atau pose fisik sederhana tanpa panduan sentuhan langsung"
+          },
+          {
+            "id": "q-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "question": "suka membantu mengangkat atau menyeret beban berat (seperti gallon air, tas berat, kardus)"
+          },
+          {
+            "id": "q-45",
+            "itemNo": 45,
+            "quadrant": "RG",
+            "question": "sering tersandung kakinya sendiri atau tampak goyah saat berjalan di permukaan datar"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-oral",
+        "title": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+        "leadText": "Anakku ...",
+        "questions": [
+          {
+            "id": "q-46",
+            "itemNo": 46,
+            "quadrant": "AV",
+            "question": "pemilih makanan ekstrem (picky eater), menolak makanan dengan tekstur lembek, berserat, atau bercampur"
+          },
+          {
+            "id": "q-47",
+            "itemNo": 47,
+            "quadrant": "SK",
+            "question": "memasukkan benda bukan makanan ke mulut (menggigit kerah baju, pensil, jari tangan, atau mainan)"
+          },
+          {
+            "id": "q-48",
+            "itemNo": 48,
+            "quadrant": "SN",
+            "question": "mudah tersedak atau muntah (gagging) saat mencoba menu makanan dengan konsistensi baru"
+          },
+          {
+            "id": "q-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "question": "mengunyah makanan di satu sisi mulut saja atau menumpuk makanan di pipi (pocketing) tanpa menelan"
+          },
+          {
+            "id": "q-50",
+            "itemNo": 50,
+            "quadrant": "SK",
+            "question": "sangat menyukai makanan yang memiliki rasa tajam (sangat pedas, asam kuat, sangat gurih asin, atau es batu)"
+          },
+          {
+            "id": "q-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "question": "menolak sikat gigi atau mengeluh sakit terhadap sensasi busa dan rasa pasta gigi"
+          },
+          {
+            "id": "q-52",
+            "itemNo": 52,
+            "quadrant": "RG",
+            "question": "sering meneteskan air liur (drooling) di luar masa pertumbuhan gigi susu"
+          },
+          {
+            "id": "q-53",
+            "itemNo": 53,
+            "quadrant": "SK",
+            "question": "suka membuat bunyi decak lidah, meniup bibir hingga berbusa, atau mengunyah es batu berulang kali"
+          },
+          {
+            "id": "q-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "question": "menolak makan bila jenis makanan yang berbeda bersentuhan satu sama lain di piring"
+          }
         ]
       },
       {
         "sectionId": "sec-behavior",
-        "title": "Pemrosesan PERILAKU & REGULASI SOSIAL-EMOSI",
+        "title": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
         "leadText": "Anakku ...",
         "questions": [
-          { "id": "q-27", "itemNo": 27, "quadrant": "AV", "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan" },
-          { "id": "q-28", "itemNo": 28, "quadrant": "SN", "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa atau marah" },
-          { "id": "q-29", "itemNo": 29, "quadrant": "AV", "question": "enggan melakukan kontak mata selama percakapan berlangsung" }
+          {
+            "id": "q-55",
+            "itemNo": 55,
+            "quadrant": "AV",
+            "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan"
+          },
+          {
+            "id": "q-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa, takut, atau marah"
+          },
+          {
+            "id": "q-57",
+            "itemNo": 57,
+            "quadrant": "AV",
+            "question": "enggan melakukan kontak mata selama percakapan berlangsung"
+          },
+          {
+            "id": "q-58",
+            "itemNo": 58,
+            "quadrant": "SN",
+            "question": "mudah kewalahan (sensory overload) dan rewel di tempat ramai seperti pusat perbelanjaan atau pesta"
+          },
+          {
+            "id": "q-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "question": "tampak melamun atau lamban menyadari bahwa orang di sekitarnya sedang berinteraksi dengannya"
+          },
+          {
+            "id": "q-60",
+            "itemNo": 60,
+            "quadrant": "SK",
+            "question": "bertindak impulsif dan kesulitan menunggu giliran saat bermain bersama"
+          },
+          {
+            "id": "q-61",
+            "itemNo": 61,
+            "quadrant": "AV",
+            "question": "menolak mencoba aktivitas atau permainan baru yang belum pernah dilihat sebelumnya"
+          },
+          {
+            "id": "q-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "question": "suasana hati mudah berubah drastis tanpa pemicu yang tampak jelas oleh keluarga"
+          },
+          {
+            "id": "q-63",
+            "itemNo": 63,
+            "quadrant": "SK",
+            "question": "mencari kontak fisik berlebih (memeluk orang asing secara erat tanpa batasan sosial)"
+          },
+          {
+            "id": "q-64",
+            "itemNo": 64,
+            "quadrant": "RG",
+            "question": "memerlukan instruksi dipanggil berulang kali untuk menyadari bahwa dirinya diajak bicara"
+          },
+          {
+            "id": "q-65",
+            "itemNo": 65,
+            "quadrant": "AV",
+            "question": "memilih mengisolasi diri ke tempat sepi saat suara atau suasana rumah mulai ramai"
+          }
         ]
       }
     ]
@@ -94,41 +462,195 @@
     "standardTitle": "School Companion Profile",
     "author": "Therapedia Clinical Team & Winnie Dunn Framework",
     "scoringKey": {
-      "5": "Hampir selalu (90% atau lebih setiap waktu)",
-      "4": "Selalu / Sering (75% setiap waktu)",
-      "3": "Sebagian waktu / Kadang (50% setiap waktu)",
-      "2": "Terkadang / Jarang (25% setiap waktu)",
+      "0": "Tidak mengobservasi / Tidak berlaku di kelas",
       "1": "Hampir tidak pernah (10% setiap waktu)",
-      "0": "Tidak mengobservasi / Tidak berlaku di kelas"
+      "2": "Terkadang / Jarang (25% setiap waktu)",
+      "3": "Sebagian waktu / Kadang (50% setiap waktu)",
+      "4": "Selalu / Sering (75% setiap waktu)",
+      "5": "Hampir selalu (90% atau lebih setiap waktu)"
     },
     "sections": [
       {
         "sectionId": "sec-scp-attention",
-        "title": "Pemrosesan & ATENSI KELAS (Classroom Attention)",
+        "title": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
         "leadText": "Di dalam kelas, siswa ...",
         "questions": [
-          { "id": "q-scp-01", "itemNo": 1, "quadrant": "SN", "question": "mampu mempertahankan posisi duduk dan fokus selama 20-30 menit saat guru menjelaskan instruksi" },
-          { "id": "q-scp-02", "itemNo": 2, "quadrant": "AV", "question": "tampak gelisah dan sering menoleh saat ada siswa lain yang bergerak atau berbicara pelan di dekatnya" },
-          { "id": "q-scp-03", "itemNo": 3, "quadrant": "SK", "question": "meninggalkan tempat duduk tanpa izin atau berkeliling kelas saat proses belajar mengajar berlangsung" }
+          {
+            "id": "q-scp-01",
+            "itemNo": 1,
+            "quadrant": "SN",
+            "question": "mampu mempertahankan posisi duduk dan fokus selama 20-30 menit saat guru menjelaskan instruksi"
+          },
+          {
+            "id": "q-scp-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "question": "tampak gelisah dan sering menoleh saat ada siswa lain yang bergerak atau berbicara pelan di dekatnya"
+          },
+          {
+            "id": "q-scp-03",
+            "itemNo": 3,
+            "quadrant": "SK",
+            "question": "meninggalkan tempat duduk tanpa izin atau berkeliling kelas saat proses belajar mengajar berlangsung"
+          },
+          {
+            "id": "q-scp-04",
+            "itemNo": 4,
+            "quadrant": "RG",
+            "question": "meletakkan kepala di atas meja atau menopang dagu dengan tangan karena tampak lesu saat pelajaran"
+          },
+          {
+            "id": "q-scp-05",
+            "itemNo": 5,
+            "quadrant": "SN",
+            "question": "perhatian mudah teralihkan oleh hiasan dinding, jendela kelas, atau suara orang di luar lorong"
+          },
+          {
+            "id": "q-scp-06",
+            "itemNo": 6,
+            "quadrant": "SK",
+            "question": "mengetuk-ngetukkan penggaris atau pensil ke meja secara ritmis saat mendengarkan penjelasan guru"
+          },
+          {
+            "id": "q-scp-07",
+            "itemNo": 7,
+            "quadrant": "RG",
+            "question": "tampak lambat memulai lembar kerja meskipun teman-temannya sudah mulai mengerjakan"
+          },
+          {
+            "id": "q-scp-08",
+            "itemNo": 8,
+            "quadrant": "AV",
+            "question": "gelisah dan menutup buku jika ada suara kipas angin atau pendingin ruangan (AC) yang berdengung"
+          },
+          {
+            "id": "q-scp-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "question": "bergoyang ke depan dan ke belakang di kursi saat mendengarkan cerita guru"
+          }
         ]
       },
       {
         "sectionId": "sec-scp-instruction",
-        "title": "PENGIKUTAN INSTRUKSI GURU (Teacher Instruction Following)",
+        "title": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
         "leadText": "Ketika guru memberi tugas ...",
         "questions": [
-          { "id": "q-scp-04", "itemNo": 4, "quadrant": "SN", "question": "mampu mengikuti instruksi 2-3 langkah secara berurutan tanpa perlu didorong secara fisik" },
-          { "id": "q-scp-05", "itemNo": 5, "quadrant": "RG", "question": "membutuhkan guru pembimbing khusus (shadow teacher) untuk memulai setiap langkah pengerjaan tugas" }
+          {
+            "id": "q-scp-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "question": "mampu mengikuti instruksi 2-3 langkah secara berurutan tanpa perlu didorong secara fisik"
+          },
+          {
+            "id": "q-scp-11",
+            "itemNo": 11,
+            "quadrant": "RG",
+            "question": "membutuhkan guru pembimbing khusus (shadow teacher) untuk memulai setiap langkah pengerjaan tugas"
+          },
+          {
+            "id": "q-scp-12",
+            "itemNo": 12,
+            "quadrant": "AV",
+            "question": "menolak beralih dari satu mata pelajaran ke mata pelajaran lain jika tugas sebelumnya belum selesai"
+          },
+          {
+            "id": "q-scp-13",
+            "itemNo": 13,
+            "quadrant": "SK",
+            "question": "terburu-buru mengerjakan tugas tanpa menyimak instruksi lengkap hingga terjadi banyak kesalahan"
+          },
+          {
+            "id": "q-scp-14",
+            "itemNo": 14,
+            "quadrant": "RG",
+            "question": "lupa menyiapkan buku atau peralatan belajar yang baru saja diminta guru"
+          },
+          {
+            "id": "q-scp-15",
+            "itemNo": 15,
+            "quadrant": "SN",
+            "question": "merasa cemas atau bingung ketika ada pergantian guru piket atau jadwal mendadak"
+          },
+          {
+            "id": "q-scp-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "question": "bereaksi menolak atau menangis saat diminta maju ke depan kelas untuk menjawab soal"
+          },
+          {
+            "id": "q-scp-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "question": "membutuhkan pemanggilan nama langsung dari jarak dekat agar menyadari instruksi kelas"
+          },
+          {
+            "id": "q-scp-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "question": "menyela pembicaraan guru saat sedang menerangkan materi kepada seluruh murid"
+          }
         ]
       },
       {
         "sectionId": "sec-scp-social",
-        "title": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization)",
+        "title": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
         "leadText": "Selama jam istirahat / bermain ...",
         "questions": [
-          { "id": "q-scp-06", "itemNo": 6, "quadrant": "SK", "question": "berinteraksi dan berbagi alat permainan secara kooperatif dengan teman sekelas" },
-          { "id": "q-scp-07", "itemNo": 7, "quadrant": "AV", "question": "mudah terpicu marah atau agresif jika gilirannya disela oleh teman bermain" },
-          { "id": "q-scp-08", "itemNo": 8, "quadrant": "RG", "question": "mengisolasi diri dan lebih memilih bermain sendirian di sudut area sekolah" }
+          {
+            "id": "q-scp-19",
+            "itemNo": 19,
+            "quadrant": "SK",
+            "question": "berinteraksi dan berbagi alat permainan secara kooperatif dengan teman sekelas"
+          },
+          {
+            "id": "q-scp-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "question": "mudah terpicu marah atau agresif jika gilirannya disela oleh teman bermain"
+          },
+          {
+            "id": "q-scp-21",
+            "itemNo": 21,
+            "quadrant": "RG",
+            "question": "mengisolasi diri dan lebih memilih bermain sendirian di sudut area sekolah"
+          },
+          {
+            "id": "q-scp-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "question": "bermain terlalu kasar (mendorong atau menubruk teman) tanpa berniat jahat"
+          },
+          {
+            "id": "q-scp-23",
+            "itemNo": 23,
+            "quadrant": "AV",
+            "question": "merasa tidak nyaman berada di tengah kerumunan siswa saat antre di kantin atau baris upacara"
+          },
+          {
+            "id": "q-scp-24",
+            "itemNo": 24,
+            "quadrant": "SN",
+            "question": "bereaksi emosional berlebihan saat kalah dalam permainan kelompok atau olahraga"
+          },
+          {
+            "id": "q-scp-25",
+            "itemNo": 25,
+            "quadrant": "RG",
+            "question": "tidak menyadari ajakan bermain dari teman sebaya kecuali ditepuk secara fisik"
+          },
+          {
+            "id": "q-scp-26",
+            "itemNo": 26,
+            "quadrant": "SK",
+            "question": "gemar mengejar teman atau berlari kencang tanpa memperhatikan batas area aman bermain"
+          },
+          {
+            "id": "q-scp-27",
+            "itemNo": 27,
+            "quadrant": "AV",
+            "question": "menolak bergabung dalam permainan olahraga tim seperti futsal atau lompat tali"
+          }
         ]
       },
       {
@@ -136,8 +658,60 @@
         "title": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
         "leadText": "Saat berada di meja belajar ...",
         "questions": [
-          { "id": "q-scp-09", "itemNo": 9, "quadrant": "RG", "question": "postur duduk membungkuk, menempel di meja, atau menopang kepala saat menulis" },
-          { "id": "q-scp-10", "itemNo": 10, "quadrant": "SN", "question": "pengelolaan alat tulis, buku, dan gunting rapi serta tidak mudah tercecer" }
+          {
+            "id": "q-scp-28",
+            "itemNo": 28,
+            "quadrant": "RG",
+            "question": "postur duduk membungkuk, menempel di meja, atau menopang kepala saat menulis"
+          },
+          {
+            "id": "q-scp-29",
+            "itemNo": 29,
+            "quadrant": "SN",
+            "question": "pengelolaan alat tulis, buku, dan gunting rapi serta tidak mudah tercecer"
+          },
+          {
+            "id": "q-scp-30",
+            "itemNo": 30,
+            "quadrant": "SK",
+            "question": "mematahkan ujung pensil atau krayon karena menekan terlalu kuat ke atas kertas"
+          },
+          {
+            "id": "q-scp-31",
+            "itemNo": 31,
+            "quadrant": "RG",
+            "question": "sering kehilangan penghapus, pensil, atau penggaris di kolong meja belajar"
+          },
+          {
+            "id": "q-scp-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "question": "mengeluh tangannya pegal atau sakit setelah menulis 2 hingga 3 kalimat pendek"
+          },
+          {
+            "id": "q-scp-33",
+            "itemNo": 33,
+            "quadrant": "SK",
+            "question": "meremas-remas lembar kertas atau memainkan staples saat sedang menunggu"
+          },
+          {
+            "id": "q-scp-34",
+            "itemNo": 34,
+            "quadrant": "RG",
+            "question": "buku tulis tampak kotor atau robek karena bekas hapusan yang berulang kali"
+          },
+          {
+            "id": "q-scp-35",
+            "itemNo": 35,
+            "quadrant": "SN",
+            "question": "terganggu jika letak pensil atau buku di mejanya sedikit bergeser"
+          },
+          {
+            "id": "q-scp-36",
+            "itemNo": 36,
+            "quadrant": "SK",
+            "question": "suka memutar kursi atau menggeser meja belajar saat jam pelajaran berlangsung"
+          }
         ]
       },
       {
@@ -145,35 +719,1577 @@
         "title": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
         "leadText": "Menghadapi lingkungan sekolah ...",
         "questions": [
-          { "id": "q-scp-11", "itemNo": 11, "quadrant": "AV", "question": "menutup telinga atau panik saat mendengar bel sekolah berbunyi keras atau suasana kantin yang riuh" },
-          { "id": "q-scp-12", "itemNo": 12, "quadrant": "AV", "question": "menolak memakai seragam sekolah dengan bahan tertentu atau merasa tercekik oleh kerah seragam" }
+          {
+            "id": "q-scp-37",
+            "itemNo": 37,
+            "quadrant": "AV",
+            "question": "menutup telinga atau panik saat mendengar bel sekolah berbunyi keras atau suara kantin riuh"
+          },
+          {
+            "id": "q-scp-38",
+            "itemNo": 38,
+            "quadrant": "AV",
+            "question": "menolak memakai seragam sekolah dengan bahan tertentu atau merasa tercekik oleh dasi"
+          },
+          {
+            "id": "q-scp-39",
+            "itemNo": 39,
+            "quadrant": "SN",
+            "question": "terganggu oleh aroma spidol whiteboard, cat lukis, atau cairan pembersih lantai"
+          },
+          {
+            "id": "q-scp-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "question": "senang menyentuh kain seragam teman atau mengusap dinding lorong sekolah"
+          },
+          {
+            "id": "q-scp-41",
+            "itemNo": 41,
+            "quadrant": "AV",
+            "question": "enggan masuk ke toilet sekolah karena merasa bau, gelap, atau suara bilas air bising"
+          },
+          {
+            "id": "q-scp-42",
+            "itemNo": 42,
+            "quadrant": "RG",
+            "question": "tidak menyadari celana seragamnya kotor setelah terjatuh di halaman rumput"
+          },
+          {
+            "id": "q-scp-43",
+            "itemNo": 43,
+            "quadrant": "SN",
+            "question": "menyipitkan mata atau mengeluh silau oleh lampu neon kelas atau cahaya luar jendela"
+          },
+          {
+            "id": "q-scp-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "question": "suka mencium aroma buku baru, penghapus wangi buah, atau lem kertas"
+          },
+          {
+            "id": "q-scp-45",
+            "itemNo": 45,
+            "quadrant": "AV",
+            "question": "menghindari berjalan di dekat speaker pengeras suara saat upacara bendera"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-scp-regulation",
+        "title": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
+        "leadText": "Ketika menghadapi dinamika kelas ...",
+        "questions": [
+          {
+            "id": "q-scp-46",
+            "itemNo": 46,
+            "quadrant": "SN",
+            "question": "mengalami ledakan emosi (meltdown) saat tugas yang diberikan dirasa terlalu sulit"
+          },
+          {
+            "id": "q-scp-47",
+            "itemNo": 47,
+            "quadrant": "AV",
+            "question": "membutuhkan sudut tenang (calming corner) untuk menenangkan diri setelah jam ramai"
+          },
+          {
+            "id": "q-scp-48",
+            "itemNo": 48,
+            "quadrant": "RG",
+            "question": "tampak apatis atau tidak bersemangat mengikuti kegiatan kelompok yang butuh kerja sama"
+          },
+          {
+            "id": "q-scp-49",
+            "itemNo": 49,
+            "quadrant": "SK",
+            "question": "tertawa terbahak-bahak atau bertingkah konyol berlebihan untuk menarik perhatian"
+          },
+          {
+            "id": "q-scp-50",
+            "itemNo": 50,
+            "quadrant": "SN",
+            "question": "mudah menangis jika mendapat koreksi atau teguran halus dari guru kelas"
+          },
+          {
+            "id": "q-scp-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "question": "menolak berbicara (mutisme selektif) dengan guru baru atau tamu sekolah"
+          },
+          {
+            "id": "q-scp-52",
+            "itemNo": 52,
+            "quadrant": "SK",
+            "question": "gelisah dan menggoyang tubuh saat mendengarkan pengumuman di auditorium"
+          },
+          {
+            "id": "q-scp-53",
+            "itemNo": 53,
+            "quadrant": "RG",
+            "question": "lambat mengembalikan fokus setelah waktu istirahat usai dan pelajaran dimulai"
+          },
+          {
+            "id": "q-scp-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "question": "cemas berlebihan saat ada simulasi bunyi alarm darurat sekolah berbunyi"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-scp-meal-toilet",
+        "title": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
+        "leadText": "Saat aktivitas makan dan kebersihan ...",
+        "questions": [
+          {
+            "id": "q-scp-55",
+            "itemNo": 55,
+            "quadrant": "SN",
+            "question": "mandiri dalam membuka kotak bekal makan siang, sendok, dan menghabiskan makanannya"
+          },
+          {
+            "id": "q-scp-56",
+            "itemNo": 56,
+            "quadrant": "AV",
+            "question": "menolak makan bekal jika tercampur lauknya atau tidak sesuai menu biasa"
+          },
+          {
+            "id": "q-scp-57",
+            "itemNo": 57,
+            "quadrant": "SK",
+            "question": "makan terburu-buru hingga makanan berceceran di atas meja dan baju seragam"
+          },
+          {
+            "id": "q-scp-58",
+            "itemNo": 58,
+            "quadrant": "RG",
+            "question": "lupa mencuci tangan sebelum makan atau setelah dari toilet sekolah"
+          },
+          {
+            "id": "q-scp-59",
+            "itemNo": 59,
+            "quadrant": "SN",
+            "question": "mampu merapikan dan mengancingkan celana seragam kembali setelah buang air"
+          },
+          {
+            "id": "q-scp-60",
+            "itemNo": 60,
+            "quadrant": "AV",
+            "question": "menahan buang air kecil sepanjang hari karena takut menggunakan toilet sekolah"
+          },
+          {
+            "id": "q-scp-61",
+            "itemNo": 61,
+            "quadrant": "RG",
+            "question": "tidak menyadari kancing kemeja seragamnya terpasang miring setelah pelajaran olahraga"
+          },
+          {
+            "id": "q-scp-62",
+            "itemNo": 62,
+            "quadrant": "SK",
+            "question": "suka menyiram air wastafel atau memainkan busa sabun cuci tangan berulang kali"
+          }
         ]
       }
     ]
   },
   {
     "id": "cat-003",
-    "categoryName": "Fine Motor & Visual Motor Integration",
+    "categoryName": "Fine Motor & Visual Motor Integration Profile",
     "domain": "Motor Planning & Coordination",
     "standardTitle": "Fine Motor & Handwriting Profile",
     "author": "Therapedia Clinical Occupational Therapy",
     "scoringKey": {
-      "5": "Mandiri penuh sesuai usia",
-      "4": "Mampu dengan dorongan verbal minimal",
-      "3": "Mampu separuh dengan bantuan berkala",
-      "2": "Membutuhkan bantuan fisik bertahap",
-      "1": "Sangat kesulitan / Menolak",
-      "0": "Belum terobservasi"
+      "0": "Belum terobservasi / Belum mampu",
+      "1": "Sangat kesulitan / Menolak aktivitas (10%)",
+      "2": "Membutuhkan bantuan fisik bertahap (25%)",
+      "3": "Mampu separuh dengan bantuan berkala (50%)",
+      "4": "Mampu dengan dorongan verbal minimal (75%)",
+      "5": "Mandiri penuh sesuai usia (90%+ konsisten)"
     },
     "sections": [
       {
         "sectionId": "sec-fm-grip",
-        "title": "PENGEMBANGAN GENGGAMAN PENSIL & KOORDINASI TANGAN",
+        "title": "Pola Genggaman Pensil & Manipulasi Tangan",
         "leadText": "Saat aktivitas motorik halus ...",
         "questions": [
-          { "id": "q-fm-01", "itemNo": 1, "quadrant": "SN", "question": "memegang pensil dengan pola dynamic tripod grip yang matang" },
-          { "id": "q-fm-02", "itemNo": 2, "quadrant": "RG", "question": "mampu menggunting kertas mengikuti garis lurus dan lengkung tanpa merobek kertas" },
-          { "id": "q-fm-03", "itemNo": 3, "quadrant": "AV", "question": "mandiri dalam mengancingkan kancing baju dan menarik ritsleting celana" }
+          {
+            "id": "q-fm-01",
+            "itemNo": 1,
+            "quadrant": "SN",
+            "question": "memegang pensil dengan pola dynamic tripod grip yang matang sesuai tahapan usianya"
+          },
+          {
+            "id": "q-fm-02",
+            "itemNo": 2,
+            "quadrant": "RG",
+            "question": "mampu mempertahankan genggaman pensil tanpa membuat ibu jari membungkus jari telunjuk kaku"
+          },
+          {
+            "id": "q-fm-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "question": "menggerakkan jari-jemari fleksibel saat menulis, bukan menggerakkan seluruh bahu lengan"
+          },
+          {
+            "id": "q-fm-04",
+            "itemNo": 4,
+            "quadrant": "SK",
+            "question": "memutar pensil dari ujung runcing ke ujung penghapus dengan satu tangan (in-hand rotation)"
+          },
+          {
+            "id": "q-fm-05",
+            "itemNo": 5,
+            "quadrant": "SK",
+            "question": "memindahkan manik-manik kecil dari telapak tangan ke ujung jari (palm-to-finger translation)"
+          },
+          {
+            "id": "q-fm-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "question": "mengambil benda kecil (seperti kancing atau beras) menggunakan ujung ibu jari dan telunjuk (pincer grasp)"
+          },
+          {
+            "id": "q-fm-07",
+            "itemNo": 7,
+            "quadrant": "RG",
+            "question": "tangan dominan (kanan/kiri) sudah konsisten dan tidak berganti-ganti tangan saat menulis"
+          },
+          {
+            "id": "q-fm-08",
+            "itemNo": 8,
+            "quadrant": "SN",
+            "question": "tangan pembantu menahan kertas dengan stabil di atas meja saat tangan aktif menulis"
+          },
+          {
+            "id": "q-fm-09",
+            "itemNo": 9,
+            "quadrant": "RG",
+            "question": "mampu meremas spons atau meremas plastisin dengan tenaga jari yang merata"
+          },
+          {
+            "id": "q-fm-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "question": "melepaskan genggaman koin secara presisi ke dalam celengan bermulut sempit"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-fm-bilateral",
+        "title": "Koordinasi Bilateral & Penggunaan Dua Tangan",
+        "leadText": "Saat tugas membutuhkan kedua tangan ...",
+        "questions": [
+          {
+            "id": "q-fm-11",
+            "itemNo": 11,
+            "quadrant": "SN",
+            "question": "membuka dan menutup tutup botol ulir dengan koordinasi kedua belah tangan"
+          },
+          {
+            "id": "q-fm-12",
+            "itemNo": 12,
+            "quadrant": "SN",
+            "question": "meronce manik-manik ke dalam benang tanpa menjatuhkan manik-manik"
+          },
+          {
+            "id": "q-fm-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "question": "menahan penggaris dengan satu tangan sambil menarik garis lurus dengan tangan lainnya"
+          },
+          {
+            "id": "q-fm-14",
+            "itemNo": 14,
+            "quadrant": "SK",
+            "question": "merobek kertas menjadi potongan simetris menggunakan kedua ibu jari dan telunjuk"
+          },
+          {
+            "id": "q-fm-15",
+            "itemNo": 15,
+            "quadrant": "SN",
+            "question": "melipat kertas menjadi dua bagian yang sejajar mengikuti garis lipatan"
+          },
+          {
+            "id": "q-fm-16",
+            "itemNo": 16,
+            "quadrant": "SK",
+            "question": "menyusun kepingan puzzle 24-48 potong dengan mengarahkan orientasi sudut kepingan"
+          },
+          {
+            "id": "q-fm-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "question": "memegang rautan dengan satu tangan dan memutar pensil dengan tangan yang lain"
+          },
+          {
+            "id": "q-fm-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "question": "merentangkan dan mengikat karet gelang pada silinder wadah mainan"
+          },
+          {
+            "id": "q-fm-19",
+            "itemNo": 19,
+            "quadrant": "AV",
+            "question": "membuka bungkus plastik kemasan biskuit dengan menarik kedua sisi berlawanan arah"
+          },
+          {
+            "id": "q-fm-20",
+            "itemNo": 20,
+            "quadrant": "SN",
+            "question": "menyusun menara balok kayu hingga 10 tingkat secara stabil tanpa roboh"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-fm-scissors",
+        "title": "Keterampilan Menggunting & Merakit",
+        "leadText": "Saat aktivitas prakarya dan menggunting ...",
+        "questions": [
+          {
+            "id": "q-fm-21",
+            "itemNo": 21,
+            "quadrant": "SN",
+            "question": "memegang gunting anak dengan posisi ibu jari di lubang atas dan membuka-menutup lancar"
+          },
+          {
+            "id": "q-fm-22",
+            "itemNo": 22,
+            "quadrant": "RG",
+            "question": "menggunting kertas mengikuti garis lurus sepanjang 15 cm tanpa melenceng"
+          },
+          {
+            "id": "q-fm-23",
+            "itemNo": 23,
+            "quadrant": "SN",
+            "question": "menggunting garis lengkung dan lingkaran dengan memutar kertas secara berkesinambungan"
+          },
+          {
+            "id": "q-fm-24",
+            "itemNo": 24,
+            "quadrant": "SN",
+            "question": "menggunting bentuk bersudut (segitiga, bujur sangkar) dengan rapi"
+          },
+          {
+            "id": "q-fm-25",
+            "itemNo": 25,
+            "quadrant": "RG",
+            "question": "mengoleskan lem stik secukupnya pada kertas tanpa meremas atau mengotori meja"
+          },
+          {
+            "id": "q-fm-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "question": "menempelkan potongan kertas tepat di dalam batas garis yang disediakan"
+          },
+          {
+            "id": "q-fm-27",
+            "itemNo": 27,
+            "quadrant": "SK",
+            "question": "merakit balok konstruksi sesuai kartu pola instruksi bertahap"
+          },
+          {
+            "id": "q-fm-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "question": "memotong adonan plastisin menggunakan pisau tumpul mainan dengan gerakan mengiris rapi"
+          },
+          {
+            "id": "q-fm-29",
+            "itemNo": 29,
+            "quadrant": "RG",
+            "question": "melubangi kertas menggunakan perforator satu lubang dengan tenaga jari mandiri"
+          },
+          {
+            "id": "q-fm-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "question": "merekatkan selotip dengan menarik dan memotongnya pada dispenser perekat"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-fm-vmi",
+        "title": "Integrasi Visual-Motor & Meniru Pola Tulisan",
+        "leadText": "Saat menyalin gambar dan menulis ...",
+        "questions": [
+          {
+            "id": "q-fm-31",
+            "itemNo": 31,
+            "quadrant": "SN",
+            "question": "meniru goresan garis vertikal, horizontal, dan lingkaran secara akurat sesuai model"
+          },
+          {
+            "id": "q-fm-32",
+            "itemNo": 32,
+            "quadrant": "SN",
+            "question": "meniru bentuk tanda tambah (+), garis silang (/ dan ), serta bujur sangkar"
+          },
+          {
+            "id": "q-fm-33",
+            "itemNo": 33,
+            "quadrant": "SN",
+            "question": "meniru bentuk segitiga dan tanda silang (X) secara proporsional"
+          },
+          {
+            "id": "q-fm-34",
+            "itemNo": 34,
+            "quadrant": "RG",
+            "question": "menyalin huruf kapital alfabet (A-Z) dengan urutan goresan garis yang benar"
+          },
+          {
+            "id": "q-fm-35",
+            "itemNo": 35,
+            "quadrant": "RG",
+            "question": "menyalin angka 1-20 tanpa mengalami rotasi arah atau terbalik (mirror writing)"
+          },
+          {
+            "id": "q-fm-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "question": "menulis nama panggilan sendiri dengan ukuran huruf proporsional dan jelas terbaca"
+          },
+          {
+            "id": "q-fm-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "question": "mempertahankan tulisan di atas garis buku tanpa melayang naik atau turun"
+          },
+          {
+            "id": "q-fm-38",
+            "itemNo": 38,
+            "quadrant": "RG",
+            "question": "menjaga spasi jarak yang konsisten antar kata yang ditulis"
+          },
+          {
+            "id": "q-fm-39",
+            "itemNo": 39,
+            "quadrant": "SN",
+            "question": "mewarnai bidang gambar berukuran sedang tanpa keluar melewati garis batas"
+          },
+          {
+            "id": "q-fm-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "question": "menyelesaikan permainan labirin garis sederhana tanpa menyentuh dinding rute"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-fm-adl",
+        "title": "Kemandirian Bina Diri / ADL Motorik Halus",
+        "leadText": "Saat melakukan aktivitas perawatan diri ...",
+        "questions": [
+          {
+            "id": "q-fm-41",
+            "itemNo": 41,
+            "quadrant": "AV",
+            "question": "membuka dan memasang kancing kemeja berukuran sedang secara mandiri"
+          },
+          {
+            "id": "q-fm-42",
+            "itemNo": 42,
+            "quadrant": "SN",
+            "question": "menyatukan pangkal ritsleting jaket dan menariknya ke atas (zipper engagement)"
+          },
+          {
+            "id": "q-fm-43",
+            "itemNo": 43,
+            "quadrant": "SN",
+            "question": "membuka dan merekatkan perekat velcro pada sepatu atau sandal"
+          },
+          {
+            "id": "q-fm-44",
+            "itemNo": 44,
+            "quadrant": "RG",
+            "question": "mengikat tali sepatu menjadi simpul pita yang terikat kuat"
+          },
+          {
+            "id": "q-fm-45",
+            "itemNo": 45,
+            "quadrant": "SN",
+            "question": "memegang sendok dan garpu dengan orientasi genggaman jari yang benar saat makan"
+          },
+          {
+            "id": "q-fm-46",
+            "itemNo": 46,
+            "quadrant": "SN",
+            "question": "menggunakan garpu untuk menusuk potongan buah tanpa menjatuhkannya"
+          },
+          {
+            "id": "q-fm-47",
+            "itemNo": 47,
+            "quadrant": "RG",
+            "question": "menuangkan air dari teko kecil ke dalam gelas tanpa tumpah"
+          },
+          {
+            "id": "q-fm-48",
+            "itemNo": 48,
+            "quadrant": "SK",
+            "question": "mengoleskan selai pada permukaan roti menggunakan pisau tumpul"
+          },
+          {
+            "id": "q-fm-49",
+            "itemNo": 49,
+            "quadrant": "SK",
+            "question": "membuka bungkus permen kecil atau membuka klip jepit kertas"
+          },
+          {
+            "id": "q-fm-50",
+            "itemNo": 50,
+            "quadrant": "RG",
+            "question": "memeras air dari kain lap kecil basah dengan kekuatan perasan kedua tangan"
+          },
+          {
+            "id": "q-fm-51",
+            "itemNo": 51,
+            "quadrant": "SN",
+            "question": "memutar keran air putar dan menutupnya kembali hingga rapat"
+          },
+          {
+            "id": "q-fm-52",
+            "itemNo": 52,
+            "quadrant": "SN",
+            "question": "menusukkan sedotan minuman ke lubang kemasan kotak susu"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-fm-strength",
+        "title": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
+        "leadText": "Dalam hal kekuatan dan stamina tangan ...",
+        "questions": [
+          {
+            "id": "q-fm-53",
+            "itemNo": 53,
+            "quadrant": "RG",
+            "question": "mampu menulis terus menerus selama 10 menit tanpa mengeluh jari pegal atau kram"
+          },
+          {
+            "id": "q-fm-54",
+            "itemNo": 54,
+            "quadrant": "RG",
+            "question": "memiliki kekuatan remasan tangan (grip strength) yang sesuai dengan standar usianya"
+          },
+          {
+            "id": "q-fm-55",
+            "itemNo": 55,
+            "quadrant": "SN",
+            "question": "lengkungan telapak tangan (palmar arches) terbentuk baik saat memegang bola tenis"
+          },
+          {
+            "id": "q-fm-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "question": "mampu memisahkan gerakan sisi ibu jari dari sisi kelingking saat bekerja"
+          },
+          {
+            "id": "q-fm-57",
+            "itemNo": 57,
+            "quadrant": "SK",
+            "question": "mampu mengetukkan ujung setiap jari secara bergantian ke ibu jari (finger opposition)"
+          },
+          {
+            "id": "q-fm-58",
+            "itemNo": 58,
+            "quadrant": "SK",
+            "question": "menekan tombol tuts alat musik atau keyboard dengan setiap jari secara individual"
+          },
+          {
+            "id": "q-fm-59",
+            "itemNo": 59,
+            "quadrant": "SN",
+            "question": "mampu menggerakkan ibu jari membentuk putaran sirkumduksi tanpa hambatan"
+          },
+          {
+            "id": "q-fm-60",
+            "itemNo": 60,
+            "quadrant": "RG",
+            "question": "mempertahankan pergelangan tangan sedikit terangkat (ekstensi) saat menulis"
+          },
+          {
+            "id": "q-fm-61",
+            "itemNo": 61,
+            "quadrant": "SK",
+            "question": "menekan tuas botol semprotan spray air menggunakan jari telunjuk mandiri"
+          },
+          {
+            "id": "q-fm-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "question": "menjepitkan penjepit jemuran plastik dengan ibu jari dan jari telunjuk"
+          },
+          {
+            "id": "q-fm-63",
+            "itemNo": 63,
+            "quadrant": "RG",
+            "question": "tidak memperlihatkan tremor atau gemetar halus saat mengarahkan pensil ke titik kecil"
+          },
+          {
+            "id": "q-fm-64",
+            "itemNo": 64,
+            "quadrant": "SK",
+            "question": "mampu meremas playdough atau terapi putty resistensi sedang selama 5 menit"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat-004",
+    "categoryName": "Speech, Language & Social Communication Profile",
+    "domain": "Speech, Language & Pragmatic Communication",
+    "standardTitle": "Pediatric Communication & Pragmatic Language Profile",
+    "author": "Clinical Speech-Language Pathology Division",
+    "scoringKey": {
+      "0": "Tidak teramati / Tidak berlaku",
+      "1": "Hampir tidak pernah (10% waktu)",
+      "2": "Jarang / Terkadang (25% waktu)",
+      "3": "Sebagian waktu / Kadang (50% waktu)",
+      "4": "Sering / Konsisten (75% waktu)",
+      "5": "Hampir selalu (90%+ waktu)"
+    },
+    "sections": [
+      {
+        "sectionId": "sec-receptive",
+        "title": "Pemahaman Bahasa (Bahasa Reseptif)",
+        "leadText": "Ketika diajak berkomunikasi, anak ...",
+        "questions": [
+          {
+            "id": "sp-01",
+            "itemNo": 1,
+            "quadrant": "RG",
+            "question": "merespons ketika namanya dipanggil dari jarak wajar tanpa perlu kontak fisik",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-02",
+            "itemNo": 2,
+            "quadrant": "RG",
+            "question": "memahami dan menjalankan instruksi bertahap (misal: 'ambil sepatu lalu taruh di rak')",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-03",
+            "itemNo": 3,
+            "quadrant": "AV",
+            "question": "tampak bingung atau kewalahan saat diberikan instruksi verbal yang panjang atau cepat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-04",
+            "itemNo": 4,
+            "quadrant": "RG",
+            "question": "mampu menunjuk gambar atau objek benda sehari-hari yang disebutkan dengan tepat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-05",
+            "itemNo": 5,
+            "quadrant": "SN",
+            "question": "mudah terdistraksi oleh pembicaraan orang lain di sekitarnya saat sedang mendengarkan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-06",
+            "itemNo": 6,
+            "quadrant": "RG",
+            "question": "memahami konsep kata tanya dasar (apa, siapa, di mana, kenapa)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-07",
+            "itemNo": 7,
+            "quadrant": "RG",
+            "question": "memahami konsep kata sifat dan posisi spasial (di atas, di bawah, di dalam, besar, kecil)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-08",
+            "itemNo": 8,
+            "quadrant": "AV",
+            "question": "menghindar atau mengalihkan perhatian saat diajak mendengarkan cerita buku bergambar",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-09",
+            "itemNo": 9,
+            "quadrant": "RG",
+            "question": "mampu mengingat urutan cerita sederhana yang baru saja diceritakan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-10",
+            "itemNo": 10,
+            "quadrant": "RG",
+            "question": "memahami bahasa tubuh, gestur tangan, atau ekspresi wajah lawan bicara",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-expressive",
+        "title": "Pengekspresian Bahasa & Kosakata (Bahasa Ekspresif)",
+        "leadText": "Dalam menyampaikan keinginan atau pendapat, anak ...",
+        "questions": [
+          {
+            "id": "sp-11",
+            "itemNo": 11,
+            "quadrant": "SK",
+            "question": "menggunakan kalimat lengkap minimal 3-4 kata untuk mengekspresikan ide atau kebutuhannya",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-12",
+            "itemNo": 12,
+            "quadrant": "RG",
+            "question": "mampu menyebutkan nama-nama anggota keluarga, teman, atau benda favorit dengan benar",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-13",
+            "itemNo": 13,
+            "quadrant": "AV",
+            "question": "mengalami kesulitan menemukan kata yang tepat (sering menggunakan 'anu', 'itu', atau menunjuk)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-14",
+            "itemNo": 14,
+            "quadrant": "SK",
+            "question": "berinisiatif memulai percakapan atau menceritakan peristiwa yang dialaminya hari ini",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-15",
+            "itemNo": 15,
+            "quadrant": "RG",
+            "question": "menggunakan kata ganti orang ('saya', 'kamu', 'dia', 'mereka') secara tepat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-16",
+            "itemNo": 16,
+            "quadrant": "SK",
+            "question": "mengajukan pertanyaan spontan ('kenapa?', 'lagi apa?', 'kapan?') untuk mencari tahu",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-17",
+            "itemNo": 17,
+            "quadrant": "AV",
+            "question": "mengulang kata-kata yang baru didengar secara persisten (ekolalia) tanpa konteks jelas",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "question": "menggunakan kata penghubung ('dan', 'karena', 'tetapi') untuk merangkai kalimat majemuk",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-19",
+            "itemNo": 19,
+            "quadrant": "RG",
+            "question": "mampu menceritakan kembali alur kejadian kartun atau buku yang disukainya",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-20",
+            "itemNo": 20,
+            "quadrant": "RG",
+            "question": "mampu mengekspresikan rasa emosi (senang, sedih, takut, marah) lewat kata-kata secara verbal",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-pragmatic",
+        "title": "Pragmatik & Interaksi Sosial (Bahasa Sosial)",
+        "leadText": "Ketika berinteraksi dengan orang lain, anak ...",
+        "questions": [
+          {
+            "id": "sp-21",
+            "itemNo": 21,
+            "quadrant": "RG",
+            "question": "mempertahankan kontak mata secara wajar dan nyaman selama percakapan berlangsung",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-22",
+            "itemNo": 22,
+            "quadrant": "AV",
+            "question": "bergantian berbicara (turn-taking) tanpa memotong pembicaraan orang lain secara tiba-tiba",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-23",
+            "itemNo": 23,
+            "quadrant": "SN",
+            "question": "peka terhadap nada bicara orang lain (bisa membedakan candaan, pujian, atau teguran)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-24",
+            "itemNo": 24,
+            "quadrant": "SK",
+            "question": "mendekati teman sebaya dan mengajak bermain atau mengobrol secara spontan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-25",
+            "itemNo": 25,
+            "quadrant": "AV",
+            "question": "menjaga topik pembicaraan tetap relevan dengan tema yang sedang dibahas bersama",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-26",
+            "itemNo": 26,
+            "quadrant": "RG",
+            "question": "mengucapkan salam, kata tolong, terima kasih, atau permisi tanpa harus selalu diingatkan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-27",
+            "itemNo": 27,
+            "quadrant": "AV",
+            "question": "memperhatikan jarak personal fisik (personal space) agar tidak terlalu menempel ke lawan bicara",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-28",
+            "itemNo": 28,
+            "quadrant": "RG",
+            "question": "menunjukkan empati verbal jika melihat teman atau orang tua merasa sedih atau terluka",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-29",
+            "itemNo": 29,
+            "quadrant": "SN",
+            "question": "menyesuaikan volume suaranya sesuai situasi (misal mengecilkan suara di perpustakaan)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-30",
+            "itemNo": 30,
+            "quadrant": "AV",
+            "question": "mampu meminta klarifikasi ('maksudnya apa?') jika tidak memahami apa yang diucapkan lawan bicara",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-articulation",
+        "title": "Artikulasi, Kejelasan & Fonologi",
+        "leadText": "Dalam kejelasan pengucapan kata dan suara, anak ...",
+        "questions": [
+          {
+            "id": "sp-31",
+            "itemNo": 31,
+            "quadrant": "RG",
+            "question": "ucapannya dapat dipahami dengan mudah oleh orang asing / yang belum terbiasa mendengar",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "question": "mengalami distorsi atau penggantian huruf konsonan tertentu (misal: 'r' menjadi 'l' atau 'k' menjadi 't')",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-33",
+            "itemNo": 33,
+            "quadrant": "SN",
+            "question": "terdengar sengau (hipernasalitas) atau tertahan saat mengucapkan kata-kata biasa",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-34",
+            "itemNo": 34,
+            "quadrant": "RG",
+            "question": "mampu mengucapkan kata majemuk bersuku kata banyak (misal: 'helikopter', 'perpustakaan')",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-35",
+            "itemNo": 35,
+            "quadrant": "AV",
+            "question": "mengalami pengulangan suku kata awal atau tersendat-sendat (gagap) saat mulai berbicara",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "question": "berbicara dengan laju kecepatan bicara yang terlalu cepat (cluttering) sehingga kurang jelas",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "question": "mampu meniru variasi intonasi suara, pitch tinggi-rendah, atau melodi lagu anak-anak",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-38",
+            "itemNo": 38,
+            "quadrant": "AV",
+            "question": "menghilangkan suku kata akhir pada kata-kata yang diucapkan (misal 'mak' untuk 'makan')",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "question": "dapat mengontrol pernapasan saat berbicara panjang tanpa kehabisan napas di tengah kalimat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-40",
+            "itemNo": 40,
+            "quadrant": "RG",
+            "question": "otot bibir dan lidah bergerak fleksibel saat diminta meniru gerakan mulut tertentu",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-nonverbal",
+        "title": "Komunikasi Non-Verbal & Isyarat",
+        "leadText": "Dalam memanfaatkan bahasa tubuh dan ekspresi, anak ...",
+        "questions": [
+          {
+            "id": "sp-41",
+            "itemNo": 41,
+            "quadrant": "SK",
+            "question": "menggunakan telunjuk untuk menunjuk objek yang menarik perhatiannya (pointing to share interest)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-42",
+            "itemNo": 42,
+            "quadrant": "RG",
+            "question": "menggelengkan kepala untuk 'tidak' dan mengangguk untuk 'ya' secara mandiri",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-43",
+            "itemNo": 43,
+            "quadrant": "SK",
+            "question": "menggunakan lambaian tangan untuk menyapa 'halo' atau 'dadah' secara spontan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-44",
+            "itemNo": 44,
+            "quadrant": "RG",
+            "question": "menunjukkan ekspresi wajah yang sesuai dengan emosi (tersenyum bahagia, cemberut, terkejut)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-45",
+            "itemNo": 45,
+            "quadrant": "AV",
+            "question": "menarik tangan orang dewasa untuk mengambil benda tanpa ada kontak mata atau vokalisasi",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-46",
+            "itemNo": 46,
+            "quadrant": "SK",
+            "question": "membagikan objek atau memperlihatkan hasil karyanya kepada orang tua dengan bangga",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-47",
+            "itemNo": 47,
+            "quadrant": "RG",
+            "question": "memahami arti tanda simbolik visual (misal: telunjuk di bibir untuk meminta diam)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-48",
+            "itemNo": 48,
+            "quadrant": "SK",
+            "question": "menggunakan gestur deskriptif (misal merentangkan tangan untuk 'besar' atau merunduk)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "question": "mengikuti arah pandangan mata orang lain (joint attention) ketika ditunjukkan sesuatu",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-50",
+            "itemNo": 50,
+            "quadrant": "RG",
+            "question": "merespons senyuman sosial yang diberikan oleh orang tua atau pengasuh terdekat",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-speech-regulation",
+        "title": "Regulasi Suara, Vokalisasi & Perilaku Bicara",
+        "leadText": "Dalam mengontrol suara dan kelancaran interaksi, anak ...",
+        "questions": [
+          {
+            "id": "sp-51",
+            "itemNo": 51,
+            "quadrant": "SK",
+            "question": "membuat suara-suara berulang atau bersenandung keras saat sedang berkonsentrasi",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-52",
+            "itemNo": 52,
+            "quadrant": "AV",
+            "question": "menolak berbicara (selektif mutisme) saat berada di tempat umum atau bertemu orang baru",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-53",
+            "itemNo": 53,
+            "quadrant": "SN",
+            "question": "berbicara dengan nada monoton atau datar seperti robot tanpa modulasi emosional",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-54",
+            "itemNo": 54,
+            "quadrant": "SK",
+            "question": "berbicara terus menerus tanpa henti mengenai satu topik minat khususnya (hyper-focused)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-55",
+            "itemNo": 55,
+            "quadrant": "RG",
+            "question": "mampu menenangkan diri dan memperlambat ucapan ketika diminta secara lembut",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "question": "berteriak spontan ketika merasa frustrasi karena tidak dapat menyampaikan keinginannya",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-57",
+            "itemNo": 57,
+            "quadrant": "SK",
+            "question": "meniru dialog film kartun atau jingle iklan secara berulang-ulang dalam aktivitas bermain",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-58",
+            "itemNo": 58,
+            "quadrant": "AV",
+            "question": "merasa cemas atau menarik diri jika diminta berbicara di depan sekelompok orang",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "question": "mampu menyampaikan permohonan bantuan secara tenang ketika menghadapi kesulitan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "sp-60",
+            "itemNo": 60,
+            "quadrant": "RG",
+            "question": "memperlihatkan antusiasme positif untuk terus berkomunikasi dan memperluas kosakata",
+            "type": "scale_0_5"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat-005",
+    "categoryName": "Activities of Daily Living (ADL) & Pediatric Independence Profile",
+    "domain": "Occupational Therapy & Functional Independence (ADL)",
+    "standardTitle": "Pediatric ADL & Self-Care Competency Inventory",
+    "author": "Pediatric Occupational Therapy ADL Division",
+    "scoringKey": {
+      "0": "Tidak teramati / Belum dapat diterapkan",
+      "1": "Ketergantungan penuh / Membutuhkan bantuan total",
+      "2": "Bantuan maksimal (terapis/orang tua melakukan 75%)",
+      "3": "Bantuan sedang (50% mandiri, 50% bantuan)",
+      "4": "Bantuan minimal atau supervisi verbal ringan",
+      "5": "Mandiri penuh secara konsisten & aman"
+    },
+    "sections": [
+      {
+        "sectionId": "sec-feeding",
+        "title": "Keterampilan Makan & Minum (Feeding ADL)",
+        "leadText": "Dalam aktivitas makan dan minum, anak ...",
+        "questions": [
+          {
+            "id": "adl-01",
+            "itemNo": 1,
+            "quadrant": "RG",
+            "question": "menggunakan sendok dan garpu dengan orientasi genggaman yang tepat ke arah mulut",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "question": "menolak tekstur makanan tertentu (misal lembek, renyah, berlendir, atau berkuah campur)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-03",
+            "itemNo": 3,
+            "quadrant": "RG",
+            "question": "minum dari gelas terbuka tanpa menumpahkan air secara berlebihan ke pakaian",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-04",
+            "itemNo": 4,
+            "quadrant": "SK",
+            "question": "makan dengan tergesa-gesa atau memasukkan porsi makanan terlalu banyak ke mulut (stuffing)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-05",
+            "itemNo": 5,
+            "quadrant": "RG",
+            "question": "mampu menggunakan sedotan dengan kekuatan sedotan oral motor yang adekuat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-06",
+            "itemNo": 6,
+            "quadrant": "RG",
+            "question": "membuka kemasan makanan ringan, botol minum, atau kotak bekal secara mandiri",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-07",
+            "itemNo": 7,
+            "quadrant": "SN",
+            "question": "menolak makanan jika suhunya sedikit hangat atau dingin, atau terlalu sensitif rasa bumbu",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-08",
+            "itemNo": 8,
+            "quadrant": "RG",
+            "question": "duduk tegak di meja makan selama durasi makan tanpa merosot atau sering beranjak",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-09",
+            "itemNo": 9,
+            "quadrant": "RG",
+            "question": "mengusap mulut atau tangan dengan tisu/serbet saat kotor setelah selesai makan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-10",
+            "itemNo": 10,
+            "quadrant": "RG",
+            "question": "membawa piring atau tempat makan kosong ke tempat cuci piring setelah selesai",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-dressing",
+        "title": "Keterampilan Berpakaian (Dressing ADL)",
+        "leadText": "Dalam mengenakan atau melepas pakaian, anak ...",
+        "questions": [
+          {
+            "id": "adl-11",
+            "itemNo": 11,
+            "quadrant": "RG",
+            "question": "melepaskan pakaian santai (kaus, celana pendek) secara mandiri tanpa bantuan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-12",
+            "itemNo": 12,
+            "quadrant": "RG",
+            "question": "mengenakan kaus atau kemeja dengan orientasi bagian depan dan belakang yang tepat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "question": "memasukkan kedua kaki ke celana panjang dan menariknya naik sampai pinggang",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-14",
+            "itemNo": 14,
+            "quadrant": "RG",
+            "question": "mengancingkan dan membuka kancing kemeja ukuran sedang/besar secara mandiri",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-15",
+            "itemNo": 15,
+            "quadrant": "RG",
+            "question": "menarik ritsleting (zipper) celana atau jaket dari posisi terpasang di bawah",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "question": "menolak memakai pakaian dengan label baju (tag), jahitan kasar, atau kain tertentu",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "question": "mengenakan kaus kaki dengan memposisikan tumit kaus kaki pada tumit kakinya",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-18",
+            "itemNo": 18,
+            "quadrant": "RG",
+            "question": "memakai sepatu dengan mengenali sisi kanan dan sisi kiri secara akurat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-19",
+            "itemNo": 19,
+            "quadrant": "RG",
+            "question": "mengikat tali sepatu atau mengencangkan perekat velcro sepatu dengan kencang",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-20",
+            "itemNo": 20,
+            "quadrant": "RG",
+            "question": "memilih pakaian yang sesuai dengan cuaca atau acara yang akan dihadiri",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-hygiene",
+        "title": "Higiene Diri & Mandi (Personal Grooming)",
+        "leadText": "Dalam merawat kebersihan tubuh dan mandi, anak ...",
+        "questions": [
+          {
+            "id": "adl-21",
+            "itemNo": 21,
+            "quadrant": "RG",
+            "question": "mencuci tangan dengan sabun, menggosok sela-sela jari, dan membilas hingga bersih",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-22",
+            "itemNo": 22,
+            "quadrant": "RG",
+            "question": "mengeringkan tangan menggunakan handuk atau kain pengering sampai tuntas",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-23",
+            "itemNo": 23,
+            "quadrant": "AV",
+            "question": "menangis, berteriak, atau menolak keras saat keramas atau saat wajahnya terkena air",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-24",
+            "itemNo": 24,
+            "quadrant": "RG",
+            "question": "menyikat gigi dengan gerakan sikat yang mencakup seluruh permukaan gigi",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-25",
+            "itemNo": 25,
+            "quadrant": "RG",
+            "question": "berkumur dan membuang air kumur ke wastafel tanpa menelannya",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-26",
+            "itemNo": 26,
+            "quadrant": "AV",
+            "question": "menolak keras aktivitas potong kuku tangan atau kuku kaki",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-27",
+            "itemNo": 27,
+            "quadrant": "AV",
+            "question": "menolak dipotong rambut atau disisir karena merasa sakit pada kulit kepala",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-28",
+            "itemNo": 28,
+            "quadrant": "RG",
+            "question": "menggosokkan sabun mandi ke seluruh badan (lengan, dada, tungkai) secara merata",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-29",
+            "itemNo": 29,
+            "quadrant": "RG",
+            "question": "mengeringkan badan dengan handuk secara mandiri setelah selesai mandi",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-30",
+            "itemNo": 30,
+            "quadrant": "RG",
+            "question": "menggunakan sisir untuk merapikan rambut di depan cermin secara mandiri",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-toileting",
+        "title": "Kemandirian Toilet & Kontinensia (Toileting ADL)",
+        "leadText": "Dalam aktivitas buang air di toilet, anak ...",
+        "questions": [
+          {
+            "id": "adl-31",
+            "itemNo": 31,
+            "quadrant": "RG",
+            "question": "mampu merasakan kebutuhan buang air kecil (BAK) dan mengatakannya sebelum terlambat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-32",
+            "itemNo": 32,
+            "quadrant": "RG",
+            "question": "berjalan ke kamar mandi secara mandiri ketika merasakan dorongan buang air",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-33",
+            "itemNo": 33,
+            "quadrant": "RG",
+            "question": "menurunkan celana dan pakaian dalam sebelum duduk di atas kloset",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-34",
+            "itemNo": 34,
+            "quadrant": "RG",
+            "question": "duduk di kloset dengan tenang dan aman hingga selesai buang air",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-35",
+            "itemNo": 35,
+            "quadrant": "RG",
+            "question": "mampu membasuh atau menggunakan tisu toilet dengan arah yang benar dari depan ke belakang",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-36",
+            "itemNo": 36,
+            "quadrant": "RG",
+            "question": "menaikkan celana kembali dengan rapi setelah selesai dari kloset",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "question": "menekan tombol flush kloset untuk membersihkan kloset setelah digunakan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-38",
+            "itemNo": 38,
+            "quadrant": "SN",
+            "question": "takut atau terganggu oleh suara deru flush air kloset atau pengering tangan otomatis",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "question": "mencuci tangan secara otomatis setiap kali selesai menggunakan toilet",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-40",
+            "itemNo": 40,
+            "quadrant": "RG",
+            "question": "tetap kering (tidak mengompol) sepanjang malam saat tidur",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-organization",
+        "title": "Organisasi Diri & Manajemen Belajar (Executive ADL)",
+        "leadText": "Dalam mengorganisasi barang dan tugas harian, anak ...",
+        "questions": [
+          {
+            "id": "adl-41",
+            "itemNo": 41,
+            "quadrant": "RG",
+            "question": "merapikan mainan atau peralatan belajar kembali ke tempat penyimpanan semula",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-42",
+            "itemNo": 42,
+            "quadrant": "RG",
+            "question": "menyiapkan dan memasukkan buku pelajaran ke dalam ransel sesuai jadwal harian",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-43",
+            "itemNo": 43,
+            "quadrant": "AV",
+            "question": "sering kehilangan barang pribadi (misal botol minum, pensil, jaket, topi sekolah)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-44",
+            "itemNo": 44,
+            "quadrant": "RG",
+            "question": "menjaga meja belajar tetap rapi dan terbebas dari tumpukan barang yang tidak relevan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-45",
+            "itemNo": 45,
+            "quadrant": "RG",
+            "question": "mampu mengikuti rutinitas pagi (bangun, mandi, sarapan, berangkat) tanpa drama berulang",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-46",
+            "itemNo": 46,
+            "quadrant": "AV",
+            "question": "membutuhkan peringatan berulang-ulang dari orang tua untuk memulai tugas pekerjaan rumah",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-47",
+            "itemNo": 47,
+            "quadrant": "RG",
+            "question": "mampu memperkirakan waktu dan menyelesaikan tugas dalam batasan waktu yang wajar",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-48",
+            "itemNo": 48,
+            "quadrant": "SK",
+            "question": "sering berpindah dari satu aktivitas ke aktivitas lain sebelum aktivitas pertama terselesaikan",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "question": "memeriksa kembali isi tasnya sebelum tidur untuk memastikan tidak ada tugas yang tertinggal",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-50",
+            "itemNo": 50,
+            "quadrant": "RG",
+            "question": "memperlihatkan kepedulian terhadap kebersihan kamar tidur dan barang miliknya",
+            "type": "scale_0_5"
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-safety",
+        "title": "Kesadaran Bahaya & Keselamatan Diri (Safety ADL)",
+        "leadText": "Dalam menjaga keselamatan diri di lingkungan, anak ...",
+        "questions": [
+          {
+            "id": "adl-51",
+            "itemNo": 51,
+            "quadrant": "RG",
+            "question": "berhenti dan melihat ke kiri-kanan sebelum menyeberang jalan atau di area parkir",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-52",
+            "itemNo": 52,
+            "quadrant": "SK",
+            "question": "berlari menjauh dari orang tua secara tiba-tiba di tempat keramaian umum (mall/pasar)",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-53",
+            "itemNo": 53,
+            "quadrant": "RG",
+            "question": "memahami bahaya benda panas (kompor, setrika, panci panas) dan menjauhinya",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-54",
+            "itemNo": 54,
+            "quadrant": "RG",
+            "question": "memahami bahaya benda tajam (pisau, gunting besar, pecahan kaca) dan tidak memainkannya",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-55",
+            "itemNo": 55,
+            "quadrant": "RG",
+            "question": "memahami aturan untuk tidak menerima makanan atau pergi bersama orang asing",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-56",
+            "itemNo": 56,
+            "quadrant": "SK",
+            "question": "memanjat perabot tinggi atau pagar balkon dengan cara berbahaya tanpa takut jatuh",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-57",
+            "itemNo": 57,
+            "quadrant": "RG",
+            "question": "memakai helm saat mengendarai sepeda atau menggunakan sabuk pengaman di mobil",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-58",
+            "itemNo": 58,
+            "quadrant": "RG",
+            "question": "mampu menyebutkan nama lengkap dan nomor telepon darurat orang tua jika tersesat",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "question": "segera melapor kepada orang dewasa tepercaya ketika merasa tidak aman atau terancam",
+            "type": "scale_0_5"
+          },
+          {
+            "id": "adl-60",
+            "itemNo": 60,
+            "quadrant": "RG",
+            "question": "mampu mengikuti instruksi evakuasi darurat sederhana (misal saat latihan kebakaran)",
+            "type": "scale_0_5"
+          }
         ]
       }
     ]

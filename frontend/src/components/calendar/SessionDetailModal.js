@@ -287,12 +287,12 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
             </div>
 
             {/* 1. Activity Section */}
-            <div className="space-y-1.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <Label className="font-bold text-slate-800 flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-sky-600" /> 1. Activity Section (Aktivitas Sesi)
+            <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200/90">
+              <Label className="font-bold text-slate-800 flex items-center gap-2 text-xs">
+                <BookOpen className="w-4 h-4 text-sky-600" /> 1. Activity Section (Aktivitas Sesi)
               </Label>
               <Textarea
-                className="rounded-xl border-slate-200 bg-white text-xs min-h-[75px]"
+                className="rounded-xl border-slate-200 bg-white text-xs min-h-[85px] leading-relaxed p-3"
                 placeholder="Dokumentasi aktivitas klinis yang dilakukan bersama anak (stimulasi sensori, motor planning, latihan fokus)..."
                 value={activitySection}
                 onChange={(e) => setActivitySection(e.target.value)}
@@ -300,13 +300,13 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
             </div>
 
             {/* 2. Homework Section */}
-            <div className="space-y-1.5 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <Label className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Home className="w-3.5 h-3.5 text-emerald-600" /> 2. Homework Section (PR untuk Orang Tua)
+            <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200/90">
+              <Label className="font-bold text-slate-800 flex items-center gap-2 text-xs">
+                <Home className="w-4 h-4 text-emerald-600" /> 2. Homework Section (Aktivitas Rumah untuk Ortu)
               </Label>
               <Textarea
-                className="rounded-xl border-slate-200 bg-white text-xs min-h-[75px]"
-                placeholder="Instruksi stimulasi dan program latihan mandiri untuk orang tua di rumah..."
+                className="rounded-xl border-slate-200 bg-white text-xs min-h-[85px] leading-relaxed p-3"
+                placeholder="Panduan latihan mandiri yang dapat diterapkan orang tua di rumah agar stimulasi berkelanjutan..."
                 value={homeworkSection}
                 onChange={(e) => setHomeworkSection(e.target.value)}
               />
@@ -318,7 +318,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
             <div className="pt-4 border-t border-slate-200 space-y-4">
               {mode === "view" && (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-3">
                     <Button
                       variant="outline"
                       className="rounded-xl border-slate-200 font-bold text-xs h-10 hover:bg-slate-100"
@@ -344,7 +344,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                       <CheckCircle2 className="w-4 h-4" /> Tandai Selesai (Completed Sesi)
                     </Button>
                   ) : (
-                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 font-medium">
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-medium leading-relaxed">
                       🔒 <strong>Role Therapist:</strong> Anda dapat mengisi dan menyimpan laporan (Activity & Homework). Penyelesaian status sesi (Mark Completed) dilakukan secara resmi oleh <strong>Admin Schedule</strong>.
                     </div>
                   )}
@@ -353,15 +353,15 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
 
               {/* CANCEL MODE */}
               {mode === "cancel" && (
-                <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-200 space-y-3">
-                  <h4 className="font-extrabold text-sm text-rose-900 flex items-center gap-1.5">
+                <div className="p-4 sm:p-5 rounded-2xl bg-rose-50/70 border border-rose-200 space-y-3.5">
+                  <h4 className="font-extrabold text-sm text-rose-900 flex items-center gap-2">
                     <XCircle className="w-4 h-4 text-rose-600" /> Pembatalan Sesi & Aturan Kuota
                   </h4>
 
-                  <div className="space-y-1">
-                    <Label className="font-bold text-slate-700">Pilih Alasan Pembatalan *</Label>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700 text-xs">Pilih Alasan Pembatalan *</Label>
                     <Select value={cancelReason} onValueChange={setCancelReason}>
-                      <SelectTrigger className="rounded-xl border-slate-200 bg-white font-semibold h-9">
+                      <SelectTrigger className="rounded-xl border-slate-200 bg-white font-semibold h-10 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-slate-200">
@@ -374,18 +374,18 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     </Select>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label className="font-bold text-slate-700">Catatan Tambahan</Label>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700 text-xs">Catatan Tambahan</Label>
                     <Input
-                      className="rounded-xl border-slate-200 bg-white h-9 text-xs"
+                      className="rounded-xl border-slate-200 bg-white h-10 text-xs"
                       placeholder="e.g. Surat dokter terlampir via WA..."
                       value={cancelNote}
                       onChange={(e) => setCancelNote(e.target.value)}
                     />
                   </div>
 
-                  <div className="p-3 rounded-xl bg-white border border-rose-200 text-[11px] text-rose-900 space-y-1">
-                    <p className="font-bold">Ketentuan Kuota Pembatalan:</p>
+                  <div className="p-3.5 rounded-xl bg-white border border-rose-200 text-xs text-rose-900 space-y-1.5 leading-relaxed">
+                    <p className="font-bold text-slate-900">Ketentuan Kuota Pembatalan:</p>
                     <p>• Cancel ke-1, 2, dan 3: Kuota izin wajar, <strong>kredit sesi tetap utuh</strong>.</p>
                     <p>• Cancel ke-4 dst (&gt;3x): Sistem mengenakan penalti dan <strong>langsung memotong 1 kredit dari paket sesi ini</strong> ({targetPackage?.packageName || "Paket Sesi"}).</p>
                     <p className="font-bold text-slate-900 pt-1">
@@ -393,11 +393,11 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button variant="outline" className="rounded-xl text-xs flex-1" onClick={() => setMode("view")}>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <Button variant="outline" className="rounded-xl text-xs font-bold h-10 flex-1" onClick={() => setMode("view")}>
                       Batal
                     </Button>
-                    <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl flex-1" onClick={handleCancel}>
+                    <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl h-10 flex-1" onClick={handleCancel}>
                       Konfirmasi Pembatalan
                     </Button>
                   </div>
@@ -406,26 +406,26 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
 
               {/* RESCHEDULE MODE */}
               {mode === "reschedule" && (
-                <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-200 space-y-3">
-                  <h4 className="font-extrabold text-sm text-sky-950 flex items-center gap-1.5">
+                <div className="p-4 sm:p-5 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-3.5">
+                  <h4 className="font-extrabold text-sm text-sky-950 flex items-center gap-2">
                     <CalendarClock className="w-4 h-4 text-sky-600" /> Pindahkan Jadwal Sesi (Reschedule)
                   </h4>
 
-                  <div className="space-y-1">
-                    <Label className="font-bold text-slate-700">Tanggal Baru</Label>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700 text-xs">Tanggal Baru</Label>
                     <Input
                       type="date"
-                      className="rounded-xl border-slate-200 bg-white h-9"
+                      className="rounded-xl border-slate-200 bg-white h-10 text-xs"
                       value={newDate}
                       onChange={(e) => setNewDate(e.target.value)}
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="font-bold text-slate-700">Jam Mulai</Label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="space-y-1.5">
+                      <Label className="font-bold text-slate-700 text-xs">Jam Mulai</Label>
                       <Select value={newStart} onValueChange={setNewStart}>
-                        <SelectTrigger className="rounded-xl border-slate-200 bg-white h-9">
+                        <SelectTrigger className="rounded-xl border-slate-200 bg-white h-10 text-xs font-semibold">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-slate-200">
@@ -435,10 +435,10 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="font-bold text-slate-700">Jam Selesai</Label>
+                    <div className="space-y-1.5">
+                      <Label className="font-bold text-slate-700 text-xs">Jam Selesai</Label>
                       <Select value={newEnd} onValueChange={setNewEnd}>
-                        <SelectTrigger className="rounded-xl border-slate-200 bg-white h-9">
+                        <SelectTrigger className="rounded-xl border-slate-200 bg-white h-10 text-xs font-semibold">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-slate-200">
@@ -450,10 +450,10 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label className="font-bold text-slate-700">Terapis</Label>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700 text-xs">Terapis</Label>
                     <Select value={newTherapist} onValueChange={setNewTherapist}>
-                      <SelectTrigger className="rounded-xl border-slate-200 bg-white h-9">
+                      <SelectTrigger className="rounded-xl border-slate-200 bg-white h-10 text-xs font-semibold">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-slate-200">
@@ -465,18 +465,18 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                   </div>
 
                   {rescheduleConflicts.length > 0 && (
-                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
                       {rescheduleConflicts.map((c, i) => (
                         <p key={i}>⚠️ {c}</p>
                       ))}
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button variant="outline" className="rounded-xl text-xs flex-1" onClick={() => setMode("view")}>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <Button variant="outline" className="rounded-xl text-xs font-bold h-10 flex-1" onClick={() => setMode("view")}>
                       Batal
                     </Button>
-                    <Button className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl flex-1" onClick={handleReschedule}>
+                    <Button className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl h-10 flex-1" onClick={handleReschedule}>
                       Simpan Jadwal Baru
                     </Button>
                   </div>

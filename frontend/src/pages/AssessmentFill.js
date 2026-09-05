@@ -70,16 +70,19 @@ export default function AssessmentFill() {
     setStage("form");
   };
 
-  const allCategoryQuestions = useMemo(() => {
+  const [filterMode, setFilterMode] = useState("all"); // "all" | "unanswered"
+
+  const WINNIE_DUNN_OPTIONS = useMemo(() => [
+    "5 - Hampir Selalu (90%+)",
+    "4 - Sering (75%)",
+    "3 - Kadang (50%)",
+    "2 - Jarang (25%)",
+    "1 - Hampir Tidak Pernah (10%)",
+    "0 - Tidak Pernah / Tidak Berlaku",
+  ], []);
+
+  const categorizedSections = useMemo(() => {
     if (!category) return [];
-    const WINNIE_DUNN_OPTIONS = [
-      "5 - Hampir Selalu (90%+)",
-      "4 - Sering (75%)",
-      "3 - Kadang (50%)",
-      "2 - Jarang (25%)",
-      "1 - Hampir Tidak Pernah (10%)",
-      "0 - Tidak Pernah / Tidak Berlaku",
-    ];
 
     const mapQuestion = (q, idx, sec) => {
       const qType = q.type || "scale_0_5";
@@ -107,12 +110,64 @@ export default function AssessmentFill() {
     };
 
     if (category.sections && category.sections.length > 0) {
-      return category.sections.flatMap((sec) =>
-        (sec.questions || []).map((q, idx) => mapQuestion(q, idx, sec))
-      );
+      return category.sections.map((sec, sIdx) => ({
+        id: sec.sectionId || `sec-${sIdx}`,
+        title: sec.title || `Bagian ${sIdx + 1}`,
+        leadText: sec.leadText || "Anakku ...",
+        questions: (sec.questions || []).map((q, idx) => mapQuestion(q, idx, sec)),
+      }));
     }
-    return (category.questions || []).map((q, idx) => mapQuestion(q, idx, null));
-  }, [category]);
+    return [
+      {
+        id: "sec-default",
+        title: "Daftar Pertanyaan Observasi",
+        leadText: "Anakku ...",
+        questions: (category.questions || []).map((q, idx) => mapQuestion(q, idx, null)),
+      },
+    ];
+  }, [category, WINNIE_DUNN_OPTIONS]);
+
+  const allCategoryQuestions = useMemo(() => {
+    return categorizedSections.flatMap((s) => s.questions);
+  }, [categorizedSections]);
+
+  const answeredCount = useMemo(() => {
+    return allCategoryQuestions.filter((q) => {
+      const val = answers[q.id];
+      if (val === undefined || val === null) return false;
+      if (Array.isArray(val)) return val.length > 0;
+      return String(val).trim().length > 0;
+    }).length;
+  }, [allCategoryQuestions, answers]);
+
+  const progressPercent = useMemo(() => {
+    if (!allCategoryQuestions.length) return 0;
+    return Math.round((answeredCount / allCategoryQuestions.length) * 100);
+  }, [answeredCount, allCategoryQuestions.length]);
+
+  const scrollToSection = (secId) => {
+    const el = document.getElementById(secId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const jumpToFirstUnanswered = () => {
+    const firstUnanswered = allCategoryQuestions.find((q) => {
+      const val = answers[q.id];
+      if (val === undefined || val === null) return true;
+      if (Array.isArray(val)) return val.length === 0;
+      return !String(val).trim();
+    });
+    if (firstUnanswered) {
+      const el = document.getElementById(`q-card-${firstUnanswered.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-rose-400");
+        setTimeout(() => el.classList.remove("ring-2", "ring-rose-400"), 2000);
+      }
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -166,20 +221,20 @@ export default function AssessmentFill() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 py-12 px-4 sm:px-6">
-      <div className="max-w-xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50/80 py-8 px-3 sm:px-6">
+      <div className={cn("mx-auto space-y-6 transition-all", stage === "form" ? "max-w-4xl" : "max-w-xl")}>
         <Link to="/" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-sky-700 transition-colors" data-testid="assessment-back-link">
-          <ArrowLeft className="w-4 h-4" /> Back to portal select
+          <ArrowLeft className="w-4 h-4" /> Kembali ke pemilihan portal
         </Link>
 
         {/* Brand Header */}
         <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-          <div className="w-12 h-12 rounded-2xl bg-sky-600 flex items-center justify-center text-white font-extrabold text-xl shadow-xs shadow-sky-600/30">
+          <div className="w-12 h-12 rounded-2xl bg-sky-600 flex items-center justify-center text-white font-extrabold text-xl shadow-xs shadow-sky-600/30 shrink-0">
             <Activity className="w-6 h-6" />
           </div>
-          <div>
-            <p className="font-extrabold text-base text-slate-900 leading-tight">Therapedia Developmental Center</p>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Parent Assessment & Developmental Profiling</p>
+          <div className="min-w-0">
+            <p className="font-extrabold text-base text-slate-900 leading-tight truncate">Therapedia Developmental Center</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Parent Assessment & Developmental Profiling System</p>
           </div>
         </div>
 
@@ -187,21 +242,21 @@ export default function AssessmentFill() {
           <Card className="rounded-2xl border border-slate-200/90 shadow-sm bg-white overflow-hidden clinical-card">
             <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FileQuestion className="w-5 h-5 text-sky-600" /> Enter Assessment Access Code
+                <FileQuestion className="w-5 h-5 text-sky-600" /> Masukkan Kode Akses Asesmen
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                The clinic provided an assessment code (e.g. ASM-XXXX). Enter it below to open your child's questionnaire.
+                Gunakan kode akses kuesioner yang diberikan klinik (misal: <strong>ASM-2011</strong>, <strong>ASM-2012</strong>, atau <strong>ASM-2014</strong>).
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handleCodeSubmit} className="space-y-4" data-testid="assessment-code-form">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Assessment Code</Label>
+                  <Label className="text-xs font-bold text-slate-700">Kode Akses Asesmen</Label>
                   <div className="relative">
                     <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
-                      className="pl-10 uppercase rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-mono text-sm h-11"
-                      placeholder="e.g. ASM-2203"
+                      className="pl-10 uppercase rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-mono text-sm h-11 font-bold"
+                      placeholder="e.g. ASM-2011"
                       value={codeInput}
                       onChange={(e) => {
                         setCodeInput(e.target.value);
@@ -214,8 +269,8 @@ export default function AssessmentFill() {
                     <p className="text-xs font-semibold text-rose-600 mt-1" data-testid="assessment-code-error">{codeError}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl h-11 text-xs shadow-xs" data-testid="assessment-code-submit-button">
-                  Access Questionnaire
+                <Button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl h-11 text-xs shadow-xs cursor-pointer" data-testid="assessment-code-submit-button">
+                  Buka Instrumen Kuesioner
                 </Button>
               </form>
             </CardContent>
@@ -223,174 +278,401 @@ export default function AssessmentFill() {
         )}
 
         {stage === "form" && client && category && (
-          <Card className="rounded-2xl border border-slate-200/90 shadow-sm bg-white overflow-hidden clinical-card" data-testid="assessment-question-form">
-            <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-lg font-bold text-slate-900">{category.categoryName}</CardTitle>
-                <span className="text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-200 rounded-full px-3 py-1">
-                  {allCategoryQuestions.length} Questions
-                </span>
+          <div className="space-y-6" data-testid="assessment-question-form">
+            {/* STICKY PROGRESS HEADER (RESPONSIVE) */}
+            <div className="sticky top-3 z-30 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-md p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                    {category.categoryName}
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Kuesioner untuk Ananda: <strong className="text-slate-800">{client.clientName}</strong> • Kode: <span className="font-mono text-sky-700 font-bold">{codeInput || client.assessmentAccessCode}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className={cn(
+                    "text-xs font-black px-3 py-1 rounded-full border",
+                    answeredCount === allCategoryQuestions.length
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                      : "bg-sky-50 text-sky-800 border-sky-300"
+                  )}>
+                    {answeredCount} / {allCategoryQuestions.length} Terisi ({progressPercent}%)
+                  </span>
+                </div>
               </div>
-              <CardDescription className="text-xs text-slate-500">
-                Intake Assessment for <strong className="text-slate-800 font-bold">{client.clientName}</strong>
-                {client.assessmentAnswers?.length > 0 && " · Previously submitted (answers loaded)"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {allCategoryQuestions.map((q, idx) => (
-                  <div key={q.id} className="space-y-2.5 p-4 rounded-xl bg-slate-50/60 border border-slate-200/70" data-testid={`assessment-question-${q.id}`}>
-                    <Label className="text-xs font-bold text-slate-800 leading-snug flex items-start gap-2">
-                      <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px] shrink-0 font-bold">
-                        {idx + 1}
+
+              {/* Progress bar */}
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full transition-all duration-300 rounded-full",
+                    progressPercent === 100 ? "bg-emerald-500" : "bg-sky-600"
+                  )}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              {/* Domain Quick Jump & Filter Controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                {/* Filter toggle */}
+                <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setFilterMode("all")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg transition-all text-[11px]",
+                      filterMode === "all" ? "bg-white text-slate-900 shadow-xs font-black" : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    Semua ({allCategoryQuestions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterMode("unanswered")}
+                    className={cn(
+                      "px-3 py-1 rounded-lg transition-all text-[11px]",
+                      filterMode === "unanswered" ? "bg-rose-50 text-rose-800 border border-rose-200 font-black" : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    Belum Diisi ({allCategoryQuestions.length - answeredCount})
+                  </button>
+                </div>
+
+                {/* Quick section pills (horizontal scrolling) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full text-[11px] font-semibold">
+                  <span className="text-slate-400 shrink-0 text-[10px] uppercase font-bold">Lompat:</span>
+                  {categorizedSections.map((sec, sIdx) => {
+                    const secAnswered = sec.questions.filter((q) => {
+                      const val = answers[q.id];
+                      return val !== undefined && val !== null && String(val).trim().length > 0;
+                    }).length;
+                    const isDone = secAnswered === sec.questions.length;
+                    return (
+                      <button
+                        key={sec.id}
+                        type="button"
+                        onClick={() => scrollToSection(sec.id)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg border shrink-0 transition-all text-[10px] font-bold flex items-center gap-1",
+                          isDone
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                        )}
+                      >
+                        <span>{sIdx + 1}. {sec.title.split("(")[0].trim()}</span>
+                        <span className={cn("text-[9px] px-1 py-0.2 rounded font-mono", isDone ? "bg-emerald-200 text-emerald-900" : "bg-slate-100 text-slate-600")}>
+                          {secAnswered}/{sec.questions.length}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* FORM QUESTIONS BY DOMAIN SECTION */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {categorizedSections.map((sec, sIdx) => {
+                const visibleQuestions = filterMode === "unanswered"
+                  ? sec.questions.filter((q) => !answers[q.id] || !String(answers[q.id]).trim())
+                  : sec.questions;
+
+                if (filterMode === "unanswered" && visibleQuestions.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={sec.id}
+                    id={sec.id}
+                    className="scroll-mt-36 rounded-2xl border border-slate-200/90 shadow-2xs bg-white overflow-hidden"
+                  >
+                    {/* Section Header */}
+                    <div className="p-4 sm:p-5 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/50 border-b border-slate-200/80 flex items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                        <span className="w-6 h-6 rounded-full bg-sky-600 text-white font-black text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                          {sIdx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug break-words">
+                            {sec.title}
+                          </h3>
+                          <p className="text-xs text-slate-500 font-medium mt-1 italic leading-normal break-words">
+                            "{sec.leadText || "Anakku ..."}"
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-sky-100/80 text-sky-800 border border-sky-200 shrink-0 font-mono self-start sm:self-center">
+                        {sec.questions.length} Item
                       </span>
-                      <span>{q.question}</span>
-                    </Label>
-                    {/* 1. Teks Bebas / Esai */}
-                    {(q.type === "free_text" || q.type === "text") && (
-                      <Textarea
-                        rows={3}
-                        className="rounded-xl border-slate-200 bg-white text-xs"
-                        value={answers[q.id] || ""}
-                        onChange={(e) => {
-                          setAnswers({ ...answers, [q.id]: e.target.value });
-                          setFormError("");
-                        }}
-                        placeholder="Tuliskan catatan observasi / respon anak..."
-                        data-testid={`assessment-answer-input-${q.id}`}
-                      />
-                    )}
+                    </div>
 
-                    {/* 2. Ya / Tidak */}
-                    {q.type === "yes_no" && (
-                      <RadioGroup
-                        value={answers[q.id] || ""}
-                        onValueChange={(v) => {
-                          setAnswers({ ...answers, [q.id]: v });
-                          setFormError("");
-                        }}
-                        className="flex gap-3 pt-1"
-                      >
-                        {["Ya", "Tidak"].map((opt) => (
-                          <label
-                            key={opt}
+                    {/* Questions in section */}
+                    <div className="p-4 sm:p-6 space-y-4">
+                      {visibleQuestions.map((q) => {
+                        const isAnswered = answers[q.id] !== undefined && answers[q.id] !== null && String(answers[q.id]).trim().length > 0;
+                        return (
+                          <div
+                            key={q.id}
+                            id={`q-card-${q.id}`}
                             className={cn(
-                              "flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
-                              answers[q.id] === opt
-                                ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300"
-                                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                              "p-4 rounded-xl border transition-all space-y-3",
+                              isAnswered
+                                ? "bg-slate-50/40 border-slate-200"
+                                : "bg-white border-amber-200/80 shadow-2xs ring-1 ring-amber-200/40"
                             )}
+                            data-testid={`assessment-question-${q.id}`}
                           >
-                            <RadioGroupItem value={opt} data-testid={`assessment-answer-${q.id}-${opt.toLowerCase()}`} />
-                            {opt}
-                          </label>
-                        ))}
-                      </RadioGroup>
-                    )}
-
-                    {/* 3. Range Angka Kustom (misal 1-5, 1-10) */}
-                    {q.type === "range" && (
-                      <div className="space-y-2 pt-1">
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
-                          <span>{q.scaleMin} — {q.minLabel}</span>
-                          <span>{q.scaleMax} — {q.maxLabel}</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {Array.from({ length: (q.scaleMax - q.scaleMin + 1) }, (_, i) => q.scaleMin + i).map((num) => {
-                            const isSelected = String(answers[q.id]) === String(num);
-                            return (
-                              <button
-                                key={num}
-                                type="button"
-                                onClick={() => {
-                                  setAnswers({ ...answers, [q.id]: num });
-                                  setFormError("");
-                                }}
-                                className={cn(
-                                  "w-10 h-10 rounded-xl border text-xs font-black transition-all cursor-pointer",
-                                  isSelected
-                                    ? "bg-cyan-600 text-white border-cyan-600 shadow-sm scale-105"
-                                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                                )}
-                              >
-                                {num}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 4. Multi-Centang (Checkbox Multi) */}
-                    {q.type === "checkbox_multi" && (
-                      <div className="space-y-2 pt-1">
-                        {q.options.map((opt) => {
-                          const currentArr = Array.isArray(answers[q.id]) ? answers[q.id] : [];
-                          const isChecked = currentArr.includes(opt);
-                          return (
-                            <label
-                              key={opt}
-                              className={cn(
-                                "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
-                                isChecked
-                                  ? "bg-indigo-50 border-indigo-300 text-indigo-950 shadow-2xs ring-1 ring-indigo-300"
-                                  : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                            <div className="flex items-start justify-between gap-3">
+                              <Label className="text-xs sm:text-sm font-bold text-slate-800 leading-snug flex items-start gap-2.5 flex-1 min-w-0 break-words">
+                                <span className={cn(
+                                  "w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 font-black mt-0.5",
+                                  isAnswered ? "bg-emerald-600 text-white" : "bg-slate-300 text-slate-700"
+                                )}>
+                                  {q.itemNo}
+                                </span>
+                                <span className="flex-1 min-w-0 break-words">{q.question}</span>
+                              </Label>
+                              {q.quadrant && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                                  {q.quadrant}
+                                </span>
                               )}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
+                            </div>
+
+                            {/* 1. Teks Bebas / Esai */}
+                            {(q.type === "free_text" || q.type === "text") && (
+                              <Textarea
+                                rows={3}
+                                className="rounded-xl border-slate-200 bg-white text-xs"
+                                value={answers[q.id] || ""}
                                 onChange={(e) => {
-                                  const nextArr = e.target.checked
-                                    ? [...currentArr, opt]
-                                    : currentArr.filter((item) => item !== opt);
-                                  setAnswers({ ...answers, [q.id]: nextArr });
+                                  setAnswers({ ...answers, [q.id]: e.target.value });
                                   setFormError("");
                                 }}
-                                className="w-4 h-4 rounded text-indigo-600 accent-indigo-600 cursor-pointer"
+                                placeholder="Tuliskan catatan observasi / respon anak..."
+                                data-testid={`assessment-answer-input-${q.id}`}
                               />
-                              <span>{opt}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* 5. Multiple Choice & Standard Winnie Dunn Scale 0-5 */}
-                    {(q.type === "multiple_choice" || q.type === "scale_0_5" || !q.type) && (
-                      <RadioGroup
-                        value={answers[q.id] !== undefined ? String(answers[q.id]) : ""}
-                        onValueChange={(v) => {
-                          setAnswers({ ...answers, [q.id]: v });
-                          setFormError("");
-                        }}
-                        className="space-y-2 pt-1"
-                      >
-                        {q.options.map((opt) => (
-                          <label
-                            key={opt}
-                            className={cn(
-                              "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
-                              String(answers[q.id]) === opt
-                                ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300"
-                                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                             )}
-                          >
-                            <RadioGroupItem value={opt} />
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </RadioGroup>
-                    )}
+
+                            {/* 2. Ya / Tidak */}
+                            {q.type === "yes_no" && (
+                              <RadioGroup
+                                value={answers[q.id] || ""}
+                                onValueChange={(v) => {
+                                  setAnswers({ ...answers, [q.id]: v });
+                                  setFormError("");
+                                }}
+                                className="flex gap-3 pt-1"
+                              >
+                                {["Ya", "Tidak"].map((opt) => (
+                                  <label
+                                    key={opt}
+                                    className={cn(
+                                      "flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border transition-all cursor-pointer",
+                                      answers[q.id] === opt
+                                        ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300"
+                                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    <RadioGroupItem value={opt} data-testid={`assessment-answer-${q.id}-${opt.toLowerCase()}`} />
+                                    {opt}
+                                  </label>
+                                ))}
+                              </RadioGroup>
+                            )}
+
+                            {/* 3. Range Angka Kustom (misal 1-5, 1-10) */}
+                            {q.type === "range" && (
+                              <div className="space-y-2 pt-1">
+                                <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+                                  <span>{q.scaleMin} — {q.minLabel}</span>
+                                  <span>{q.scaleMax} — {q.maxLabel}</span>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {Array.from({ length: (q.scaleMax - q.scaleMin + 1) }, (_, i) => q.scaleMin + i).map((num) => {
+                                    const isSelected = String(answers[q.id]) === String(num);
+                                    return (
+                                      <button
+                                        key={num}
+                                        type="button"
+                                        onClick={() => {
+                                          setAnswers({ ...answers, [q.id]: num });
+                                          setFormError("");
+                                        }}
+                                        className={cn(
+                                          "w-10 h-10 rounded-xl border text-xs font-black transition-all cursor-pointer",
+                                          isSelected
+                                            ? "bg-cyan-600 text-white border-cyan-600 shadow-sm scale-105"
+                                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                                        )}
+                                      >
+                                        {num}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 4. Multi-Centang (Checkbox Multi) */}
+                            {q.type === "checkbox_multi" && (
+                              <div className="space-y-2 pt-1">
+                                {q.options.map((opt) => {
+                                  const currentArr = Array.isArray(answers[q.id]) ? answers[q.id] : [];
+                                  const isChecked = currentArr.includes(opt);
+                                  return (
+                                    <label
+                                      key={opt}
+                                      className={cn(
+                                        "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
+                                        isChecked
+                                          ? "bg-indigo-50 border-indigo-300 text-indigo-950 shadow-2xs ring-1 ring-indigo-300"
+                                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                                      )}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={(e) => {
+                                          const nextArr = e.target.checked
+                                            ? [...currentArr, opt]
+                                            : currentArr.filter((item) => item !== opt);
+                                          setAnswers({ ...answers, [q.id]: nextArr });
+                                          setFormError("");
+                                        }}
+                                        className="w-4 h-4 rounded text-indigo-600 accent-indigo-600 cursor-pointer"
+                                      />
+                                      <span>{opt}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* 5. Winnie Dunn Standard Scale 0-5 with Fast-Touch Number Badges */}
+                            {q.type === "scale_0_5" && (
+                              <div className="space-y-2.5 pt-1">
+                                {/* Quick Touch Number Buttons */}
+                                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                  {[
+                                    { val: 5, label: "Hampir Selalu (90%+)", color: "hover:bg-emerald-50 active:bg-emerald-600" },
+                                    { val: 4, label: "Sering (75%)", color: "hover:bg-teal-50 active:bg-teal-600" },
+                                    { val: 3, label: "Kadang (50%)", color: "hover:bg-blue-50 active:bg-blue-600" },
+                                    { val: 2, label: "Jarang (25%)", color: "hover:bg-amber-50 active:bg-amber-600" },
+                                    { val: 1, label: "Hampir Tidak Pernah (10%)", color: "hover:bg-rose-50 active:bg-rose-600" },
+                                    { val: 0, label: "Tidak Pernah / Tidak Berlaku", color: "hover:bg-slate-100 active:bg-slate-600" },
+                                  ].map((scoreItem) => {
+                                    const matchingOpt = q.options.find((opt) => opt.startsWith(String(scoreItem.val))) || `${scoreItem.val} - ${scoreItem.label}`;
+                                    const isSelected = String(answers[q.id]).startsWith(String(scoreItem.val));
+                                    return (
+                                      <button
+                                        key={scoreItem.val}
+                                        type="button"
+                                        onClick={() => {
+                                          setAnswers({ ...answers, [q.id]: matchingOpt });
+                                          setFormError("");
+                                        }}
+                                        title={scoreItem.label}
+                                        className={cn(
+                                          "flex-1 min-w-[42px] sm:min-w-[48px] h-10 sm:h-11 rounded-xl border text-xs sm:text-sm font-black transition-all cursor-pointer flex flex-col items-center justify-center select-none",
+                                          isSelected
+                                            ? "bg-sky-600 text-white border-sky-600 shadow-xs scale-105 ring-2 ring-sky-300"
+                                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300"
+                                        )}
+                                      >
+                                        <span>{scoreItem.val}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Active answer descriptor label */}
+                                {answers[q.id] && (
+                                  <div className="p-2 rounded-lg bg-sky-50/70 border border-sky-200/80 text-[11px] font-bold text-sky-900 flex items-center justify-between">
+                                    <span>Pilihan: <strong>{answers[q.id]}</strong></span>
+                                    <span className="text-[10px] text-sky-600">Tersimpan ✓</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* 6. Standard Multiple Choice (if not scale_0_5) */}
+                            {q.type === "multiple_choice" && (
+                              <RadioGroup
+                                value={answers[q.id] !== undefined ? String(answers[q.id]) : ""}
+                                onValueChange={(v) => {
+                                  setAnswers({ ...answers, [q.id]: v });
+                                  setFormError("");
+                                }}
+                                className="space-y-2 pt-1"
+                              >
+                                {q.options.map((opt) => (
+                                  <label
+                                    key={opt}
+                                    className={cn(
+                                      "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
+                                      String(answers[q.id]) === opt
+                                        ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300"
+                                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    <RadioGroupItem value={opt} />
+                                    <span>{opt}</span>
+                                  </label>
+                                ))}
+                              </RadioGroup>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                ))}
-                {formError && <p className="text-xs font-bold text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200" data-testid="assessment-form-error">{formError}</p>}
-                <Button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl h-11 text-xs shadow-sm shadow-sky-600/20" data-testid="assessment-submit-button">
-                  Submit Assessment Responses
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                );
+              })}
+
+              {/* Bottom Submit Sticky Card */}
+              <div className="sticky bottom-4 z-20 bg-white rounded-2xl border border-slate-200 shadow-lg p-4 space-y-3">
+                {formError && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold" data-testid="assessment-form-error">
+                    <span>{formError}</span>
+                    <button
+                      type="button"
+                      onClick={jumpToFirstUnanswered}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] hover:bg-rose-700 transition-colors"
+                    >
+                      Lihat Pertanyaan
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="text-xs text-slate-600">
+                    <p className="font-bold text-slate-800">
+                      {answeredCount === allCategoryQuestions.length
+                        ? "🎉 Seluruh pertanyaan telah lengkap terisi!"
+                        : `Masih ada ${allCategoryQuestions.length - answeredCount} butir pertanyaan yang belum diisi.`}
+                    </p>
+                    <p className="text-[11px] text-slate-400">Pastikan pengisian dilakukan seobjektif mungkin demi akurasi penanganan klinis.</p>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className={cn(
+                      "font-bold rounded-xl h-11 text-xs px-6 shadow-xs cursor-pointer transition-all shrink-0",
+                      answeredCount === allCategoryQuestions.length
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30"
+                        : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/30"
+                    )}
+                    data-testid="assessment-submit-button"
+                  >
+                    Kirim Jawaban Asesmen ({answeredCount}/{allCategoryQuestions.length})
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </div>
         )}
 
         {stage === "done" && (

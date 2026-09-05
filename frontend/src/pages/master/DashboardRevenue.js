@@ -14,7 +14,9 @@ import {
   ArrowUpRight,
   Sparkles,
   PieChart as PieIcon,
-  Layers
+  Layers,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -90,6 +92,15 @@ export default function DashboardRevenue() {
       return true;
     });
   }, [allInvoices, selectedBranch, period, customStart, customEnd]);
+
+  // Pagination for Invoices Table
+  const [invoicesPage, setInvoicesPage] = useState(1);
+  const invoicesPageSize = 8;
+  const totalInvoicesPages = Math.ceil(filteredInvoices.length / invoicesPageSize) || 1;
+  const paginatedInvoices = useMemo(() => {
+    const start = (invoicesPage - 1) * invoicesPageSize;
+    return filteredInvoices.slice(start, start + invoicesPageSize);
+  }, [filteredInvoices, invoicesPage, invoicesPageSize]);
 
   // Aggregate KPI metrics
   const metrics = useMemo(() => {
@@ -396,41 +407,41 @@ export default function DashboardRevenue() {
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {filteredInvoices.length === 0 ? (
             <EmptyState icon={Receipt} title="Tidak ada transaksi" subtitle="Belum ada transaksi pada filter periode ini." />
           ) : (
-            <Table>
+            <Table className="min-w-[860px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                  <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">No. Invoice</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Client & Cabang</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Paket Layanan</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Nominal Tagihan</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs">Tanggal Terbit</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs text-right pr-6">Status</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[150px] whitespace-nowrap">No. Invoice</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[200px] whitespace-nowrap">Client & Cabang</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[180px] whitespace-nowrap">Paket Layanan</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Nominal Tagihan</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Tanggal Terbit</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[130px] whitespace-nowrap">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInvoices.map((inv) => {
+                {paginatedInvoices.map((inv) => {
                   const br = BRANCHES.find((b) => b.id === inv.branchId);
                   return (
                     <TableRow key={inv.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                      <TableCell className="font-mono text-xs font-bold text-slate-900 pl-6">
+                      <TableCell className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[150px] whitespace-nowrap">
                         {inv.invoiceNumber || inv.id}
                       </TableCell>
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
                         <p className="font-bold text-slate-900">{inv.clientName}</p>
                         <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "Surabaya"}</span>
                       </TableCell>
-                      <TableCell className="text-xs font-semibold text-slate-700">{inv.packageName}</TableCell>
-                      <TableCell className="text-xs font-bold text-slate-900 tabular-nums">
+                      <TableCell className="text-xs font-semibold text-slate-700 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
+                      <TableCell className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">
                         {fmtCurrency(inv.amount)}
                       </TableCell>
-                      <TableCell className="text-xs text-slate-500 tabular-nums">
+                      <TableCell className="text-xs text-slate-500 tabular-nums min-w-[130px] whitespace-nowrap">
                         {fmtDate(inv.createdAt)}
                       </TableCell>
-                      <TableCell className="text-right pr-6">
+                      <TableCell className="text-right pr-6 min-w-[130px] whitespace-nowrap">
                         <StatusBadge status={inv.status} />
                       </TableCell>
                     </TableRow>
@@ -440,6 +451,39 @@ export default function DashboardRevenue() {
             </Table>
           )}
         </CardContent>
+
+        {/* Pagination for Invoices Table */}
+        {filteredInvoices.length > 0 && (
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
+            <span className="font-medium">
+              Menampilkan {(invoicesPage - 1) * invoicesPageSize + 1} –{" "}
+              {Math.min(invoicesPage * invoicesPageSize, filteredInvoices.length)} dari {filteredInvoices.length} transaksi
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                disabled={invoicesPage <= 1}
+                onClick={() => setInvoicesPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+              </Button>
+              <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
+                {invoicesPage} / {totalInvoicesPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                disabled={invoicesPage >= totalInvoicesPages}
+                onClick={() => setInvoicesPage((p) => Math.min(totalInvoicesPages, p + 1))}
+              >
+                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

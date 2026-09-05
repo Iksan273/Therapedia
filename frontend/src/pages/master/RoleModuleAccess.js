@@ -70,7 +70,7 @@ export default function RoleModuleAccess() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <Table>
+          <Table className="min-w-[800px] w-full">
             <TableHeader>
               <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                 <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[200px]">Modul Aplikasi</TableHead>
