@@ -29,7 +29,7 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
             <CalendarDays className="w-4 h-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900">{format(day, "EEEE, MMM d yyyy")}</p>
+            <p className="text-sm font-bold text-slate-900">{format(day, "EEEE, dd/MM/yyyy")}</p>
             <p className="text-xs text-slate-500">Day Schedule & Clinical Progress</p>
           </div>
         </div>

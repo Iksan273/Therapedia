@@ -212,7 +212,7 @@ function creditsReducer(state, action) {
         const newPackageItem = {
           id: `cp-${uid().slice(-6)}`,
           packageId: targetInvoice.packageId || "pkg-reguler",
-          packageName: targetInvoice.packageName || "Paket Reguler (10x)",
+          packageName: targetInvoice.packageName || "Regular Therapist (10x)",
           totalCredit: creditsToAdd,
           remainingCredit: creditsToAdd,
           cancelCount: 0,
@@ -248,7 +248,7 @@ function creditsReducer(state, action) {
       const newPackageItem = {
         id: `cp-${uid().slice(-6)}`,
         packageId: action.packageId || "pkg-reguler",
-        packageName: action.packageName || "Paket Reguler (10x)",
+        packageName: action.packageName || "Regular Therapist (10x)",
         totalCredit: action.credits,
         remainingCredit: action.credits,
         cancelCount: 0,

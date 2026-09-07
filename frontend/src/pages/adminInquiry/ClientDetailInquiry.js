@@ -23,11 +23,13 @@ import {
   Clock,
   Printer,
   FileQuestion,
-  UserCheck
+  UserCheck,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -82,6 +84,49 @@ export default function ClientDetailInquiry() {
   const creditRecord = client ? getRecordForClient(client.id) : null;
   const remainingCredit = creditRecord ? creditRecord.remainingCredit : 0;
   const [proofModalOpen, setProofModalOpen] = useState(false);
+
+  // Edit Intake State
+  const [editIntakeOpen, setEditIntakeOpen] = useState(false);
+  const [editIntakeForm, setEditIntakeForm] = useState({
+    clientName: "",
+    dob: "",
+    parentName: "",
+    parentContact: "",
+    parentEmail: "",
+    branchId: "branch-sby-timur",
+  });
+
+  const handleOpenEditIntake = () => {
+    if (!client) return;
+    setEditIntakeForm({
+      clientName: client.clientName || "",
+      dob: client.dob || "",
+      parentName: client.parentName || "",
+      parentContact: client.parentContact || "",
+      parentEmail: client.parentEmail || "",
+      branchId: client.branchId || "branch-sby-timur",
+    });
+    setEditIntakeOpen(true);
+  };
+
+  const handleSaveEditIntake = (e) => {
+    e.preventDefault();
+    if (!editIntakeForm.clientName.trim()) {
+      toast.error("Nama anak tidak boleh kosong.");
+      return;
+    }
+    updateClient(client.id, {
+      clientName: editIntakeForm.clientName.trim(),
+      dob: editIntakeForm.dob,
+      parentName: editIntakeForm.parentName.trim(),
+      parentContact: editIntakeForm.parentContact.trim(),
+      parentEmail: editIntakeForm.parentEmail.trim(),
+      branchId: editIntakeForm.branchId,
+      updatedAt: new Date().toISOString(),
+    });
+    toast.success("Data New Intake berhasil diperbarui!");
+    setEditIntakeOpen(false);
+  };
 
   // Schedules associated with this client
   const clientSchedules = useMemo(() => {
@@ -291,9 +336,20 @@ export default function ClientDetailInquiry() {
                 <CardDescription className="text-xs text-slate-500">Profil anak, kontak orang tua, dan lokasi cabang</CardDescription>
               </div>
             </div>
-            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-              <Check className="w-4 h-4" /> Lengkap
-            </span>
+            <div className="flex items-center gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 rounded-xl border-slate-200 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 font-bold text-xs shadow-2xs"
+                onClick={handleOpenEditIntake}
+                data-testid="btn-edit-intake-step1"
+              >
+                <Pencil className="w-3.5 h-3.5 text-sky-600" /> Edit Data Intake
+              </Button>
+              <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                <Check className="w-3.5 h-3.5" /> Lengkap
+              </span>
+            </div>
           </CardHeader>
           <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
             <div>
@@ -303,20 +359,128 @@ export default function ClientDetailInquiry() {
             <div>
               <span className="text-[10px] font-bold uppercase text-slate-400">Tanggal Lahir / Usia</span>
               <p className="font-semibold text-slate-800 mt-0.5">
-                {fmtDate(client.dob)} ({calcAge(client.dob)} th)
+                {fmtDate(client.dob)} {calcAge(client.dob) != null ? `(${calcAge(client.dob)} th)` : ""}
               </p>
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase text-slate-400">Nama Orang Tua</span>
-              <p className="font-semibold text-slate-800 mt-0.5">{client.parentName}</p>
+              <p className="font-semibold text-slate-800 mt-0.5">{client.parentName || "—"}</p>
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase text-slate-400">Kontak WhatsApp & Email</span>
-              <p className="font-semibold text-slate-800 mt-0.5">{client.parentContact}</p>
+              <p className="font-semibold text-slate-800 mt-0.5">{client.parentContact || "—"}</p>
               <p className="text-[11px] text-slate-500">{client.parentEmail || "—"}</p>
             </div>
           </CardContent>
         </Card>
+
+        {/* DIALOG EDIT DATA INTAKE */}
+        <Dialog open={editIntakeOpen} onOpenChange={setEditIntakeOpen}>
+          <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-sky-600" /> Edit Data New Intake
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Perbarui data dasar profil anak, orang tua, dan cabang pendaftaran.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSaveEditIntake} className="space-y-3.5 pt-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Nama Lengkap Anak *</Label>
+                <Input
+                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                  value={editIntakeForm.clientName}
+                  onChange={(e) => setEditIntakeForm({ ...editIntakeForm, clientName: e.target.value })}
+                  placeholder="e.g. Kenzo Danendra"
+                  data-testid="edit-intake-client-name"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak (DD/MM/YYYY)</Label>
+                <DateFilterPicker
+                  placeholder="DD/MM/YYYY"
+                  className="w-full bg-slate-50 h-10"
+                  value={editIntakeForm.dob}
+                  onChange={(e) => setEditIntakeForm({ ...editIntakeForm, dob: e?.target?.value ?? e })}
+                  data-testid="edit-intake-dob"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Nama Orang Tua / Wali</Label>
+                <Input
+                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                  value={editIntakeForm.parentName}
+                  onChange={(e) => setEditIntakeForm({ ...editIntakeForm, parentName: e.target.value })}
+                  placeholder="e.g. Ibu Liana Santoso"
+                  data-testid="edit-intake-parent-name"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">No. WhatsApp / HP</Label>
+                <Input
+                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                  value={editIntakeForm.parentContact}
+                  onChange={(e) => setEditIntakeForm({ ...editIntakeForm, parentContact: e.target.value })}
+                  placeholder="+62 812-xxxx-xxxx"
+                  data-testid="edit-intake-parent-contact"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Email Orang Tua</Label>
+                <Input
+                  type="email"
+                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                  value={editIntakeForm.parentEmail}
+                  onChange={(e) => setEditIntakeForm({ ...editIntakeForm, parentEmail: e.target.value })}
+                  placeholder="liana.santoso@gmail.com"
+                  data-testid="edit-intake-parent-email"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Cabang Intake</Label>
+                <Select
+                  value={editIntakeForm.branchId}
+                  onValueChange={(val) => setEditIntakeForm({ ...editIntakeForm, branchId: val })}
+                >
+                  <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    {BRANCHES.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        📍 {b.name} ({b.city})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl text-xs"
+                  onClick={() => setEditIntakeOpen(false)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold"
+                  data-testid="btn-save-edit-intake"
+                >
+                  Simpan Perubahan
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* STEP 2: PILIH LAYANAN KLINIS (MULTI-LAYANAN) */}
         <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">

@@ -62,6 +62,7 @@ import {
   fmtDate,
   todayStr
 } from "@/lib/appUtils";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { cn } from "@/lib/utils";
 
 const CHART_COLORS = ["#0284c7", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#64748b"];
@@ -463,20 +464,22 @@ export default function DashboardInquiry() {
 
           {/* Custom Date Pickers if custom is selected */}
           {periodPreset === "custom" && (
-            <div className="pt-2 border-t border-slate-100 flex items-center gap-3">
+            <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-3">
               <span className="text-xs font-bold text-slate-700">Dari Tanggal:</span>
-              <Input
-                type="date"
-                className="h-8 text-xs rounded-xl border-slate-200 bg-slate-50 w-40"
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-40 bg-slate-50"
                 value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
+                onChange={(e) => setCustomStart(e?.target?.value ?? e)}
+                data-testid="inquiry-filter-start"
               />
               <span className="text-xs font-bold text-slate-700">Sampai:</span>
-              <Input
-                type="date"
-                className="h-8 text-xs rounded-xl border-slate-200 bg-slate-50 w-40"
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-40 bg-slate-50"
                 value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
+                onChange={(e) => setCustomEnd(e?.target?.value ?? e)}
+                data-testid="inquiry-filter-end"
               />
             </div>
           )}

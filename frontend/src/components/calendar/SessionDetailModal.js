@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -554,12 +555,12 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                   </h4>
 
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700 text-xs">Tanggal Baru</Label>
-                    <Input
-                      type="date"
-                      className="rounded-xl border-slate-200 bg-white h-10 text-xs"
+                    <Label className="font-bold text-slate-700 text-xs">Tanggal Baru (DD/MM/YYYY)</Label>
+                    <DateFilterPicker
+                      placeholder="DD/MM/YYYY"
+                      className="w-full bg-white h-10"
                       value={newDate}
-                      onChange={(e) => setNewDate(e.target.value)}
+                      onChange={(e) => setNewDate(e?.target?.value ?? e)}
                     />
                   </div>
 

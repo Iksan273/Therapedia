@@ -287,7 +287,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
             <div className="w-2 h-2 rounded-full bg-cyan-400" />
             <div>
               <p className="font-bold text-white tracking-wide">3 Cabang Terpadu Surabaya</p>
-              <p className="text-[11px] text-slate-400">Rungkut • Lagoon Sungkono • Citraland</p>
+              <p className="text-[11px] text-slate-400">East • West • Citraland</p>
             </div>
           </div>
         </div>

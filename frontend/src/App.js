@@ -23,6 +23,7 @@ import ActiveClients from "@/pages/adminSchedule/ActiveClients";
 import ActiveClientDetail from "@/pages/adminSchedule/ActiveClientDetail";
 import CalendarPage from "@/pages/adminSchedule/CalendarPage";
 import MySchedule from "@/pages/therapist/MySchedule";
+import TherapistSummary from "@/pages/therapist/TherapistSummary";
 import TherapistClientDetail from "@/pages/therapist/TherapistClientDetail";
 import ClientDashboard from "@/pages/client/ClientDashboard";
 import DashboardRevenue from "@/pages/master/DashboardRevenue";
@@ -144,6 +145,7 @@ function App() {
                       }
                     >
                       <Route index element={<MySchedule />} />
+                      <Route path="summary" element={<TherapistSummary />} />
                       <Route path="clients/:id" element={<TherapistClientDetail />} />
                       <Route path="parent-assessment/:id" element={<ParentAssessmentView />} />
                     </Route>

@@ -1,5 +1,5 @@
 import { addDays, addWeeks, differenceInYears, format, parseISO, startOfWeek } from "date-fns";
-import { clearPersistedData } from "@/hooks/useLocalStorage";
+import { clearPersistedData } from "../hooks/useLocalStorage";
 
 export const uid = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
@@ -17,9 +17,9 @@ export const genCode = (prefix) => {
 };
 
 export const BRANCHES = [
-  { id: "branch-sby-timur", name: "Surabaya Timur", code: "SBY-T", city: "Surabaya" },
-  { id: "branch-citraland", name: "Citraland", code: "CTL", city: "Surabaya Barat" },
-  { id: "branch-sby-barat", name: "Surabaya Barat", code: "SBY-B", city: "Surabaya" },
+  { id: "branch-sby-timur", name: "East", code: "EAST", city: "Surabaya" },
+  { id: "branch-citraland", name: "Citraland", code: "CTL", city: "Surabaya" },
+  { id: "branch-sby-barat", name: "West", code: "WEST", city: "Surabaya" },
 ];
 
 export const PIPELINE_STATUSES = [
@@ -58,8 +58,8 @@ export const STATUS_META = {
   consult_wo_report: { label: "Consultation without Report", cls: "bg-cyan-50 text-cyan-700 border border-cyan-200/70" },
   consult_w_report: { label: "Consultation with written report", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
   assessment: { label: "Asesmen Klinis", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
-  therapy: { label: "Terapi Reguler", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
-  therapy_vip: { label: "Terapi VIP", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
+  therapy: { label: "Regular Therapist", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
+  therapy_vip: { label: "Senior Therapist", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },
   therapy_speech: { label: "Terapi Wicara", cls: "bg-teal-50 text-teal-700 border border-teal-200/70" },
   therapy_physio: { label: "Fisioterapi", cls: "bg-orange-50 text-orange-700 border border-orange-200/70" },
 };
@@ -99,10 +99,19 @@ export const cancelReasonLabel = (val) => {
 };
 
 export const DEFAULT_MASTER_PACKAGES = [
-  { id: "pkg-reguler", name: "Paket Reguler", credits: 10, price: 2500000, description: "10 Sesi Terapi Reguler (OT / Sensori / Wicara)" },
-  { id: "pkg-vip", name: "Paket VIP", credits: 10, price: 3500000, description: "10 Sesi Terapi VIP Spesialis (1-on-1 Senior Practitioner)" },
+  { id: "pkg-reguler", name: "Regular Therapist", credits: 10, price: 2500000, description: "10 Sesi Terapi bersama Regular Therapist (OT / Sensori / Wicara)" },
+  { id: "pkg-vip", name: "Senior Therapist", credits: 10, price: 3500000, description: "10 Sesi Terapi bersama Senior Therapist (1-on-1 Specialist)" },
   { id: "pkg-consult", name: "Paket Konsultasi", credits: 1, price: 500000, description: "1 Sesi Konsultasi Klinis & Review" },
 ];
+
+export const formatPackageName = (name) => {
+  if (!name) return "Regular Therapist";
+  return name
+    .replace(/Paket Reguler/gi, "Regular Therapist")
+    .replace(/Paket VIP/gi, "Senior Therapist")
+    .replace(/\bReguler\b/gi, "Regular Therapist")
+    .replace(/\bVIP\b/gi, "Senior Therapist");
+};
 
 export const DISCHARGE_REASONS = [
   { value: "moving", label: "Moving / Relocation" },
@@ -266,10 +275,40 @@ export function makeInquiryClient(form) {
 export const fmtDate = (d) => {
   if (!d) return "—";
   try {
-    return format(typeof d === "string" ? parseISO(d) : d, "MMM d, yyyy");
+    return format(typeof d === "string" ? parseISO(d) : d, "dd/MM/yyyy");
   } catch (e) {
     return d;
   }
+};
+
+export const formatDdMmYyyy = (d) => {
+  if (!d) return "";
+  try {
+    return format(typeof d === "string" ? parseISO(d) : d, "dd/MM/yyyy");
+  } catch (e) {
+    return "";
+  }
+};
+
+export const parseDdMmYyyy = (str) => {
+  if (!str || typeof str !== "string") return null;
+  const clean = str.trim();
+  const m = clean.match(/^(\d{1,2})[\/\-\.\s](\d{1,2})[\/\-\.\s](\d{4})$/);
+  if (m) {
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const year = parseInt(m[3], 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 1900 && year <= 2100) {
+      const d = new Date(year, month - 1, day);
+      if (d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) {
+        return format(d, "yyyy-MM-dd");
+      }
+    }
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean;
+  }
+  return null;
 };
 
 export const calcAge = (dob) => {

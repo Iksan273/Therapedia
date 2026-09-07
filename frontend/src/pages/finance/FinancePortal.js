@@ -179,7 +179,7 @@ export default function FinancePortal() {
       toast.error("Silakan pilih client terlebih dahulu.");
       return;
     }
-    const pkg = masterPackages.find((p) => p.id === renewForm.packageId) || { name: "Paket Reguler" };
+    const pkg = masterPackages.find((p) => p.id === renewForm.packageId) || { name: "Regular Therapist" };
 
     renewClientCredit({
       clientId: c.id,
@@ -313,7 +313,7 @@ export default function FinancePortal() {
                           </TableCell>
                           <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
                             <p className="font-bold text-slate-900">{inv.clientName}</p>
-                            <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "Surabaya"}</span>
+                            <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "East"}</span>
                           </TableCell>
                           <TableCell className="text-xs min-w-[190px] whitespace-nowrap">
                             <p className="font-semibold text-slate-800">{inv.packageName}</p>
@@ -436,7 +436,7 @@ export default function FinancePortal() {
                         </TableCell>
                         <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
                           <p className="font-bold text-slate-900">{inv.clientName}</p>
-                          <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "Surabaya"}</span>
+                          <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "East"}</span>
                         </TableCell>
                         <TableCell className="text-xs font-semibold text-slate-800 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
                         <TableCell className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">{fmtCurrency(inv.amount)}</TableCell>
@@ -542,9 +542,9 @@ export default function FinancePortal() {
                           <TableCell className="font-mono text-slate-600 pl-6 tabular-nums min-w-[130px] whitespace-nowrap">{fmtDate(log.date)}</TableCell>
                           <TableCell className="min-w-[200px] whitespace-nowrap">
                             <p className="font-bold text-slate-900">{log.clientName}</p>
-                            <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "Surabaya"}</span>
+                            <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "East"}</span>
                           </TableCell>
-                          <TableCell className="font-semibold text-slate-700 min-w-[160px] whitespace-nowrap">{log.packageName || "Reguler"}</TableCell>
+                          <TableCell className="font-semibold text-slate-700 min-w-[160px] whitespace-nowrap">{log.packageName || "Regular Therapist"}</TableCell>
                           <TableCell className="min-w-[180px] whitespace-nowrap">
                             <span
                               className={cn(
@@ -747,7 +747,7 @@ export default function FinancePortal() {
               <RefreshCw className="w-5 h-5 text-sky-600" /> Renewal Paket Kredit Client
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Penambahan sesi baru (Reguler / VIP) untuk client aktif. Tindakan ini eksklusif bagi Role Finance.
+              Penambahan sesi baru (Regular Therapist / Senior Therapist) untuk client aktif. Tindakan ini eksklusif bagi Role Finance.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleRenewSubmit} className="space-y-3.5 pt-2">

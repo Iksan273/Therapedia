@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -481,12 +482,12 @@ export const AddScheduleModal = ({
 
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700">Session Date</Label>
-                  <Input
-                    type="date"
-                    className="rounded-xl border-slate-200 bg-white text-xs h-9"
+                  <Label className="text-xs font-bold text-slate-700">Session Date (DD/MM/YYYY)</Label>
+                  <DateFilterPicker
+                    placeholder="DD/MM/YYYY"
+                    className="w-full bg-white h-9"
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    onChange={(e) => setDate(e?.target?.value ?? e)}
                   />
                 </div>
                 <div className="space-y-1">

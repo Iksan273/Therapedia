@@ -63,8 +63,8 @@ export const WeeklyCalendar = ({
                 <p className={cn("text-[11px] font-bold uppercase tracking-wider", isToday(day) ? "text-sky-700" : "text-slate-500")}>
                   {format(day, "EEE")}
                 </p>
-                <p className={cn("text-sm font-extrabold tabular-nums mt-0.5", isToday(day) ? "text-sky-900 font-black" : "text-slate-800")}>
-                  {format(day, "MMM d")}
+                <p className={cn("text-xs sm:text-sm font-extrabold tabular-nums mt-0.5", isToday(day) ? "text-sky-900 font-black" : "text-slate-800")}>
+                  {format(day, "dd/MM/yyyy")}
                 </p>
               </div>
             ))}

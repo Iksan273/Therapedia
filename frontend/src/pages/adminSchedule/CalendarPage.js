@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -186,8 +187,8 @@ export default function CalendarPage() {
 
   const label =
     view === "week"
-      ? `${format(weekStart, "MMM d")} \u2013 ${format(addWeeks(weekStart, 1), "MMM d, yyyy")}`
-      : format(selectedDay, "EEE, MMM d yyyy");
+      ? `${format(weekStart, "dd/MM/yyyy")} – ${format(addDays(addWeeks(weekStart, 1), -1), "dd/MM/yyyy")}`
+      : format(selectedDay, "EEEE, dd/MM/yyyy");
 
   const openAdd = (date, hour) =>
     setAddModal({
@@ -456,12 +457,12 @@ export default function CalendarPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Option 2: Exact Target Date (Overrides offset)</Label>
-              <Input
-                type="date"
-                className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+              <Label className="text-xs font-bold text-slate-700">Option 2: Exact Target Date (DD/MM/YYYY) (Overrides offset)</Label>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-full bg-slate-50"
                 value={bulkTargetDate}
-                onChange={(e) => setBulkTargetDate(e.target.value)}
+                onChange={(e) => setBulkTargetDate(e?.target?.value ?? e)}
                 data-testid="bulk-reschedule-date-input"
               />
             </div>

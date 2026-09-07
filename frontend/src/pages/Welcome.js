@@ -45,7 +45,7 @@ export default function Welcome() {
 
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/80 shadow-2xs">
           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="hidden sm:inline">3 Surabaya Branches Active</span>
+          <span className="hidden sm:inline">3 Branches Active: East • West • Citraland</span>
         </div>
       </header>
 
@@ -152,7 +152,7 @@ export default function Welcome() {
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div className="flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-[#007AFF] shrink-0" />
-            <span>Surabaya: Rungkut Megah Raya • Lagoon Sungkono Mall • Citraland</span>
+            <span>East • West • Citraland</span>
           </div>
           <div className="flex items-center gap-4">
             <span>&copy; {new Date().getFullYear()} Therapedia Center</span>

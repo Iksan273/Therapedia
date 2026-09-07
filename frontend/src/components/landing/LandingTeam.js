@@ -55,9 +55,9 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
   const filterTabs = [
     { id: "all", label: "Semua Spesialis" },
     { id: "leadership", label: "Leadership & Supervisors" },
-    { id: "rungkut", label: "Rungkut Megah Raya" },
-    { id: "sungkono", label: "Lagoon Sungkono" },
-    { id: "citraland", label: "Citraland Center" }
+    { id: "east", label: "East Branch" },
+    { id: "west", label: "West Branch" },
+    { id: "citraland", label: "Citraland Branch" }
   ];
 
   const filteredTeam = CLINICAL_TEAM.filter((member) => {
@@ -65,11 +65,11 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
     if (activeFilter === "leadership") {
       return member.branch === "All Branches" || member.role.includes("Director") || member.role.includes("Supervisor");
     }
-    if (activeFilter === "rungkut") {
-      return member.branch.includes("Rungkut");
+    if (activeFilter === "east") {
+      return member.branch.includes("East") || member.branch.includes("Rungkut");
     }
-    if (activeFilter === "sungkono") {
-      return member.branch.includes("Lagoon Avenue") || member.branch.includes("Sungkono");
+    if (activeFilter === "west") {
+      return member.branch.includes("West") || member.branch.includes("Lagoon Avenue") || member.branch.includes("Sungkono");
     }
     if (activeFilter === "citraland") {
       return member.branch.includes("Citraland");

@@ -47,6 +47,7 @@ import { useCredits } from "@/context/CreditsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useAuth } from "@/context/AuthContext";
 import { calcAge, fmtDate, BRANCHES, CANCEL_REASONS, cancelReasonLabel } from "@/lib/appUtils";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { cn } from "@/lib/utils";
 
 const PIE_COLORS = ["#0284C7", "#10B981", "#F59E0B", "#F43F5E", "#8B5CF6", "#64748B"];
@@ -201,7 +202,7 @@ export default function DashboardSchedule() {
   const telemetryTypeDistribution = useMemo(() => {
     const counts = {};
     filteredTelemetrySchedules.forEach((s) => {
-      const t = s.type === "therapy" ? "Terapi Reguler" : s.type === "assessment" ? "Asesmen Klinis" : "Lainnya";
+      const t = s.type === "therapy" ? "Regular Therapist" : s.type === "assessment" ? "Asesmen Klinis" : "Lainnya";
       counts[t] = (counts[t] || 0) + 1;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
@@ -299,21 +300,23 @@ export default function DashboardSchedule() {
         {period === "custom" && (
           <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">From:</span>
-              <Input
-                type="date"
-                className="h-9 w-36 text-xs rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+              <span className="text-xs text-slate-500 font-medium">Dari:</span>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-38"
                 value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
+                onChange={(e) => setCustomStart(e?.target?.value ?? e)}
+                data-testid="schedule-filter-start"
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">To:</span>
-              <Input
-                type="date"
-                className="h-9 w-36 text-xs rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+              <span className="text-xs text-slate-500 font-medium">Sampai:</span>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-38"
                 value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
+                onChange={(e) => setCustomEnd(e?.target?.value ?? e)}
+                data-testid="schedule-filter-end"
               />
             </div>
           </div>
@@ -465,23 +468,25 @@ export default function DashboardSchedule() {
 
             {/* Filter 5: Dari Tanggal */}
             <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Dari Tanggal</Label>
-              <Input
-                type="date"
-                className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50"
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Dari Tanggal (DD/MM/YYYY)</Label>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-full bg-slate-50"
                 value={telemetryStartDate}
-                onChange={(e) => setTelemetryStartDate(e.target.value)}
+                onChange={(e) => setTelemetryStartDate(e?.target?.value ?? e)}
+                data-testid="schedule-telemetry-start"
               />
             </div>
 
             {/* Filter 6: Sampai Tanggal */}
             <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Sampai Tanggal</Label>
-              <Input
-                type="date"
-                className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50"
+              <Label className="text-[11px] text-slate-500 font-bold uppercase">Sampai Tanggal (DD/MM/YYYY)</Label>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-full bg-slate-50"
                 value={telemetryEndDate}
-                onChange={(e) => setTelemetryEndDate(e.target.value)}
+                onChange={(e) => setTelemetryEndDate(e?.target?.value ?? e)}
+                data-testid="schedule-telemetry-end"
               />
             </div>
           </div>

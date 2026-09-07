@@ -51,6 +51,7 @@ import { useClients } from "@/context/ClientsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { BRANCHES, fmtCurrency, fmtDate } from "@/lib/appUtils";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { cn } from "@/lib/utils";
 
 const CHART_COLORS = ["#0284c7", "#0d9488", "#f59e0b", "#8b5cf6", "#ec4899", "#10b981"];
@@ -215,11 +216,10 @@ export default function DashboardRevenue() {
 
   // Branch omzet comparison data
   const branchRevenueData = useMemo(() => {
-    const map = {
-      "branch-sby-timur": { name: "Surabaya Timur", total: 0 },
-      "branch-citraland": { name: "Citraland", total: 0 },
-      "branch-sby-barat": { name: "Surabaya Barat", total: 0 },
-    };
+    const map = {};
+    BRANCHES.forEach((b) => {
+      map[b.id] = { name: b.name, total: 0 };
+    });
 
     allInvoices.forEach((inv) => {
       if (inv.status === "paid" && map[inv.branchId]) {
@@ -312,21 +312,23 @@ export default function DashboardRevenue() {
         {period === "custom" && (
           <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">From:</span>
-              <Input
-                type="date"
-                className="h-9 w-36 text-xs rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+              <span className="text-xs text-slate-500 font-medium">Dari:</span>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-38"
                 value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
+                onChange={(e) => setCustomStart(e?.target?.value ?? e)}
+                data-testid="revenue-filter-start"
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">To:</span>
-              <Input
-                type="date"
-                className="h-9 w-36 text-xs rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+              <span className="text-xs text-slate-500 font-medium">Sampai:</span>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-38"
                 value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
+                onChange={(e) => setCustomEnd(e?.target?.value ?? e)}
+                data-testid="revenue-filter-end"
               />
             </div>
             {(customStart || customEnd) && (
@@ -481,7 +483,7 @@ export default function DashboardRevenue() {
                 Perbandingan Omzet Terverifikasi Antar Cabang
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Total pendapatan lunas dari Surabaya Timur, Citraland, dan Surabaya Barat
+                Total pendapatan lunas dari East, West, dan Citraland
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 pt-6">
@@ -541,7 +543,7 @@ export default function DashboardRevenue() {
             Distribusi Pendapatan per Paket Layanan
           </CardTitle>
           <CardDescription className="text-xs text-slate-500">
-            Kontribusi paket Reguler, VIP, BOT-A, FOT-A terhadap total pendapatan
+            Kontribusi paket Regular Therapist, Senior Therapist, BOT-A, FOT-A terhadap total pendapatan
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-6">

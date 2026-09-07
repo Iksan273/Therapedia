@@ -133,7 +133,7 @@ export const CLINICAL_TEAM = [
     name: "Mikhael Ivan Mintoro, S.Psi.",
     role: "Sensory Integration Therapist",
     department: "Clinical Therapy",
-    branch: "Rungkut Megah Raya Branch",
+    branch: "East Branch",
     image: "https://therapedia.center/uploads//CMS/Team/7d5e9f88-5154-453c-8a1d-b5176adadf30.jpg",
     bio: "Specializes in sensory processing evaluation and therapeutic play interventions for children with sensory modulation difficulties, ADHD, and emotional regulation challenges.",
     specialties: ["Sensory Processing", "Behavioral Regulation", "Therapeutic Play"]
@@ -143,9 +143,9 @@ export const CLINICAL_TEAM = [
     name: "Sahwa Zulfa Talitha Putri, A.Md.Kes.",
     role: "Clinical Coordinator",
     department: "Clinical Leadership",
-    branch: "Lagoon Avenue Sungkono Mall Branch",
+    branch: "West Branch",
     image: "https://therapedia.center/uploads//CMS/Team/477d831d-5c89-41f3-84fe-c22a3a2c4519.jpg",
-    bio: "Clinical coordinator ensuring high fidelity in therapy sessions, individualized program delivery, and clinical outcome measurements at Lagoon Avenue Sungkono branch.",
+    bio: "Clinical coordinator ensuring high fidelity in therapy sessions, individualized program delivery, and clinical outcome measurements at West branch.",
     specialties: ["Clinical Supervision", "Occupational Therapy", "Pediatric Rehabilitation"]
   },
   {
@@ -173,7 +173,7 @@ export const CLINICAL_TEAM = [
     name: "Aliefia Khairah Lisanah Papilaya, A.Md.Kes.",
     role: "Occupational Therapist",
     department: "Clinical Therapy",
-    branch: "Lagoon Avenue Sungkono Mall Branch",
+    branch: "West Branch",
     image: "https://therapedia.center/uploads//CMS/Team/eeb80ac1-b465-4142-b65f-439b259c2c41.jpg",
     bio: "Dedicated pediatric occupational therapist focusing on fine motor coordination, school readiness, and sensory modulation.",
     specialties: ["Fine Motor Development", "Handwriting Readiness", "Sensory Integration"]
@@ -183,7 +183,7 @@ export const CLINICAL_TEAM = [
     name: "Zi'a Daturrif'ah, A.Md.Kes.",
     role: "Occupational Therapist",
     department: "Clinical Therapy",
-    branch: "Rungkut Megah Raya Branch",
+    branch: "East Branch",
     image: "https://therapedia.center/uploads//CMS/Team/75a59637-924a-4153-873f-9e819cf4c6ef.jpg",
     bio: "Experienced in motor planning (praxis), sensory diet design, and adaptive daily living skill training for pediatric clients.",
     specialties: ["Motor Planning & Praxis", "Sensory Diet", "Activities of Daily Living"]
@@ -193,7 +193,7 @@ export const CLINICAL_TEAM = [
     name: "Nur Rahmah Ramadani, S.Psi.",
     role: "Sensory Integration Therapist",
     department: "Clinical Therapy",
-    branch: "Lagoon Avenue Sungkono Mall Branch",
+    branch: "West Branch",
     image: "https://therapedia.center/uploads//CMS/Team/2d75f83c-7615-4f4e-b6ef-3df946497be7.jpg",
     bio: "Applies psychology-informed sensory integration techniques to enhance frustration tolerance, attention span, and interactive play.",
     specialties: ["Sensory Stimulation", "Emotional Regulation", "Child Motivation"]
@@ -203,7 +203,7 @@ export const CLINICAL_TEAM = [
     name: "Al Haviz Dwi Panca, S.Psi.",
     role: "Sensory Integration Therapist",
     department: "Clinical Therapy",
-    branch: "Rungkut Megah Raya Branch",
+    branch: "East Branch",
     image: "https://therapedia.center/uploads//CMS/Team/306a6f51-9527-47f9-aaea-db1e65d4b090.jpg",
     bio: "Expertise in vestibular-proprioceptive stimulation, energetic sensory motor play, and behavioral engagement for children with hyperactivity.",
     specialties: ["Vestibular Therapy", "Sensory-Motor Play", "Attention Training"]
@@ -213,7 +213,7 @@ export const CLINICAL_TEAM = [
     name: "Dian Swanti, S.Psi.",
     role: "Operational Coordinator & SI Therapist",
     department: "Clinical Therapy & Operations",
-    branch: "Rungkut Megah Raya Branch",
+    branch: "East Branch",
     image: "https://therapedia.center/uploads//CMS/Team/47c7b356-8961-4cdb-9c8e-2f9c156836d2.jpg",
     bio: "Combines operational coordination with frontline sensory integration therapy to maintain high clinical and parent satisfaction standards.",
     specialties: ["SI Therapy", "Family Counseling", "Branch Clinical Flow"]
@@ -233,9 +233,9 @@ export const CLINICAL_TEAM = [
 export const CLINICAL_BRANCHES = [
   {
     id: "rungkut",
-    name: "RUNGKUT MEGAH RAYA BRANCH",
-    shortName: "Rungkut Megah Raya",
-    area: "Surabaya Timur",
+    name: "EAST BRANCH",
+    shortName: "East",
+    area: "East",
     address: "Ruko Rungkut Megah Raya Blok L-1, Kota Surabaya",
     hours: "Senin – Sabtu: 08.00 – 17.00 WIB",
     phone: "+62 812-3456-7890",
@@ -250,9 +250,9 @@ export const CLINICAL_BRANCHES = [
   },
   {
     id: "sungkono",
-    name: "LAGOON AVENUE SUNGKONO MALL BRANCH",
-    shortName: "Lagoon Avenue Sungkono",
-    area: "Surabaya Barat (Mall Sungkono)",
+    name: "WEST BRANCH",
+    shortName: "West",
+    area: "West",
     address:
       "Lagoon Avenue Mall Sungkono Lt UG 3 - 6, Jalan K.H. Abdul Wahab Siamin Blok RA 9 - 10, Kota Surabaya",
     hours: "Senin – Minggu: 09.00 – 18.00 WIB",
@@ -270,7 +270,7 @@ export const CLINICAL_BRANCHES = [
     id: "citraland",
     name: "CITRALAND BRANCH",
     shortName: "Citraland",
-    area: "Surabaya Barat (Citraland)",
+    area: "Citraland",
     address: "Royal Park TK II No. 21 - 22, Citraland, Lakarsantri, Kota Surabaya",
     hours: "Senin – Sabtu: 08.00 – 17.00 WIB",
     phone: "+62 812-3456-7892",

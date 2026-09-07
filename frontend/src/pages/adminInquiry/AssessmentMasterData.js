@@ -1470,7 +1470,7 @@ export default function AssessmentMasterData() {
                 <SelectContent className="max-h-56 rounded-xl">
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                      {c.clientName} ({c.clientAccessCode}) • {c.branchId === "branch-citraland" ? "Citraland" : c.branchId === "branch-sby-barat" ? "Sby Barat" : "Sby Timur"}
+                      {c.clientName} ({c.clientAccessCode}) • {c.branchId === "branch-citraland" ? "Citraland" : c.branchId === "branch-sby-barat" ? "West" : "East"}
                     </SelectItem>
                   ))}
                 </SelectContent>

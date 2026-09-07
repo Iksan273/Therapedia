@@ -383,7 +383,7 @@ export default function RoleSelect() {
         <div className="relative z-10 flex flex-col justify-between p-12 text-white h-full">
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold w-fit">
             <ShieldCheck className="w-4 h-4 text-cyan-400" />
-            Sistem Terintegrasi 3 Cabang: Sby Timur, Citraland, Sby Barat
+            Sistem Terintegrasi 3 Cabang: East, West, Citraland
           </div>
 
           <div className="space-y-6 max-w-lg">

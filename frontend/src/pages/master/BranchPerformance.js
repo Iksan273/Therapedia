@@ -129,7 +129,7 @@ export default function BranchPerformance() {
             Performa Inquiry & Intake All-Branch
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Analitik komparatif performa inquiry, konversi admitted, dan laju drop-off antar seluruh cabang Therapedia (Surabaya Timur, Citraland, Surabaya Barat). Akses eksklusif Role Master.
+            Analitik komparatif performa inquiry, konversi admitted, dan laju drop-off antar seluruh cabang Therapedia (East, West, Citraland). Akses eksklusif Role Master.
           </p>
         </div>
 
@@ -285,7 +285,7 @@ export default function BranchPerformance() {
             Tren Volume Intake 6 Bulan Terakhir per Cabang
           </CardTitle>
           <CardDescription className="text-xs text-slate-500">
-            Pergerakan pendaftaran client baru tiap bulan di Surabaya Timur, Citraland, dan Surabaya Barat
+            Pergerakan pendaftaran client baru tiap bulan di East, West, dan Citraland
           </CardDescription>
         </CardHeader>
         <CardContent className="h-64 pt-4">
@@ -296,9 +296,9 @@ export default function BranchPerformance() {
               <YAxis allowDecimals={false} tick={{ fill: "#64748B", fontSize: 11 }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="Surabaya Timur" stroke={COLORS.timur} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="East" stroke={COLORS.timur} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               <Line type="monotone" dataKey="Citraland" stroke={COLORS.citraland} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="Surabaya Barat" stroke={COLORS.barat} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="West" stroke={COLORS.barat} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

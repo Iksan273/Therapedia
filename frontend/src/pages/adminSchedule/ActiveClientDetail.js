@@ -46,7 +46,7 @@ import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
 import { useTherapists } from "@/context/TherapistsContext";
-import { DISCHARGE_REASONS, calcAge, fmtDate, todayStr, BRANCHES, fmtCurrency } from "@/lib/appUtils";
+import { DISCHARGE_REASONS, calcAge, fmtDate, todayStr, BRANCHES, fmtCurrency, formatPackageName } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 export default function ActiveClientDetail() {
@@ -259,7 +259,7 @@ export default function ActiveClientDetail() {
                 pkgs.map((p) => (
                   <div key={p.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-slate-900">{p.packageName}</p>
+                      <p className="font-bold text-slate-900">{formatPackageName(p.packageName)}</p>
                       <p className="text-[10px] text-slate-500 font-medium">Status: {p.status}</p>
                     </div>
                     <span className="font-mono font-extrabold text-sm text-slate-800">

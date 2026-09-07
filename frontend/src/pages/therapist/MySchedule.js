@@ -14,6 +14,7 @@ import {
   Building2,
   BookOpen,
   ClipboardCheck,
+  FileCheck2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -96,8 +97,8 @@ export default function MySchedule() {
 
   const label =
     view === "week"
-      ? `${format(weekStart, "MMM d")} – ${format(addWeeks(weekStart, 1), "MMM d, yyyy")}`
-      : format(selectedDay, "EEE, MMM d yyyy");
+      ? `${format(weekStart, "dd/MM/yyyy")} – ${format(addDays(addWeeks(weekStart, 1), -1), "dd/MM/yyyy")}`
+      : format(selectedDay, "EEEE, dd/MM/yyyy");
 
   return (
     <div className="space-y-6" data-testid="my-schedule-page">
@@ -120,22 +121,33 @@ export default function MySchedule() {
           </p>
         </div>
 
-        {/* Filter per Client */}
-        <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-2xs self-start sm:self-auto">
-          <User className="w-4 h-4 text-sky-600 shrink-0" />
-          <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="h-8 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
-              <SelectValue placeholder="Filter Client" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200">
-              <SelectItem value="all">Semua Client Saya ({myClients.length})</SelectItem>
-              {myClients.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.clientName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Action button & Filter per Client */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <Link to="/therapist/summary">
+            <Button
+              className="bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold text-xs rounded-xl h-9 gap-1.5 shadow-2xs"
+              data-testid="link-to-summary-header"
+            >
+              <FileCheck2 className="w-3.5 h-3.5" /> Summary Laporan ({reportMetrics.pending} Pending)
+            </Button>
+          </Link>
+
+          <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1 shadow-2xs">
+            <User className="w-4 h-4 text-sky-600 shrink-0" />
+            <Select value={clientFilter} onValueChange={setClientFilter}>
+              <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
+                <SelectValue placeholder="Filter Client" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200">
+                <SelectItem value="all">Semua Client Saya ({myClients.length})</SelectItem>
+                {myClients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.clientName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

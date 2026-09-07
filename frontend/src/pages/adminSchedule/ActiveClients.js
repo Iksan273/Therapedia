@@ -51,7 +51,7 @@ import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useAuth } from "@/context/AuthContext";
-import { calcAge, fmtDate, BRANCHES, CANCEL_REASONS } from "@/lib/appUtils";
+import { calcAge, fmtDate, BRANCHES, CANCEL_REASONS, formatPackageName } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 const CHART_COLORS = ["#0284c7", "#0d9488", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#64748b"];
@@ -147,8 +147,12 @@ export default function ActiveClients() {
       const totalSessions = completedCount + cancelledCount;
       const attendanceRate = totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 100;
 
-      const regulerPkg = rec?.packages?.find((p) => p.packageId === "pkg-reguler" || p.packageName?.includes("Reguler"));
-      const vipPkg = rec?.packages?.find((p) => p.packageId === "pkg-vip" || p.packageName?.includes("VIP"));
+      const regulerPkg = rec?.packages?.find(
+        (p) => p.packageId === "pkg-reguler" || p.packageName?.toLowerCase().includes("reguler") || p.packageName?.toLowerCase().includes("regular")
+      );
+      const vipPkg = rec?.packages?.find(
+        (p) => p.packageId === "pkg-vip" || p.packageName?.toLowerCase().includes("vip") || p.packageName?.toLowerCase().includes("senior")
+      );
 
       const remCredit = rec ? rec.remainingCredit : 0;
       const cancelTotal = rec ? rec.cancelCountTotal : cancelledCount;
@@ -435,7 +439,7 @@ export default function ActiveClients() {
                           </TableCell>
                           <TableCell className="text-xs py-4 min-w-[170px]">
                             <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
-                              📍 {br ? br.name : "Surabaya"}
+                              📍 {br ? br.name : "East"}
                             </span>
                           </TableCell>
                           <TableCell className="text-xs py-4 min-w-[240px]">
@@ -447,7 +451,7 @@ export default function ActiveClients() {
                               <div className="space-y-1.5">
                                 {pkgs.map((p) => (
                                   <div key={p.id} className="flex items-center gap-2 whitespace-nowrap">
-                                    <span className="font-bold text-slate-800">{p.packageName}:</span>
+                                    <span className="font-bold text-slate-800">{formatPackageName(p.packageName)}:</span>
                                     <span
                                       className={cn(
                                         "font-mono font-bold px-2 py-0.5 rounded-md text-[11px] shrink-0",
@@ -594,7 +598,7 @@ export default function ActiveClients() {
                         </div>
                       </div>
                       <span className="text-[10px] font-bold text-pink-800 bg-pink-100 px-2 py-0.5 rounded-full">
-                        {br ? br.name : "Surabaya"}
+                        {br ? br.name : "East"}
                       </span>
                     </div>
 
@@ -890,7 +894,7 @@ export default function ActiveClients() {
                   Tabel Performa Caseload ({filteredAnalyticsRows.length} Client)
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
-                  Tingkat kehadiran, sesi diselesaikan, pembatalan, dan sisa saldo paket Reguler & VIP
+                  Tingkat kehadiran, sesi diselesaikan, pembatalan, dan sisa saldo paket Regular Therapist & Senior Therapist
                 </CardDescription>
               </div>
             </CardHeader>
@@ -903,8 +907,8 @@ export default function ActiveClients() {
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[160px] whitespace-nowrap">Rasio Kehadiran</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Selesai</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Cancel Total</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Sisa Reguler</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[120px] whitespace-nowrap">Sisa VIP</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Sisa Regular Therapist</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Sisa Senior Therapist</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs pr-6 min-w-[160px] whitespace-nowrap">Status Kuota</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -919,7 +923,7 @@ export default function ActiveClients() {
                         </TableCell>
                         <TableCell className="min-w-[160px] whitespace-nowrap">
                           <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
-                            📍 {br ? br.name : "Surabaya"}
+                            📍 {br ? br.name : "East"}
                           </span>
                         </TableCell>
                         <TableCell className="min-w-[160px] whitespace-nowrap">

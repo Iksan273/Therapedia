@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -108,8 +109,14 @@ export default function InquiryPipeline() {
 
   const handleCreateIntake = (e) => {
     e.preventDefault();
-    if (!newForm.clientName.trim() || !newForm.parentName.trim() || !newForm.parentContact.trim() || !newForm.dob) {
-      toast.error("Mohon lengkapi nama anak, orang tua, kontak WhatsApp, dan tanggal lahir.");
+    if (
+      !newForm.clientName.trim() ||
+      !newForm.parentName.trim() ||
+      !newForm.parentContact.trim() ||
+      !newForm.dob ||
+      !newForm.parentEmail.trim()
+    ) {
+      toast.error("Mohon lengkapi seluruh data wajib: nama anak, tanggal lahir, nama orang tua, kontak WhatsApp, dan email.");
       return;
     }
 
@@ -321,12 +328,12 @@ export default function InquiryPipeline() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak *</Label>
-              <Input
-                type="date"
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+              <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak (DD/MM/YYYY) *</Label>
+              <DateFilterPicker
+                placeholder="DD/MM/YYYY"
+                className="w-full bg-slate-50 h-10"
                 value={newForm.dob}
-                onChange={(e) => setNewForm({ ...newForm, dob: e.target.value })}
+                onChange={(e) => setNewForm({ ...newForm, dob: e?.target?.value ?? e })}
                 data-testid="intake-dob"
               />
             </div>

@@ -26,7 +26,8 @@ import {
   Maximize2,
   Minimize2,
   Expand,
-  Shrink
+  Shrink,
+  FileCheck2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -117,7 +118,8 @@ const NAV_CONFIG = {
     title: "Therapist Portal",
     shortRole: "Clinical Practitioner",
     items: [
-      { to: "/therapist", label: "My Clinical Schedule", icon: CalendarDays, end: true, testid: "nav-my-schedule" }
+      { to: "/therapist", label: "My Clinical Schedule", icon: CalendarDays, end: true, testid: "nav-my-schedule" },
+      { to: "/therapist/summary", label: "Summary & Laporan Sesi", icon: FileCheck2, end: false, testid: "nav-therapist-summary" }
     ],
     extras: [],
   },
@@ -598,7 +600,7 @@ const AppLayout = () => {
               ) : (
                 <span className="text-slate-700 font-semibold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-xs flex items-center gap-1.5 shrink-0">
                   <Building2 className="w-3.5 h-3.5 text-sky-600" />
-                  {BRANCHES.find((b) => b.id === (auth.branchId || activeBranch))?.name || "Surabaya Timur"}
+                  {BRANCHES.find((b) => b.id === (auth.branchId || activeBranch))?.name || "East"}
                 </span>
               )}
             </div>
