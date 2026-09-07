@@ -57,6 +57,8 @@ export default function ClientDashboard() {
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [viewProofOpen, setViewProofOpen] = useState(false);
+  const [selectedReportSession, setSelectedReportSession] = useState(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [fileData, setFileData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -334,70 +336,170 @@ export default function ClientDashboard() {
               Riwayat Sesi Terapi yang Telah Selesai ({completedHistory.length})
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
-              Dokumentasi aktivitas terapi dan instruksi PR latihan di rumah dari praktisi terapis
+              Daftar sesi terapi yang telah selesai. Klik &ldquo;View Report&rdquo; untuk melihat detail catatan klinis dan PR latihan.
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4">
           {completedHistory.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-400">
               Belum ada sesi terapi yang berstatus selesai (Completed).
             </div>
           ) : (
-            completedHistory.map((s) => {
-              const th = getTherapist(s.therapistId);
-              return (
-                <div
-                  key={s.id}
-                  className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3 shadow-2xs"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                    <div>
-                      <span className="font-extrabold text-sm text-slate-900">{fmtDate(s.date)}</span>
-                      <span className="font-mono text-xs text-slate-500 ml-2">({s.startTime} – {s.endTime})</span>
+            <div className="space-y-2.5">
+              {completedHistory.map((s) => {
+                const th = getTherapist(s.therapistId);
+                return (
+                  <div
+                    key={s.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/20 transition-all shadow-2xs"
+                  >
+                    {/* Sisi Kiri: Status Completed & Info Jadwal */}
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                      {/* Status Completed di posisi kiri */}
+                      <div className="shrink-0 pt-0.5 sm:pt-0">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          Completed
+                        </span>
+                      </div>
+
+                      {/* Detail Sesi Jadwal */}
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-extrabold text-sm text-slate-900">
+                            {fmtDate(s.date)}
+                          </span>
+                          <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded-md">
+                            {s.startTime} &ndash; {s.endTime}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600">
+                          Praktisi: <strong className="text-slate-800 font-semibold">{th ? th.name : "Terapis"}</strong>
+                          {th?.specialty && <span className="text-slate-400 font-normal"> ({th.specialty})</span>}
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-700">
-                      Praktisi: {th ? th.name : "Terapis"}
-                    </span>
-                  </div>
 
-                  {/* 1. Activity Section */}
-                  <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-1">
-                    <p className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
-                      <BookOpen className="w-3.5 h-3.5 text-sky-600" /> Aktivitas Klinis Terapi (Activity Section):
-                    </p>
-                    <p className="text-xs text-slate-700 leading-relaxed">
-                      {s.activitySection || "Aktivitas stimulasi sensori dan latihan okupasi telah dilaksanakan dengan baik."}
-                    </p>
-                  </div>
-
-                  {/* 2. Note Section */}
-                  {(s.noteSection || s.progressNote) && (
-                    <div className="p-3 rounded-lg bg-amber-50/60 border border-amber-200 space-y-1">
-                      <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                        <StickyNote className="w-3.5 h-3.5 text-amber-600" /> Catatan Evaluasi & Observasi Terapis (Note Section):
-                      </p>
-                      <p className="text-xs text-amber-950 leading-relaxed">
-                        {s.noteSection || s.progressNote}
-                      </p>
+                    {/* Sisi Kanan: Tombol Aksi View Report */}
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedReportSession(s);
+                          setIsReportOpen(true);
+                        }}
+                        className="h-8 rounded-xl border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-sky-700 font-bold text-xs gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-sky-600" />
+                        View Report
+                      </Button>
                     </div>
-                  )}
-
-                  {/* 3. Homework Section */}
-                  <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-200 space-y-1">
-                    <p className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                      <Home className="w-3.5 h-3.5 text-emerald-600" /> PR & Latihan Mandiri di Rumah (Homework Section):
-                    </p>
-                    <p className="text-xs text-emerald-900 leading-relaxed">
-                      {s.homeworkSection || "Lanjutkan stimulasi harian sesuai panduan terapis saat evaluasi."}
-                    </p>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Modal View Report Sesi Terapi */}
+      <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl p-5 sm:p-6 border-slate-200">
+          <DialogHeader>
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0 shadow-2xs">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-slate-900">
+                    Laporan Sesi Terapi
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-slate-500">
+                    Hasil observasi klinis & panduan latihan mandiri di rumah
+                  </DialogDescription>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Completed
+              </span>
+            </div>
+          </DialogHeader>
+
+          {selectedReportSession && (
+            <div className="space-y-4 pt-2">
+              {/* Info Ringkas Sesi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                <div>
+                  <p className="text-[11px] font-medium text-slate-500">Waktu Pelaksanaan</p>
+                  <p className="font-bold text-slate-900">
+                    {fmtDate(selectedReportSession.date)}
+                  </p>
+                  <p className="font-mono text-slate-600 text-[11px]">
+                    {selectedReportSession.startTime} &ndash; {selectedReportSession.endTime} WIB
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium text-slate-500">Praktisi Terapis</p>
+                  <p className="font-bold text-slate-900">
+                    {getTherapist(selectedReportSession.therapistId)?.name || "Terapis"}
+                  </p>
+                  <p className="text-slate-600 text-[11px]">
+                    {getTherapist(selectedReportSession.therapistId)?.specialty || "Spesialis Terapi"}
+                  </p>
+                </div>
+              </div>
+
+              {/* 1. Activity Section */}
+              <div className="p-3.5 rounded-xl bg-sky-50/60 border border-sky-200/80 space-y-1.5">
+                <p className="text-xs font-bold text-sky-950 flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-sky-600 shrink-0" />
+                  Aktivitas Klinis Terapi (Activity Section)
+                </p>
+                <p className="text-xs text-sky-900 leading-relaxed whitespace-pre-wrap">
+                  {selectedReportSession.activitySection || "Aktivitas stimulasi sensori dan latihan okupasi telah dilaksanakan dengan baik."}
+                </p>
+              </div>
+
+              {/* 2. Note Section */}
+              <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-1.5">
+                <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                  <StickyNote className="w-4 h-4 text-amber-600 shrink-0" />
+                  Catatan Evaluasi & Observasi Terapis (Note Section)
+                </p>
+                <p className="text-xs text-amber-950 leading-relaxed whitespace-pre-wrap">
+                  {selectedReportSession.noteSection || selectedReportSession.progressNote || "Ananda menunjukkan kooperasi yang sangat baik selama sesi terapi berlangsung."}
+                </p>
+              </div>
+
+              {/* 3. Homework Section */}
+              <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-1.5">
+                <p className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                  <Home className="w-4 h-4 text-emerald-600 shrink-0" />
+                  PR & Latihan Mandiri di Rumah (Homework Section)
+                </p>
+                <p className="text-xs text-emerald-900 leading-relaxed whitespace-pre-wrap">
+                  {selectedReportSession.homeworkSection || "Lanjutkan stimulasi harian sesuai panduan terapis saat evaluasi."}
+                </p>
+              </div>
+
+              <DialogFooter className="mt-5 pt-3 border-t border-slate-100 flex flex-row items-center justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl text-xs font-semibold cursor-pointer"
+                  onClick={() => setIsReportOpen(false)}
+                >
+                  Tutup Laporan
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Upload Bukti Transfer */}
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
