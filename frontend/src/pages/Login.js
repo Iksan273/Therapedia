@@ -228,7 +228,7 @@ export default function Login() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-700 transition-colors group"
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#007AFF] transition-colors group"
             data-testid="login-back-to-home"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
@@ -237,7 +237,7 @@ export default function Login() {
 
           <Link
             to="/roles"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50/80 hover:bg-sky-100/80 border border-sky-200/80 px-3 py-1.5 rounded-xl transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#007AFF] hover:text-[#0062cc] bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 px-3 py-1.5 rounded-xl transition-all"
             data-testid="login-to-role-switcher"
           >
             <span>Buka Role Switcher</span>
@@ -259,12 +259,21 @@ export default function Login() {
             <CardContent className="p-6 sm:p-8">
               {/* Header inside card */}
               <div className="text-center mb-6">
-                <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 via-sky-500 to-cyan-400 items-center justify-center text-white font-extrabold text-2xl shadow-md shadow-sky-500/25 mb-3">
-                  T
+                <div className="inline-flex w-16 h-16 items-center justify-center mb-3 transition-transform hover:scale-105">
+                  <img
+                    src="/images/therapedia_logo.png"
+                    alt="Therapedia Mascot Logo"
+                    className="w-full h-full object-contain drop-shadow-[0_6px_16px_rgba(0,122,255,0.3)]"
+                  />
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  Login Portal Therapedia
-                </h1>
+                <div className="flex items-center justify-center gap-1.5">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    Login Portal Therapedia
+                  </h1>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                    Center
+                  </span>
+                </div>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1.5">
                   Masuk ke sistem operasional terpadu pusat tumbuh kembang anak
                 </p>
@@ -283,7 +292,7 @@ export default function Login() {
                   )}
                   data-testid="tab-staff-login"
                 >
-                  <ShieldCheck className="w-4 h-4 text-sky-600" />
+                  <ShieldCheck className="w-4 h-4 text-[#007AFF]" />
                   <span>Staf Klinis & Manajemen</span>
                 </button>
                 <button
@@ -391,7 +400,7 @@ export default function Login() {
 
                       <Button
                         type="submit"
-                        className="w-full h-11 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition-all cursor-pointer mt-2"
+                        className="w-full h-11 rounded-xl bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold text-xs shadow-md shadow-[#007AFF]/25 transition-all cursor-pointer mt-2"
                         data-testid={LOGIN.submitButton}
                       >
                         <span>Masuk ke Dashboard Staf</span>

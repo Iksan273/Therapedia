@@ -223,17 +223,26 @@ export default function AssessmentFill() {
   return (
     <div className="min-h-screen bg-slate-50/80 py-8 px-3 sm:px-6">
       <div className={cn("mx-auto space-y-6 transition-all", stage === "form" ? "max-w-4xl" : "max-w-xl")}>
-        <Link to="/" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-sky-700 transition-colors" data-testid="assessment-back-link">
+        <Link to="/" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#007AFF] transition-colors" data-testid="assessment-back-link">
           <ArrowLeft className="w-4 h-4" /> Kembali ke pemilihan portal
         </Link>
 
         {/* Brand Header */}
         <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-          <div className="w-12 h-12 rounded-2xl bg-sky-600 flex items-center justify-center text-white font-extrabold text-xl shadow-xs shadow-sky-600/30 shrink-0">
-            <Activity className="w-6 h-6" />
+          <div className="w-12 h-12 flex items-center justify-center shrink-0">
+            <img
+              src="/images/therapedia_logo.png"
+              alt="Therapedia Mascot Logo"
+              className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
+            />
           </div>
           <div className="min-w-0">
-            <p className="font-extrabold text-base text-slate-900 leading-tight truncate">Therapedia Developmental Center</p>
+            <div className="flex items-center gap-2">
+              <p className="font-extrabold text-base text-slate-900 leading-tight truncate">Therapedia Developmental Center</p>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                Clinical
+              </span>
+            </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">Parent Assessment & Developmental Profiling System</p>
           </div>
         </div>
@@ -242,7 +251,7 @@ export default function AssessmentFill() {
           <Card className="rounded-2xl border border-slate-200/90 shadow-sm bg-white overflow-hidden clinical-card">
             <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <FileQuestion className="w-5 h-5 text-sky-600" /> Masukkan Kode Akses Asesmen
+                <FileQuestion className="w-5 h-5 text-[#007AFF]" /> Masukkan Kode Akses Asesmen
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
                 Gunakan kode akses kuesioner yang diberikan klinik (misal: <strong>ASM-2011</strong>, <strong>ASM-2012</strong>, atau <strong>ASM-2014</strong>).
@@ -269,7 +278,7 @@ export default function AssessmentFill() {
                     <p className="text-xs font-semibold text-rose-600 mt-1" data-testid="assessment-code-error">{codeError}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl h-11 text-xs shadow-xs cursor-pointer" data-testid="assessment-code-submit-button">
+                <Button type="submit" className="w-full bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold rounded-xl h-11 text-xs shadow-md shadow-[#007AFF]/25 cursor-pointer" data-testid="assessment-code-submit-button">
                   Buka Instrumen Kuesioner
                 </Button>
               </form>
@@ -307,7 +316,7 @@ export default function AssessmentFill() {
                 <div
                   className={cn(
                     "h-full transition-all duration-300 rounded-full",
-                    progressPercent === 100 ? "bg-emerald-500" : "bg-sky-600"
+                    progressPercent === 100 ? "bg-emerald-500" : "bg-[#007AFF]"
                   )}
                   style={{ width: `${progressPercent}%` }}
                 />

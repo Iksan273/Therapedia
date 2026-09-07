@@ -11,9 +11,9 @@ module.exports = {
         sans: ['"Plus Jakarta Sans"', '"Poppins"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'clinical': '0 1px 3px rgba(2, 132, 199, 0.04), 0 4px 14px rgba(15, 23, 42, 0.04)',
-        'clinical-hover': '0 4px 12px rgba(2, 132, 199, 0.08), 0 12px 28px rgba(15, 23, 42, 0.06)',
-        'clinical-lg': '0 10px 30px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(2, 132, 199, 0.05)',
+        'clinical': '0 1px 3px rgba(0, 122, 255, 0.04), 0 4px 14px rgba(15, 23, 42, 0.04)',
+        'clinical-hover': '0 4px 12px rgba(0, 122, 255, 0.08), 0 12px 28px rgba(15, 23, 42, 0.06)',
+        'clinical-lg': '0 10px 30px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(0, 122, 255, 0.05)',
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -21,6 +21,26 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)'
       },
       colors: {
+        sky: {
+          50: '#f0f7ff',
+          100: '#e0effe',
+          200: '#bae0fd',
+          300: '#7cc5fb',
+          400: '#38bdf8',
+          500: '#007AFF', // Official Therapedia Royal Blue
+          600: '#007AFF',
+          700: '#0066d6',
+          800: '#0052ad',
+          900: '#003e85',
+          950: '#002554',
+        },
+        brand: {
+          blue: '#007AFF',
+          dark: '#005bb5',
+          light: '#f0f7ff',
+          cyan: '#00C7BE',
+          navy: '#040e1e',
+        },
         surface: {
           DEFAULT: 'var(--color-surface)',
           subtle: 'var(--color-surface-subtle)',

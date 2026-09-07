@@ -144,22 +144,23 @@ export default function ClientDashboard() {
   return (
     <div className="max-w-4xl mx-auto space-y-6" data-testid="client-dashboard-page">
       {/* Welcome Family Header */}
-      <div className="rounded-2xl bg-gradient-to-r from-sky-600 to-sky-800 text-white p-6 sm:p-7 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="rounded-2xl bg-gradient-to-r from-[#007AFF] via-[#0062cc] to-[#004bb5] text-white p-6 sm:p-7 shadow-md shadow-[#007AFF]/20 relative overflow-hidden">
+        <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/15 text-sky-100 text-xs font-semibold backdrop-blur-xs">
-              <HeartHandshake className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur-xs border border-white/20">
+              <HeartHandshake className="w-3.5 h-3.5 text-cyan-200" />
               Parent & Family Care Portal
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
               Halo, Orang Tua {client.clientName}!
             </h1>
-            <p className="text-xs sm:text-sm text-sky-100/90 font-medium">
+            <p className="text-xs sm:text-sm text-blue-100 font-medium">
               Pantau perkembangan ananda di <strong>Therapedia ({br ? br.name : "Surabaya"})</strong>.
             </p>
           </div>
-          <div className="shrink-0 bg-white/10 backdrop-blur-xs px-4 py-2.5 rounded-xl border border-white/20 text-right">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-sky-200">Kode Unik Client</p>
+          <div className="shrink-0 bg-white/15 backdrop-blur-xs px-4 py-2.5 rounded-xl border border-white/25 text-right shadow-xs">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-cyan-200">Kode Unik Client</p>
             <p className="font-mono text-base font-black text-white">{client.clientAccessCode}</p>
           </div>
         </div>

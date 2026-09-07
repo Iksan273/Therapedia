@@ -135,12 +135,21 @@ const NAV_CONFIG = {
 
 const Logo = ({ compact = false, onClose }) => (
   <div className={cn("flex items-center justify-between", !compact && "px-4 h-16 border-b border-slate-200/80 bg-white")}>
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm shadow-sky-600/20">
-        T
+    <div className="flex items-center gap-2.5 min-w-0">
+      <div className="w-10 h-10 flex items-center justify-center shrink-0 transition-transform duration-200 hover:scale-105">
+        <img
+          src="/images/therapedia_logo.png"
+          alt="Therapedia Mascot Logo"
+          className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
+        />
       </div>
       <div className="leading-tight min-w-0">
-        <p className="font-bold text-[15px] text-slate-900 tracking-tight truncate">Therapedia</p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-extrabold text-[15px] text-slate-900 tracking-tight truncate">Therapedia</p>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/80">
+            Center
+          </span>
+        </div>
         <p className="text-[11px] font-medium text-slate-500 truncate">Developmental Center</p>
       </div>
     </div>
@@ -164,7 +173,7 @@ const navLinkClass = ({ isActive }) =>
   cn(
     "relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 group",
     isActive
-      ? "bg-sky-50 text-sky-700 font-bold shadow-xs border border-sky-200/60"
+      ? "bg-blue-50/90 text-[#007AFF] font-bold shadow-2xs border border-blue-200/80"
       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   );
 
@@ -186,12 +195,12 @@ const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
           {({ isActive }) => (
             <>
               {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-sky-600" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5 rounded-r-full bg-[#007AFF]" />
               )}
               <item.icon
                 className={cn(
                   "w-[18px] h-[18px] shrink-0 transition-transform duration-150 group-hover:scale-105",
-                  isActive ? "text-sky-600 stroke-[2.2]" : "text-slate-400 group-hover:text-slate-600"
+                  isActive ? "text-[#007AFF] stroke-[2.3]" : "text-slate-400 group-hover:text-slate-600"
                 )}
               />
               <span className="truncate">{item.label}</span>
@@ -219,7 +228,7 @@ const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
                 <item.icon
                   className={cn(
                     "w-[18px] h-[18px] shrink-0",
-                    isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600"
+                    isActive ? "text-[#007AFF] stroke-[2.3]" : "text-slate-400 group-hover:text-slate-600"
                   )}
                 />
                 <span className="truncate">{item.label}</span>
@@ -394,7 +403,7 @@ const AppLayout = () => {
 
         {/* User Identity Chip */}
         <div className="px-4 py-3 mx-3 mt-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#007AFF] border border-blue-100 flex items-center justify-center font-bold text-xs shrink-0">
             <UserCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -462,7 +471,7 @@ const AppLayout = () => {
                     <Logo compact />
                   </div>
                   <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#007AFF] border border-blue-100 flex items-center justify-center font-bold text-xs shrink-0">
                       <UserCircle2 className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
@@ -498,10 +507,19 @@ const AppLayout = () => {
               </Sheet>
 
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-sky-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-xs">
-                  T
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                  <img
+                    src="/images/therapedia_logo.png"
+                    alt="Therapedia"
+                    className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,122,255,0.25)]"
+                  />
                 </div>
-                <span className="font-bold text-sm text-slate-900 truncate">Therapedia</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-extrabold text-sm text-slate-900 truncate">Therapedia</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                    Center
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -513,8 +531,8 @@ const AppLayout = () => {
               className={cn(
                 "hidden md:flex items-center gap-2 rounded-xl transition-all h-9 px-3 border font-semibold text-xs shadow-2xs",
                 sidebarOpen
-                  ? "border-slate-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50"
-                  : "bg-sky-600 hover:bg-sky-700 text-white border-transparent shadow-sm shadow-sky-600/20 font-bold"
+                  ? "border-slate-200 text-slate-700 hover:text-[#007AFF] hover:bg-blue-50"
+                  : "bg-[#007AFF] hover:bg-[#0062cc] text-white border-transparent shadow-sm shadow-[#007AFF]/25 font-bold"
               )}
               title={sidebarOpen ? "Tutup Menu Section (Ctrl+B)" : "Buka Menu Section (Ctrl+B)"}
               aria-label={sidebarOpen ? "Tutup Menu Section" : "Buka Menu Section"}
@@ -536,10 +554,19 @@ const AppLayout = () => {
             {/* Desktop mini brand pill when sidebar is closed */}
             {!sidebarOpen && (
               <div className="hidden md:flex items-center gap-2 pl-0.5">
-                <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
-                  T
+                <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                  <img
+                    src="/images/therapedia_logo.png"
+                    alt="Therapedia"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-                <span className="font-bold text-sm text-slate-900 truncate">Therapedia</span>
+                <div className="flex items-center gap-1">
+                  <span className="font-extrabold text-sm text-slate-900 truncate">Therapedia</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                    Center
+                  </span>
+                </div>
               </div>
             )}
 

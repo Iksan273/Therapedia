@@ -42,8 +42,8 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
       className={cn(
         "clinical-card rounded-2xl cursor-pointer transition-all duration-200 group border",
         active
-          ? "border-sky-500 bg-sky-50/40 shadow-md ring-2 ring-sky-400/30"
-          : "border-slate-200/90 hover:border-sky-300 hover:shadow-md hover:bg-white"
+          ? "border-[#007AFF] bg-blue-50/50 shadow-md ring-2 ring-[#007AFF]/30"
+          : "border-slate-200/90 hover:border-[#007AFF]/40 hover:shadow-md hover:bg-white"
       )}
       onClick={onClick}
       data-testid={testid}
@@ -54,8 +54,8 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
             className={cn(
               "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 shadow-2xs",
               active
-                ? "bg-sky-600 text-white shadow-sky-600/20"
-                : "bg-sky-50 text-sky-700 border border-sky-100 group-hover:bg-sky-600 group-hover:text-white"
+                ? "bg-[#007AFF] text-white shadow-sm shadow-[#007AFF]/25"
+                : "bg-blue-50 text-[#007AFF] border border-blue-100 group-hover:bg-[#007AFF] group-hover:text-white"
             )}
           >
             <Icon className="w-5 h-5 stroke-[2.2]" />
@@ -64,7 +64,7 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
             <div className="flex items-center gap-2">
               <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug">{title}</p>
               {badge && (
-                <span className="text-[10px] font-extrabold uppercase tracking-wider bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider bg-blue-50 text-[#007AFF] border border-blue-200/70 px-2.5 py-0.5 rounded-full">
                   {badge}
                 </span>
               )}
@@ -75,7 +75,7 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
         <div
           className={cn(
             "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-            active ? "bg-sky-100 text-sky-700" : "text-slate-400 group-hover:text-sky-600 group-hover:bg-sky-50"
+            active ? "bg-blue-100 text-[#007AFF]" : "text-slate-400 group-hover:text-[#007AFF] group-hover:bg-blue-50"
           )}
         >
           <ChevronRight className="w-4 h-4" />
@@ -130,7 +130,7 @@ export default function RoleSelect() {
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200/80">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-sky-700 transition-colors group"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#007AFF] transition-colors group"
               data-testid="role-select-back-to-home"
             >
               <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
@@ -138,7 +138,7 @@ export default function RoleSelect() {
             </Link>
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50/90 border border-sky-200/80 px-3 py-1.5 rounded-xl hover:bg-sky-100/80 transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#007AFF] hover:text-[#0062cc] bg-blue-50/90 border border-blue-200/80 px-3 py-1.5 rounded-xl hover:bg-blue-100/80 transition-colors shadow-2xs"
               data-testid="role-select-login-button"
             >
               <LogIn className="w-3.5 h-3.5" />
@@ -147,18 +147,27 @@ export default function RoleSelect() {
           </div>
 
           {/* Header branding */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-600 to-sky-400 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-sky-500/20">
-              T
+          <div className="flex items-center gap-3.5 mb-6">
+            <div className="w-12 h-12 flex items-center justify-center shrink-0">
+              <img
+                src="/images/therapedia_logo.png"
+                alt="Therapedia Mascot Logo"
+                className="w-full h-full object-contain drop-shadow-[0_4px_12px_rgba(0,122,255,0.3)]"
+              />
             </div>
             <div>
-              <p className="font-bold text-lg leading-tight text-slate-900 tracking-tight">Therapedia</p>
-              <p className="text-xs font-medium text-slate-500">Developmental Center</p>
+              <div className="flex items-center gap-1.5">
+                <p className="font-extrabold text-xl leading-tight text-slate-900 tracking-tight">Therapedia</p>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                  Center
+                </span>
+              </div>
+              <p className="text-xs font-medium text-slate-500">Pediatric Developmental Center &bull; Clinical Suite</p>
             </div>
           </div>
 
           <div className="mb-6">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200/80 text-sky-800 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-[#007AFF] text-xs font-semibold mb-2">
               Multi-Branch Pediatric Healthcare Ecosystem
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
@@ -363,22 +372,25 @@ export default function RoleSelect() {
       </div>
 
       {/* Right: hero presentation */}
-      <div className="hidden lg:flex flex-1 relative overflow-hidden bg-slate-900">
+      <div className="hidden lg:flex flex-1 relative overflow-hidden bg-[#040e1e]">
         <img
           src={HERO_IMG}
           alt="Therapedia pediatric therapy clinic"
-          className="absolute inset-0 w-full h-full object-cover opacity-60 scale-105"
+          className="absolute inset-0 w-full h-full object-cover opacity-50 scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-slate-950/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#040e1e] via-[#040e1e]/60 to-[#007AFF]/20" />
 
         <div className="relative z-10 flex flex-col justify-between p-12 text-white h-full">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold w-fit">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold w-fit">
+            <ShieldCheck className="w-4 h-4 text-cyan-400" />
             Sistem Terintegrasi 3 Cabang: Sby Timur, Citraland, Sby Barat
           </div>
 
           <div className="space-y-6 max-w-lg">
-            <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#007AFF]/20 border border-[#007AFF]/40 text-cyan-300 text-xs font-bold">
+              Pediatric Occupational Therapy Suite
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight text-white">
               Mendampingi setiap langkah tumbuh kembang anak secara terukur.
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
@@ -386,15 +398,15 @@ export default function RoleSelect() {
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
-                <TrendingUp className="w-5 h-5 text-sky-400 mb-1.5" />
-                <p className="font-bold text-sm">Dashboard Revenue</p>
-                <p className="text-xs text-slate-300 mt-0.5">Monitoring omzet 3 cabang & paket layanan</p>
+              <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 hover:border-[#007AFF]/50 transition-colors">
+                <TrendingUp className="w-5 h-5 text-cyan-400 mb-2" />
+                <p className="font-bold text-sm text-white">Dashboard Revenue</p>
+                <p className="text-xs text-slate-300 mt-1">Monitoring omzet 3 cabang & paket layanan</p>
               </div>
-              <div className="p-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15">
-                <FileCheck2 className="w-5 h-5 text-emerald-400 mb-1.5" />
-                <p className="font-bold text-sm">Scheduler & Kredit</p>
-                <p className="text-xs text-slate-300 mt-0.5">Multi-paket, slot frozen 0 kredit & cancel rules</p>
+              <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 hover:border-emerald-400/50 transition-colors">
+                <FileCheck2 className="w-5 h-5 text-emerald-400 mb-2" />
+                <p className="font-bold text-sm text-white">Scheduler & Kredit</p>
+                <p className="text-xs text-slate-300 mt-1">Multi-paket, slot frozen 0 kredit & cancel rules</p>
               </div>
             </div>
           </div>

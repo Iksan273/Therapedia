@@ -76,7 +76,7 @@ export default function PrintClientReport() {
             <ArrowLeft className="w-4 h-4" /> Back to profile
           </Button>
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white gap-2 font-bold rounded-xl text-xs h-10 px-5 shadow-xs"
+            className="bg-[#007AFF] hover:bg-[#0062cc] text-white gap-2 font-bold rounded-xl text-xs h-10 px-5 shadow-sm shadow-[#007AFF]/25"
             onClick={() => window.print()}
             data-testid="print-report-print-button"
           >
@@ -87,10 +87,14 @@ export default function PrintClientReport() {
         {/* Printable medical document */}
         <div className="bg-white rounded-2xl print:rounded-none border border-slate-200/90 print:border-0 shadow-sm print:shadow-none p-8 sm:p-10 print:p-2 space-y-6">
           {/* Letterhead */}
-          <div className="flex items-start justify-between border-b-2 border-sky-600 pb-5">
+          <div className="flex items-start justify-between border-b-2 border-[#007AFF] pb-5">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-sky-600 flex items-center justify-center text-white font-black text-xl shadow-xs">
-                <Activity className="w-6 h-6" />
+              <div className="w-12 h-12 flex items-center justify-center shrink-0">
+                <img
+                  src="/images/therapedia_logo.png"
+                  alt="Therapedia Mascot Logo"
+                  className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(0,122,255,0.25)]"
+                />
               </div>
               <div>
                 <p className="font-extrabold text-lg text-slate-900 leading-tight">Therapedia Developmental Center</p>
@@ -98,7 +102,7 @@ export default function PrintClientReport() {
               </div>
             </div>
             <div className="text-right space-y-0.5">
-              <p className="text-xs font-extrabold text-sky-900 uppercase tracking-wider">Clinical Summary Report</p>
+              <p className="text-xs font-extrabold text-[#007AFF] uppercase tracking-wider">Clinical Summary Report</p>
               <p className="text-[11px] text-slate-400 font-mono">Generated {format(new Date(), "MMM d, yyyy · HH:mm")}</p>
             </div>
           </div>

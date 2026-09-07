@@ -8,6 +8,7 @@ import { SchedulesProvider } from "@/context/SchedulesContext";
 import { CreditsProvider } from "@/context/CreditsContext";
 import { AssessmentsProvider } from "@/context/AssessmentsContext";
 import AppLayout from "@/components/layout/AppLayout";
+import Welcome from "@/pages/Welcome";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import RoleSelect from "@/pages/RoleSelect";
@@ -52,7 +53,9 @@ function App() {
               <AssessmentsProvider>
                 <BrowserRouter>
                   <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route path="/" element={<Welcome />} />
+                    <Route path="/landing" element={<Home />} />
+                    <Route path="/home" element={<Home />} />
                     <Route path="/roles" element={<RoleSelect />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/assessment" element={<AssessmentFill />} />

@@ -18,11 +18,11 @@ code {
 
 @layer base {
     :root {
-        /* Therapedia Pediatric Healthcare Tokens */
-        --color-primary: #0284c7;
-        --color-primary-dark: #0369a1;
-        --color-primary-light: #e0f2fe;
-        --color-primary-hover: #075985;
+        /* Therapedia Pediatric Healthcare Tokens - Official Brand Blue (#007AFF) */
+        --color-primary: #007AFF;
+        --color-primary-dark: #0062cc;
+        --color-primary-light: #eff6ff;
+        --color-primary-hover: #0056b3;
         --color-text: #0f172a;
         --color-text-muted: #64748b;
         --color-border: #e2e8f0;
@@ -35,30 +35,30 @@ code {
         --color-warning-light: #fef3c7;
         --color-danger: #dc2626;
         --color-danger-light: #fee2e2;
-        --color-info: #0284c7;
-        --color-info-light: #e0f2fe;
+        --color-info: #007AFF;
+        --color-info-light: #eff6ff;
 
-        /* shadcn tokens mapped to healthcare palette */
+        /* shadcn tokens mapped to Therapedia Blue palette */
         --background: 210 40% 98%;
         --foreground: 222.2 84% 4.9%;
         --card: 0 0% 100%;
         --card-foreground: 222.2 84% 4.9%;
         --popover: 0 0% 100%;
         --popover-foreground: 222.2 84% 4.9%;
-        --primary: 199 89% 40%;
+        --primary: 211 100% 50%; /* #007AFF */
         --primary-foreground: 0 0% 100%;
         --secondary: 210 40% 96.1%;
         --secondary-foreground: 222.2 47.4% 11.2%;
         --muted: 210 40% 96.1%;
         --muted-foreground: 215.4 16.3% 46.9%;
-        --accent: 199 89% 94%;
-        --accent-foreground: 199 89% 25%;
+        --accent: 211 100% 96%;
+        --accent-foreground: 211 100% 35%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 210 40% 98%;
         --border: 214.3 31.8% 91.4%;
         --input: 214.3 31.8% 91.4%;
-        --ring: 199 89% 40%;
-        --chart-1: 199 89% 40%;
+        --ring: 211 100% 50%;
+        --chart-1: 211 100% 50%;
         --chart-2: 142 71% 45%;
         --chart-3: 38 92% 50%;
         --chart-4: 0 84% 60%;
@@ -107,7 +107,7 @@ code {
 .clinical-card {
     background: #ffffff;
     border: 1px solid rgba(226, 232, 240, 0.9);
-    box-shadow: 0 1px 3px rgba(2, 132, 199, 0.03), 0 4px 14px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 1px 3px rgba(0, 122, 255, 0.03), 0 4px 14px rgba(15, 23, 42, 0.04);
 }
 
 .clinical-card-hover {
@@ -115,8 +115,8 @@ code {
 }
 .clinical-card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08), 0 12px 28px rgba(15, 23, 42, 0.06);
-    border-color: rgba(186, 230, 253, 0.8);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.08), 0 12px 28px rgba(15, 23, 42, 0.06);
+    border-color: rgba(0, 122, 255, 0.35);
 }
 
 /* UI UX Pro Max Layout & Spacing Rhythm Utilities */
