@@ -1,6 +1,6 @@
 {
-  "buildCommand": "craco build",
-  "outputDirectory": "build",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

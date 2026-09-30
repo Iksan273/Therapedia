@@ -80,7 +80,6 @@ export default function DashboardInquiry() {
 
   // Filters state
   const [branchFilter, setBranchFilter] = useState(defaultBranch);
-  const [branchChartView, setBranchChartView] = useState("pipeline"); // "pipeline" | "age"
   const [periodPreset, setPeriodPreset] = useState("all"); // all | 7days | this_month | last_month | quarter | custom
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -208,93 +207,6 @@ export default function DashboardInquiry() {
     })).filter((item) => item.value > 0);
   }, [filteredClients]);
 
-  const activeBranchMeta = useMemo(() => {
-    return BRANCHES.find((b) => b.id === branchFilter);
-  }, [branchFilter]);
-
-  // Branch Pipeline Status distribution (Specific to filtered branch)
-  const branchPipelineDistribution = useMemo(() => {
-    const total = filteredClients.length || 1;
-    const stages = [
-      {
-        id: "inquiry",
-        label: "Inquiry Baru",
-        count: filteredClients.filter((c) => c.status === "inquiry").length,
-        fill: "#0284c7",
-      },
-      {
-        id: "service_selected",
-        label: "Pilih Layanan",
-        count: filteredClients.filter((c) => c.status === "service_selected").length,
-        fill: "#8b5cf6",
-      },
-      {
-        id: "assessment_scheduled",
-        label: "Jadwal Asesmen",
-        count: filteredClients.filter((c) => c.status === "assessment_scheduled").length,
-        fill: "#3b82f6",
-      },
-      {
-        id: "assessment_done",
-        label: "Selesai Asesmen",
-        count: filteredClients.filter((c) =>
-          ["assessment_done", "done_assessment", "done_consult"].includes(c.status)
-        ).length,
-        fill: "#0d9488",
-      },
-      {
-        id: "admitted",
-        label: "Admitted (Aktif)",
-        count: filteredClients.filter((c) => ["admitted", "active"].includes(c.status)).length,
-        fill: "#10b981",
-      },
-      {
-        id: "discontinued",
-        label: "Discontinued",
-        count: filteredClients.filter((c) => c.status === "discontinued").length,
-        fill: "#f43f5e",
-      },
-    ];
-
-    return stages.map((s) => ({
-      ...s,
-      percentage: Math.round((s.count / total) * 100),
-    }));
-  }, [filteredClients]);
-
-  // Branch Age Demographics (Specific to filtered branch)
-  const branchAgeDemographics = useMemo(() => {
-    const groups = [
-      { id: "toddler", label: "Balita (1-3 th)", fill: "#0284c7" },
-      { id: "preschool", label: "Prasekolah (4-6 th)", fill: "#8b5cf6" },
-      { id: "school", label: "Usia Sekolah (7-12 th)", fill: "#10b981" },
-      { id: "teen", label: "Remaja (>12 th)", fill: "#f59e0b" },
-    ];
-
-    const counts = { toddler: 0, preschool: 0, school: 0, teen: 0 };
-    const now = new Date();
-
-    filteredClients.forEach((c) => {
-      if (!c.dob) return;
-      try {
-        const age = differenceInYears(now, parseISO(c.dob));
-        if (age <= 3) counts.toddler++;
-        else if (age <= 6) counts.preschool++;
-        else if (age <= 12) counts.school++;
-        else counts.teen++;
-      } catch (e) {
-        counts.preschool++;
-      }
-    });
-
-    const total = filteredClients.length || 1;
-    return groups.map((g) => ({
-      ...g,
-      count: counts[g.id],
-      percentage: Math.round((counts[g.id] / total) * 100),
-    }));
-  }, [filteredClients]);
-
   // Monthly intake trends (last 6 months)
   const monthlyIntakeTrends = useMemo(() => {
     const now = new Date();
@@ -389,19 +301,25 @@ export default function DashboardInquiry() {
             {/* 1. Branch Filter */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">Cabang Klinik</label>
-              <Select value={branchFilter} onValueChange={setBranchFilter}>
-                <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
-                  <SelectValue placeholder="Pilih Cabang" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  {isMaster && <SelectItem value="all">🏢 Semua Cabang (Master View)</SelectItem>}
-                  {BRANCHES.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      📍 {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isMaster ? (
+                <Select value={branchFilter} onValueChange={setBranchFilter}>
+                  <SelectTrigger className="h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                    <SelectValue placeholder="Pilih Cabang" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="all">🏢 Semua Cabang (Master View)</SelectItem>
+                    {BRANCHES.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        📍 {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="h-10 flex items-center px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-800">
+                  📍 {BRANCHES.find((b) => b.id === branchFilter)?.name || "Cabang Terpilih"}
+                </div>
+              )}
             </div>
 
             {/* 2. Period Filter */}
@@ -649,72 +567,10 @@ export default function DashboardInquiry() {
         </Card>
       </div>
 
-      {/* CHARTS ROW 2: BRANCH STATUS & 6-MONTH TRENDS */}
+      {/* CHARTS ROW 2: 6-MONTH TRENDS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Branch-Specific Intake & Status Performance Chart */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs lg:col-span-6" data-testid="branch-status-chart-card">
-          <CardHeader className="pb-2 border-b border-slate-100">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-sky-600" />
-                  {branchChartView === "pipeline" ? "Status Intake Cabang" : "Demografi Usia Pasien"}
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500 mt-0.5">
-                  {branchChartView === "pipeline"
-                    ? `Persebaran status pipeline client di ${activeBranchMeta ? activeBranchMeta.name : "cabang terpilih"} (${filteredClients.length} total intake)`
-                    : `Profil sebaran kelompok usia anak di ${activeBranchMeta ? activeBranchMeta.name : "cabang terpilih"}`}
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-[11px] self-start sm:self-auto shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setBranchChartView("pipeline")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
-                    branchChartView === "pipeline" ? "bg-white text-sky-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  Status Pipeline
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBranchChartView("age")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
-                    branchChartView === "age" ? "bg-white text-sky-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                  )}
-                >
-                  Demografi Usia
-                </button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="h-64 pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={branchChartView === "pipeline" ? branchPipelineDistribution : branchAgeDemographics}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="label" tick={{ fill: "#64748B", fontSize: 10, fontWeight: 600 }} interval={0} />
-                <YAxis allowDecimals={false} tick={{ fill: "#64748B", fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                  formatter={(val, name, item) => [`${val} Client (${item.payload.percentage}%)`, "Jumlah"]}
-                />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={36}>
-                  {(branchChartView === "pipeline" ? branchPipelineDistribution : branchAgeDemographics).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
         {/* 6-Month Intake History */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs lg:col-span-6">
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs lg:col-span-12">
           <CardHeader className="pb-2 border-b border-slate-100">
             <CardTitle className="text-sm font-bold text-slate-900">
               Tren Intake 6 Bulan Terakhir

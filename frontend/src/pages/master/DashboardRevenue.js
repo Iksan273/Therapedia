@@ -67,7 +67,7 @@ export default function DashboardRevenue() {
   const { schedules } = useSchedules();
 
   const [selectedBranch, setSelectedBranch] = useState(
-    auth?.role === "manager" && auth?.branchId ? auth.branchId : (activeBranch || "all")
+    isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur")
   );
   const [period, setPeriod] = useState("month"); // week | month | quarter | custom
   const [customStart, setCustomStart] = useState("");
@@ -266,19 +266,25 @@ export default function DashboardRevenue() {
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-2xs">
             <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
-            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-              <SelectTrigger className="h-8 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
-                <SelectValue placeholder="Pilih Cabang" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200">
-                <SelectItem value="all">🏢 Semua Cabang (All)</SelectItem>
-                {BRANCHES.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    📍 {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isMaster ? (
+              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <SelectTrigger className="h-8 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
+                  <SelectValue placeholder="Pilih Cabang" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                  <SelectItem value="all">🏢 Semua Cabang (All)</SelectItem>
+                  {BRANCHES.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      📍 {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-xs font-bold text-slate-800 py-1">
+                📍 {BRANCHES.find((b) => b.id === selectedBranch)?.name || "Cabang Terpilih"}
+              </span>
+            )}
           </div>
         </div>
       </div>

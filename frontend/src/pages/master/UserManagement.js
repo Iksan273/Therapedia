@@ -40,10 +40,19 @@ const ROLE_OPTIONS = [
 ];
 
 export default function UserManagement() {
-  const { staffUsers, addStaffUser, removeStaffUser } = useAuth();
+  const { staffUsers, addStaffUser, removeStaffUser, activeBranch, auth, rolesList } = useAuth();
+  const isMaster = auth?.role === "master";
+  const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
+
+  const roleOptions = useMemo(() => {
+    return (rolesList || []).map((r) => ({
+      value: r.id,
+      label: `${r.label} (${r.badge || r.id})`,
+    }));
+  }, [rolesList]);
 
   const [search, setSearch] = useState("");
-  const [branchFilter, setBranchFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState(defaultBranch);
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -134,19 +143,25 @@ export default function UserManagement() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Select value={branchFilter} onValueChange={setBranchFilter}>
-            <SelectTrigger className="w-48 h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
-              <SelectValue placeholder="Semua Cabang" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200">
-              <SelectItem value="all">🏢 Semua Cabang</SelectItem>
-              {BRANCHES.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  📍 {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isMaster ? (
+            <Select value={branchFilter} onValueChange={setBranchFilter}>
+              <SelectTrigger className="w-48 h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                <SelectValue placeholder="Semua Cabang" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200">
+                <SelectItem value="all">🏢 Semua Cabang</SelectItem>
+                {BRANCHES.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    📍 {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
+              <span>📍 {BRANCHES.find((b) => b.id === branchFilter)?.name || "Cabang Terpilih"}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -166,7 +181,8 @@ export default function UserManagement() {
             <TableBody>
               {paginatedStaff.map((u) => {
                 const br = BRANCHES.find((b) => b.id === u.branchId);
-                const roleMeta = ROLE_OPTIONS.find((r) => r.value === u.role);
+                const roleObj = (rolesList || []).find((r) => r.id === u.role);
+                const roleLabel = roleObj ? roleObj.label : u.role;
                 return (
                   <TableRow key={u.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
                     <TableCell className="py-3.5 pl-6 min-w-[200px] whitespace-nowrap">
@@ -185,7 +201,7 @@ export default function UserManagement() {
                     </TableCell>
                     <TableCell className="text-xs min-w-[160px] whitespace-nowrap">
                       <span className="font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-lg inline-flex items-center whitespace-nowrap">
-                        {roleMeta ? roleMeta.label : u.role}
+                        {roleLabel}
                       </span>
                     </TableCell>
                     <TableCell className="text-right pr-6 min-w-[90px] whitespace-nowrap">
@@ -278,7 +294,7 @@ export default function UserManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                  {ROLE_OPTIONS.map((r) => (
+                  {roleOptions.map((r) => (
                     <SelectItem key={r.value} value={r.value}>
                       {r.label}
                     </SelectItem>

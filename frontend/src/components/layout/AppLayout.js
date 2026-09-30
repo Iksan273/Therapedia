@@ -282,7 +282,7 @@ const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
 );
 
 const AppLayout = () => {
-  const { auth, logout, activeBranch, setActiveBranch } = useAuth();
+  const { auth, logout, activeBranch, setActiveBranch, rolesList, hasPermission } = useAuth();
   const { getTherapist } = useTherapists();
   const { getClient } = useClients();
   const navigate = useNavigate();
@@ -358,7 +358,49 @@ const AppLayout = () => {
     }
   };
 
-  const config = NAV_CONFIG[auth.role] || { title: "", shortRole: "", items: [], extras: [] };
+  const currentRoleObj = rolesList?.find((r) => r.id === auth?.role);
+  let baseConfig = NAV_CONFIG[auth.role];
+
+  if (!baseConfig) {
+    // Custom Role fallback navigation menu generator
+    const allCustomNavItems = [
+      { key: "revenue", to: "/master/revenue", label: "Dashboard Revenue", icon: TrendingUp, end: true, testid: "nav-custom-revenue" },
+      { key: "inquiry_dashboard", to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, end: true, testid: "nav-custom-inquiry-dash" },
+      { key: "inquiry_pipeline", to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "nav-custom-pipeline" },
+      { key: "weekly_calendar", to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, testid: "nav-custom-calendar" },
+      { key: "schedule_dashboard", to: "/admin-schedule", label: "Schedule Dashboard", icon: LayoutDashboard, end: true, testid: "nav-custom-sched-dash" },
+      { key: "active_clients", to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "nav-custom-clients" },
+      { key: "finance", to: "/finance", label: "Finance & Invoices", icon: Receipt, testid: "nav-custom-finance" },
+      { key: "user_management", to: "/master/users", label: "User Management", icon: UserCog, testid: "nav-custom-users" },
+      { key: "rbac", to: "/master/rbac", label: "RBAC Module Access", icon: ShieldCheck, testid: "nav-custom-rbac" },
+      { key: "therapist_module", to: "/therapist", label: "Therapist Module", icon: CalendarDays, testid: "nav-custom-therapist" },
+    ];
+    baseConfig = {
+      title: currentRoleObj?.label || "Custom Staff Role",
+      shortRole: currentRoleObj?.badge || "Operasional Cabang",
+      items: allCustomNavItems.filter((i) => hasPermission(i.key)),
+      extras: [],
+    };
+  } else if (auth.role !== "master" && auth.role !== "client") {
+    // Filter items based on active permissions
+    const filteredItems = baseConfig.items.filter((item) => {
+      if (item.key) return hasPermission(item.key);
+      if (item.to.includes("revenue")) return hasPermission("revenue");
+      if (item.to.includes("pipeline")) return hasPermission("inquiry_pipeline");
+      if (item.to === "/admin-inquiry" || item.to.includes("inquiry")) return hasPermission("inquiry_dashboard") || hasPermission("inquiry_pipeline");
+      if (item.to.includes("calendar")) return hasPermission("weekly_calendar");
+      if (item.to === "/admin-schedule") return hasPermission("schedule_dashboard");
+      if (item.to.includes("clients")) return hasPermission("active_clients");
+      if (item.to.includes("finance")) return hasPermission("finance");
+      if (item.to.includes("users")) return hasPermission("user_management");
+      if (item.to.includes("rbac")) return hasPermission("rbac");
+      if (item.to.includes("therapist")) return hasPermission("therapist_module");
+      return true;
+    });
+    baseConfig = { ...baseConfig, items: filteredItems };
+  }
+
+  const config = baseConfig || { title: "", shortRole: "", items: [], extras: [] };
 
   let identity = config.title;
   let identitySub = config.shortRole;
@@ -389,7 +431,7 @@ const AppLayout = () => {
   };
 
   const isStaff = ["master", "manager", "admin_inquiry", "admin_schedule", "finance", "therapist"].includes(auth.role);
-  const canSwitchBranch = ["master", "manager"].includes(auth.role);
+  const canSwitchBranch = auth.role === "master";
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

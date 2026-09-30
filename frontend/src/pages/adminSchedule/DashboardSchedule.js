@@ -58,9 +58,12 @@ export default function DashboardSchedule() {
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { therapists } = useTherapists();
-  const { activeBranch } = useAuth();
+  const { activeBranch, auth } = useAuth();
+  const isMaster = auth?.role === "master";
 
-  const [selectedBranch, setSelectedBranch] = useState(activeBranch || "all");
+  const [selectedBranch, setSelectedBranch] = useState(
+    isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur")
+  );
   const [period, setPeriod] = useState("month"); // week | month | quarter | custom
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -261,19 +264,26 @@ export default function DashboardSchedule() {
       {/* Global Filter Bar: Branch + Presets */}
       <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-            <SelectTrigger className="w-48 h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-bold">
-              <SelectValue placeholder="Semua Cabang" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200">
-              <SelectItem value="all">🏢 Semua Cabang</SelectItem>
-              {BRANCHES.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  📍 {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isMaster ? (
+            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+              <SelectTrigger className="w-48 h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-bold">
+                <SelectValue placeholder="Semua Cabang" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200">
+                <SelectItem value="all">🏢 Semua Cabang</SelectItem>
+                {BRANCHES.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    📍 {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800">
+              <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
+              <span>📍 {BRANCHES.find((b) => b.id === selectedBranch)?.name || "Cabang Terpilih"}</span>
+            </div>
+          )}
 
           <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs">
             {[

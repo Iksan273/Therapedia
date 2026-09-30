@@ -57,10 +57,12 @@ const STAGE_COLUMNS = [
 export default function InquiryPipeline() {
   const navigate = useNavigate();
   const { clients, addClient } = useClients();
-  const { activeBranch } = useAuth();
+  const { activeBranch, auth } = useAuth();
+  const isMaster = auth?.role === "master";
+  const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
 
   const [search, setSearch] = useState("");
-  const [branchFilter, setBranchFilter] = useState(activeBranch || "all");
+  const [branchFilter, setBranchFilter] = useState(defaultBranch);
   const [newIntakeOpen, setNewIntakeOpen] = useState(false);
 
   // New Intake Form
@@ -70,7 +72,7 @@ export default function InquiryPipeline() {
     parentContact: "",
     parentEmail: "",
     dob: "",
-    branchId: "branch-sby-timur",
+    branchId: auth?.branchId || "branch-sby-timur",
   });
 
   const filtered = useMemo(() => {
@@ -181,19 +183,25 @@ export default function InquiryPipeline() {
 
         <div className="flex items-center gap-2">
           <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
-          <Select value={branchFilter} onValueChange={setBranchFilter}>
-            <SelectTrigger className="w-48 h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
-              <SelectValue placeholder="Semua Cabang" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200">
-              <SelectItem value="all">🏢 Semua Cabang (All)</SelectItem>
-              {BRANCHES.map((b) => (
-                <SelectItem key={b.id} value={b.id}>
-                  📍 {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isMaster ? (
+            <Select value={branchFilter} onValueChange={setBranchFilter}>
+              <SelectTrigger className="w-48 h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+                <SelectValue placeholder="Semua Cabang" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200">
+                <SelectItem value="all">🏢 Semua Cabang (All)</SelectItem>
+                {BRANCHES.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    📍 {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="text-xs font-bold text-slate-800 py-1">
+              📍 {BRANCHES.find((b) => b.id === branchFilter)?.name || "Cabang Terpilih"}
+            </span>
+          )}
         </div>
       </div>
 
