@@ -1,9 +1,10 @@
 import React from "react";
 import { format } from "date-fns";
-import { CalendarPlus, Plus, Clock, CalendarDays, FileText } from "lucide-react";
+import { CalendarPlus, Plus, CalendarDays, FileText, CornerUpRight, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
+import { fmtDate } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 const STATUS_BAR = {
@@ -11,6 +12,7 @@ const STATUS_BAR = {
   completed: "bg-emerald-500",
   cancelled: "bg-rose-500",
   rescheduled: "bg-amber-500",
+  reschedule_pending: "bg-orange-400",
 };
 
 // Single-day agenda list — mobile-friendly alternative to the weekly grid.
@@ -20,6 +22,11 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
   const sessions = schedules
     .filter((s) => s.date === dayStr)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  // Sesi yang jadwal asalnya ada di hari ini tetapi sudah dipindah
+  const movedAway = schedules
+    .filter((s) => s.status === "rescheduled" && s.rescheduledFrom && s.rescheduledFrom.date === dayStr)
+    .sort((a, b) => a.rescheduledFrom.startTime.localeCompare(b.rescheduledFrom.startTime));
 
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden clinical-card" data-testid="day-agenda">
@@ -45,7 +52,7 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
           subtitle="No clinical sessions scheduled for this day yet."
           action={
             onAddClick && (
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl border-slate-200 font-semibold text-xs" onClick={() => onAddClick()} data-testid="day-agenda-add-empty-button">
+              <Button variant="outline" size="sm" className="gap-1.5 border-slate-200 font-semibold" onClick={() => onAddClick()} data-testid="day-agenda-add-empty-button">
                 <Plus className="w-3.5 h-3.5 text-sky-600" /> Add Session Slot
               </Button>
             )
@@ -76,17 +83,27 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     <StatusBadge status={s.type} />
                     <StatusBadge status={s.status} />
+                    {s.status === "rescheduled" && s.rescheduledFrom && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                        <CornerUpRight className="w-3 h-3" /> Dipindah dari {fmtDate(s.rescheduledFrom.date)} {s.rescheduledFrom.startTime}
+                      </span>
+                    )}
+                    {s.status === "reschedule_pending" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-dashed border-orange-300 px-2 py-0.5 text-[11px] font-bold text-orange-800">
+                        <Hourglass className="w-3 h-3" /> Menunggu jadwal pengganti
+                      </span>
+                    )}
                     {s.isRecurring && (
-                      <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      <span className="inline-flex items-center rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                         Weekly Recurring
                       </span>
                     )}
                     {s.activitySection || s.noteSection || s.progressNote || s.homeworkSection ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
                         <FileText className="w-3 h-3 text-emerald-600" /> Laporan Terisi
                       </span>
                     ) : s.status !== "cancelled" ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                         <FileText className="w-3 h-3 text-slate-400" /> Belum Ada Laporan
                       </span>
                     ) : null}
@@ -98,9 +115,31 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
         </ul>
       )}
 
+      {movedAway.length > 0 && (
+        <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-3 space-y-1.5" data-testid="day-agenda-moved-away">
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Jadwal asal yang sudah dipindah</p>
+          <ul className="space-y-1">
+            {movedAway.map((s) => (
+              <li key={`moved-${s.id}`}>
+                <button
+                  type="button"
+                  onClick={() => onSessionClick && onSessionClick(s)}
+                  className="w-full text-left flex items-center gap-2 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                >
+                  <CornerUpRight className="w-3.5 h-3.5 shrink-0" />
+                  <span className="tabular-nums">{s.rescheduledFrom.startTime}</span>
+                  <span className="line-through truncate">{getClientName(s.clientId)}</span>
+                  <span className="text-slate-400 truncate">→ {fmtDate(s.date)} {s.startTime}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {onAddClick && sessions.length > 0 && (
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-          <Button variant="outline" size="sm" className="w-full gap-2 rounded-xl border-slate-200 font-semibold text-xs text-slate-700 hover:bg-sky-50 hover:text-sky-800" onClick={() => onAddClick()} data-testid="day-agenda-add-button">
+          <Button variant="outline" size="sm" className="w-full gap-2 border-slate-200 font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-800" onClick={() => onAddClick()} data-testid="day-agenda-add-button">
             <Plus className="w-3.5 h-3.5 text-sky-600" /> Add session on this day
           </Button>
         </div>

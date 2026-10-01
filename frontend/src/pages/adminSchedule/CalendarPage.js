@@ -10,12 +10,13 @@ import {
   ListChecks,
   Plus,
   XCircle,
-  CalendarDays,
-} from "lucide-react";
+  CalendarDays, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DateFilterPicker from "@/components/common/DateFilterPicker";
+import { SearchInput } from "@/components/common/FilterBar";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -33,6 +34,7 @@ import { useSchedules } from "@/context/SchedulesContext";
 import { useClients } from "@/context/ClientsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useCredits } from "@/context/CreditsContext";
+import { cancelReasonLabel, fmtDate, scheduleSlot } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 export default function CalendarPage() {
@@ -49,6 +51,8 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [therapistFilter, setTherapistFilter] = useState("all");
   const [showDischarged, setShowDischarged] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAllPending, setShowAllPending] = useState(false);
 
   // Bulk mode states
   const [isBulkMode, setIsBulkMode] = useState(false);
@@ -76,14 +80,59 @@ export default function CalendarPage() {
     [clients]
   );
 
-  // Filter visible schedules based on therapist filter and discharge rule
+  // Teks pencarian per sesi: nama anak, orang tua, kode akses, terapis, dan catatan
+  const searchIndex = useMemo(() => {
+    const clientById = new Map(clients.map((c) => [c.id, c]));
+    const therapistById = new Map(therapists.map((t) => [t.id, t]));
+    const index = new Map();
+    schedules.forEach((s) => {
+      const c = clientById.get(s.clientId);
+      const t = therapistById.get(s.therapistId);
+      index.set(
+        s.id,
+        [c?.clientName, c?.parentName, c?.clientAccessCode, t?.name, s.notes, s.cancelReason]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+      );
+    });
+    return index;
+  }, [schedules, clients, therapists]);
+
+  const query = searchQuery.trim().toLowerCase();
+
+  // Filter visible schedules based on therapist filter, discharge rule, and search
   const visibleSchedules = useMemo(() => {
     return schedules.filter((s) => {
       if (therapistFilter !== "all" && s.therapistId !== therapistFilter) return false;
       if (!showDischarged && dischargedClientIds.has(s.clientId)) return false;
+      if (query && !searchIndex.get(s.id)?.includes(query)) return false;
       return true;
     });
-  }, [schedules, therapistFilter, showDischarged, dischargedClientIds]);
+  }, [schedules, therapistFilter, showDischarged, dischargedClientIds, query, searchIndex]);
+
+  // Hasil pencarian terdekat dengan hari ini, untuk lompat cepat ke sesi
+  const searchResults = useMemo(() => {
+    if (!query) return [];
+    const now = Date.now();
+    return [...visibleSchedules]
+      .filter((s) => s.date)
+      .sort((a, b) => Math.abs(parseISO(a.date).getTime() - now) - Math.abs(parseISO(b.date).getTime() - now));
+  }, [visibleSchedules, query]);
+
+  // Sesi reschedule yang belum punya jadwal pengganti (perlu tindak lanjut admin)
+  const pendingSessions = useMemo(
+    () => visibleSchedules.filter((s) => s.status === "reschedule_pending").sort((a, b) => (a.date || "").localeCompare(b.date || "")),
+    [visibleSchedules]
+  );
+
+  const jumpToSession = (s) => {
+    const d = parseISO(s.date);
+    setWeekStart(startOfWeek(d, { weekStartsOn: 1 }));
+    setSelectedDay(d);
+    setSelectedSession(s);
+    setSessionOpen(true);
+  };
 
   const isClientCreditZero = (clientId) => {
     const rec = getRecordForClient(clientId);
@@ -149,6 +198,13 @@ export default function CalendarPage() {
         date: finalDate,
         status: "rescheduled",
         therapistId: bulkTargetTherapist !== "keep" ? bulkTargetTherapist : s.therapistId,
+        // Jejak jadwal asal agar sesi yang dipindah massal tetap bertanda
+        rescheduledFrom: s.status === "reschedule_pending" ? s.pendingFrom || scheduleSlot(s) : s.rescheduledFrom || scheduleSlot(s),
+        rescheduledAt: new Date().toISOString(),
+        pendingFrom: null,
+        pendingAt: null,
+        pendingReason: null,
+        pendingNote: null,
       };
     });
 
@@ -222,7 +278,7 @@ export default function CalendarPage() {
           <Button
             variant={isBulkMode ? "default" : "outline"}
             className={cn(
-              "rounded-xl font-semibold text-xs border-slate-200 h-10",
+              "font-semibold border-slate-200",
               isBulkMode ? "bg-sky-700 text-white hover:bg-sky-800" : "text-slate-700 hover:bg-sky-50"
             )}
             onClick={() => {
@@ -236,7 +292,7 @@ export default function CalendarPage() {
           </Button>
 
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl gap-2 shadow-sm shadow-sky-600/20 h-10"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-semibold gap-2 shadow-sm shadow-sky-600/20"
             onClick={() => setAddModal({ open: true, defaults: {} })}
             data-testid="calendar-add-session-button"
           >
@@ -255,11 +311,11 @@ export default function CalendarPage() {
             <span className="text-xs font-bold uppercase tracking-wider text-sky-900 bg-sky-200/70 px-2.5 py-1 rounded-lg">
               {selectedSessionIds.length} Session(s) Selected
             </span>
-            <Button size="sm" variant="ghost" className="h-8 text-xs font-semibold text-sky-800 hover:bg-sky-100 rounded-lg" onClick={selectAllVisible}>
+            <Button size="sm" variant="ghost" className="font-semibold text-sky-800 hover:bg-sky-100" onClick={selectAllVisible}>
               Select All Visible
             </Button>
             {selectedSessionIds.length > 0 && (
-              <Button size="sm" variant="ghost" className="h-8 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg" onClick={clearSelection}>
+              <Button size="sm" variant="ghost" className="font-semibold text-rose-600 hover:bg-rose-50" onClick={clearSelection}>
                 Clear Selection
               </Button>
             )}
@@ -268,7 +324,7 @@ export default function CalendarPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl gap-1.5 h-9 text-xs"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
               disabled={selectedSessionIds.length === 0}
               onClick={handleBulkComplete}
               data-testid="bulk-complete-button"
@@ -278,7 +334,7 @@ export default function CalendarPage() {
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 h-9 text-xs bg-white border-slate-200 font-semibold rounded-xl"
+              className="gap-1.5 bg-white border-slate-200 font-semibold"
               disabled={selectedSessionIds.length === 0}
               onClick={() => setBulkRescheduleOpen(true)}
               data-testid="bulk-reschedule-button"
@@ -288,7 +344,7 @@ export default function CalendarPage() {
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 h-9 text-xs bg-white text-rose-600 hover:text-rose-700 border-rose-200 hover:bg-rose-50 font-semibold rounded-xl"
+              className="gap-1.5 bg-white text-rose-600 hover:text-rose-700 border-rose-200 hover:bg-rose-50 font-semibold"
               disabled={selectedSessionIds.length === 0}
               onClick={() => setBulkCancelOpen(true)}
               data-testid="bulk-cancel-button"
@@ -302,13 +358,13 @@ export default function CalendarPage() {
       {/* Date controls and filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-10 w-10 shadow-2xs" onClick={goPrev} aria-label="Previous" data-testid="calendar-prev-week-button">
+          <Button variant="outline" size="icon" className="border-slate-200 shadow-2xs" onClick={goPrev} aria-label="Previous" data-testid="calendar-prev-week-button">
             <ChevronLeft className="w-4 h-4 text-slate-600" />
           </Button>
-          <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-bold text-slate-700 h-10 px-4 shadow-2xs" onClick={goToday} data-testid="calendar-today-button">
+          <Button variant="outline" className="border-slate-200 font-bold text-slate-700 px-4 shadow-2xs" onClick={goToday} data-testid="calendar-today-button">
             Today
           </Button>
-          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-10 w-10 shadow-2xs" onClick={goNext} aria-label="Next" data-testid="calendar-next-week-button">
+          <Button variant="outline" size="icon" className="border-slate-200 shadow-2xs" onClick={goNext} aria-label="Next" data-testid="calendar-next-week-button">
             <ChevronRight className="w-4 h-4 text-slate-600" />
           </Button>
           <span className="text-sm font-black text-slate-900 ml-2 tabular-nums tracking-tight" data-testid="calendar-week-label">
@@ -369,7 +425,7 @@ export default function CalendarPage() {
           </div>
 
           <Select value={therapistFilter} onValueChange={setTherapistFilter}>
-            <SelectTrigger className="w-44 sm:w-48 h-10 text-xs rounded-xl border-slate-200 bg-white font-semibold" data-testid="calendar-therapist-filter">
+            <SelectTrigger className="w-44 sm:w-48 text-xs border-slate-200 bg-white font-semibold" data-testid="calendar-therapist-filter">
               <SelectValue placeholder="Filter therapist" />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-200">
@@ -382,7 +438,86 @@ export default function CalendarPage() {
             </SelectContent>
           </Select>
         </div>
+
+        <div className="w-full space-y-2" data-testid="calendar-search">
+          <SearchInput
+            className="min-w-0"
+            placeholder="Cari sesi: nama anak, orang tua, kode akses, atau terapis..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+            data-testid="calendar-search-input"
+          />
+          {query && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5 space-y-1.5">
+              <p className="text-xs font-semibold text-slate-600 px-1">
+                {searchResults.length === 0
+                  ? "Tidak ada sesi yang cocok. Coba kata kunci lain atau tampilkan client discharged."
+                  : `${searchResults.length} sesi cocok — kalender hanya menampilkan sesi ini. Klik untuk melompat ke sesinya.`}
+              </p>
+              {searchResults.length > 0 && (
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 max-h-52 overflow-y-auto">
+                  {searchResults.slice(0, 8).map((s) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => jumpToSession(s)}
+                        className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 rounded-lg bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/40 cursor-pointer"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-xs font-bold text-slate-900 truncate">{getClientName(s.clientId)}</span>
+                          <span className="block text-[11px] text-slate-500 truncate">
+                            {fmtDate(s.date)} • {s.startTime}–{s.endTime} • {getTherapistName(s.therapistId)}
+                          </span>
+                        </span>
+                        <StatusBadge status={s.status} showDot={false} className="shrink-0" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Tindak lanjut: reschedule tanpa jadwal pengganti */}
+      {pendingSessions.length > 0 && (
+        <div className="rounded-2xl border border-dashed border-orange-300 bg-orange-50/60 p-4 space-y-3" data-testid="pending-reschedule-panel">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-extrabold text-orange-950 flex items-center gap-2">
+              <Hourglass className="w-4 h-4 text-orange-600" />
+              {pendingSessions.length} sesi menunggu jadwal pengganti
+            </p>
+            <p className="text-[11px] text-orange-800/80 font-medium">Kredit tidak berubah. Tetapkan jadwal baru atau batalkan tanpa potong kredit.</p>
+          </div>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {(showAllPending ? pendingSessions : pendingSessions.slice(0, 4)).map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => jumpToSession(s)}
+                  className="w-full text-left flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-white border border-orange-200 hover:border-orange-400 cursor-pointer"
+                  data-testid={`pending-item-${s.id}`}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold text-slate-900 truncate">{getClientName(s.clientId)}</span>
+                    <span className="block text-[11px] text-slate-500 truncate">
+                      Asal {fmtDate(s.date)} • {s.startTime}–{s.endTime}
+                      {s.pendingReason ? ` • ${cancelReasonLabel(s.pendingReason)}` : ""}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[11px] font-extrabold text-orange-800">Tindak lanjuti</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {pendingSessions.length > 4 && (
+            <Button variant="ghost" size="sm" className="text-orange-900 hover:bg-orange-100 font-bold" onClick={() => setShowAllPending((v) => !v)}>
+              {showAllPending ? "Tampilkan lebih sedikit" : `Lihat semua (${pendingSessions.length})`}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Main View */}
       {view === "week" ? (
@@ -442,7 +577,7 @@ export default function CalendarPage() {
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Option 1: Shift by Days Offset</Label>
               <Select value={bulkDayOffset} onValueChange={setBulkDayOffset}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-offset-select">
+                <SelectTrigger className="border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-offset-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -470,7 +605,7 @@ export default function CalendarPage() {
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Reassign Therapist (Optional)</Label>
               <Select value={bulkTargetTherapist} onValueChange={setBulkTargetTherapist}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-therapist-select">
+                <SelectTrigger className="border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-therapist-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -485,11 +620,11 @@ export default function CalendarPage() {
             </div>
           </div>
           <DialogFooter className="mt-5 gap-2">
-            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setBulkRescheduleOpen(false)}>
+            <Button variant="outline" className="border-slate-200" onClick={() => setBulkRescheduleOpen(false)}>
               Cancel
             </Button>
             <Button
-              className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold"
               onClick={handleBulkRescheduleConfirm}
               data-testid="bulk-reschedule-confirm-button"
             >
@@ -512,7 +647,7 @@ export default function CalendarPage() {
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Cancellation Reason</Label>
               <Select value={bulkCancelReason} onValueChange={setBulkCancelReason}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-cancel-reason-select">
+                <SelectTrigger className="border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-cancel-reason-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -526,7 +661,7 @@ export default function CalendarPage() {
               <Label className="text-xs font-bold text-slate-700">Cancellation Note (Optional)</Label>
               <Input
                 placeholder="Brief reason for cancellation..."
-                className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+                className="border-slate-200 bg-slate-50 focus:bg-white"
                 value={bulkCancelNote}
                 onChange={(e) => setBulkCancelNote(e.target.value)}
                 data-testid="bulk-cancel-note-input"
@@ -534,10 +669,10 @@ export default function CalendarPage() {
             </div>
           </div>
           <DialogFooter className="mt-5 gap-2">
-            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setBulkCancelOpen(false)}>
+            <Button variant="outline" className="border-slate-200" onClick={() => setBulkCancelOpen(false)}>
               Cancel
             </Button>
-            <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl" onClick={handleBulkCancelConfirm} data-testid="bulk-cancel-confirm-button">
+            <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold" onClick={handleBulkCancelConfirm} data-testid="bulk-cancel-confirm-button">
               Confirm Cancel All
             </Button>
           </DialogFooter>

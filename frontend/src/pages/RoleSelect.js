@@ -2,24 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import {
-  ClipboardList,
-  HeartHandshake,
-  KeyRound,
-  Stethoscope,
-  UserCog,
-  ChevronRight,
-  ChevronLeft,
-  ShieldCheck,
-  CalendarDays,
-  FileCheck2,
-  TrendingUp,
-  Receipt,
-  Crown,
-  Building2,
-  ArrowRight,
-  LogIn
-} from "lucide-react";
+import { ClipboardList, HeartHandshake, KeyRound, Stethoscope, UserCog, ChevronRight, ChevronLeft, ShieldCheck, FileCheck2, TrendingUp, Receipt, Crown, Building2, ArrowRight, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,7 +47,7 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
             <div className="flex items-center gap-2">
               <p className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug">{title}</p>
               {badge && (
-                <span className="text-[10px] font-extrabold uppercase tracking-wider bg-blue-50 text-[#007AFF] border border-blue-200/70 px-2.5 py-0.5 rounded-full">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider bg-blue-50 text-[#007AFF] border border-blue-200/70 px-2.5 py-0.5 rounded-full">
                   {badge}
                 </span>
               )}
@@ -158,7 +141,7 @@ export default function RoleSelect() {
             <div>
               <div className="flex items-center gap-1.5">
                 <p className="font-extrabold text-xl leading-tight text-slate-900 tracking-tight">Therapedia</p>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
                   Center
                 </span>
               </div>
@@ -211,10 +194,10 @@ export default function RoleSelect() {
                   Pilih Cabang yang Dikelola:
                 </p>
                 {BRANCHES.map((b) => (
-                  <Button
+                  <Button size="lg"
                     key={b.id}
                     variant="outline"
-                    className="justify-between h-11 bg-slate-50 hover:bg-sky-50 hover:text-sky-900 hover:border-sky-300 border-slate-200 rounded-xl px-3.5 text-left"
+                    className="justify-between bg-slate-50 hover:bg-sky-50 hover:text-sky-900 hover:border-sky-300 border-slate-200 px-3.5 text-left"
                     onClick={() =>
                       enterRole(
                         { role: "manager", branchId: b.id, staffName: `Manager ${b.name}` },
@@ -278,10 +261,10 @@ export default function RoleSelect() {
                   Pilih Profil Terapis:
                 </p>
                 {therapists.map((t) => (
-                  <Button
+                  <Button size="lg"
                     key={t.id}
                     variant="outline"
-                    className="justify-between h-11 bg-slate-50 hover:bg-sky-50 hover:text-sky-900 hover:border-sky-300 border-slate-200 rounded-xl px-3.5 text-left"
+                    className="justify-between bg-slate-50 hover:bg-sky-50 hover:text-sky-900 hover:border-sky-300 border-slate-200 px-3.5 text-left"
                     onClick={() => enterRole({ role: "therapist", therapistId: t.id, staffName: t.name }, "/therapist")}
                     data-testid={`therapist-picker-${t.id}`}
                   >
@@ -329,7 +312,7 @@ export default function RoleSelect() {
                   <div className="relative flex-1">
                     <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
-                      className="pl-9 font-mono uppercase tracking-wider bg-slate-50 border-slate-200 focus:bg-white rounded-xl text-xs h-10 font-bold"
+                      className="pl-9 font-mono uppercase tracking-wider bg-slate-50 border-slate-200 focus:bg-white text-xs font-bold"
                       placeholder="e.g. TDC-1009"
                       value={code}
                       onChange={(e) => {
@@ -341,7 +324,7 @@ export default function RoleSelect() {
                   </div>
                   <Button
                     type="submit"
-                    className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl px-5 text-xs h-10 shadow-sm shadow-sky-600/20"
+                    className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 shadow-sm shadow-sky-600/20"
                     data-testid="client-login-submit-button"
                   >
                     Masuk Portal

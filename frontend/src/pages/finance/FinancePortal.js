@@ -1,48 +1,19 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { usePagination } from "@/components/common/TablePagination";
 import { toast } from "sonner";
-import {
-  Receipt,
-  CheckCircle2,
-  XCircle,
-  Plus,
-  RefreshCw,
-  History,
-  Package,
-  Eye,
-  Building2,
-  DollarSign,
-  ShieldCheck,
-  Search,
-  ArrowUpRight,
-  Layers,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Image as ImageIcon
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentProofViewerModal } from "@/components/common/PaymentProofViewerModal";
 import { useCredits } from "@/context/CreditsContext";
 import { useClients } from "@/context/ClientsContext";
-import { BRANCHES, fmtCurrency, fmtDate } from "@/lib/appUtils";
-import { getProofFileType } from "@/lib/fileUploadUtils";
-import { cn } from "@/lib/utils";
+import { VerificationTab } from "@/pages/finance/portal/VerificationTab";
+import { BillingTab } from "@/pages/finance/portal/BillingTab";
+import { HistoryTab } from "@/pages/finance/portal/HistoryTab";
+import { PackagesTab } from "@/pages/finance/portal/PackagesTab";
+import { CreateInvoiceDialog } from "@/pages/finance/portal/CreateInvoiceDialog";
+import { RenewalDialog } from "@/pages/finance/portal/RenewalDialog";
+import { NewPackageDialog } from "@/pages/finance/portal/NewPackageDialog";
 
 export default function FinancePortal() {
   const {
@@ -91,23 +62,9 @@ export default function FinancePortal() {
   // Pending verification queue
   const pendingInvoices = allInvoices.filter((inv) => inv.status !== "paid");
   
-  // Tab 1: Pending invoices pagination
-  const [pendingPage, setPendingPage] = useState(1);
-  const pendingPageSize = 6;
-  const totalPendingPages = Math.ceil(pendingInvoices.length / pendingPageSize) || 1;
-  const paginatedPending = useMemo(() => {
-    const start = (pendingPage - 1) * pendingPageSize;
-    return pendingInvoices.slice(start, start + pendingPageSize);
-  }, [pendingInvoices, pendingPage, pendingPageSize]);
-
-  // Tab 2: All invoices pagination
-  const [invoicesPage, setInvoicesPage] = useState(1);
-  const invoicesPageSize = 10;
-  const totalInvoicesPages = Math.ceil(allInvoices.length / invoicesPageSize) || 1;
-  const paginatedInvoices = useMemo(() => {
-    const start = (invoicesPage - 1) * invoicesPageSize;
-    return allInvoices.slice(start, start + invoicesPageSize);
-  }, [allInvoices, invoicesPage, invoicesPageSize]);
+  // Tab 1 & 2: pagination tagihan
+  const pendingPg = usePagination(pendingInvoices, 6);
+  const invoicesPg = usePagination(allInvoices, 10);
 
   // All credit logs
   const allHistoryLogs = (credits.records || []).flatMap((r) => {
@@ -120,14 +77,8 @@ export default function FinancePortal() {
     }));
   }).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
-  // Tab 3: History logs pagination
-  const [historyLogPage, setHistoryLogPage] = useState(1);
-  const historyLogPageSize = 10;
-  const totalHistoryLogPages = Math.ceil(allHistoryLogs.length / historyLogPageSize) || 1;
-  const paginatedHistoryLogs = useMemo(() => {
-    const start = (historyLogPage - 1) * historyLogPageSize;
-    return allHistoryLogs.slice(start, start + historyLogPageSize);
-  }, [allHistoryLogs, historyLogPage, historyLogPageSize]);
+  // Tab 3: pagination riwayat kredit
+  const historyPg = usePagination(allHistoryLogs, 10);
 
   // Handle Verify Payment Proof
   const handleApprovePayment = (invoice) => {
@@ -235,7 +186,7 @@ export default function FinancePortal() {
         <div className="flex flex-wrap items-center gap-2.5">
           <Button
             variant="outline"
-            className="rounded-xl border-slate-200 text-slate-700 font-bold gap-2 text-xs h-10 shadow-2xs hover:bg-slate-100"
+            className="border-slate-200 text-slate-700 font-bold gap-2 shadow-2xs hover:bg-slate-100"
             onClick={() => setIssueOpen(true)}
             data-testid="issue-invoice-button"
           >
@@ -243,7 +194,7 @@ export default function FinancePortal() {
           </Button>
 
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl gap-2 shadow-sm shadow-sky-600/20 text-xs h-10"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-2 shadow-sm shadow-sky-600/20"
             onClick={() => setRenewOpen(true)}
             data-testid="renew-credit-button"
           >
@@ -258,7 +209,7 @@ export default function FinancePortal() {
           <TabsTrigger value="verification" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verifikasi Transfer
             {pendingInvoices.length > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold">
                 {pendingInvoices.length}
               </span>
             )}
@@ -275,382 +226,16 @@ export default function FinancePortal() {
         </TabsList>
 
         {/* TAB 1: VERIFIKASI TRANSFER */}
-        <TabsContent value="verification" className="space-y-4">
-          <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-sm font-bold text-slate-900">
-                Antrean Bukti Transfer Orang Tua ({pendingInvoices.length})
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Periksa slip transfer yang diupload oleh orang tua melalui Parent Portal. Begitu disetujui, paket kredit akan langsung aktif.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              {pendingInvoices.length === 0 ? (
-                <EmptyState
-                  icon={CheckCircle2}
-                  title="Seluruh Pembayaran Telah Bersih"
-                  subtitle="Tidak ada antrean bukti transfer yang menunggu verifikasi saat ini."
-                />
-              ) : (
-                <Table className="min-w-[960px] w-full">
-                  <TableHeader>
-                    <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                      <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[160px] whitespace-nowrap">No. Invoice</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs min-w-[200px] whitespace-nowrap">Nama Client & Cabang</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs min-w-[190px] whitespace-nowrap">Paket & Nominal</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs min-w-[160px] whitespace-nowrap">Bukti Transfer</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[240px] whitespace-nowrap">Tindakan Verifikasi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedPending.map((inv) => {
-                      const br = BRANCHES.find((b) => b.id === inv.branchId);
-                      return (
-                        <TableRow key={inv.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                          <TableCell className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[160px] whitespace-nowrap">
-                            {inv.invoiceNumber}
-                          </TableCell>
-                          <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
-                            <p className="font-bold text-slate-900">{inv.clientName}</p>
-                            <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "East"}</span>
-                          </TableCell>
-                          <TableCell className="text-xs min-w-[190px] whitespace-nowrap">
-                            <p className="font-semibold text-slate-800">{inv.packageName}</p>
-                            <p className="font-bold text-slate-900 tabular-nums">{fmtCurrency(inv.amount)}</p>
-                          </TableCell>
-                          <TableCell className="text-xs min-w-[160px] whitespace-nowrap">
-                            {inv.proofOfPaymentUrl || inv.proofUrl ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 gap-1.5 text-xs text-sky-700 border-sky-200 bg-sky-50/70 hover:bg-sky-100 rounded-xl whitespace-nowrap cursor-pointer font-semibold shadow-2xs"
-                                onClick={() => setSelectedProofInvoice(inv)}
-                              >
-                                {getProofFileType(inv.proofOfPaymentUrl || inv.proofUrl, inv.proofFileType, inv.proofFileName) === "pdf" ? (
-                                  <>
-                                    <FileText className="w-3.5 h-3.5 text-rose-600" />
-                                    <span>Lihat Dokumen PDF</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Eye className="w-3.5 h-3.5 text-sky-600" />
-                                    <span>Lihat Foto Slip</span>
-                                  </>
-                                )}
-                              </Button>
-                            ) : (
-                              <span className="text-xs text-rose-500 font-medium italic whitespace-nowrap">Belum upload slip</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right pr-6 py-4 min-w-[240px] whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-9 px-3 text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-200 rounded-xl whitespace-nowrap cursor-pointer"
-                                onClick={() => handleRejectPayment(inv)}
-                              >
-                                Tolak
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="h-9 px-3.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-2xs whitespace-nowrap cursor-pointer"
-                                onClick={() => handleApprovePayment(inv)}
-                              >
-                                Setujui & Tambah Kredit
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-              {/* Pagination for Pending Invoices */}
-              {pendingInvoices.length > 0 && (
-                <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
-                  <span className="font-medium">
-                    Menampilkan {(pendingPage - 1) * pendingPageSize + 1} –{" "}
-                    {Math.min(pendingPage * pendingPageSize, pendingInvoices.length)} dari {pendingInvoices.length} tagihan
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                      disabled={pendingPage <= 1}
-                      onClick={() => setPendingPage((p) => Math.max(1, p - 1))}
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
-                    </Button>
-                    <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
-                      {pendingPage} / {totalPendingPages}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                      disabled={pendingPage >= totalPendingPages}
-                      onClick={() => setPendingPage((p) => Math.min(totalPendingPages, p + 1))}
-                    >
-                      Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <VerificationTab handleApprovePayment={handleApprovePayment} handleRejectPayment={handleRejectPayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} setSelectedProofInvoice={setSelectedProofInvoice} />
 
         {/* TAB 2: SEMUA TAGIHAN */}
-        <TabsContent value="billing" className="space-y-4">
-          <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-sm font-bold text-slate-900">Seluruh Arsip Tagihan & Invoice</CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Riwayat invoice awal dan tagihan renewal yang diterbitkan untuk setiap client
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table className="min-w-[880px] w-full">
-                <TableHeader>
-                  <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                    <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[150px] whitespace-nowrap">No. Invoice</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[200px] whitespace-nowrap">Client & Cabang</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[180px] whitespace-nowrap">Paket Layanan</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Nominal</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Tanggal</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[140px] whitespace-nowrap">Bukti Transfer</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[130px] whitespace-nowrap">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedInvoices.map((inv) => {
-                    const br = BRANCHES.find((b) => b.id === inv.branchId);
-                    return (
-                      <TableRow key={inv.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                        <TableCell className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[150px] whitespace-nowrap">
-                          {inv.invoiceNumber}
-                        </TableCell>
-                        <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
-                          <p className="font-bold text-slate-900">{inv.clientName}</p>
-                          <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "East"}</span>
-                        </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-800 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
-                        <TableCell className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">{fmtCurrency(inv.amount)}</TableCell>
-                        <TableCell className="text-xs text-slate-500 tabular-nums min-w-[130px] whitespace-nowrap">{fmtDate(inv.createdAt)}</TableCell>
-                        <TableCell className="text-xs min-w-[140px] whitespace-nowrap">
-                          {inv.proofOfPaymentUrl || inv.proofUrl ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-2.5 text-[11px] font-semibold text-slate-700 hover:text-sky-700 border-slate-200 hover:bg-sky-50 rounded-lg gap-1.5 cursor-pointer"
-                              onClick={() => setSelectedProofInvoice(inv)}
-                            >
-                              {getProofFileType(inv.proofOfPaymentUrl || inv.proofUrl, inv.proofFileType, inv.proofFileName) === "pdf" ? (
-                                <>
-                                  <FileText className="w-3 h-3 text-rose-600" />
-                                  <span>Lihat PDF</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Eye className="w-3 h-3 text-sky-600" />
-                                  <span>Lihat Foto</span>
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <span className="text-slate-400 italic text-[11px]">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right pr-6 min-w-[130px] whitespace-nowrap">
-                          <StatusBadge status={inv.status} />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-
-            {/* Pagination for All Invoices */}
-            {allInvoices.length > 0 && (
-              <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
-                <span className="font-medium">
-                  Menampilkan {(invoicesPage - 1) * invoicesPageSize + 1} –{" "}
-                  {Math.min(invoicesPage * invoicesPageSize, allInvoices.length)} dari {allInvoices.length} invoice
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                    disabled={invoicesPage <= 1}
-                    onClick={() => setInvoicesPage((p) => Math.max(1, p - 1))}
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
-                  </Button>
-                  <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
-                    {invoicesPage} / {totalInvoicesPages}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                    disabled={invoicesPage >= totalInvoicesPages}
-                    onClick={() => setInvoicesPage((p) => Math.min(totalInvoicesPages, p + 1))}
-                  >
-                    Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-        </TabsContent>
+        <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} />
 
         {/* TAB 3: LOG BUKU BESAR KREDIT */}
-        <TabsContent value="history" className="space-y-4">
-          <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-sm font-bold text-slate-900">Audit Trail Buku Besar Kredit</CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Log real-time pergerakan kredit (pemakaian sesi, penambahan renewal, kuota cancel wajar, dan penalti cancel &gt;3x)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              {allHistoryLogs.length === 0 ? (
-                <EmptyState icon={History} title="Belum ada riwayat" subtitle="Belum ada pencatatan kredit." />
-              ) : (
-                <Table className="min-w-[940px] w-full">
-                  <TableHeader>
-                    <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
-                      <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[130px] whitespace-nowrap">Tanggal</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs min-w-[200px] whitespace-nowrap">Client & Cabang</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs min-w-[160px] whitespace-nowrap">Paket Kredit</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs min-w-[180px] whitespace-nowrap">Jenis Transaksi</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs min-w-[140px] whitespace-nowrap">Perubahan Kredit</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs pr-6 min-w-[220px]">Keterangan / Alasan</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedHistoryLogs.map((log) => {
-                      const br = BRANCHES.find((b) => b.id === log.branchId);
-                      return (
-                        <TableRow key={log.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs">
-                          <TableCell className="font-mono text-slate-600 pl-6 tabular-nums min-w-[130px] whitespace-nowrap">{fmtDate(log.date)}</TableCell>
-                          <TableCell className="min-w-[200px] whitespace-nowrap">
-                            <p className="font-bold text-slate-900">{log.clientName}</p>
-                            <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "East"}</span>
-                          </TableCell>
-                          <TableCell className="font-semibold text-slate-700 min-w-[160px] whitespace-nowrap">{log.packageName || "Regular Therapist"}</TableCell>
-                          <TableCell className="min-w-[180px] whitespace-nowrap">
-                            <span
-                              className={cn(
-                                "px-2.5 py-0.5 rounded-lg text-[11px] font-bold border inline-flex items-center whitespace-nowrap",
-                                log.action === "renewed" && "bg-emerald-50 text-emerald-800 border-emerald-200",
-                                log.action === "used" && "bg-sky-50 text-sky-800 border-sky-200",
-                                log.action === "cancel_excused" && "bg-slate-100 text-slate-700 border-slate-200",
-                                log.action === "cancel_penalty" && "bg-rose-50 text-rose-800 border-rose-200 font-extrabold"
-                              )}
-                            >
-                              {log.action === "renewed" && "Top Up / Renewal"}
-                              {log.action === "used" && "Sesi Terpakai"}
-                              {log.action === "cancel_excused" && "Cancel (Kredit Utuh)"}
-                              {log.action === "cancel_penalty" && "Penalti Cancel (>3x)"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="font-bold tabular-nums min-w-[140px] whitespace-nowrap">
-                            {log.creditChange > 0 ? (
-                              <span className="text-emerald-600 font-extrabold">+{log.creditChange}</span>
-                            ) : log.creditChange < 0 ? (
-                              <span className="text-rose-600 font-extrabold">{log.creditChange}</span>
-                            ) : (
-                              <span className="text-slate-400">0</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-slate-600 pr-6 min-w-[220px]">{log.note}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-
-            {/* Pagination for Credit Audit Trail */}
-            {allHistoryLogs.length > 0 && (
-              <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
-                <span className="font-medium">
-                  Menampilkan {(historyLogPage - 1) * historyLogPageSize + 1} –{" "}
-                  {Math.min(historyLogPage * historyLogPageSize, allHistoryLogs.length)} dari {allHistoryLogs.length} transaksi
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                    disabled={historyLogPage <= 1}
-                    onClick={() => setHistoryLogPage((p) => Math.max(1, p - 1))}
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
-                  </Button>
-                  <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
-                    {historyLogPage} / {totalHistoryLogPages}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                    disabled={historyLogPage >= totalHistoryLogPages}
-                    onClick={() => setHistoryLogPage((p) => Math.min(totalHistoryLogPages, p + 1))}
-                  >
-                    Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </Card>
-        </TabsContent>
+        <HistoryTab allHistoryLogs={allHistoryLogs} historyPg={historyPg} />
 
         {/* TAB 4: MASTER DATA PAKET KREDIT */}
-        <TabsContent value="packages" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">
-              Master katalog paket kredit yang dapat dipilih saat intake, penjadwalan, atau renewal.
-            </p>
-            <Button
-              className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl gap-1.5 text-xs h-9 shadow-xs"
-              onClick={() => setNewPkgOpen(true)}
-              data-testid="add-new-package-button"
-            >
-              <Plus className="w-3.5 h-3.5" /> Tambah Paket Baru
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {masterPackages.map((pkg) => (
-              <Card key={pkg.id} className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs p-5 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-900">{pkg.name}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{pkg.description || "Paket sesi terapi resmi"}</p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold shrink-0">
-                    {pkg.credits} Sesi
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-400">Harga Standar:</span>
-                  <span className="text-base font-extrabold text-slate-900 tabular-nums">
-                    {fmtCurrency(pkg.price)}
-                  </span>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+        <PackagesTab masterPackages={masterPackages} setNewPkgOpen={setNewPkgOpen} />
       </Tabs>
 
       {/* Pratinjau Foto & Dokumen Bukti Transfer Modal */}
@@ -664,235 +249,13 @@ export default function FinancePortal() {
       />
 
       {/* Issue Invoice Modal */}
-      <Dialog open={issueOpen} onOpenChange={setIssueOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-sky-600" /> Terbitkan Tagihan Invoice
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Pilih client dan paket yang disepakati melalui WhatsApp untuk menerbitkan tagihan.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleIssueSubmit} className="space-y-3.5 pt-2">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Pilih Client *</Label>
-              <Select value={issueForm.clientId} onValueChange={(val) => setIssueForm({ ...issueForm, clientId: val })}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
-                  <SelectValue placeholder="Pilih client..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200 max-h-56">
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.clientName} ({c.parentName}) — {c.clientAccessCode}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Pilih Paket Layanan *</Label>
-              <Select
-                value={issueForm.packageId}
-                onValueChange={(val) => {
-                  const pkg = masterPackages.find((p) => p.id === val);
-                  setIssueForm({
-                    ...issueForm,
-                    packageId: val,
-                    amount: pkg ? pkg.price : issueForm.amount,
-                  });
-                }}
-              >
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  {masterPackages.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} ({p.credits} sesi) — {fmtCurrency(p.price)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Nominal Tagihan (IDR) *</Label>
-              <Input
-                type="number"
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-bold"
-                value={issueForm.amount}
-                onChange={(e) => setIssueForm({ ...issueForm, amount: e.target.value })}
-              />
-            </div>
-
-            <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setIssueOpen(false)}>
-                Batal
-              </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs">
-                Terbitkan Invoice
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateInvoiceDialog clients={clients} handleIssueSubmit={handleIssueSubmit} issueForm={issueForm} issueOpen={issueOpen} masterPackages={masterPackages} setIssueForm={setIssueForm} setIssueOpen={setIssueOpen} />
 
       {/* Renewal Modal (Exclusively in Role Finance) */}
-      <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <RefreshCw className="w-5 h-5 text-sky-600" /> Renewal Paket Kredit Client
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Penambahan sesi baru (Regular Therapist / Senior Therapist) untuk client aktif. Tindakan ini eksklusif bagi Role Finance.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleRenewSubmit} className="space-y-3.5 pt-2">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Pilih Client Aktif *</Label>
-              <Select value={renewForm.clientId} onValueChange={(val) => setRenewForm({ ...renewForm, clientId: val })}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
-                  <SelectValue placeholder="Pilih client aktif..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200 max-h-56">
-                  {clients
-                    .filter((c) => c.status === "admitted" || c.status === "active")
-                    .map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.clientName} ({c.clientAccessCode})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Pilihan Paket Renewal *</Label>
-              <Select
-                value={renewForm.packageId}
-                onValueChange={(val) => {
-                  const pkg = masterPackages.find((p) => p.id === val);
-                  setRenewForm({
-                    ...renewForm,
-                    packageId: val,
-                    credits: pkg ? pkg.credits : 10,
-                    amount: pkg ? pkg.price : 2500000,
-                  });
-                }}
-              >
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  {masterPackages.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} ({p.credits} sesi) — {fmtCurrency(p.price)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Jumlah Sesi</Label>
-                <Input
-                  type="number"
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-bold"
-                  value={renewForm.credits}
-                  onChange={(e) => setRenewForm({ ...renewForm, credits: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Nominal Bayar (IDR)</Label>
-                <Input
-                  type="number"
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-bold"
-                  value={renewForm.amount}
-                  onChange={(e) => setRenewForm({ ...renewForm, amount: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setRenewOpen(false)}>
-                Batal
-              </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs">
-                Aktivasi Renewal Sesi
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <RenewalDialog clients={clients} handleRenewSubmit={handleRenewSubmit} masterPackages={masterPackages} renewForm={renewForm} renewOpen={renewOpen} setRenewForm={setRenewForm} setRenewOpen={setRenewOpen} />
 
       {/* Add Master Package Modal */}
-      <Dialog open={newPkgOpen} onOpenChange={setNewPkgOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Package className="w-5 h-5 text-sky-600" /> Tambah Paket Kredit Baru
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Buat definisi paket layanan baru yang dapat dibeli oleh client.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddMasterPackageSubmit} className="space-y-3.5 pt-2">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Nama Paket *</Label>
-              <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
-                placeholder="e.g. Paket Intensif Sensori 15x"
-                value={newPkgForm.name}
-                onChange={(e) => setNewPkgForm({ ...newPkgForm, name: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Jumlah Kredit Sesi *</Label>
-                <Input
-                  type="number"
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-bold"
-                  value={newPkgForm.credits}
-                  onChange={(e) => setNewPkgForm({ ...newPkgForm, credits: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Harga Standar (IDR) *</Label>
-                <Input
-                  type="number"
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-bold"
-                  value={newPkgForm.price}
-                  onChange={(e) => setNewPkgForm({ ...newPkgForm, price: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Deskripsi Layanan</Label>
-              <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
-                placeholder="e.g. Paket khusus kebutuhan intensif 3x seminggu"
-                value={newPkgForm.description}
-                onChange={(e) => setNewPkgForm({ ...newPkgForm, description: e.target.value })}
-              />
-            </div>
-
-            <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setNewPkgOpen(false)}>
-                Batal
-              </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs">
-                Simpan Paket Baru
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <NewPackageDialog handleAddMasterPackageSubmit={handleAddMasterPackageSubmit} newPkgForm={newPkgForm} newPkgOpen={newPkgOpen} setNewPkgForm={setNewPkgForm} setNewPkgOpen={setNewPkgOpen} />
     </div>
   );
 }

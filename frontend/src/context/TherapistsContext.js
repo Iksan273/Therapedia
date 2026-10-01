@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 import { usePersistentReducer } from "@/hooks/useLocalStorage";
-import { loadTherapistsSeed } from "@/data/seedLoader";
+import { getSeedLoader } from "@/data/seedRegistry";
 
 const TherapistsContext = createContext(null);
 
@@ -12,7 +12,7 @@ function therapistsReducer(state, action) {
 }
 
 export const TherapistsProvider = ({ children }) => {
-  const [therapists] = usePersistentReducer("therapists", therapistsReducer, loadTherapistsSeed);
+  const [therapists] = usePersistentReducer("therapists", therapistsReducer, () => getSeedLoader().loadTherapistsSeed());
   const getTherapist = (id) => therapists.find((t) => t.id === id);
 
   return (

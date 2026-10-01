@@ -1,34 +1,21 @@
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  FileText,
-  Printer,
-  ArrowLeft,
-  ExternalLink,
-  ClipboardList,
-  School,
-  CheckCircle2,
-  Calendar,
-  User,
-  Info,
-  Layers,
-  LayoutGrid,
-  CheckSquare,
-  FileSpreadsheet,
-  Download,
-  Share2
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Printer, ArrowLeft, ExternalLink, ClipboardList, Layers, LayoutGrid, CheckSquare, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useClients } from "@/context/ClientsContext";
 import { useAssessments } from "@/context/AssessmentsContext";
 import { useMasterData, getQuadrantColor } from "@/context/MasterDataContext";
 import { useTherapists } from "@/context/TherapistsContext";
-import { fmtDate, calcAgeDetailed, BRANCHES } from "@/lib/appUtils";
+import { calcAgeDetailed, BRANCHES } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
+import { DocumentHeader } from "@/pages/adminInquiry/parentAssessment/DocumentHeader";
+import { ScoringLegend } from "@/pages/adminInquiry/parentAssessment/ScoringLegend";
+import { QuadrantSummary } from "@/pages/adminInquiry/parentAssessment/QuadrantSummary";
+import { AssessorSheetView } from "@/pages/adminInquiry/parentAssessment/AssessorSheetView";
+import { ParentMatrixView } from "@/pages/adminInquiry/parentAssessment/ParentMatrixView";
+import { QuickInquiryView } from "@/pages/adminInquiry/parentAssessment/QuickInquiryView";
+import { SignatureBlock } from "@/pages/adminInquiry/parentAssessment/SignatureBlock";
 
 // Fallback Default Clinical Profile Sections & Questions if client answer list is flat
 const DEFAULT_SENSORY_PROFILE_SECTIONS = [
@@ -171,7 +158,7 @@ export default function ParentAssessmentView() {
   const navigate = useNavigate();
   const { getClient } = useClients();
   const { categories } = useAssessments();
-  const { quadrantMap } = useMasterData();
+  const { quadrantMap, quadrants } = useMasterData();
 
   // Gaya badge kuadran mengikuti master data; kode yang sudah tidak ada memakai abu-abu
   const quadStyle = (code, fallback = "bg-slate-600 text-white font-bold") => {
@@ -324,7 +311,7 @@ export default function ParentAssessmentView() {
 
   // Overall Quadrant Totals
   const quadrantTotals = useMemo(() => {
-    const totals = { AV: 0, SN: 0, RG: 0, SK: 0 };
+    const totals = Object.fromEntries(quadrants.map((q) => [q.code, 0]));
     resolvedSections.forEach((sec) => {
       sec.items.forEach((it) => {
         if (totals[it.quadrant] !== undefined) {
@@ -333,7 +320,7 @@ export default function ParentAssessmentView() {
       });
     });
     return totals;
-  }, [resolvedSections]);
+  }, [resolvedSections, quadrants]);
 
   const totalQuestionsCount = useMemo(() => {
     return resolvedSections.reduce((acc, s) => acc + s.items.length, 0);
@@ -343,7 +330,7 @@ export default function ParentAssessmentView() {
     return (
       <div className="p-8 text-center space-y-4">
         <p className="text-base text-slate-500">Data client tidak ditemukan.</p>
-        <Button onClick={() => navigate(-1)} variant="outline" className="rounded-xl">
+        <Button onClick={() => navigate(-1)} variant="outline" className="">
           <ArrowLeft className="w-4 h-4 mr-2" /> Kembali
         </Button>
       </div>
@@ -362,7 +349,7 @@ export default function ParentAssessmentView() {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-xl gap-2 text-xs border-slate-200 text-slate-600 hover:bg-slate-100"
+            className="gap-2 border-slate-200 text-slate-600 hover:bg-slate-100"
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="w-4 h-4" /> Kembali
@@ -420,7 +407,7 @@ export default function ParentAssessmentView() {
 
           <Button
             onClick={handlePrint}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl gap-2 text-xs shadow-xs"
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-2 shadow-xs"
           >
             <Printer className="w-4 h-4" /> Cetak / Unduh PDF Hasil Asesmen
           </Button>
@@ -451,7 +438,7 @@ export default function ParentAssessmentView() {
                 >
                   <ClipboardList className={cn("w-3.5 h-3.5", isSelected ? "text-emerald-700" : "text-slate-400")} />
                   <span>{a.categoryName || `Kuesioner #${idx + 1}`}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white border border-slate-200 font-mono">
+                  <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-white border border-slate-200 font-mono">
                     {a.answers?.length || 29} item
                   </span>
                 </button>
@@ -497,360 +484,37 @@ export default function ParentAssessmentView() {
         `}} />
         
         {/* DOCUMENT HEADER / CLINICAL TITLE (Matching Image 1) */}
-        <div className="border-b-2 border-emerald-600 pb-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight">
-                {activeAssessment?.categoryName || masterCategory?.categoryName || (isSchoolCompanion ? "School Companion Profile" : "Child Sensory Profile 2")}
-              </h1>
-              <p className="text-sm font-bold text-slate-600 mt-1">
-                {masterCategory?.description || (isSchoolCompanion ? "Winnie Dunn Framework & Classroom Adaptation" : "Winnie Dunn, PhD, OTR, FAOTA")}
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Therapedia Developmental Center • Cabang {branch ? branch.name : "Surabaya"}
-              </p>
-            </div>
-
-            {/* TOP RIGHT: HANYA UNTUK KEPERLUAN KLINIS & KALKULASI USIA ANAK (Matching Image 1) */}
-            <div className="border-2 border-emerald-700 rounded-lg overflow-hidden shrink-0 text-xs w-full sm:w-80 shadow-xs">
-              <div className="bg-emerald-700 text-white font-black text-center py-1 text-[11px] tracking-wider uppercase">
-                Hanya Untuk Keperluan Klinis
-              </div>
-              <div className="bg-emerald-100/90 text-emerald-950 font-bold text-center py-0.5 text-[10px] border-b border-emerald-700">
-                Kalkulasi Usia Anak
-              </div>
-              <table className="w-full text-center text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-slate-300 font-bold text-[10px] text-slate-600">
-                    <th className="py-1 px-2 text-left">Keterangan</th>
-                    <th className="py-1 px-2 border-l border-slate-300">Tahun</th>
-                    <th className="py-1 px-2 border-l border-slate-300">Bulan</th>
-                    <th className="py-1 px-2 border-l border-slate-300">Hari</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 font-medium text-[11px]">
-                  <tr>
-                    <td className="py-1 px-2 text-left font-semibold text-slate-700">Tanggal Tes</td>
-                    <td className="py-1 px-2 border-l border-slate-200">{new Date(testDate).getFullYear()}</td>
-                    <td className="py-1 px-2 border-l border-slate-200">{new Date(testDate).getMonth() + 1}</td>
-                    <td className="py-1 px-2 border-l border-slate-200">{new Date(testDate).getDate()}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 px-2 text-left font-semibold text-slate-700">Tanggal Lahir</td>
-                    <td className="py-1 px-2 border-l border-slate-200">{client.dob ? new Date(client.dob).getFullYear() : "—"}</td>
-                    <td className="py-1 px-2 border-l border-slate-200">{client.dob ? new Date(client.dob).getMonth() + 1 : "—"}</td>
-                    <td className="py-1 px-2 border-l border-slate-200">{client.dob ? new Date(client.dob).getDate() : "—"}</td>
-                  </tr>
-                  <tr className="bg-emerald-50/70 font-bold text-emerald-950">
-                    <td className="py-1 px-2 text-left">Usia</td>
-                    <td className="py-1 px-2 border-l border-slate-300">{ageDetail.years} th</td>
-                    <td className="py-1 px-2 border-l border-slate-300">{ageDetail.months} bln</td>
-                    <td className="py-1 px-2 border-l border-slate-300">{ageDetail.days} hr</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* TOP LEFT: DEMOGRAFI ANAK & PEMERIKSA (Matching Image 1) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs border border-emerald-600 rounded-lg p-3 bg-emerald-50/40">
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
-              <span className="font-bold text-emerald-950">Nama Anak</span>
-              <span className="font-bold text-slate-900">: {client.clientName}</span>
-            </div>
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
-              <span className="font-bold text-emerald-950">Jenis Kelamin</span>
-              <span className="font-semibold text-slate-800">: {client.gender || "Laki-laki"}</span>
-            </div>
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
-              <span className="font-bold text-emerald-950">Nama Orang Tua</span>
-              <span className="font-semibold text-slate-800">: {client.parentName} ({client.parentContact})</span>
-            </div>
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
-              <span className="font-bold text-emerald-950">Nama OTs / Assessor</span>
-              <span className="font-semibold text-slate-800">: Dr. Maya Chen, S.Tr.Kes (Lead OT)</span>
-            </div>
-          </div>
-        </div>
+        <DocumentHeader activeAssessment={activeAssessment} ageDetail={ageDetail} branch={branch} client={client} isSchoolCompanion={isSchoolCompanion} masterCategory={masterCategory} testDate={testDate} />
 
         {/* KETERANGAN DAN SKORING BANNER (Matching Image 1 & Image 2) */}
-        <div className="border border-emerald-600 rounded-lg overflow-hidden text-xs">
-          <div className="bg-emerald-600 text-white font-black text-center py-1.5 text-xs uppercase tracking-wider">
-            Keterangan dan Skoring
-          </div>
-          <div className="p-3 bg-emerald-50/30 space-y-2 text-slate-800 leading-relaxed text-[11px]">
-            <p className="font-medium italic">
-              Mohon mengisi pernyataan-pernyataan di bawah ini dengan seobjektif mungkin (sejujur-jujurnya) demi akurasi dalam penanganan terapi okupasi / integrasi sensori. Berikut keterangan untuk pemberian skor:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-semibold">
-              <div className="flex items-center gap-2 p-1.5 bg-white rounded border border-emerald-200">
-                <span className="w-6 h-6 rounded bg-emerald-700 text-white font-black flex items-center justify-center shrink-0">5</span>
-                <span>Jika anak berespon <strong>hampir selalu</strong> (90% atau lebih setiap waktu)</span>
-              </div>
-              <div className="flex items-center gap-2 p-1.5 bg-white rounded border border-emerald-200">
-                <span className="w-6 h-6 rounded bg-emerald-700 text-white font-black flex items-center justify-center shrink-0">4</span>
-                <span>Jika anak berespon <strong>selalu / sering</strong> (75% setiap waktu)</span>
-              </div>
-              <div className="flex items-center gap-2 p-1.5 bg-white rounded border border-emerald-200">
-                <span className="w-6 h-6 rounded bg-emerald-700 text-white font-black flex items-center justify-center shrink-0">3</span>
-                <span>Jika anak berespon <strong>sebagian waktu / kadang</strong> (50% setiap waktu)</span>
-              </div>
-              <div className="flex items-center gap-2 p-1.5 bg-white rounded border border-emerald-200">
-                <span className="w-6 h-6 rounded bg-emerald-700 text-white font-black flex items-center justify-center shrink-0">2</span>
-                <span>Jika anak berespon <strong>terkadang / jarang</strong> (25% setiap waktu)</span>
-              </div>
-              <div className="flex items-center gap-2 p-1.5 bg-white rounded border border-emerald-200">
-                <span className="w-6 h-6 rounded bg-emerald-700 text-white font-black flex items-center justify-center shrink-0">1</span>
-                <span>Jika anak berespon <strong>hampir tidak pernah</strong> (10% setiap waktu)</span>
-              </div>
-              <div className="flex items-center gap-2 p-1.5 bg-white rounded border border-emerald-200">
-                <span className="w-6 h-6 rounded bg-slate-500 text-white font-black flex items-center justify-center shrink-0">0</span>
-                <span>Jika <strong>tidak mengobservasi</strong> atau <strong>tidak meyakini</strong> hal tsb berlaku</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ScoringLegend />
 
         {/* SUMMARY KUADRAN SENSORIK CARDS (RESPONSIVE 4-CARD GRID) */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-            <div className="flex items-center gap-1.5">
-              <ClipboardList className="w-4 h-4 text-emerald-600" />
-              <span>Rekapitulasi Skor Mentah Kuadran:</span>
-            </div>
-            <span className="text-[11px] text-slate-500 font-medium">Total: {totalQuestionsCount} Butir Instrumen</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-            <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded text-[10px] bg-blue-600 text-white font-black">AV</span>
-                <span className="text-xl font-black text-blue-900">{quadrantTotals.AV}</span>
-              </div>
-              <p className="text-xs font-bold text-blue-950 mt-1">Avoiding</p>
-              <p className="text-[10px] text-blue-700">Penghindar Sensori</p>
-            </div>
-            <div className="p-3 bg-lime-50/80 rounded-xl border border-lime-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded text-[10px] bg-lime-600 text-white font-black">SN</span>
-                <span className="text-xl font-black text-lime-900">{quadrantTotals.SN}</span>
-              </div>
-              <p className="text-xs font-bold text-lime-950 mt-1">Sensitivity</p>
-              <p className="text-[10px] text-lime-700">Sensitivitas Sensorik</p>
-            </div>
-            <div className="p-3 bg-pink-50/80 rounded-xl border border-pink-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded text-[10px] bg-pink-600 text-white font-black">RG</span>
-                <span className="text-xl font-black text-pink-900">{quadrantTotals.RG}</span>
-              </div>
-              <p className="text-xs font-bold text-pink-950 mt-1">Registration</p>
-              <p className="text-[10px] text-pink-700">Pendaftaran Rendah</p>
-            </div>
-            <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500 text-white font-black">SK</span>
-                <span className="text-xl font-black text-amber-900">{quadrantTotals.SK}</span>
-              </div>
-              <p className="text-xs font-bold text-amber-950 mt-1">Seeking</p>
-              <p className="text-[10px] text-amber-700">Pencari Sensori</p>
-            </div>
-          </div>
-        </div>
+        <QuadrantSummary quadrants={quadrants} quadrantTotals={quadrantTotals} totalQuestionsCount={totalQuestionsCount} />
 
         {/* ========================================================================= */}
         {/* VIEW 1: LEMBAR EVALUASI KLINIS ASSESSOR (MATCHING EXACT IMAGE 1)          */}
         {/* ========================================================================= */}
         {viewMode === "clinical" && (
-          <div className="space-y-6">
-            {displayedSections.map((sec) => (
-              <div key={sec.id} className="border border-emerald-600 rounded-xl overflow-hidden shadow-2xs print-avoid-break">
-                <div className="bg-emerald-700 text-white px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
-                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider min-w-0 flex-1 break-words leading-snug">
-                    {sec.title}
-                  </h3>
-                  <span className="text-[10px] sm:text-[11px] font-bold bg-emerald-800/80 px-2 py-0.5 rounded shrink-0">
-                    {sec.items.length} Item
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse min-w-[540px] sm:min-w-0">
-                    <thead>
-                      <tr className="bg-emerald-100/70 border-b border-emerald-300 font-bold text-slate-800 text-[11px]">
-                        <th className="py-2 px-2 sm:px-3 text-center w-14 sm:w-16">Kuadran</th>
-                        <th className="py-2 px-1 sm:px-3 text-center w-10 sm:w-12 border-l border-emerald-200">Item</th>
-                        <th className="py-2 px-2 sm:px-4 border-l border-emerald-200 min-w-[220px] sm:min-w-0">
-                          <span>{sec.leadText || "Anakku ..."}</span>
-                        </th>
-                        <th className="py-2 px-2 sm:px-4 text-center w-24 sm:w-28 border-l border-emerald-200 bg-emerald-200/50 text-emerald-950 font-black">
-                          Penilaian<br /><span className="text-[10px] font-normal">Skor (0 - 5)</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {sec.items.map((it) => {
-                        const quad = quadStyle(it.quadrant);
-                        return (
-                          <tr key={it.itemNo} className="hover:bg-slate-50/70 transition-colors print-avoid-break">
-                            <td className="py-2 px-2 sm:px-3 text-center">
-                              <span className={cn("inline-block px-1.5 sm:px-2 py-0.5 rounded text-[10px]", quad.badge)}>
-                                {it.quadrant}
-                              </span>
-                            </td>
-                            <td className="py-2 px-1 sm:px-3 text-center font-bold text-slate-700 border-l border-slate-200">
-                              {it.itemNo}
-                            </td>
-                            <td className="py-2 px-2 sm:px-4 text-slate-800 leading-snug border-l border-slate-200 font-medium">
-                              {it.question}
-                            </td>
-                            <td className="py-2 px-2 sm:px-4 text-center font-black text-blue-600 text-sm sm:text-base border-l border-slate-200 bg-blue-50/20">
-                              {it.score}
-                            </td>
-                          </tr>
-                        );
-                      })}
-
-                      {/* SUB-TOTAL ROW PER DOMAIN (Matching Image 1: Skor Mentah AUDITORI: 21) */}
-                      <tr className="bg-emerald-100/80 font-black border-t-2 border-emerald-600 text-emerald-950">
-                        <td colSpan={3} className="py-2 px-3 sm:px-4 text-right uppercase tracking-wider text-xs">
-                          Skor Mentah {sec.domain}
-                        </td>
-                        <td className="py-2 px-2 sm:px-4 text-center text-sm sm:text-base text-blue-800 font-black border-l border-emerald-300 bg-blue-100/50">
-                          {sec.rawScoreSum}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
-          </div>
+          <AssessorSheetView displayedSections={displayedSections} quadStyle={quadStyle} />
         )}
 
         {/* ========================================================================= */}
         {/* VIEW 2: MATRIKS JAWABAN ASLI ORANG TUA (MATCHING EXACT IMAGE 2)          */}
         {/* ========================================================================= */}
         {viewMode === "matrix" && (
-          <div className="space-y-6">
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2">
-              <Info className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Berikut adalah format respon kuesioner asli yang diisi orang tua dengan tanda silang (X) pada kolom penilaian skor 5 hingga 0:</span>
-            </div>
-
-            {displayedSections.map((sec) => (
-              <div key={sec.id} className="border border-emerald-600 rounded-xl overflow-hidden shadow-2xs print-avoid-break">
-                <div className="bg-emerald-700 text-white px-3 sm:px-4 py-2.5 font-black text-xs uppercase tracking-wider break-words leading-snug">
-                  {sec.title}
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse min-w-[520px] sm:min-w-0">
-                    <thead>
-                      <tr className="bg-emerald-600 text-white font-black text-xs">
-                        <th className="py-2 px-2 sm:px-3 text-center w-12 sm:w-14">Item</th>
-                        <th className="py-2 px-2 sm:px-4 border-l border-emerald-500 min-w-[200px] sm:min-w-0">{sec.title}</th>
-                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">5</th>
-                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">4</th>
-                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">3</th>
-                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">2</th>
-                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500">1</th>
-                        <th className="py-2 px-2 text-center w-9 sm:w-12 border-l border-emerald-500 bg-emerald-800">0</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {sec.items.map((it) => (
-                        <tr key={it.itemNo} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-2.5 px-3 text-center font-bold text-slate-700">
-                            {it.itemNo}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-800 leading-snug border-l border-slate-200 font-medium">
-                            {it.question}
-                          </td>
-                          {[5, 4, 3, 2, 1, 0].map((scoreCol) => {
-                            const isSelected = it.score === scoreCol;
-                            return (
-                              <td
-                                key={scoreCol}
-                                className={cn(
-                                  "py-2.5 px-3 text-center font-black border-l border-slate-200",
-                                  scoreCol === 0 ? "bg-slate-100/50" : "",
-                                  isSelected ? "bg-emerald-50 text-red-600 text-sm font-black" : "text-slate-300"
-                                )}
-                              >
-                                {isSelected ? "X" : ""}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-
-                      <tr className="bg-emerald-50 font-black border-t-2 border-emerald-600 text-emerald-950">
-                        <td colSpan={2} className="py-2.5 px-4 text-right uppercase tracking-wider text-xs">
-                          Total Skor Mentah {sec.domain}:
-                        </td>
-                        <td colSpan={6} className="py-2.5 px-4 text-center text-sm font-black text-blue-700 bg-blue-50/50">
-                          {sec.rawScoreSum} Poin
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ParentMatrixView displayedSections={displayedSections} />
         )}
 
         {/* ========================================================================= */}
         {/* VIEW 3: TABEL INQUIRY CEPAT                                               */}
         {/* ========================================================================= */}
         {viewMode === "inquiry" && (
-          <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-100 hover:bg-slate-100">
-                  <TableHead className="font-bold text-slate-800 text-xs w-12 pl-4">No.</TableHead>
-                  <TableHead className="font-bold text-slate-800 text-xs w-20">Kuadran</TableHead>
-                  <TableHead className="font-bold text-slate-800 text-xs">Pernyataan Klinis</TableHead>
-                  <TableHead className="font-bold text-slate-800 text-xs w-36 text-center">Skor (0-5)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayedSections.flatMap((sec) => sec.items).map((it, idx) => {
-                  const quad = quadStyle(it.quadrant, "bg-slate-500 text-white");
-                  return (
-                    <TableRow key={it.itemNo || idx} className="text-xs hover:bg-slate-50">
-                      <TableCell className="font-bold pl-4 text-slate-500">{it.itemNo}</TableCell>
-                      <TableCell>
-                        <span className={cn("px-2 py-0.5 rounded text-[10px]", quad.badge)}>
-                          {it.quadrant}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-800">{it.question}</TableCell>
-                      <TableCell className="text-center font-black text-blue-600 text-sm">
-                        {it.score}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <QuickInquiryView displayedSections={displayedSections} quadStyle={quadStyle} />
         )}
 
         {/* TANDA TANGAN DOKUMEN CETAK (PRINT-READY) */}
-        <div className="pt-8 grid grid-cols-2 gap-8 text-xs text-center border-t border-slate-200">
-          <div className="space-y-16">
-            <p className="font-bold text-slate-700">Orang Tua / Wali Murid,</p>
-            <p className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-              ( {client.parentName} )
-            </p>
-          </div>
-          <div className="space-y-16">
-            <p className="font-bold text-slate-700">Clinical Assessor / Pediatric OT,</p>
-            <p className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-              ( Dr. Maya Chen, S.Tr.Kes )
-            </p>
-          </div>
-        </div>
+        <SignatureBlock client={client} />
       </div>
     </div>
   );

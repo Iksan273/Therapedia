@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 import { usePersistentReducer } from "@/hooks/useLocalStorage";
-import { loadCategoriesSeed } from "@/data/seedLoader";
+import { getSeedLoader } from "@/data/seedRegistry";
 
 const AssessmentsContext = createContext(null);
 
@@ -18,7 +18,7 @@ function categoriesReducer(state, action) {
 }
 
 export const AssessmentsProvider = ({ children }) => {
-  const [categories, dispatch] = usePersistentReducer("assessment_categories", categoriesReducer, loadCategoriesSeed);
+  const [categories, dispatch] = usePersistentReducer("assessment_categories", categoriesReducer, () => getSeedLoader().loadCategoriesSeed());
 
   const addCategory = (category) => dispatch({ type: "ADD", category });
   const updateCategory = (id, patch) => dispatch({ type: "UPDATE", id, patch });

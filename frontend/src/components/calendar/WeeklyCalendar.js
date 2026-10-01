@@ -1,6 +1,6 @@
 import React from "react";
-import { addDays, format, isToday } from "date-fns";
-import { FileText } from "lucide-react";
+import { addDays, format, isToday, parseISO } from "date-fns";
+import { CornerUpRight, FileText, Hourglass, Snowflake } from "lucide-react";
 import { CALENDAR_HOURS, timeToMin } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,7 @@ const CHIP_STYLES = {
   completed: "bg-emerald-50 border-emerald-200/90 text-emerald-900 hover:border-emerald-300",
   cancelled: "bg-rose-50 border-rose-200/90 text-rose-600 hover:border-rose-300",
   rescheduled: "bg-amber-50 border-amber-200/90 text-amber-900 hover:border-amber-300",
+  reschedule_pending: "bg-orange-50 border-dashed border-orange-300 text-orange-950 hover:border-orange-400",
   frozen: "bg-cyan-50 border-cyan-300 text-cyan-950 ring-1 ring-cyan-400 shadow-2xs",
 };
 
@@ -19,6 +20,15 @@ const TYPE_DOT = {
   therapy_behavior: "bg-amber-500",
   assessment: "bg-indigo-500",
   consultation: "bg-teal-500",
+};
+
+// "28/09 09:00" dari sebuah slot { date, startTime }
+const shortSlot = (slot) => {
+  try {
+    return `${format(parseISO(slot.date), "dd/MM")} ${slot.startTime}`;
+  } catch (e) {
+    return slot.startTime;
+  }
 };
 
 // Custom weekly grid: Monday-Saturday columns x hourly rows (08:00-18:00).
@@ -41,6 +51,17 @@ export const WeeklyCalendar = ({
         s.date === dayStr &&
         timeToMin(s.startTime) >= timeToMin(hour) &&
         timeToMin(s.startTime) < timeToMin(hour) + 60
+    );
+
+  // Jejak jadwal asal sesi yang sudah dipindah: tampil redup di slot lamanya agar admin tidak bingung
+  const ghostsFor = (dayStr, hour) =>
+    schedules.filter(
+      (s) =>
+        s.status === "rescheduled" &&
+        s.rescheduledFrom &&
+        s.rescheduledFrom.date === dayStr &&
+        timeToMin(s.rescheduledFrom.startTime) >= timeToMin(hour) &&
+        timeToMin(s.rescheduledFrom.startTime) < timeToMin(hour) + 60
     );
 
   return (
@@ -95,6 +116,27 @@ export const WeeklyCalendar = ({
                     onClick={() => !isBulkMode && onSlotClick && onSlotClick(dayStr, hour)}
                     data-testid={`calendar-slot-${dayStr}-${hour.replace(":", "")}`}
                   >
+                    {ghostsFor(dayStr, hour).map((s) => (
+                      <button
+                        key={`ghost-${s.id}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSessionClick && onSessionClick(s);
+                        }}
+                        className="w-full text-left rounded-xl border border-dashed border-slate-300 bg-slate-50/80 p-2 text-[11px] leading-snug text-slate-400 hover:text-slate-600 hover:border-slate-400 cursor-pointer"
+                        title="Jadwal asal sesi yang sudah dipindahkan"
+                        data-testid={`calendar-ghost-${s.id}`}
+                      >
+                        <span className="flex items-center gap-1 truncate font-semibold">
+                          <CornerUpRight className="w-3 h-3 shrink-0" />
+                          <span className="truncate line-through">{getClientName(s.clientId)}</span>
+                        </span>
+                        <span className="block mt-0.5 tabular-nums">
+                          {s.rescheduledFrom.startTime} → pindah ke {shortSlot(s)}
+                        </span>
+                      </button>
+                    ))}
                     {cellSessions.map((s) => {
                       const isSelected = selectedSessionIds.includes(s.id);
                       const isFrozen =
@@ -137,9 +179,21 @@ export const WeeklyCalendar = ({
                                 {getClientName(s.clientId)}
                               </span>
                             </span>
-                            {isFrozen && <span title="Frozen — Zero session credits remaining" className="text-xs">❄️</span>}
+                            {isFrozen && <Snowflake className="w-3 h-3 text-cyan-600" aria-label="Frozen — Zero session credits remaining" />}
                           </div>
-                          <div className="flex items-center justify-between text-[10px] opacity-80 tabular-nums mt-1 font-medium">
+                          {s.status === "rescheduled" && s.rescheduledFrom && (
+                            <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-amber-800" data-testid={`calendar-moved-${s.id}`}>
+                              <CornerUpRight className="w-3 h-3 shrink-0" />
+                              <span className="truncate">Dipindah dari {shortSlot(s.rescheduledFrom)}</span>
+                            </div>
+                          )}
+                          {s.status === "reschedule_pending" && (
+                            <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-orange-800" data-testid={`calendar-pending-${s.id}`}>
+                              <Hourglass className="w-3 h-3 shrink-0" />
+                              <span className="truncate">Menunggu jadwal pengganti</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between text-[11px] opacity-80 tabular-nums mt-1 font-medium">
                             <span className="flex items-center gap-1">
                               <span>{s.startTime}–{s.endTime}</span>
                               {(s.activitySection || s.noteSection || s.progressNote || s.homeworkSection) && (
@@ -170,7 +224,9 @@ export const CalendarLegend = () => (
       ["Scheduled", "bg-sky-100 border-sky-300 text-sky-900"],
       ["Completed", "bg-emerald-100 border-emerald-300 text-emerald-900"],
       ["Cancelled", "bg-rose-100 border-rose-300 text-rose-900"],
-      ["Rescheduled", "bg-amber-100 border-amber-300 text-amber-900"],
+      ["Rescheduled (sudah pindah)", "bg-amber-100 border-amber-300 text-amber-900"],
+      ["Menunggu jadwal pengganti", "bg-orange-100 border-orange-400 border-dashed text-orange-950"],
+      ["Jadwal asal (dipindah)", "bg-slate-50 border-slate-400 border-dashed text-slate-500"],
       ["Frozen (0 Credit)", "bg-cyan-100 border-cyan-400 text-cyan-950"],
     ].map(([label, cls]) => (
       <span key={label} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200">

@@ -1,6 +1,6 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Instagram, Facebook, Globe, ArrowRight, ShieldCheck, Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Instagram, Facebook, Globe, ArrowRight } from "lucide-react";
 import { CLINIC_INFO } from "@/data/landingData";
 
 export default function LandingFooter() {

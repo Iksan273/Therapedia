@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, Stethoscope, Grid2x2, Database, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ const questionsOf = (cat) =>
     : cat.questions || [];
 
 export default function InquiryMasterData() {
+  const { confirm, confirmDialog } = useConfirm();
   const { services, addService, updateService, deleteService, quadrants, addQuadrant, updateQuadrant, deleteQuadrant } =
     useMasterData();
   const { clients } = useClients();
@@ -151,13 +153,13 @@ export default function InquiryMasterData() {
     setSvcDialog(EMPTY_SERVICE);
   };
 
-  const removeService = (srv) => {
+  const removeService = async (srv) => {
     const used = serviceUsage[srv.value] || 0;
     if (used > 0) {
       toast.error(`Layanan "${srv.shortLabel}" dipakai di ${used} data. Nonaktifkan saja agar riwayat tetap utuh.`);
       return;
     }
-    if (!window.confirm(`Hapus layanan "${srv.label}"?`)) return;
+    if (!(await confirm({ title: "Hapus layanan?", description: `Layanan "${srv.label}" akan dihapus dari daftar.` }))) return;
     deleteService(srv.value);
     toast.success(`Layanan "${srv.shortLabel}" dihapus.`);
   };
@@ -206,7 +208,7 @@ export default function InquiryMasterData() {
     setQuadDialog(EMPTY_QUADRANT);
   };
 
-  const removeQuadrant = (q) => {
+  const removeQuadrant = async (q) => {
     const used = quadrantUsage[q.code] || 0;
     if (used > 0) {
       toast.error(`Kuadran ${q.code} dipakai di ${used} butir soal. Pindahkan soalnya ke kuadran lain terlebih dahulu.`);
@@ -216,13 +218,14 @@ export default function InquiryMasterData() {
       toast.error("Minimal harus ada 1 kuadran.");
       return;
     }
-    if (!window.confirm(`Hapus kuadran ${q.code} - ${q.title}?`)) return;
+    if (!(await confirm({ title: "Hapus kuadran?", description: `Kuadran ${q.code} - ${q.title} akan dihapus.` }))) return;
     deleteQuadrant(q.code);
     toast.success(`Kuadran ${q.code} dihapus.`);
   };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-16" data-testid="inquiry-master-data-page">
+      {confirmDialog}
       <div className="flex items-start gap-4 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs">
         <div className="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center shrink-0">
           <Database className="w-6 h-6" />
@@ -252,8 +255,8 @@ export default function InquiryMasterData() {
               <p className="text-xs text-slate-500 font-medium">
                 Layanan nonaktif tidak muncul di pilihan baru, tetapi data lama tetap terbaca.
               </p>
-              <Button
-                className="rounded-xl h-9 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white cursor-pointer"
+              <Button size="sm"
+                className="gap-1.5 font-bold bg-sky-600 hover:bg-sky-700 text-white cursor-pointer"
                 onClick={() => setSvcDialog({ ...EMPTY_SERVICE, open: true })}
                 data-testid="add-service-button"
               >
@@ -287,7 +290,7 @@ export default function InquiryMasterData() {
                         </TableCell>
                         <TableCell className="font-mono text-[11px] text-slate-600">{srv.value}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px] font-bold">{srv.category || "—"}</Badge>
+                          <Badge variant="outline" className="text-[11px] font-bold">{srv.category || "—"}</Badge>
                         </TableCell>
                         <TableCell className="text-center text-xs font-mono">{serviceUsage[srv.value] || 0}</TableCell>
                         <TableCell className="text-center">
@@ -301,20 +304,20 @@ export default function InquiryMasterData() {
                           />
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          <Button
+                          <Button aria-label="Edit layanan"
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 rounded-xl cursor-pointer"
+                            className="cursor-pointer"
                             onClick={() => openEditService(srv)}
                             title="Edit layanan"
                             data-testid={`edit-service-${srv.value}`}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
-                          <Button
+                          <Button aria-label="Hapus layanan"
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 rounded-xl text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            className="text-rose-600 hover:bg-rose-50 cursor-pointer"
                             onClick={() => removeService(srv)}
                             title="Hapus layanan"
                             data-testid={`delete-service-${srv.value}`}
@@ -339,7 +342,7 @@ export default function InquiryMasterData() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 rounded-lg text-xs"
+                    className=""
                     disabled={currentServicePage <= 1}
                     onClick={() => setServicePage(currentServicePage - 1)}
                     data-testid="service-prev-page"
@@ -352,7 +355,7 @@ export default function InquiryMasterData() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 rounded-lg text-xs"
+                    className=""
                     disabled={currentServicePage >= totalServicePages}
                     onClick={() => setServicePage(currentServicePage + 1)}
                     data-testid="service-next-page"
@@ -372,8 +375,8 @@ export default function InquiryMasterData() {
               <p className="text-xs text-slate-500 font-medium">
                 Kuadran dipakai untuk mengelompokkan butir soal di kuesioner (Sensory Profile).
               </p>
-              <Button
-                className="rounded-xl h-9 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white cursor-pointer"
+              <Button size="sm"
+                className="gap-1.5 font-bold bg-sky-600 hover:bg-sky-700 text-white cursor-pointer"
                 onClick={() => setQuadDialog({ ...EMPTY_QUADRANT, open: true })}
                 data-testid="add-quadrant-button"
               >
@@ -396,20 +399,20 @@ export default function InquiryMasterData() {
                         <span className={cn("text-xs font-black mr-2", color.count)}>
                           {quadrantUsage[q.code] || 0} soal
                         </span>
-                        <Button
+                        <Button aria-label="Edit kuadran"
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 rounded-xl cursor-pointer"
+                          className="cursor-pointer"
                           onClick={() => openEditQuadrant(q)}
                           title="Edit kuadran"
                           data-testid={`edit-quadrant-${q.code}`}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                        <Button
+                        <Button aria-label="Hapus kuadran"
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 rounded-xl text-rose-600 hover:bg-rose-50 cursor-pointer"
+                          className="text-rose-600 hover:bg-rose-50 cursor-pointer"
                           onClick={() => removeQuadrant(q)}
                           title="Hapus kuadran"
                           data-testid={`delete-quadrant-${q.code}`}
@@ -494,10 +497,10 @@ export default function InquiryMasterData() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="rounded-xl" onClick={() => setSvcDialog(EMPTY_SERVICE)}>
+            <Button variant="outline" className="" onClick={() => setSvcDialog(EMPTY_SERVICE)}>
               Batal
             </Button>
-            <Button className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white" onClick={saveService} data-testid="save-service-button">
+            <Button className="bg-sky-600 hover:bg-sky-700 text-white" onClick={saveService} data-testid="save-service-button">
               Simpan
             </Button>
           </DialogFooter>
@@ -554,7 +557,7 @@ export default function InquiryMasterData() {
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Warna</Label>
               <Select value={quadDialog.color} onValueChange={(v) => setQuadDialog((p) => ({ ...p, color: v }))}>
-                <SelectTrigger className="rounded-xl h-10 text-xs font-semibold">
+                <SelectTrigger className="text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -570,10 +573,10 @@ export default function InquiryMasterData() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="rounded-xl" onClick={() => setQuadDialog(EMPTY_QUADRANT)}>
+            <Button variant="outline" className="" onClick={() => setQuadDialog(EMPTY_QUADRANT)}>
               Batal
             </Button>
-            <Button className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white" onClick={saveQuadrant} data-testid="save-quadrant-button">
+            <Button className="bg-sky-600 hover:bg-sky-700 text-white" onClick={saveQuadrant} data-testid="save-quadrant-button">
               Simpan
             </Button>
           </DialogFooter>

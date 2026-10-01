@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Printer, Search, Activity, HeartHandshake, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -57,7 +57,7 @@ export default function PrintClientReport() {
           icon={Search}
           title="Client report not found"
           subtitle="This client may have been removed or reset in demo state."
-          action={<Button variant="outline" className="rounded-xl border-slate-200" onClick={() => navigate(-1)}>Go back</Button>}
+          action={<Button variant="outline" className="border-slate-200" onClick={() => navigate(-1)}>Go back</Button>}
         />
       </div>
     );
@@ -72,11 +72,11 @@ export default function PrintClientReport() {
       <div className="max-w-4xl mx-auto">
         {/* Action bar — hidden when printing */}
         <div className="flex items-center justify-between mb-6 print:hidden">
-          <Button variant="outline" className="gap-2 rounded-xl border-slate-200 text-xs font-bold h-10 px-4 shadow-2xs" onClick={() => navigate(-1)} data-testid="print-report-back-button">
+          <Button variant="outline" className="gap-2 border-slate-200 font-bold px-4 shadow-2xs" onClick={() => navigate(-1)} data-testid="print-report-back-button">
             <ArrowLeft className="w-4 h-4" /> Back to profile
           </Button>
           <Button
-            className="bg-[#007AFF] hover:bg-[#0062cc] text-white gap-2 font-bold rounded-xl text-xs h-10 px-5 shadow-sm shadow-[#007AFF]/25"
+            className="bg-[#007AFF] hover:bg-[#0062cc] text-white gap-2 font-bold px-5 shadow-sm shadow-[#007AFF]/25"
             onClick={() => window.print()}
             data-testid="print-report-print-button"
           >
@@ -122,7 +122,7 @@ export default function PrintClientReport() {
             </div>
             {client.parentComplaint && (
               <div className="rounded-xl print:rounded-none bg-amber-50/70 print:bg-white print:border print:border-slate-200 border border-amber-200/80 p-3.5 mt-2">
-                <p className="text-[10px] text-amber-800 print:text-slate-500 font-bold uppercase tracking-wider mb-1">Parent Chief Concern at Intake</p>
+                <p className="text-[11px] text-amber-800 print:text-slate-500 font-bold uppercase tracking-wider mb-1">Parent Chief Concern at Intake</p>
                 <p className="text-xs text-slate-700 leading-relaxed font-medium" data-testid="print-report-complaint">{client.parentComplaint}</p>
               </div>
             )}
@@ -145,7 +145,7 @@ export default function PrintClientReport() {
                 )}
                 {client.assessmentReportNote && (
                   <div className="rounded-xl print:rounded-none bg-sky-50/60 print:bg-white print:border print:border-slate-200 border border-sky-200/80 p-3.5">
-                    <p className="text-[10px] font-bold text-sky-900 uppercase tracking-wider mb-1">Therapist Clinical Summary</p>
+                    <p className="text-[11px] font-bold text-sky-900 uppercase tracking-wider mb-1">Therapist Clinical Summary</p>
                     <p className="text-xs text-slate-700 leading-relaxed font-medium" data-testid="print-report-note">{client.assessmentReportNote}</p>
                   </div>
                 )}
@@ -232,7 +232,7 @@ export default function PrintClientReport() {
           </Section>
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400 font-medium">
             <span>Therapedia Developmental Center — Confidential Patient Clinical Record</span>
             <span>Official Clinical Summary System</span>
           </div>

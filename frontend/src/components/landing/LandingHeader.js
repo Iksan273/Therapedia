@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Globe, Menu, X, Sparkles, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, Menu, X } from "lucide-react";
 
 export default function LandingHeader({ onBookClick }) {
   const navigate = useNavigate();

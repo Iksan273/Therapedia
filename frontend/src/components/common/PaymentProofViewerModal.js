@@ -1,22 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Eye,
-  Download,
-  ExternalLink,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  RefreshCw,
-  FileText,
-  Image as ImageIcon,
-  CheckCircle2,
-  AlertCircle,
-  X,
-  FileCheck2,
-  Calendar,
-  Building2,
-  CreditCard
-} from "lucide-react";
+import { Eye, Download, ExternalLink, ZoomIn, ZoomOut, RotateCw, RefreshCw, FileText, Image as ImageIcon, CheckCircle2, AlertCircle, Calendar, CreditCard } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -111,11 +94,11 @@ export function PaymentProofViewerModal({
                   {isPdf ? "Dokumen PDF" : "Foto / Gambar"}
                 </Badge>
                 {isPaid ? (
-                  <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold">
+                  <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold">
                     LUNAS TERVERIFIKASI
                   </Badge>
                 ) : (
-                  <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold">
+                  <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold">
                     MENUNGGU VERIFIKASI
                   </Badge>
                 )}
@@ -131,7 +114,7 @@ export function PaymentProofViewerModal({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 text-xs font-semibold gap-1.5 rounded-xl border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
+                  className="font-semibold gap-1.5 border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
                   onClick={handleOpenNewTab}
                   title="Buka file asli di tab baru"
                 >
@@ -141,7 +124,7 @@ export function PaymentProofViewerModal({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 text-xs font-semibold gap-1.5 rounded-xl border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
+                  className="font-semibold gap-1.5 border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer"
                   onClick={handleDownload}
                   title="Unduh file bukti transfer"
                 >
@@ -166,7 +149,7 @@ export function PaymentProofViewerModal({
             </span>
             {fileName && (
               <span className="flex items-center gap-1.5 text-slate-500 font-mono text-[11px] truncate max-w-xs" title={fileName}>
-                📎 {fileName} {fileSize ? `(${formatFileSize(fileSize)})` : ""}
+                {fileName} {fileSize ? `(${formatFileSize(fileSize)})` : ""}
               </span>
             )}
           </div>
@@ -199,7 +182,7 @@ export function PaymentProofViewerModal({
                   <Button
                     size="sm"
                     variant="default"
-                    className="h-8 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-lg gap-1.5"
+                    className="bg-sky-600 hover:bg-sky-700 text-white font-semibold gap-1.5"
                     onClick={handleOpenNewTab}
                   >
                     <ExternalLink className="w-3.5 h-3.5" /> Buka PDF Penuh
@@ -221,10 +204,10 @@ export function PaymentProofViewerModal({
             <div className="w-full h-full flex flex-col items-center justify-center space-y-3">
               {/* Zoom & Rotate Controls Toolbar */}
               <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-3 py-1.5 rounded-full border border-slate-200 shadow-sm z-10">
-                <Button
+                <Button aria-label="Zoom Out"
                   size="icon"
                   variant="ghost"
-                  className="w-7 h-7 rounded-full text-slate-600 hover:text-slate-900"
+                  className="rounded-full text-slate-600 hover:text-slate-900"
                   onClick={handleZoomOut}
                   title="Zoom Out"
                 >
@@ -233,29 +216,29 @@ export function PaymentProofViewerModal({
                 <span className="text-[11px] font-mono font-bold text-slate-700 px-2 min-w-[48px] text-center">
                   {Math.round(zoom * 100)}%
                 </span>
-                <Button
+                <Button aria-label="Zoom In"
                   size="icon"
                   variant="ghost"
-                  className="w-7 h-7 rounded-full text-slate-600 hover:text-slate-900"
+                  className="rounded-full text-slate-600 hover:text-slate-900"
                   onClick={handleZoomIn}
                   title="Zoom In"
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
                 </Button>
                 <div className="w-px h-4 bg-slate-200 mx-1" />
-                <Button
+                <Button aria-label="Putar 90 Derajat"
                   size="icon"
                   variant="ghost"
-                  className="w-7 h-7 rounded-full text-slate-600 hover:text-slate-900"
+                  className="rounded-full text-slate-600 hover:text-slate-900"
                   onClick={handleRotate}
                   title="Putar 90 Derajat"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                 </Button>
-                <Button
+                <Button aria-label="Reset Tampilan"
                   size="icon"
                   variant="ghost"
-                  className="w-7 h-7 rounded-full text-slate-600 hover:text-slate-900"
+                  className="rounded-full text-slate-600 hover:text-slate-900"
                   onClick={handleReset}
                   title="Reset Tampilan"
                 >
@@ -301,10 +284,10 @@ export function PaymentProofViewerModal({
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button
+            <Button size="sm"
               type="button"
               variant="outline"
-              className="rounded-xl text-xs font-semibold h-9 px-4"
+              className="font-semibold px-4"
               onClick={onClose}
             >
               Tutup
@@ -314,10 +297,10 @@ export function PaymentProofViewerModal({
             {isFinanceView && !isPaid && proofUrl && (
               <>
                 {onReject && (
-                  <Button
+                  <Button size="sm"
                     type="button"
                     variant="outline"
-                    className="h-9 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-200 rounded-xl"
+                    className="px-4 font-bold text-rose-600 hover:bg-rose-50 border-rose-200"
                     onClick={() => {
                       onReject(invoice);
                       onClose();
@@ -327,9 +310,9 @@ export function PaymentProofViewerModal({
                   </Button>
                 )}
                 {onApprove && (
-                  <Button
+                  <Button size="sm"
                     type="button"
-                    className="h-9 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm shadow-emerald-600/20"
+                    className="px-4 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
                     onClick={() => {
                       onApprove(invoice);
                       onClose();

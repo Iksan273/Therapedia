@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Send, MapPin, Mail, Phone, MessageSquare, CheckCircle2, Sparkles, Building } from "lucide-react";
+import { Send, MapPin, Mail, Phone, MessageSquare, CheckCircle2, Building } from "lucide-react";
 import { CLINIC_INFO, CLINICAL_BRANCHES } from "@/data/landingData";
 import { toast } from "sonner";
 

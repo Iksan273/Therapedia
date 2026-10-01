@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 import { usePersistentReducer } from "@/hooks/useLocalStorage";
-import { loadCreditsSeed } from "@/data/seedLoader";
+import { getSeedLoader } from "@/data/seedRegistry";
 import { todayStr, uid } from "@/lib/appUtils";
 
 const CreditsContext = createContext(null);
@@ -332,7 +332,7 @@ function creditsReducer(state, action) {
 }
 
 export const CreditsProvider = ({ children }) => {
-  const [credits, dispatch] = usePersistentReducer("credits", creditsReducer, loadCreditsSeed);
+  const [credits, dispatch] = usePersistentReducer("credits", creditsReducer, () => getSeedLoader().loadCreditsSeed());
 
   const addMasterPackage = (packageData) => dispatch({ type: "ADD_MASTER_PACKAGE", packageData });
   const addRecord = (record) => dispatch({ type: "ADD_RECORD", record });

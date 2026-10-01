@@ -1,54 +1,24 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { endOfWeek, format, startOfWeek, subMonths, parseISO } from "date-fns";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
-  Users,
-  CalendarDays,
-  Cake,
-  Filter,
-  CheckCircle2,
-  XCircle,
-  ArrowRight,
-  TrendingUp,
-  Building2,
-  MessageCircle,
-  Calendar,
-  Activity,
-  CalendarClock,
-  Clock,
-  PieChart as PieIcon,
-  Search,
-  UserCheck
-} from "lucide-react";
+import { format } from "date-fns";
+import { Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Users, CalendarDays, Cake, CheckCircle2, XCircle, Building2, MessageCircle, Activity, CalendarClock, PieChart as PieIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/common/StatCard";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
 import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useAuth } from "@/context/AuthContext";
-import { calcAge, fmtDate, BRANCHES, CANCEL_REASONS, cancelReasonLabel } from "@/lib/appUtils";
+import { calcAge, fmtDate, BRANCHES, branchName, isCreditNeutralCancel } from "@/lib/appUtils";
 import DateFilterPicker from "@/components/common/DateFilterPicker";
-import { cn } from "@/lib/utils";
+import { FilterBar, FilterField } from "@/components/common/FilterBar";
+import { BranchFilter } from "@/components/common/BranchFilter";
+import { PeriodFilter } from "@/components/common/PeriodFilter";
+import { makePeriodMatcher, periodLabel } from "@/lib/periods";
 
 const PIE_COLORS = ["#0284C7", "#10B981", "#F59E0B", "#F43F5E", "#8B5CF6", "#64748B"];
 
@@ -61,10 +31,9 @@ export default function DashboardSchedule() {
   const { activeBranch, auth } = useAuth();
   const isMaster = auth?.role === "master";
 
-  const [selectedBranch, setSelectedBranch] = useState(
-    isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur")
-  );
-  const [period, setPeriod] = useState("month"); // week | month | quarter | custom
+  const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
+  const [selectedBranch, setSelectedBranch] = useState(defaultBranch);
+  const [period, setPeriod] = useState("quarter"); // lihat PERIOD_OPTIONS
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
@@ -86,46 +55,46 @@ export default function DashboardSchedule() {
 
   // Filter schedules by branch and period
   const filteredSchedules = useMemo(() => {
+    const inPeriod = makePeriodMatcher(period, customStart, customEnd);
     return schedules.filter((s) => {
-      // Branch filter
       if (selectedBranch !== "all" && s.branchId && s.branchId !== selectedBranch) return false;
-
-      // Period filter
       if (!s.date) return true;
-      const d = s.date;
-
-      if (period === "custom") {
-        if (customStart && d < customStart) return false;
-        if (customEnd && d > customEnd) return false;
-        return true;
-      }
-
-      const today = new Date();
-      if (period === "week") {
-        const start = format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
-        const end = format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
-        return d >= start && d <= end;
-      }
-
-      if (period === "month") {
-        const curMonth = format(today, "yyyy-MM");
-        return d.startsWith(curMonth);
-      }
-
-      if (period === "quarter") {
-        const quarterAgo = format(subMonths(today, 3), "yyyy-MM-dd");
-        return d >= quarterAgo;
-      }
-
-      return true;
+      return inPeriod(s.date);
     });
   }, [schedules, selectedBranch, period, customStart, customEnd]);
+
+  const filterChips = [];
+  if (selectedBranch !== defaultBranch) {
+    filterChips.push({
+      key: "branch",
+      label: `Cabang: ${selectedBranch === "all" ? "Semua" : branchName(selectedBranch)}`,
+      onRemove: () => setSelectedBranch(defaultBranch),
+    });
+  }
+  if (period !== "quarter") {
+    const range = period === "custom" ? ` (${customStart || "…"} – ${customEnd || "…"})` : "";
+    filterChips.push({
+      key: "period",
+      label: `Periode: ${periodLabel(period)}${range}`,
+      onRemove: () => {
+        setPeriod("quarter");
+        setCustomStart("");
+        setCustomEnd("");
+      },
+    });
+  }
+  const resetGlobalFilters = () => {
+    setSelectedBranch(defaultBranch);
+    setPeriod("quarter");
+    setCustomStart("");
+    setCustomEnd("");
+  };
 
   // Metrics
   const metrics = useMemo(() => {
     const totalSessions = filteredSchedules.length;
     const completed = filteredSchedules.filter((s) => s.status === "completed").length;
-    const cancelled = filteredSchedules.filter((s) => s.status === "cancelled").length;
+    const cancelled = filteredSchedules.filter((s) => s.status === "cancelled" && !isCreditNeutralCancel(s)).length;
     const scheduled = filteredSchedules.filter((s) => s.status === "scheduled").length;
 
     return {
@@ -148,7 +117,7 @@ export default function DashboardSchedule() {
     };
 
     filteredSchedules.forEach((s) => {
-      if (s.status === "cancelled" && s.cancelReason) {
+      if (s.status === "cancelled" && s.cancelReason && !isCreditNeutralCancel(s)) {
         if (reasonCounts[s.cancelReason] !== undefined) {
           reasonCounts[s.cancelReason] += 1;
         } else {
@@ -191,11 +160,52 @@ export default function DashboardSchedule() {
     });
   }, [schedules, telemetryClientId, telemetryTherapistId, telemetryBranchId, telemetryStatus, telemetryStartDate, telemetryEndDate]);
 
+  const resetTelemetry = () => {
+    setTelemetryClientId("all");
+    setTelemetryTherapistId("all");
+    setTelemetryBranchId("all");
+    setTelemetryStatus("all");
+    setTelemetryStartDate("");
+    setTelemetryEndDate("");
+  };
+
+  const telemetryChips = [];
+  if (telemetryClientId !== "all") {
+    telemetryChips.push({
+      key: "client",
+      label: `Client: ${clients.find((c) => c.id === telemetryClientId)?.clientName || telemetryClientId}`,
+      onRemove: () => setTelemetryClientId("all"),
+    });
+  }
+  if (telemetryTherapistId !== "all") {
+    telemetryChips.push({
+      key: "therapist",
+      label: `Terapis: ${therapists.find((t) => t.id === telemetryTherapistId)?.name?.split(",")[0] || telemetryTherapistId}`,
+      onRemove: () => setTelemetryTherapistId("all"),
+    });
+  }
+  if (telemetryBranchId !== "all") {
+    telemetryChips.push({ key: "branch", label: `Cabang: ${branchName(telemetryBranchId)}`, onRemove: () => setTelemetryBranchId("all") });
+  }
+  if (telemetryStatus !== "all") {
+    telemetryChips.push({ key: "status", label: `Status: ${telemetryStatus}`, onRemove: () => setTelemetryStatus("all") });
+  }
+  if (telemetryStartDate || telemetryEndDate) {
+    telemetryChips.push({
+      key: "dates",
+      label: `Tanggal: ${telemetryStartDate || "…"} – ${telemetryEndDate || "…"}`,
+      onRemove: () => {
+        setTelemetryStartDate("");
+        setTelemetryEndDate("");
+      },
+    });
+  }
+
   const telemetryMetrics = useMemo(() => {
     const total = filteredTelemetrySchedules.length;
     const completed = filteredTelemetrySchedules.filter((s) => s.status === "completed").length;
     const rescheduled = filteredTelemetrySchedules.filter((s) => s.status === "rescheduled").length;
-    const cancelled = filteredTelemetrySchedules.filter((s) => s.status === "cancelled").length;
+    const cancelled = filteredTelemetrySchedules.filter((s) => s.status === "cancelled" && !isCreditNeutralCancel(s)).length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
     const cancellationRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
 
@@ -247,91 +257,43 @@ export default function DashboardSchedule() {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => navigate("/admin-schedule/calendar")}
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl gap-2 shadow-xs text-xs"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-2 shadow-xs"
           >
             <CalendarDays className="w-4 h-4" /> Buka Kalender Sesi
           </Button>
           <Button
             variant="outline"
             onClick={() => navigate("/admin-schedule/clients")}
-            className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold rounded-xl gap-2 shadow-2xs text-xs"
+            className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold gap-2 shadow-2xs"
           >
             <Users className="w-4 h-4" /> Active Clients Roster
           </Button>
         </div>
       </div>
 
-      {/* Global Filter Bar: Branch + Presets */}
-      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          {isMaster ? (
-            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-              <SelectTrigger className="w-48 h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-bold">
-                <SelectValue placeholder="Semua Cabang" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200">
-                <SelectItem value="all">🏢 Semua Cabang</SelectItem>
-                {BRANCHES.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    📍 {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800">
-              <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
-              <span>📍 {BRANCHES.find((b) => b.id === selectedBranch)?.name || "Cabang Terpilih"}</span>
-            </div>
-          )}
-
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs">
-            {[
-              { id: "week", label: "Minggu Ini" },
-              { id: "month", label: "Bulan Ini" },
-              { id: "quarter", label: "Kuartal Ini" },
-              { id: "custom", label: "Custom Range" },
-            ].map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPeriod(p.id)}
-                className={cn(
-                  "px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
-                  period === p.id ? "bg-white text-sky-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {period === "custom" && (
-          <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">Dari:</span>
-              <DateFilterPicker
-                placeholder="DD/MM/YYYY"
-                className="w-38"
-                value={customStart}
-                onChange={(e) => setCustomStart(e?.target?.value ?? e)}
-                data-testid="schedule-filter-start"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">Sampai:</span>
-              <DateFilterPicker
-                placeholder="DD/MM/YYYY"
-                className="w-38"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e?.target?.value ?? e)}
-                data-testid="schedule-filter-end"
-              />
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Global Filter Bar: Branch + Periode */}
+      <FilterBar
+        title="Filter Dashboard"
+        chips={filterChips}
+        onReset={resetGlobalFilters}
+        resultText={`${filteredSchedules.length} sesi`}
+        gridClassName="lg:grid-cols-4"
+      >
+        <FilterField label="Cabang">
+          <BranchFilter value={selectedBranch} onChange={setSelectedBranch} isMaster={isMaster} />
+        </FilterField>
+        <PeriodFilter
+          preset={period}
+          start={customStart}
+          end={customEnd}
+          testidPrefix="schedule"
+          onChange={({ preset, start, end }) => {
+            if (preset !== undefined) setPeriod(preset);
+            if (start !== undefined) setCustomStart(start);
+            if (end !== undefined) setCustomEnd(end);
+          }}
+        />
+      </FilterBar>
 
       {/* Top 4 KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -441,7 +403,7 @@ export default function DashboardSchedule() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs shrink-0">
-                        🎂
+                        <Cake className="w-5 h-5" />
                       </div>
                       <div>
                         <p className="font-bold text-xs text-slate-900">{c.clientName}</p>
@@ -479,37 +441,27 @@ export default function DashboardSchedule() {
               <CardTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-sky-600" />
                 Advanced Client Analytics & Attendance Filters
+                <span className="text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-white text-sky-700 border border-sky-200">
+                  Filter terpisah
+                </span>
               </CardTitle>
               <CardDescription className="text-xs text-slate-600 mt-0.5">
-                Filter session telemetry across children, therapists, and date ranges
+                Filter di kartu ini berdiri sendiri dan tidak mengikuti filter cabang/periode di bagian atas halaman
               </CardDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs font-bold text-sky-700 hover:bg-sky-100 self-start rounded-xl"
-              onClick={() => {
-                setTelemetryClientId("all");
-                setTelemetryTherapistId("all");
-                setTelemetryBranchId("all");
-                setTelemetryStatus("all");
-                setTelemetryStartDate("");
-                setTelemetryEndDate("");
-              }}
-            >
-              Reset Filter Telemetri
-            </Button>
           </div>
         </CardHeader>
 
         <CardContent className="p-5 space-y-5">
-          {/* Telemetry Filter Form Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-            {/* Filter 1: Child / Client */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Client / Anak</Label>
+          <FilterBar
+            plain
+            chips={telemetryChips}
+            onReset={resetTelemetry}
+            gridClassName="lg:grid-cols-6"
+          >
+            <FilterField label="Client / Anak">
               <Select value={telemetryClientId} onValueChange={setTelemetryClientId}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                <SelectTrigger className="border-slate-200 bg-slate-50" aria-label="Client">
                   <SelectValue placeholder="Semua Client" />
                 </SelectTrigger>
                 <SelectContent className="max-h-56">
@@ -521,13 +473,10 @@ export default function DashboardSchedule() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Filter 2: Therapist */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Terapis Praktisi</Label>
+            </FilterField>
+            <FilterField label="Terapis">
               <Select value={telemetryTherapistId} onValueChange={setTelemetryTherapistId}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                <SelectTrigger className="border-slate-200 bg-slate-50" aria-label="Terapis">
                   <SelectValue placeholder="Semua Terapis" />
                 </SelectTrigger>
                 <SelectContent>
@@ -539,13 +488,10 @@ export default function DashboardSchedule() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Filter 3: Branch */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Cabang Sesi</Label>
+            </FilterField>
+            <FilterField label="Cabang Sesi">
               <Select value={telemetryBranchId} onValueChange={setTelemetryBranchId}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                <SelectTrigger className="border-slate-200 bg-slate-50" aria-label="Cabang sesi">
                   <SelectValue placeholder="Semua Cabang" />
                 </SelectTrigger>
                 <SelectContent>
@@ -557,28 +503,23 @@ export default function DashboardSchedule() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Filter 4: Status Sesi */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Status Sesi</Label>
+            </FilterField>
+            <FilterField label="Status Sesi">
               <Select value={telemetryStatus} onValueChange={setTelemetryStatus}>
-                <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-slate-50 font-medium">
+                <SelectTrigger className="border-slate-200 bg-slate-50" aria-label="Status sesi">
                   <SelectValue placeholder="Semua Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Status</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                  <SelectItem value="rescheduled">Rescheduled (sudah pindah)</SelectItem>
+                  <SelectItem value="reschedule_pending">Reschedule – belum ada jadwal</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Filter 5: Dari Tanggal */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Dari Tanggal (DD/MM/YYYY)</Label>
+            </FilterField>
+            <FilterField label="Dari Tanggal">
               <DateFilterPicker
                 placeholder="DD/MM/YYYY"
                 className="w-full bg-slate-50"
@@ -586,11 +527,8 @@ export default function DashboardSchedule() {
                 onChange={(e) => setTelemetryStartDate(e?.target?.value ?? e)}
                 data-testid="schedule-telemetry-start"
               />
-            </div>
-
-            {/* Filter 6: Sampai Tanggal */}
-            <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500 font-bold uppercase">Sampai Tanggal (DD/MM/YYYY)</Label>
+            </FilterField>
+            <FilterField label="Sampai Tanggal">
               <DateFilterPicker
                 placeholder="DD/MM/YYYY"
                 className="w-full bg-slate-50"
@@ -598,8 +536,8 @@ export default function DashboardSchedule() {
                 onChange={(e) => setTelemetryEndDate(e?.target?.value ?? e)}
                 data-testid="schedule-telemetry-end"
               />
-            </div>
-          </div>
+            </FilterField>
+          </FilterBar>
 
           {/* Telemetry Metric Scorecards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

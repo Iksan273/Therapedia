@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 import { usePersistentReducer } from "@/hooks/useLocalStorage";
-import { loadSchedulesSeed } from "@/data/seedLoader";
+import { getSeedLoader } from "@/data/seedRegistry";
 
 const SchedulesContext = createContext(null);
 
@@ -25,7 +25,7 @@ function schedulesReducer(state, action) {
 }
 
 export const SchedulesProvider = ({ children }) => {
-  const [schedules, dispatch] = usePersistentReducer("schedules", schedulesReducer, loadSchedulesSeed);
+  const [schedules, dispatch] = usePersistentReducer("schedules", schedulesReducer, () => getSeedLoader().loadSchedulesSeed());
 
   const addSchedule = (schedule) => dispatch({ type: "ADD", schedule });
   const addSchedules = (list) => dispatch({ type: "ADD_MANY", schedules: list });

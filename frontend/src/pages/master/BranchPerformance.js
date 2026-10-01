@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { format, subMonths } from "date-fns";
 import {
   ResponsiveContainer,
@@ -224,7 +224,7 @@ export default function BranchPerformance() {
                   Perbandingan total intake masuk, admitted (active), in-progress, dan discontinued antar cabang
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-600 border-slate-200 font-semibold">
+              <Badge variant="outline" className="text-[11px] bg-slate-50 text-slate-600 border-slate-200 font-semibold">
                 Multi-Branch View
               </Badge>
             </div>

@@ -1,17 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  UserCheck,
-  TrendingUp,
-  HeartHandshake,
-  FileCheck2,
-  Brain,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2,
-  Layers,
-  ArrowRight
-} from "lucide-react";
+import { UserCheck, TrendingUp, HeartHandshake, FileCheck2, Brain, CheckCircle2, ArrowRight } from "lucide-react";
 import { CLINICAL_PILLARS } from "@/data/landingData";
 
 export default function LandingWhyUs({ onBookClick }) {

@@ -1,20 +1,7 @@
 import React, { useState } from "react";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { toast } from "sonner";
-import {
-  ShieldCheck,
-  Plus,
-  Pencil,
-  Trash2,
-  AlertCircle,
-  Check,
-  Search,
-  SlidersHorizontal,
-  Layers,
-  Lock,
-  ShieldAlert,
-  UserCheck,
-  CheckCircle2
-} from "lucide-react";
+import { ShieldCheck, Plus, Pencil, Trash2, AlertCircle, Search, SlidersHorizontal, Layers, Lock, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
@@ -34,6 +21,7 @@ import { useAuth, ACCESS_MODULES } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
 export default function RoleModuleAccess() {
+  const { confirm, confirmDialog } = useConfirm();
   const { rolesList, addRole, updateRole, deleteRole, rbacPermissions, updateRolePermission } = useAuth();
   const [activeTab, setActiveTab] = useState("matrix"); // 'matrix' | 'roles'
   const [searchRole, setSearchRole] = useState("");
@@ -123,12 +111,12 @@ export default function RoleModuleAccess() {
     setEditingRole(null);
   };
 
-  const handleDeleteRole = (role) => {
+  const handleDeleteRole = async (role) => {
     if (role.isSystem) {
       toast.error("System Role bawaan tidak dapat dihapus!");
       return;
     }
-    if (window.confirm(`Apakah Anda yakin ingin menghapus Role '${role.label}'?`)) {
+    if (await confirm({ title: "Hapus role?", description: `Role '${role.label}' akan dihapus.` })) {
       try {
         deleteRole(role.id);
         toast.info(`Role '${role.label}' telah dihapus.`);
@@ -140,6 +128,7 @@ export default function RoleModuleAccess() {
 
   return (
     <div className="space-y-6" data-testid="rbac-module-access-page">
+      {confirmDialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -157,7 +146,7 @@ export default function RoleModuleAccess() {
 
         <div className="flex items-center gap-2">
           <Button
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl gap-2 shadow-sm shadow-emerald-600/20 text-xs h-10"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-sm shadow-emerald-600/20"
             onClick={() => setAddModalOpen(true)}
             data-testid="add-new-role-button"
           >
@@ -235,7 +224,7 @@ export default function RoleModuleAccess() {
                     <TableHead key={r.id} className="font-bold text-slate-700 text-xs text-center min-w-[130px]">
                       <div className="flex flex-col items-center">
                         <span className="font-bold text-slate-900">{r.label}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">{r.badge || r.id}</span>
+                        <span className="text-[11px] text-slate-400 font-normal">{r.badge || r.id}</span>
                       </div>
                     </TableHead>
                   ))}
@@ -292,14 +281,14 @@ export default function RoleModuleAccess() {
             <div className="relative flex-1 min-w-[240px]">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input
-                className="pl-10 h-10 rounded-xl border-slate-200 bg-slate-50 focus:bg-white text-xs"
+                className="pl-10 border-slate-200 bg-slate-50 focus:bg-white text-xs"
                 placeholder="Cari role berdasarkan nama, slug, atau badge..."
                 value={searchRole}
                 onChange={(e) => setSearchRole(e.target.value)}
               />
             </div>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl gap-2 text-xs h-10 shrink-0"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shrink-0"
               onClick={() => setAddModalOpen(true)}
             >
               <Plus className="w-4 h-4" /> Buat Role Baru
@@ -322,15 +311,15 @@ export default function RoleModuleAccess() {
                   <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-full">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-full">
                           {r.badge || "Role"}
                         </span>
                         {r.isSystem ? (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
                             <Lock className="w-3 h-3" /> System Role
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
+                          <span className="text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md">
                             Custom Role
                           </span>
                         )}
@@ -347,10 +336,10 @@ export default function RoleModuleAccess() {
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        <Button
+                        <Button aria-label="Edit Role Detail"
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                          className="text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                           onClick={() => handleOpenEdit(r)}
                           title="Edit Role Detail"
                           data-testid={`edit-role-${r.id}`}
@@ -358,10 +347,10 @@ export default function RoleModuleAccess() {
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
                         {!r.isSystem && (
-                          <Button
+                          <Button aria-label="Hapus Role"
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                             onClick={() => handleDeleteRole(r)}
                             title="Hapus Role"
                             data-testid={`delete-role-${r.id}`}
@@ -395,7 +384,7 @@ export default function RoleModuleAccess() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Nama Role (Label) *</Label>
               <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                className="border-slate-200 bg-slate-50 text-xs"
                 placeholder="e.g. Branch Supervisor, Head Therapist"
                 value={addForm.label}
                 onChange={(e) => setAddForm({ ...addForm, label: e.target.value })}
@@ -406,7 +395,7 @@ export default function RoleModuleAccess() {
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-700">Role ID / Slug (Opsional)</Label>
                 <Input
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-mono"
+                  className="border-slate-200 bg-slate-50 text-xs font-mono"
                   placeholder="e.g. branch_supervisor"
                   value={addForm.id}
                   onChange={(e) => setAddForm({ ...addForm, id: e.target.value })}
@@ -416,7 +405,7 @@ export default function RoleModuleAccess() {
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-700">Category Badge</Label>
                 <Input
-                  className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                  className="border-slate-200 bg-slate-50 text-xs"
                   placeholder="e.g. Supervisi"
                   value={addForm.badge}
                   onChange={(e) => setAddForm({ ...addForm, badge: e.target.value })}
@@ -427,7 +416,7 @@ export default function RoleModuleAccess() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Deskripsi Role</Label>
               <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                className="border-slate-200 bg-slate-50 text-xs"
                 placeholder="Penjelasan wewenang operasional role ini..."
                 value={addForm.description}
                 onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
@@ -462,10 +451,10 @@ export default function RoleModuleAccess() {
             </div>
 
             <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setAddModalOpen(false)}>
+              <Button type="button" variant="outline" className="border-slate-200" onClick={() => setAddModalOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs">
+              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
                 Simpan Role Baru
               </Button>
             </DialogFooter>
@@ -489,7 +478,7 @@ export default function RoleModuleAccess() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Nama Role (Label) *</Label>
               <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                className="border-slate-200 bg-slate-50 text-xs"
                 value={editForm.label}
                 onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
               />
@@ -498,7 +487,7 @@ export default function RoleModuleAccess() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Category Badge</Label>
               <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                className="border-slate-200 bg-slate-50 text-xs"
                 value={editForm.badge}
                 onChange={(e) => setEditForm({ ...editForm, badge: e.target.value })}
               />
@@ -507,17 +496,17 @@ export default function RoleModuleAccess() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Deskripsi Role</Label>
               <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                className="border-slate-200 bg-slate-50 text-xs"
                 value={editForm.description}
                 onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
               />
             </div>
 
             <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setEditModalOpen(false)}>
+              <Button type="button" variant="outline" className="border-slate-200" onClick={() => setEditModalOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs">
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
                 Simpan Perubahan
               </Button>
             </DialogFooter>

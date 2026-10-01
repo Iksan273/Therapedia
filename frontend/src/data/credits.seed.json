@@ -1,173 +1,3609 @@
 {
   "masterPackages": [
-    { "id": "pkg-reguler", "name": "Regular Therapist", "credits": 10, "price": 2500000, "description": "10 Sesi Terapi Regular Therapist (Occupational / Sensory / Speech Therapy)" },
-    { "id": "pkg-vip", "name": "Senior Therapist", "credits": 10, "price": 3500000, "description": "10 Sesi Terapi Bersama Senior Therapist (1-on-1 Senior Clinical Practitioner + Priority Room)" },
-    { "id": "pkg-consult", "name": "Paket Konsultasi", "credits": 1, "price": 500000, "description": "1 Sesi Konsultasi Klinis Lanjutan & Review Evaluasi Program Terapi" },
-    { "id": "pkg-sensory-intensive", "name": "Paket Sensori Intensif", "credits": 15, "price": 4200000, "description": "15 Sesi Stimulasi Sensori & Motor Planning Intensif" }
+    {
+      "id": "pkg-reguler",
+      "name": "Regular Therapist",
+      "credits": 10,
+      "price": 2500000,
+      "description": "10 Sesi Terapi Regular Therapist (Occupational / Sensory / Speech Therapy)"
+    },
+    {
+      "id": "pkg-vip",
+      "name": "Senior Therapist",
+      "credits": 10,
+      "price": 3500000,
+      "description": "10 Sesi Terapi Bersama Senior Therapist (1-on-1 Senior Clinical Practitioner + Priority Room)"
+    },
+    {
+      "id": "pkg-consult",
+      "name": "Paket Konsultasi",
+      "credits": 1,
+      "price": 500000,
+      "description": "1 Sesi Konsultasi Klinis Lanjutan & Review Evaluasi Program Terapi"
+    },
+    {
+      "id": "pkg-sensory-intensive",
+      "name": "Paket Sensori Intensif",
+      "credits": 15,
+      "price": 4200000,
+      "description": "15 Sesi Stimulasi Sensori & Motor Planning Intensif"
+    }
   ],
   "records": [
     {
-      "id": "cr-001",
+      "id": "cr-g009",
       "clientId": "c-009",
       "branchId": "branch-sby-timur",
       "packages": [
-        { "id": "cp-009-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 7, "cancelCount": 1, "status": "active" },
-        { "id": "cp-009-2", "packageId": "pkg-vip", "packageName": "Senior Therapist (5x)", "totalCredit": 5, "remainingCredit": 4, "cancelCount": 0, "status": "active" }
+        {
+          "id": "cp-009-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 1,
+          "cancelCount": 0,
+          "status": "active"
+        }
       ],
-      "cancelCountTotal": 1,
+      "cancelCountTotal": 0,
       "history": [
-        { "id": "hist-1", "date": "2026-01-05", "scheduleId": "sch-p901", "packageId": "cp-009-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi terapi Regular Therapist selesai" },
-        { "id": "hist-2", "date": "2026-01-12", "scheduleId": "sch-001", "packageId": "cp-009-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi sensori integrasi selesai" },
-        { "id": "hist-3", "date": "2026-01-19", "scheduleId": "sch-008", "packageId": "cp-009-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi gross motor selesai" },
-        { "id": "hist-4", "date": "2026-01-26", "scheduleId": "sch-l901", "packageId": "cp-009-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit) - Kuota izin wajar" },
-        { "id": "hist-5", "date": "2026-02-02", "scheduleId": "sch-v901", "packageId": "cp-009-2", "packageName": "Senior Therapist (5x)", "action": "used", "creditChange": -1, "note": "Sesi terapi Senior Therapist 1-on-1 selesai" }
+        {
+          "id": "hist-g0001",
+          "scheduleId": "sch-g0001",
+          "packageId": "cp-009-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0002",
+          "scheduleId": "sch-g0002",
+          "packageId": "cp-009-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0003",
+          "scheduleId": "sch-g0003",
+          "packageId": "cp-009-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0004",
+          "scheduleId": null,
+          "packageId": "cp-009-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 24
+        }
       ]
     },
     {
-      "id": "cr-002",
+      "id": "cr-g012",
       "clientId": "c-012",
       "branchId": "branch-sby-timur",
-      "packages": [],
-      "cancelCountTotal": 0,
-      "history": []
+      "packages": [
+        {
+          "id": "cp-012-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 0,
+          "status": "completed"
+        },
+        {
+          "id": "cp-012-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 2,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 2,
+      "history": [
+        {
+          "id": "hist-g0005",
+          "scheduleId": "sch-g0007",
+          "packageId": "cp-012-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0006",
+          "scheduleId": "sch-g0008",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0007",
+          "scheduleId": "sch-g0009",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0008",
+          "scheduleId": "sch-g0010",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0009",
+          "scheduleId": "sch-g0011",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0010",
+          "scheduleId": "sch-g0012",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0011",
+          "scheduleId": "sch-g0013",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0012",
+          "scheduleId": "sch-g0014",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0013",
+          "scheduleId": "sch-g0015",
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0014",
+          "scheduleId": null,
+          "packageId": "cp-012-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 79
+        },
+        {
+          "id": "hist-g0015",
+          "scheduleId": null,
+          "packageId": "cp-012-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 58
+        }
+      ]
     },
     {
-      "id": "cr-003",
+      "id": "cr-g013",
       "clientId": "c-013",
       "branchId": "branch-sby-timur",
       "packages": [
-        { "id": "cp-013-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 1, "cancelCount": 2, "status": "active" }
+        {
+          "id": "cp-013-1",
+          "packageId": "pkg-sensory-intensive",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "totalCredit": 15,
+          "remainingCredit": 5,
+          "cancelCount": 0,
+          "status": "active"
+        }
       ],
       "cancelCountTotal": 2,
       "history": [
-        { "id": "hist-6", "date": "2026-01-08", "scheduleId": "sch-0131", "packageId": "cp-013-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-7", "date": "2026-01-15", "scheduleId": "sch-0132", "packageId": "cp-013-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
-        { "id": "hist-8", "date": "2026-01-22", "scheduleId": "sch-0133", "packageId": "cp-013-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-2 (Izin Keluarga)" }
+        {
+          "id": "hist-g0016",
+          "scheduleId": "sch-g0019",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0017",
+          "scheduleId": "sch-g0020",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0018",
+          "scheduleId": "sch-g0021",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0019",
+          "scheduleId": "sch-g0022",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0020",
+          "scheduleId": "sch-g0023",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0021",
+          "scheduleId": "sch-g0024",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0022",
+          "scheduleId": "sch-g0025",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0023",
+          "scheduleId": "sch-g0026",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0024",
+          "scheduleId": "sch-g0027",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0025",
+          "scheduleId": "sch-g0028",
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0026",
+          "scheduleId": null,
+          "packageId": "cp-013-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "renewed",
+          "creditChange": 15,
+          "note": "Pembayaran INV diverifikasi Finance (+15 kredit)",
+          "_daysAgo": 184
+        }
       ]
     },
     {
-      "id": "cr-004",
+      "id": "cr-g014",
       "clientId": "c-014",
       "branchId": "branch-sby-timur",
       "packages": [
-        { "id": "cp-014-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 5, "cancelCount": 4, "status": "active" }
+        {
+          "id": "cp-014-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 3,
+          "status": "completed"
+        }
       ],
       "cancelCountTotal": 4,
       "history": [
-        { "id": "hist-9", "date": "2026-01-07", "scheduleId": "sch-0141", "packageId": "cp-014-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
-        { "id": "hist-10", "date": "2026-01-14", "scheduleId": "sch-0142", "packageId": "cp-014-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-2 (Izin)" },
-        { "id": "hist-11", "date": "2026-01-21", "scheduleId": "sch-0143", "packageId": "cp-014-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "bentrok_sekolah", "note": "Cancel ke-3 (Bentrok)" },
-        { "id": "hist-12", "date": "2026-01-28", "scheduleId": "sch-0144", "packageId": "cp-014-1", "packageName": "Regular Therapist (10x)", "action": "cancel_penalty", "creditChange": -1, "cancelReason": "tanpa_kabar", "note": "Cancel ke-4 (Tanpa Kabar) - Penalti memotong 1 kredit asli!" }
+        {
+          "id": "hist-g0027",
+          "scheduleId": "sch-g0031",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-2 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0028",
+          "scheduleId": "sch-g0032",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-3 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0029",
+          "scheduleId": "sch-g0033",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0030",
+          "scheduleId": "sch-g0034",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0031",
+          "scheduleId": "sch-g0035",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0032",
+          "scheduleId": "sch-g0036",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0033",
+          "scheduleId": "sch-g0037",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_penalty",
+          "creditChange": -1,
+          "cancelReason": "bentrok_sekolah",
+          "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
+        },
+        {
+          "id": "hist-g0034",
+          "scheduleId": "sch-g0038",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0035",
+          "scheduleId": "sch-g0039",
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0036",
+          "scheduleId": null,
+          "packageId": "cp-014-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 127
+        }
       ]
     },
     {
-      "id": "cr-005",
+      "id": "cr-g017",
       "clientId": "c-017",
       "branchId": "branch-citraland",
       "packages": [
-        { "id": "cp-017-1", "packageId": "pkg-vip", "packageName": "Senior Therapist (10x)", "totalCredit": 10, "remainingCredit": 8, "cancelCount": 1, "status": "active" }
+        {
+          "id": "cp-017-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 8,
+          "cancelCount": 1,
+          "status": "active"
+        }
       ],
       "cancelCountTotal": 1,
       "history": [
-        { "id": "hist-13", "date": "2026-01-10", "scheduleId": "sch-0171", "packageId": "cp-017-1", "packageName": "Senior Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-14", "date": "2026-01-17", "scheduleId": "sch-0172", "packageId": "cp-017-1", "packageName": "Senior Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-15", "date": "2026-01-24", "scheduleId": "sch-0173", "packageId": "cp-017-1", "packageName": "Senior Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" }
+        {
+          "id": "hist-g0037",
+          "scheduleId": "sch-g0043",
+          "packageId": "cp-017-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0038",
+          "scheduleId": "sch-g0044",
+          "packageId": "cp-017-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0039",
+          "scheduleId": "sch-g0046",
+          "packageId": "cp-017-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-1 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0040",
+          "scheduleId": null,
+          "packageId": "cp-017-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 13
+        }
       ]
     },
     {
-      "id": "cr-006",
+      "id": "cr-g018",
       "clientId": "c-018",
       "branchId": "branch-citraland",
       "packages": [
-        { "id": "cp-018-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 9, "cancelCount": 0, "status": "active" }
+        {
+          "id": "cp-018-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 0,
+          "status": "completed"
+        },
+        {
+          "id": "cp-018-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 1,
+          "cancelCount": 2,
+          "status": "active"
+        }
       ],
-      "cancelCountTotal": 0,
+      "cancelCountTotal": 3,
       "history": [
-        { "id": "hist-16", "date": "2026-01-26", "scheduleId": "sch-0181", "packageId": "cp-018-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi pertama selesai" }
+        {
+          "id": "hist-g0041",
+          "scheduleId": "sch-g0048",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0042",
+          "scheduleId": "sch-g0049",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0043",
+          "scheduleId": "sch-g0050",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0044",
+          "scheduleId": "sch-g0051",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0045",
+          "scheduleId": "sch-g0052",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0046",
+          "scheduleId": "sch-g0053",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0047",
+          "scheduleId": "sch-g0054",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0048",
+          "scheduleId": "sch-g0055",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0049",
+          "scheduleId": "sch-g0056",
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0050",
+          "scheduleId": "sch-g0057",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0051",
+          "scheduleId": "sch-g0058",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0052",
+          "scheduleId": "sch-g0059",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0053",
+          "scheduleId": "sch-g0060",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-2 (Sakit)"
+        },
+        {
+          "id": "hist-g0054",
+          "scheduleId": "sch-g0061",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0055",
+          "scheduleId": "sch-g0062",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-3 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0056",
+          "scheduleId": "sch-g0063",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0057",
+          "scheduleId": "sch-g0064",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0058",
+          "scheduleId": "sch-g0065",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0059",
+          "scheduleId": "sch-g0066",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0060",
+          "scheduleId": "sch-g0067",
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0061",
+          "scheduleId": null,
+          "packageId": "cp-018-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 145
+        },
+        {
+          "id": "hist-g0062",
+          "scheduleId": null,
+          "packageId": "cp-018-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 38
+        }
       ]
     },
     {
-      "id": "cr-007",
+      "id": "cr-g020",
       "clientId": "c-020",
       "branchId": "branch-citraland",
-      "packages": [],
-      "cancelCountTotal": 0,
-      "history": []
-    },
-    {
-      "id": "cr-008",
-      "clientId": "c-022",
-      "branchId": "branch-citraland",
       "packages": [
-        { "id": "cp-022-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 8, "cancelCount": 0, "status": "active" }
-      ],
-      "cancelCountTotal": 0,
-      "history": [
-        { "id": "hist-17", "date": "2026-01-11", "scheduleId": "sch-0221", "packageId": "cp-022-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-18", "date": "2026-01-18", "scheduleId": "sch-0222", "packageId": "cp-022-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" }
-      ]
-    },
-    {
-      "id": "cr-009",
-      "clientId": "c-025",
-      "branchId": "branch-sby-barat",
-      "packages": [
-        { "id": "cp-025-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 6, "cancelCount": 2, "status": "active" },
-        { "id": "cp-025-2", "packageId": "pkg-vip", "packageName": "Senior Therapist (5x)", "totalCredit": 5, "remainingCredit": 3, "cancelCount": 0, "status": "active" }
+        {
+          "id": "cp-020-1",
+          "packageId": "pkg-vip",
+          "packageName": "Senior Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 4,
+          "cancelCount": 2,
+          "status": "active"
+        }
       ],
       "cancelCountTotal": 2,
       "history": [
-        { "id": "hist-19", "date": "2026-01-09", "scheduleId": "sch-0251", "packageId": "cp-025-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-20", "date": "2026-01-16", "scheduleId": "sch-0252", "packageId": "cp-025-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-21", "date": "2026-01-23", "scheduleId": "sch-0253", "packageId": "cp-025-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
-        { "id": "hist-22", "date": "2026-01-30", "scheduleId": "sch-0254", "packageId": "cp-025-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-2 (Izin)" }
+        {
+          "id": "hist-g0063",
+          "scheduleId": "sch-g0072",
+          "packageId": "cp-020-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0064",
+          "scheduleId": "sch-g0073",
+          "packageId": "cp-020-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "bentrok_sekolah",
+          "note": "Cancel ke-1 (Bentrok Sekolah)"
+        },
+        {
+          "id": "hist-g0065",
+          "scheduleId": "sch-g0074",
+          "packageId": "cp-020-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0066",
+          "scheduleId": "sch-g0075",
+          "packageId": "cp-020-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0067",
+          "scheduleId": "sch-g0076",
+          "packageId": "cp-020-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-2 (Sakit)"
+        },
+        {
+          "id": "hist-g0068",
+          "scheduleId": null,
+          "packageId": "cp-020-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 37
+        }
       ]
     },
     {
-      "id": "cr-010",
-      "clientId": "c-027",
-      "branchId": "branch-sby-barat",
-      "packages": [],
-      "cancelCountTotal": 0,
-      "history": []
+      "id": "cr-g022",
+      "clientId": "c-022",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-022-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 2,
+          "status": "completed"
+        },
+        {
+          "id": "cp-022-2",
+          "packageId": "pkg-sensory-intensive",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "totalCredit": 15,
+          "remainingCredit": 7,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 3,
+      "history": [
+        {
+          "id": "hist-g0069",
+          "scheduleId": "sch-g0081",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0070",
+          "scheduleId": "sch-g0080",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0071",
+          "scheduleId": "sch-g0083",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-2 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0072",
+          "scheduleId": "sch-g0082",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "bentrok_sekolah",
+          "note": "Cancel ke-3 (Bentrok Sekolah)"
+        },
+        {
+          "id": "hist-g0073",
+          "scheduleId": "sch-g0085",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0074",
+          "scheduleId": "sch-g0084",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0075",
+          "scheduleId": "sch-g0087",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0076",
+          "scheduleId": "sch-g0086",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0077",
+          "scheduleId": "sch-g0089",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0078",
+          "scheduleId": "sch-g0088",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0079",
+          "scheduleId": "sch-g0091",
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0080",
+          "scheduleId": "sch-g0090",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0081",
+          "scheduleId": "sch-g0093",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0082",
+          "scheduleId": "sch-g0092",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0083",
+          "scheduleId": "sch-g0095",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0084",
+          "scheduleId": "sch-g0094",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0085",
+          "scheduleId": "sch-g0097",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0086",
+          "scheduleId": "sch-g0096",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0087",
+          "scheduleId": "sch-g0099",
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0088",
+          "scheduleId": null,
+          "packageId": "cp-022-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 164
+        },
+        {
+          "id": "hist-g0089",
+          "scheduleId": null,
+          "packageId": "cp-022-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "renewed",
+          "creditChange": 15,
+          "note": "Pembayaran INV diverifikasi Finance (+15 kredit)",
+          "_daysAgo": 29
+        }
+      ]
     },
     {
-      "id": "cr-011",
+      "id": "cr-g025",
+      "clientId": "c-025",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-025-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        },
+        {
+          "id": "cp-025-2",
+          "packageId": "pkg-vip",
+          "packageName": "Senior Therapist (5x)",
+          "totalCredit": 5,
+          "remainingCredit": 5,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 2,
+      "history": [
+        {
+          "id": "hist-g0090",
+          "scheduleId": "sch-g0104",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "tanpa_kabar",
+          "note": "Cancel ke-2 (Tanpa Kabar)"
+        },
+        {
+          "id": "hist-g0091",
+          "scheduleId": "sch-g0106",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0092",
+          "scheduleId": "sch-g0107",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0093",
+          "scheduleId": "sch-g0108",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0094",
+          "scheduleId": "sch-g0109",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0095",
+          "scheduleId": "sch-g0110",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0096",
+          "scheduleId": "sch-g0111",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0097",
+          "scheduleId": "sch-g0112",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0098",
+          "scheduleId": "sch-g0113",
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0099",
+          "scheduleId": null,
+          "packageId": "cp-025-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 94
+        },
+        {
+          "id": "hist-g0100",
+          "scheduleId": null,
+          "packageId": "cp-025-2",
+          "packageName": "Senior Therapist (5x)",
+          "action": "renewed",
+          "creditChange": 5,
+          "note": "Pembayaran INV diverifikasi Finance (+5 kredit)",
+          "_daysAgo": 2
+        }
+      ]
+    },
+    {
+      "id": "cr-g027",
+      "clientId": "c-027",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-027-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 0,
+          "status": "completed"
+        },
+        {
+          "id": "cp-027-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 8,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 0,
+      "history": [
+        {
+          "id": "hist-g0101",
+          "scheduleId": "sch-g0116",
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0102",
+          "scheduleId": "sch-g0117",
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0103",
+          "scheduleId": "sch-g0118",
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0104",
+          "scheduleId": "sch-g0119",
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0105",
+          "scheduleId": "sch-g0120",
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0106",
+          "scheduleId": "sch-g0122",
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0107",
+          "scheduleId": "sch-g0123",
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0108",
+          "scheduleId": "sch-g0124",
+          "packageId": "cp-027-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0109",
+          "scheduleId": "sch-g0125",
+          "packageId": "cp-027-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0110",
+          "scheduleId": null,
+          "packageId": "cp-027-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 65
+        },
+        {
+          "id": "hist-g0111",
+          "scheduleId": null,
+          "packageId": "cp-027-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 10
+        }
+      ]
+    },
+    {
+      "id": "cr-g028",
       "clientId": "c-028",
       "branchId": "branch-sby-barat",
       "packages": [
-        { "id": "cp-028-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 4, "cancelCount": 5, "status": "active" }
+        {
+          "id": "cp-028-1",
+          "packageId": "pkg-vip",
+          "packageName": "Senior Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 2,
+          "status": "completed"
+        }
       ],
-      "cancelCountTotal": 5,
+      "cancelCountTotal": 3,
       "history": [
-        { "id": "hist-23", "date": "2026-01-06", "scheduleId": "sch-0281", "packageId": "cp-028-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" },
-        { "id": "hist-24", "date": "2026-01-13", "scheduleId": "sch-0282", "packageId": "cp-028-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-2 (Sakit)" },
-        { "id": "hist-25", "date": "2026-01-20", "scheduleId": "sch-0283", "packageId": "cp-028-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "izin_keluarga", "note": "Cancel ke-3 (Izin)" },
-        { "id": "hist-26", "date": "2026-01-27", "scheduleId": "sch-0284", "packageId": "cp-028-1", "packageName": "Regular Therapist (10x)", "action": "cancel_penalty", "creditChange": -1, "cancelReason": "tanpa_kabar", "note": "Cancel ke-4 (Tanpa Kabar) - Penalti memotong 1 kredit!" },
-        { "id": "hist-27", "date": "2026-02-03", "scheduleId": "sch-0285", "packageId": "cp-028-1", "packageName": "Regular Therapist (10x)", "action": "cancel_penalty", "creditChange": -1, "cancelReason": "bentrok_sekolah", "note": "Cancel ke-5 (Bentrok Sekolah) - Penalti memotong 1 kredit!" }
+        {
+          "id": "hist-g0112",
+          "scheduleId": "sch-g0128",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0113",
+          "scheduleId": "sch-g0129",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0114",
+          "scheduleId": "sch-g0130",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0115",
+          "scheduleId": "sch-g0131",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0116",
+          "scheduleId": "sch-g0132",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0117",
+          "scheduleId": "sch-g0133",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-2 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0118",
+          "scheduleId": "sch-g0134",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0119",
+          "scheduleId": "sch-g0135",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0120",
+          "scheduleId": "sch-g0136",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0121",
+          "scheduleId": "sch-g0139",
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-3 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0122",
+          "scheduleId": null,
+          "packageId": "cp-028-1",
+          "packageName": "Senior Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 109
+        }
       ]
     },
     {
-      "id": "cr-012",
+      "id": "cr-g030",
       "clientId": "c-030",
       "branchId": "branch-sby-barat",
       "packages": [
-        { "id": "cp-030-1", "packageId": "pkg-reguler", "packageName": "Regular Therapist (10x)", "totalCredit": 10, "remainingCredit": 7, "cancelCount": 1, "status": "active" }
+        {
+          "id": "cp-030-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 0,
+          "status": "completed"
+        },
+        {
+          "id": "cp-030-2",
+          "packageId": "pkg-vip",
+          "packageName": "Senior Therapist (5x)",
+          "totalCredit": 5,
+          "remainingCredit": 4,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 0,
+      "history": [
+        {
+          "id": "hist-g0123",
+          "scheduleId": "sch-g0140",
+          "packageId": "cp-030-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0124",
+          "scheduleId": "sch-g0141",
+          "packageId": "cp-030-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0125",
+          "scheduleId": "sch-g0142",
+          "packageId": "cp-030-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0126",
+          "scheduleId": "sch-g0143",
+          "packageId": "cp-030-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0127",
+          "scheduleId": "sch-g0144",
+          "packageId": "cp-030-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0128",
+          "scheduleId": "sch-g0145",
+          "packageId": "cp-030-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0129",
+          "scheduleId": "sch-g0146",
+          "packageId": "cp-030-2",
+          "packageName": "Senior Therapist (5x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0130",
+          "scheduleId": null,
+          "packageId": "cp-030-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 51
+        },
+        {
+          "id": "hist-g0131",
+          "scheduleId": null,
+          "packageId": "cp-030-2",
+          "packageName": "Senior Therapist (5x)",
+          "action": "renewed",
+          "creditChange": 5,
+          "note": "Pembayaran INV diverifikasi Finance (+5 kredit)",
+          "_daysAgo": 7
+        }
+      ]
+    },
+    {
+      "id": "cr-g033",
+      "clientId": "c-033",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        {
+          "id": "cp-033-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 3,
+          "status": "completed"
+        },
+        {
+          "id": "cp-033-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 8,
+          "cancelCount": 1,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 4,
+      "history": [
+        {
+          "id": "hist-g0132",
+          "scheduleId": "sch-g0150",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0133",
+          "scheduleId": "sch-g0151",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-1 (Sakit)"
+        },
+        {
+          "id": "hist-g0134",
+          "scheduleId": "sch-g0152",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0135",
+          "scheduleId": "sch-g0153",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-2 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0136",
+          "scheduleId": "sch-g0154",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-3 (Sakit)"
+        },
+        {
+          "id": "hist-g0137",
+          "scheduleId": "sch-g0155",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0138",
+          "scheduleId": "sch-g0156",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0139",
+          "scheduleId": "sch-g0157",
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0140",
+          "scheduleId": "sch-g0158",
+          "packageId": "cp-033-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0141",
+          "scheduleId": "sch-g0159",
+          "packageId": "cp-033-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_penalty",
+          "creditChange": -1,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
+        },
+        {
+          "id": "hist-g0142",
+          "scheduleId": null,
+          "packageId": "cp-033-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 167
+        },
+        {
+          "id": "hist-g0143",
+          "scheduleId": null,
+          "packageId": "cp-033-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 10
+        }
+      ]
+    },
+    {
+      "id": "cr-g034",
+      "clientId": "c-034",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        {
+          "id": "cp-034-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 0,
+          "status": "completed"
+        },
+        {
+          "id": "cp-034-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 8,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 0,
+      "history": [
+        {
+          "id": "hist-g0144",
+          "scheduleId": "sch-g0162",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0145",
+          "scheduleId": "sch-g0163",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0146",
+          "scheduleId": "sch-g0164",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0147",
+          "scheduleId": "sch-g0165",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0148",
+          "scheduleId": "sch-g0166",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0149",
+          "scheduleId": "sch-g0167",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0150",
+          "scheduleId": "sch-g0168",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0151",
+          "scheduleId": "sch-g0169",
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0152",
+          "scheduleId": "sch-g0170",
+          "packageId": "cp-034-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0153",
+          "scheduleId": "sch-g0171",
+          "packageId": "cp-034-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0154",
+          "scheduleId": null,
+          "packageId": "cp-034-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 129
+        },
+        {
+          "id": "hist-g0155",
+          "scheduleId": null,
+          "packageId": "cp-034-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 12
+        }
+      ]
+    },
+    {
+      "id": "cr-g035",
+      "clientId": "c-035",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        {
+          "id": "cp-035-1",
+          "packageId": "pkg-sensory-intensive",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "totalCredit": 15,
+          "remainingCredit": 0,
+          "cancelCount": 2,
+          "status": "completed"
+        },
+        {
+          "id": "cp-035-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 6,
+          "cancelCount": 1,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 5,
+      "history": [
+        {
+          "id": "hist-g0156",
+          "scheduleId": "sch-g0175",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0157",
+          "scheduleId": "sch-g0174",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0158",
+          "scheduleId": "sch-g0177",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0159",
+          "scheduleId": "sch-g0176",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0160",
+          "scheduleId": "sch-g0179",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "lainnya",
+          "note": "Cancel ke-3 (Lainnya)"
+        },
+        {
+          "id": "hist-g0161",
+          "scheduleId": "sch-g0178",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0162",
+          "scheduleId": "sch-g0181",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0163",
+          "scheduleId": "sch-g0180",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0164",
+          "scheduleId": "sch-g0183",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "cancel_penalty",
+          "creditChange": -1,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
+        },
+        {
+          "id": "hist-g0165",
+          "scheduleId": "sch-g0182",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0166",
+          "scheduleId": "sch-g0185",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0167",
+          "scheduleId": "sch-g0184",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0168",
+          "scheduleId": "sch-g0187",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0169",
+          "scheduleId": "sch-g0186",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0170",
+          "scheduleId": "sch-g0189",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0171",
+          "scheduleId": "sch-g0188",
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0172",
+          "scheduleId": "sch-g0191",
+          "packageId": "cp-035-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_penalty",
+          "creditChange": -1,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-5 (>3x) - Penalti memotong 1 kredit"
+        },
+        {
+          "id": "hist-g0173",
+          "scheduleId": "sch-g0190",
+          "packageId": "cp-035-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0174",
+          "scheduleId": "sch-g0193",
+          "packageId": "cp-035-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0175",
+          "scheduleId": "sch-g0192",
+          "packageId": "cp-035-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0176",
+          "scheduleId": null,
+          "packageId": "cp-035-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "renewed",
+          "creditChange": 15,
+          "note": "Pembayaran INV diverifikasi Finance (+15 kredit)",
+          "_daysAgo": 174
+        },
+        {
+          "id": "hist-g0177",
+          "scheduleId": null,
+          "packageId": "cp-035-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 11
+        }
+      ]
+    },
+    {
+      "id": "cr-g036",
+      "clientId": "c-036",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        {
+          "id": "cp-036-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        },
+        {
+          "id": "cp-036-2",
+          "packageId": "pkg-sensory-intensive",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "totalCredit": 15,
+          "remainingCredit": 4,
+          "cancelCount": 0,
+          "status": "active"
+        }
       ],
       "cancelCountTotal": 1,
       "history": [
-        { "id": "hist-28", "date": "2026-01-12", "scheduleId": "sch-0301", "packageId": "cp-030-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-29", "date": "2026-01-19", "scheduleId": "sch-0302", "packageId": "cp-030-1", "packageName": "Regular Therapist (10x)", "action": "used", "creditChange": -1, "note": "Sesi selesai" },
-        { "id": "hist-30", "date": "2026-01-26", "scheduleId": "sch-0303", "packageId": "cp-030-1", "packageName": "Regular Therapist (10x)", "action": "cancel_excused", "creditChange": 0, "cancelReason": "sakit", "note": "Cancel ke-1 (Sakit)" }
+        {
+          "id": "hist-g0178",
+          "scheduleId": "sch-g0199",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0179",
+          "scheduleId": "sch-g0198",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-1 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0180",
+          "scheduleId": "sch-g0201",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0181",
+          "scheduleId": "sch-g0200",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0182",
+          "scheduleId": "sch-g0203",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0183",
+          "scheduleId": "sch-g0202",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0184",
+          "scheduleId": "sch-g0205",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0185",
+          "scheduleId": "sch-g0204",
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0186",
+          "scheduleId": "sch-g0207",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0187",
+          "scheduleId": "sch-g0206",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0188",
+          "scheduleId": "sch-g0209",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0189",
+          "scheduleId": "sch-g0208",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0190",
+          "scheduleId": "sch-g0211",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0191",
+          "scheduleId": "sch-g0210",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0192",
+          "scheduleId": "sch-g0213",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0193",
+          "scheduleId": "sch-g0212",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0194",
+          "scheduleId": "sch-g0215",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0195",
+          "scheduleId": "sch-g0214",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0196",
+          "scheduleId": "sch-g0217",
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0197",
+          "scheduleId": null,
+          "packageId": "cp-036-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 142
+        },
+        {
+          "id": "hist-g0198",
+          "scheduleId": null,
+          "packageId": "cp-036-2",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "renewed",
+          "creditChange": 15,
+          "note": "Pembayaran INV diverifikasi Finance (+15 kredit)",
+          "_daysAgo": 40
+        }
+      ]
+    },
+    {
+      "id": "cr-g042",
+      "clientId": "c-042",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-042-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        },
+        {
+          "id": "cp-042-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 4,
+          "cancelCount": 1,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 2,
+      "history": [
+        {
+          "id": "hist-g0199",
+          "scheduleId": "sch-g0222",
+          "packageId": "cp-042-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "tanpa_kabar",
+          "note": "Cancel ke-1 (Tanpa Kabar)"
+        },
+        {
+          "id": "hist-g0200",
+          "scheduleId": "sch-g0223",
+          "packageId": "cp-042-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0201",
+          "scheduleId": "sch-g0224",
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0202",
+          "scheduleId": "sch-g0225",
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0203",
+          "scheduleId": "sch-g0226",
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0204",
+          "scheduleId": "sch-g0227",
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0205",
+          "scheduleId": "sch-g0228",
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-2 (Sakit)"
+        },
+        {
+          "id": "hist-g0206",
+          "scheduleId": "sch-g0229",
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0207",
+          "scheduleId": "sch-g0230",
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0208",
+          "scheduleId": null,
+          "packageId": "cp-042-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 102
+        },
+        {
+          "id": "hist-g0209",
+          "scheduleId": null,
+          "packageId": "cp-042-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 49
+        }
+      ]
+    },
+    {
+      "id": "cr-g043",
+      "clientId": "c-043",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-043-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        },
+        {
+          "id": "cp-043-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 2,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 3,
+      "history": [
+        {
+          "id": "hist-g0210",
+          "scheduleId": "sch-g0234",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0211",
+          "scheduleId": "sch-g0235",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0212",
+          "scheduleId": "sch-g0236",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0213",
+          "scheduleId": "sch-g0237",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0214",
+          "scheduleId": "sch-g0238",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0215",
+          "scheduleId": "sch-g0239",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0216",
+          "scheduleId": "sch-g0240",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0217",
+          "scheduleId": "sch-g0241",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "bentrok_sekolah",
+          "note": "Cancel ke-3 (Bentrok Sekolah)"
+        },
+        {
+          "id": "hist-g0218",
+          "scheduleId": "sch-g0242",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0219",
+          "scheduleId": "sch-g0243",
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0220",
+          "scheduleId": "sch-g0244",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0221",
+          "scheduleId": "sch-g0245",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0222",
+          "scheduleId": "sch-g0246",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0223",
+          "scheduleId": "sch-g0247",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0224",
+          "scheduleId": "sch-g0248",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0225",
+          "scheduleId": "sch-g0249",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0226",
+          "scheduleId": "sch-g0250",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0227",
+          "scheduleId": "sch-g0251",
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0228",
+          "scheduleId": null,
+          "packageId": "cp-043-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 122
+        },
+        {
+          "id": "hist-g0229",
+          "scheduleId": null,
+          "packageId": "cp-043-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 30
+        }
+      ]
+    },
+    {
+      "id": "cr-g044",
+      "clientId": "c-044",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-044-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 3,
+          "cancelCount": 2,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 2,
+      "history": [
+        {
+          "id": "hist-g0230",
+          "scheduleId": "sch-g0258",
+          "packageId": "cp-044-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-1 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0231",
+          "scheduleId": "sch-g0259",
+          "packageId": "cp-044-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0232",
+          "scheduleId": "sch-g0260",
+          "packageId": "cp-044-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-2 (Sakit)"
+        },
+        {
+          "id": "hist-g0233",
+          "scheduleId": null,
+          "packageId": "cp-044-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 23
+        }
+      ]
+    },
+    {
+      "id": "cr-g045",
+      "clientId": "c-045",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-045-1",
+          "packageId": "pkg-sensory-intensive",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "totalCredit": 15,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        },
+        {
+          "id": "cp-045-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        }
+      ],
+      "cancelCountTotal": 3,
+      "history": [
+        {
+          "id": "hist-g0234",
+          "scheduleId": "sch-g0265",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0235",
+          "scheduleId": "sch-g0264",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0236",
+          "scheduleId": "sch-g0267",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0237",
+          "scheduleId": "sch-g0266",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0238",
+          "scheduleId": "sch-g0269",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0239",
+          "scheduleId": "sch-g0268",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-2 (Sakit)"
+        },
+        {
+          "id": "hist-g0240",
+          "scheduleId": "sch-g0271",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0241",
+          "scheduleId": "sch-g0270",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0242",
+          "scheduleId": "sch-g0273",
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0243",
+          "scheduleId": "sch-g0272",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0244",
+          "scheduleId": "sch-g0275",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0245",
+          "scheduleId": "sch-g0274",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0246",
+          "scheduleId": "sch-g0277",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0247",
+          "scheduleId": "sch-g0276",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0248",
+          "scheduleId": "sch-g0279",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0249",
+          "scheduleId": "sch-g0278",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0250",
+          "scheduleId": "sch-g0281",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0251",
+          "scheduleId": "sch-g0280",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0252",
+          "scheduleId": "sch-g0283",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-3 (Sakit)"
+        },
+        {
+          "id": "hist-g0253",
+          "scheduleId": "sch-g0282",
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0254",
+          "scheduleId": null,
+          "packageId": "cp-045-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "renewed",
+          "creditChange": 15,
+          "note": "Pembayaran INV diverifikasi Finance (+15 kredit)",
+          "_daysAgo": 166
+        },
+        {
+          "id": "hist-g0255",
+          "scheduleId": null,
+          "packageId": "cp-045-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 38
+        }
+      ]
+    },
+    {
+      "id": "cr-g051",
+      "clientId": "c-051",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-051-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 2,
+          "status": "completed"
+        },
+        {
+          "id": "cp-051-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        }
+      ],
+      "cancelCountTotal": 5,
+      "history": [
+        {
+          "id": "hist-g0256",
+          "scheduleId": "sch-g0289",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0257",
+          "scheduleId": "sch-g0288",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0258",
+          "scheduleId": "sch-g0291",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0259",
+          "scheduleId": "sch-g0290",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0260",
+          "scheduleId": "sch-g0293",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0261",
+          "scheduleId": "sch-g0292",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0262",
+          "scheduleId": "sch-g0295",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0263",
+          "scheduleId": "sch-g0294",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-3 (Sakit)"
+        },
+        {
+          "id": "hist-g0264",
+          "scheduleId": "sch-g0297",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_penalty",
+          "creditChange": -1,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
+        },
+        {
+          "id": "hist-g0265",
+          "scheduleId": "sch-g0296",
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0266",
+          "scheduleId": "sch-g0299",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0267",
+          "scheduleId": "sch-g0298",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0268",
+          "scheduleId": "sch-g0301",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0269",
+          "scheduleId": "sch-g0300",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0270",
+          "scheduleId": "sch-g0303",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0271",
+          "scheduleId": "sch-g0302",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0272",
+          "scheduleId": "sch-g0305",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0273",
+          "scheduleId": "sch-g0304",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0274",
+          "scheduleId": "sch-g0307",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0275",
+          "scheduleId": "sch-g0311",
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_penalty",
+          "creditChange": -1,
+          "cancelReason": "bentrok_sekolah",
+          "note": "Cancel ke-5 (>3x) - Penalti memotong 1 kredit"
+        },
+        {
+          "id": "hist-g0276",
+          "scheduleId": null,
+          "packageId": "cp-051-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 86
+        },
+        {
+          "id": "hist-g0277",
+          "scheduleId": null,
+          "packageId": "cp-051-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 31
+        }
+      ]
+    },
+    {
+      "id": "cr-g052",
+      "clientId": "c-052",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-052-1",
+          "packageId": "pkg-sensory-intensive",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "totalCredit": 15,
+          "remainingCredit": 0,
+          "cancelCount": 2,
+          "status": "completed"
+        },
+        {
+          "id": "cp-052-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 8,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 2,
+      "history": [
+        {
+          "id": "hist-g0278",
+          "scheduleId": "sch-g0312",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0279",
+          "scheduleId": "sch-g0313",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0280",
+          "scheduleId": "sch-g0314",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0281",
+          "scheduleId": "sch-g0315",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "izin_keluarga",
+          "note": "Cancel ke-1 (Izin Keluarga)"
+        },
+        {
+          "id": "hist-g0282",
+          "scheduleId": "sch-g0316",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0283",
+          "scheduleId": "sch-g0317",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-2 (Sakit)"
+        },
+        {
+          "id": "hist-g0284",
+          "scheduleId": "sch-g0318",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0285",
+          "scheduleId": "sch-g0319",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0286",
+          "scheduleId": "sch-g0320",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0287",
+          "scheduleId": "sch-g0321",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0288",
+          "scheduleId": "sch-g0322",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0289",
+          "scheduleId": "sch-g0323",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0290",
+          "scheduleId": "sch-g0324",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0291",
+          "scheduleId": "sch-g0325",
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0292",
+          "scheduleId": "sch-g0326",
+          "packageId": "cp-052-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0293",
+          "scheduleId": "sch-g0327",
+          "packageId": "cp-052-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0294",
+          "scheduleId": null,
+          "packageId": "cp-052-1",
+          "packageName": "Paket Sensori Intensif (15x)",
+          "action": "renewed",
+          "creditChange": 15,
+          "note": "Pembayaran INV diverifikasi Finance (+15 kredit)",
+          "_daysAgo": 56
+        },
+        {
+          "id": "hist-g0295",
+          "scheduleId": null,
+          "packageId": "cp-052-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 7
+        }
+      ]
+    },
+    {
+      "id": "cr-g053",
+      "clientId": "c-053",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-053-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 0,
+          "cancelCount": 1,
+          "status": "completed"
+        },
+        {
+          "id": "cp-053-2",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 3,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 1,
+      "history": [
+        {
+          "id": "hist-g0296",
+          "scheduleId": "sch-g0333",
+          "packageId": "cp-053-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "tanpa_kabar",
+          "note": "Cancel ke-1 (Tanpa Kabar)"
+        },
+        {
+          "id": "hist-g0297",
+          "scheduleId": "sch-g0334",
+          "packageId": "cp-053-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0298",
+          "scheduleId": "sch-g0335",
+          "packageId": "cp-053-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0299",
+          "scheduleId": "sch-g0336",
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0300",
+          "scheduleId": "sch-g0337",
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0301",
+          "scheduleId": "sch-g0338",
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0302",
+          "scheduleId": "sch-g0339",
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0303",
+          "scheduleId": "sch-g0340",
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0304",
+          "scheduleId": "sch-g0341",
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0305",
+          "scheduleId": "sch-g0342",
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0306",
+          "scheduleId": null,
+          "packageId": "cp-053-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 130
+        },
+        {
+          "id": "hist-g0307",
+          "scheduleId": null,
+          "packageId": "cp-053-2",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 47
+        }
+      ]
+    },
+    {
+      "id": "cr-g054",
+      "clientId": "c-054",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-054-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 1,
+          "cancelCount": 1,
+          "status": "active"
+        }
+      ],
+      "cancelCountTotal": 3,
+      "history": [
+        {
+          "id": "hist-g0308",
+          "scheduleId": "sch-g0345",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0309",
+          "scheduleId": "sch-g0346",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0310",
+          "scheduleId": "sch-g0347",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "cancel_excused",
+          "creditChange": 0,
+          "cancelReason": "sakit",
+          "note": "Cancel ke-3 (Sakit)"
+        },
+        {
+          "id": "hist-g0311",
+          "scheduleId": "sch-g0348",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0312",
+          "scheduleId": "sch-g0349",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0313",
+          "scheduleId": "sch-g0350",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0314",
+          "scheduleId": "sch-g0351",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0315",
+          "scheduleId": "sch-g0352",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0316",
+          "scheduleId": "sch-g0353",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0317",
+          "scheduleId": "sch-g0354",
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "used",
+          "creditChange": -1,
+          "note": "Sesi terapi selesai"
+        },
+        {
+          "id": "hist-g0318",
+          "scheduleId": null,
+          "packageId": "cp-054-1",
+          "packageName": "Regular Therapist (10x)",
+          "action": "renewed",
+          "creditChange": 10,
+          "note": "Pembayaran INV diverifikasi Finance (+10 kredit)",
+          "_daysAgo": 127
+        }
       ]
     }
   ],
   "invoices": [
     {
-      "id": "inv-001",
-      "invoiceNumber": "INV-2026-01-001",
-      "clientId": "c-009",
-      "clientName": "Kenzo Wirawan",
+      "id": "inv-g004",
+      "_seq": 4,
+      "clientId": "c-013",
+      "clientName": "Keano Arsakha",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-sensory-intensive",
+      "packageName": "Paket Sensori Intensif (15 Sesi)",
+      "credits": 15,
+      "amount": 4200000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 185,
+      "_paidDaysAgo": 184
+    },
+    {
+      "id": "inv-g023",
+      "_seq": 23,
+      "clientId": "c-035",
+      "clientName": "Orlando Pramono",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-sensory-intensive",
+      "packageName": "Paket Sensori Intensif (15 Sesi)",
+      "credits": 15,
+      "amount": 4200000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 175,
+      "_paidDaysAgo": 174
+    },
+    {
+      "id": "inv-g019",
+      "_seq": 19,
+      "clientId": "c-033",
+      "clientName": "Nathaniel Aditya",
       "branchId": "branch-sby-timur",
       "packageId": "pkg-reguler",
       "packageName": "Regular Therapist (10 Sesi)",
@@ -175,42 +3611,42 @@
       "amount": 2500000,
       "status": "paid",
       "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
-      "issuedAt": "2026-01-02T09:00:00Z",
-      "paidAt": "2026-01-02T11:30:00Z"
+      "_issuedDaysAgo": 168,
+      "_paidDaysAgo": 167
     },
     {
-      "id": "inv-002",
-      "invoiceNumber": "INV-2026-01-002",
-      "clientId": "c-010",
-      "clientName": "Ayla Khansa",
-      "branchId": "branch-sby-timur",
-      "packageId": "pkg-vip",
-      "packageName": "Senior Therapist (10 Sesi)",
-      "credits": 10,
-      "amount": 3500000,
-      "status": "unpaid",
-      "proofUrl": null,
-      "issuedAt": "2026-01-12T10:00:00Z",
-      "paidAt": null
-    },
-    {
-      "id": "inv-003",
-      "invoiceNumber": "INV-2026-01-003",
-      "clientId": "c-017",
-      "clientName": "Gibran Al-Farisi",
+      "id": "inv-g032",
+      "_seq": 32,
+      "clientId": "c-045",
+      "clientName": "Evelyn Tanoto",
       "branchId": "branch-citraland",
-      "packageId": "pkg-vip",
-      "packageName": "Senior Therapist (10 Sesi)",
-      "credits": 10,
-      "amount": 3500000,
+      "packageId": "pkg-sensory-intensive",
+      "packageName": "Paket Sensori Intensif (15 Sesi)",
+      "credits": 15,
+      "amount": 4200000,
       "status": "paid",
       "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
-      "issuedAt": "2025-12-01T10:00:00Z",
-      "paidAt": "2025-12-01T14:20:00Z"
+      "_issuedDaysAgo": 167,
+      "_paidDaysAgo": 166
     },
     {
-      "id": "inv-004",
-      "invoiceNumber": "INV-2026-01-004",
+      "id": "inv-g010",
+      "_seq": 10,
+      "clientId": "c-022",
+      "clientName": "Arka Danendra",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 165,
+      "_paidDaysAgo": 164
+    },
+    {
+      "id": "inv-g007",
+      "_seq": 7,
       "clientId": "c-018",
       "clientName": "Alvaro Rayyan",
       "branchId": "branch-citraland",
@@ -218,14 +3654,134 @@
       "packageName": "Regular Therapist (10 Sesi)",
       "credits": 10,
       "amount": 2500000,
-      "status": "unpaid",
+      "status": "paid",
       "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
-      "issuedAt": "2026-01-25T11:30:00Z",
-      "paidAt": null
+      "_issuedDaysAgo": 146,
+      "_paidDaysAgo": 145
     },
     {
-      "id": "inv-005",
-      "invoiceNumber": "INV-2026-01-005",
+      "id": "inv-g025",
+      "_seq": 25,
+      "clientId": "c-036",
+      "clientName": "Salsabila Nur",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 143,
+      "_paidDaysAgo": 142
+    },
+    {
+      "id": "inv-g038",
+      "_seq": 38,
+      "clientId": "c-053",
+      "clientName": "Maheswari Ayu",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 131,
+      "_paidDaysAgo": 130
+    },
+    {
+      "id": "inv-g021",
+      "_seq": 21,
+      "clientId": "c-034",
+      "clientName": "Queenara Zivanna",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 130,
+      "_paidDaysAgo": 129
+    },
+    {
+      "id": "inv-g005",
+      "_seq": 5,
+      "clientId": "c-014",
+      "clientName": "Clara Salsabila",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 128,
+      "_paidDaysAgo": 127
+    },
+    {
+      "id": "inv-g040",
+      "_seq": 40,
+      "clientId": "c-054",
+      "clientName": "Nicholas Gunadi",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 128,
+      "_paidDaysAgo": 127
+    },
+    {
+      "id": "inv-g029",
+      "_seq": 29,
+      "clientId": "c-043",
+      "clientName": "Chika Amelia",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 123,
+      "_paidDaysAgo": 122
+    },
+    {
+      "id": "inv-g016",
+      "_seq": 16,
+      "clientId": "c-028",
+      "clientName": "Fiona Elysia",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-vip",
+      "packageName": "Senior Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 3500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 110,
+      "_paidDaysAgo": 109
+    },
+    {
+      "id": "inv-g027",
+      "_seq": 27,
+      "clientId": "c-042",
+      "clientName": "Bryan Setiawan",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 103,
+      "_paidDaysAgo": 102
+    },
+    {
+      "id": "inv-g012",
+      "_seq": 12,
       "clientId": "c-025",
       "clientName": "Kenzie Bramantyo",
       "branchId": "branch-sby-barat",
@@ -235,14 +3791,14 @@
       "amount": 2500000,
       "status": "paid",
       "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
-      "issuedAt": "2025-11-12T09:00:00Z",
-      "paidAt": "2025-11-12T13:00:00Z"
+      "_issuedDaysAgo": 95,
+      "_paidDaysAgo": 94
     },
     {
-      "id": "inv-006",
-      "invoiceNumber": "INV-2026-01-006",
-      "clientId": "c-028",
-      "clientName": "Fiona Elysia",
+      "id": "inv-g034",
+      "_seq": 34,
+      "clientId": "c-051",
+      "clientName": "Kayla Safira",
       "branchId": "branch-sby-barat",
       "packageId": "pkg-reguler",
       "packageName": "Regular Therapist (10 Sesi)",
@@ -250,12 +3806,72 @@
       "amount": 2500000,
       "status": "paid",
       "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
-      "issuedAt": "2025-09-01T10:00:00Z",
-      "paidAt": "2025-09-01T15:00:00Z"
+      "_issuedDaysAgo": 87,
+      "_paidDaysAgo": 86
     },
     {
-      "id": "inv-007",
-      "invoiceNumber": "INV-2026-01-007",
+      "id": "inv-g002",
+      "_seq": 2,
+      "clientId": "c-012",
+      "clientName": "Zahra Farzana",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 80,
+      "_paidDaysAgo": 79
+    },
+    {
+      "id": "inv-g014",
+      "_seq": 14,
+      "clientId": "c-027",
+      "clientName": "Revan Putra",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 66,
+      "_paidDaysAgo": 65
+    },
+    {
+      "id": "inv-g003",
+      "_seq": 3,
+      "clientId": "c-012",
+      "clientName": "Zahra Farzana",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 59,
+      "_paidDaysAgo": 58
+    },
+    {
+      "id": "inv-g036",
+      "_seq": 36,
+      "clientId": "c-052",
+      "clientName": "Louis Hartono",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-sensory-intensive",
+      "packageName": "Paket Sensori Intensif (15 Sesi)",
+      "credits": 15,
+      "amount": 4200000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 57,
+      "_paidDaysAgo": 56
+    },
+    {
+      "id": "inv-g017",
+      "_seq": 17,
       "clientId": "c-030",
       "clientName": "Chelsea Valerie",
       "branchId": "branch-sby-barat",
@@ -265,23 +3881,518 @@
       "amount": 2500000,
       "status": "paid",
       "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
-      "issuedAt": "2025-08-15T09:00:00Z",
-      "paidAt": "2025-08-15T11:00:00Z"
+      "_issuedDaysAgo": 52,
+      "_paidDaysAgo": 51
     },
     {
-      "id": "inv-008",
-      "invoiceNumber": "INV-2026-02-001",
+      "id": "inv-g028",
+      "_seq": 28,
+      "clientId": "c-042",
+      "clientName": "Bryan Setiawan",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 50,
+      "_paidDaysAgo": 49
+    },
+    {
+      "id": "inv-g039",
+      "_seq": 39,
+      "clientId": "c-053",
+      "clientName": "Maheswari Ayu",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 48,
+      "_paidDaysAgo": 47
+    },
+    {
+      "id": "inv-g054",
+      "_seq": 54,
+      "clientId": "c-049",
+      "clientName": "Isabella Sutanto",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-consult",
+      "packageName": "Paket Konsultasi",
+      "credits": 1,
+      "amount": 500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 43,
+      "_paidDaysAgo": 42
+    },
+    {
+      "id": "inv-g050",
+      "_seq": 50,
+      "clientId": "c-023",
+      "clientName": "Naura Syakira",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-consult",
+      "packageName": "Paket Konsultasi",
+      "credits": 1,
+      "amount": 500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 42,
+      "_paidDaysAgo": 41
+    },
+    {
+      "id": "inv-g026",
+      "_seq": 26,
+      "clientId": "c-036",
+      "clientName": "Salsabila Nur",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-sensory-intensive",
+      "packageName": "Paket Sensori Intensif (15 Sesi)",
+      "credits": 15,
+      "amount": 4200000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 41,
+      "_paidDaysAgo": 40
+    },
+    {
+      "id": "inv-g008",
+      "_seq": 8,
+      "clientId": "c-018",
+      "clientName": "Alvaro Rayyan",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 39,
+      "_paidDaysAgo": 38
+    },
+    {
+      "id": "inv-g033",
+      "_seq": 33,
+      "clientId": "c-045",
+      "clientName": "Evelyn Tanoto",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 39,
+      "_paidDaysAgo": 38
+    },
+    {
+      "id": "inv-g009",
+      "_seq": 9,
+      "clientId": "c-020",
+      "clientName": "Rafa Raditya",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-vip",
+      "packageName": "Senior Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 3500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 38,
+      "_paidDaysAgo": 37
+    },
+    {
+      "id": "inv-g035",
+      "_seq": 35,
+      "clientId": "c-051",
+      "clientName": "Kayla Safira",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 32,
+      "_paidDaysAgo": 31
+    },
+    {
+      "id": "inv-g030",
+      "_seq": 30,
+      "clientId": "c-043",
+      "clientName": "Chika Amelia",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 31,
+      "_paidDaysAgo": 30
+    },
+    {
+      "id": "inv-g011",
+      "_seq": 11,
+      "clientId": "c-022",
+      "clientName": "Arka Danendra",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-sensory-intensive",
+      "packageName": "Paket Sensori Intensif (15 Sesi)",
+      "credits": 15,
+      "amount": 4200000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 30,
+      "_paidDaysAgo": 29
+    },
+    {
+      "id": "inv-g001",
+      "_seq": 1,
+      "clientId": "c-009",
+      "clientName": "Kenzo Wirawan",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 25,
+      "_paidDaysAgo": 24
+    },
+    {
+      "id": "inv-g031",
+      "_seq": 31,
+      "clientId": "c-044",
+      "clientName": "Dewangga Putra",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 24,
+      "_paidDaysAgo": 23
+    },
+    {
+      "id": "inv-g006",
+      "_seq": 6,
+      "clientId": "c-017",
+      "clientName": "Gibran Al-Farisi",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 14,
+      "_paidDaysAgo": 13
+    },
+    {
+      "id": "inv-g022",
+      "_seq": 22,
+      "clientId": "c-034",
+      "clientName": "Queenara Zivanna",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 13,
+      "_paidDaysAgo": 12
+    },
+    {
+      "id": "inv-g046",
+      "_seq": 46,
+      "clientId": "c-045",
+      "clientName": "Evelyn Tanoto",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "_issuedDaysAgo": 13,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g024",
+      "_seq": 24,
+      "clientId": "c-035",
+      "clientName": "Orlando Pramono",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 12,
+      "_paidDaysAgo": 11
+    },
+    {
+      "id": "inv-g015",
+      "_seq": 15,
+      "clientId": "c-027",
+      "clientName": "Revan Putra",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 11,
+      "_paidDaysAgo": 10
+    },
+    {
+      "id": "inv-g020",
+      "_seq": 20,
+      "clientId": "c-033",
+      "clientName": "Nathaniel Aditya",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 11,
+      "_paidDaysAgo": 10
+    },
+    {
+      "id": "inv-g018",
+      "_seq": 18,
+      "clientId": "c-030",
+      "clientName": "Chelsea Valerie",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-vip",
+      "packageName": "Senior Therapist (5 Sesi)",
+      "credits": 5,
+      "amount": 1800000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 8,
+      "_paidDaysAgo": 7
+    },
+    {
+      "id": "inv-g037",
+      "_seq": 37,
+      "clientId": "c-052",
+      "clientName": "Louis Hartono",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 8,
+      "_paidDaysAgo": 7
+    },
+    {
+      "id": "inv-g047",
+      "_seq": 47,
+      "clientId": "c-012",
+      "clientName": "Zahra Farzana",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "_issuedDaysAgo": 8,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g048",
+      "_seq": 48,
+      "clientId": "c-018",
+      "clientName": "Alvaro Rayyan",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "_issuedDaysAgo": 8,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g049",
+      "_seq": 49,
       "clientId": "c-019",
       "clientName": "Mikaela Chandra",
       "branchId": "branch-citraland",
       "packageId": "pkg-consult",
-      "packageName": "Asesmen BOT-A & Konsultasi",
+      "packageName": "Paket Konsultasi",
       "credits": 1,
-      "amount": 750000,
+      "amount": 500000,
       "status": "unpaid",
       "proofUrl": null,
-      "issuedAt": "2026-01-28T14:30:00Z",
-      "paidAt": null
+      "_issuedDaysAgo": 6,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g052",
+      "_seq": 52,
+      "clientId": "c-039",
+      "clientName": "Zidane Alfarizi",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-consult",
+      "packageName": "Paket Konsultasi",
+      "credits": 1,
+      "amount": 500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "_issuedDaysAgo": 6,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g055",
+      "_seq": 55,
+      "clientId": "c-057",
+      "clientName": "Qiana Rahmawati",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-consult",
+      "packageName": "Paket Konsultasi",
+      "credits": 1,
+      "amount": 500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "_issuedDaysAgo": 6,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g045",
+      "_seq": 45,
+      "clientId": "c-043",
+      "clientName": "Chika Amelia",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 5,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g013",
+      "_seq": 13,
+      "clientId": "c-025",
+      "clientName": "Kenzie Bramantyo",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-vip",
+      "packageName": "Senior Therapist (5 Sesi)",
+      "credits": 5,
+      "amount": 1800000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 3,
+      "_paidDaysAgo": 2
+    },
+    {
+      "id": "inv-g041",
+      "_seq": 41,
+      "clientId": "c-014",
+      "clientName": "Clara Salsabila",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 3,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g044",
+      "_seq": 44,
+      "clientId": "c-028",
+      "clientName": "Fiona Elysia",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 3,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g051",
+      "_seq": 51,
+      "clientId": "c-029",
+      "clientName": "Rayyan Daniswara",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-consult",
+      "packageName": "Paket Konsultasi",
+      "credits": 1,
+      "amount": 500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "_issuedDaysAgo": 3,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g043",
+      "_seq": 43,
+      "clientId": "c-009",
+      "clientName": "Kenzo Wirawan",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 2,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g042",
+      "_seq": 42,
+      "clientId": "c-051",
+      "clientName": "Kayla Safira",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "unpaid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 1,
+      "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-g053",
+      "_seq": 53,
+      "clientId": "c-048",
+      "clientName": "Harvey Wijaya",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-consult",
+      "packageName": "Paket Konsultasi",
+      "credits": 1,
+      "amount": 500000,
+      "status": "unpaid",
+      "proofUrl": null,
+      "_issuedDaysAgo": 1,
+      "_paidDaysAgo": null
     }
   ]
 }

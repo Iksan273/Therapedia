@@ -1,31 +1,8 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Clock,
-  Calendar,
-  User,
-  Phone,
-  FileText,
-  Printer,
-  ExternalLink,
-  BookOpen,
-  StickyNote,
-  Home,
-  CheckCircle2,
-  AlertTriangle,
-  Edit3,
-  ClipboardCheck,
-  ChevronRight
-} from "lucide-react";
+import { Clock, Calendar, User, Printer, ExternalLink, BookOpen, StickyNote, Home, CheckCircle2, AlertTriangle, Edit3, ClipboardCheck } from "lucide-react";
 import { fmtDate, calcAge, BRANCHES } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
@@ -74,7 +51,7 @@ export function ClientReportHistoryDrawer({
                     {client.clientName}
                   </SheetTitle>
                   <p className="text-xs text-slate-500 font-medium">
-                    Usia {calcAge(client.dob) != null ? `${calcAge(client.dob)} Th` : "—"} • DOB: {fmtDate(client.dob)} • {br ? br.name : "Surabaya"}
+                    Usia {calcAge(client.dob) != null ? `${calcAge(client.dob)} Th` : "—"} • DOB: {fmtDate(client.dob)} • {br ? br.name : "—"}
                   </p>
                 </div>
               </div>
@@ -84,7 +61,7 @@ export function ClientReportHistoryDrawer({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 text-xs font-bold rounded-xl gap-1.5 border-slate-200 shadow-2xs"
+                  className="font-bold gap-1.5 border-slate-200 shadow-2xs"
                   title="Cetak Resume Klinis PDF"
                   data-testid="btn-drawer-print"
                 >
@@ -97,17 +74,17 @@ export function ClientReportHistoryDrawer({
           {/* KPI Mini Bar */}
           <div className="grid grid-cols-3 gap-2.5 pt-3 text-xs">
             <div className="p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Sesi Selesai</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase">Sesi Selesai</span>
               <p className="text-sm font-extrabold text-slate-900 mt-0.5">{totalSessions} Sesi</p>
             </div>
             <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 shadow-2xs">
-              <span className="text-[10px] font-bold text-emerald-800 uppercase">Laporan Lengkap</span>
+              <span className="text-[11px] font-bold text-emerald-800 uppercase">Laporan Lengkap</span>
               <p className="text-sm font-extrabold text-emerald-700 mt-0.5">
                 {fullyDocumented} ({completionPercentage}%)
               </p>
             </div>
             <div className="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200 shadow-2xs">
-              <span className="text-[10px] font-bold text-amber-800 uppercase">Perlu Dilengkapi</span>
+              <span className="text-[11px] font-bold text-amber-800 uppercase">Perlu Dilengkapi</span>
               <p className="text-sm font-extrabold text-amber-700 mt-0.5">{pendingDocumented} Sesi</p>
             </div>
           </div>
@@ -188,22 +165,22 @@ export function ClientReportHistoryDrawer({
                         <span className="text-slate-500 font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded-md font-semibold">
                           {s.startTime} – {s.endTime}
                         </span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
                           {s.type === "assessment" ? "Asesmen Klinis" : "Sesi Terapi"}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
                         {isComplete ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Lengkap (3/3)
                           </span>
                         ) : isPartial ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                             <AlertTriangle className="w-3 h-3 text-amber-600" /> Sebagian Terisi
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
                             <AlertTriangle className="w-3 h-3 text-rose-600" /> Belum Diisi (0/3)
                           </span>
                         )}
@@ -212,7 +189,7 @@ export function ClientReportHistoryDrawer({
                           size="sm"
                           variant={isComplete ? "outline" : "default"}
                           className={cn(
-                            "h-7 text-[11px] font-bold rounded-lg gap-1",
+                            "text-[11px] font-bold gap-1",
                             isComplete
                               ? "border-slate-200 hover:bg-slate-50"
                               : "bg-sky-600 hover:bg-sky-700 text-white shadow-2xs"
@@ -230,7 +207,7 @@ export function ClientReportHistoryDrawer({
                     <div className="space-y-2 text-xs">
                       {/* Activity */}
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                        <span className="text-[10px] font-bold text-sky-800 uppercase flex items-center gap-1">
+                        <span className="text-[11px] font-bold text-sky-800 uppercase flex items-center gap-1">
                           <BookOpen className="w-3 h-3 text-sky-600" /> Activity Section:
                         </span>
                         {s.activitySection ? (
@@ -244,7 +221,7 @@ export function ClientReportHistoryDrawer({
 
                       {/* Note */}
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                        <span className="text-[10px] font-bold text-amber-800 uppercase flex items-center gap-1">
+                        <span className="text-[11px] font-bold text-amber-800 uppercase flex items-center gap-1">
                           <StickyNote className="w-3 h-3 text-amber-600" /> Note & Evaluasi Klinis:
                         </span>
                         {s.noteSection || s.progressNote ? (
@@ -258,7 +235,7 @@ export function ClientReportHistoryDrawer({
 
                       {/* Homework */}
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                        <span className="text-[10px] font-bold text-emerald-800 uppercase flex items-center gap-1">
+                        <span className="text-[11px] font-bold text-emerald-800 uppercase flex items-center gap-1">
                           <Home className="w-3 h-3 text-emerald-600" /> Homework (Latihan Rumah Ortu):
                         </span>
                         {s.homeworkSection ? (

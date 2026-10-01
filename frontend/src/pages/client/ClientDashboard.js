@@ -1,34 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  CalendarHeart,
-  Wallet,
-  Clock,
-  User,
-  HeartHandshake,
-  CheckCircle2,
-  AlertCircle,
-  Receipt,
-  Upload,
-  BookOpen,
-  StickyNote,
-  Home,
-  ArrowRight,
-  ExternalLink,
-  ShieldCheck,
-  FileText,
-  Image as ImageIcon,
-  FileUp,
-  Trash2,
-  Loader2,
-  RefreshCw,
-  Eye,
-  CreditCard
-} from "lucide-react";
+import { CalendarHeart, Wallet, Clock, HeartHandshake, CheckCircle2, Receipt, Upload, BookOpen, StickyNote, Home, ExternalLink, FileText, FileUp, Trash2, Loader2, RefreshCw, Eye, CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -44,7 +18,7 @@ import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
 import { useTherapists } from "@/context/TherapistsContext";
-import { fmtDate, fmtCurrency, todayStr, BRANCHES } from "@/lib/appUtils";
+import { fmtDate, fmtCurrency, BRANCHES } from "@/lib/appUtils";
 import { processProofFile, formatFileSize } from "@/lib/fileUploadUtils";
 import { cn } from "@/lib/utils";
 
@@ -156,11 +130,11 @@ export default function ClientDashboard() {
               Halo, Orang Tua {client.clientName}!
             </h1>
             <p className="text-xs sm:text-sm text-blue-100 font-medium">
-              Pantau perkembangan ananda di <strong>Therapedia ({br ? br.name : "Surabaya"})</strong>.
+              Pantau perkembangan ananda di <strong>Therapedia ({br ? br.name : "—"})</strong>.
             </p>
           </div>
           <div className="shrink-0 bg-white/15 backdrop-blur-xs px-4 py-2.5 rounded-xl border border-white/25 text-right shadow-xs">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-cyan-200">Kode Unik Client</p>
+            <p className="text-[11px] uppercase font-bold tracking-wider text-cyan-200">Kode Unik Client</p>
             <p className="font-mono text-base font-black text-white">{client.clientAccessCode}</p>
           </div>
         </div>
@@ -202,10 +176,10 @@ export default function ClientDashboard() {
                 <div className="flex items-center gap-2">
                   <h3 className="font-extrabold text-base sm:text-lg">
                     {isInvoicePaid
-                      ? "Status Tagihan: 🟢 LUNAS TERVERIFIKASI"
+                      ? "Status Tagihan: LUNAS TERVERIFIKASI"
                       : hasUploadedProof
-                      ? "Status Tagihan: 🟡 MENUNGGU VERIFIKASI FINANCE"
-                      : "Status Tagihan: 🔴 MENUNGGU PEMBAYARAN"}
+                      ? "Status Tagihan: MENUNGGU VERIFIKASI FINANCE"
+                      : "Status Tagihan: MENUNGGU PEMBAYARAN"}
                   </h3>
                 </div>
                 <p className="text-xs mt-1 leading-relaxed opacity-90">
@@ -230,7 +204,7 @@ export default function ClientDashboard() {
             {isInvoicePaid && hasUploadedProof && (
               <Button
                 variant="outline"
-                className="bg-white/90 hover:bg-white text-emerald-800 border-emerald-300 font-bold rounded-xl text-xs h-10 gap-2 shrink-0 shadow-xs cursor-pointer"
+                className="bg-white/90 hover:bg-white text-emerald-800 border-emerald-300 font-bold gap-2 shrink-0 shadow-xs cursor-pointer"
                 onClick={() => setViewProofOpen(true)}
               >
                 <Eye className="w-4 h-4" /> Lihat Bukti Transfer
@@ -241,13 +215,13 @@ export default function ClientDashboard() {
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
-                  className="bg-white/90 hover:bg-white text-amber-900 border-amber-300 font-bold rounded-xl text-xs h-10 gap-1.5 shadow-xs cursor-pointer"
+                  className="bg-white/90 hover:bg-white text-amber-900 border-amber-300 font-bold gap-1.5 shadow-xs cursor-pointer"
                   onClick={() => setViewProofOpen(true)}
                 >
                   <Eye className="w-4 h-4 text-amber-700" /> Lihat Bukti Terkirim
                 </Button>
                 <Button
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs h-10 gap-1.5 shadow-sm shadow-amber-600/20 cursor-pointer"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5 shadow-sm shadow-amber-600/20 cursor-pointer"
                   onClick={() => {
                     setFileData(null);
                     setUploadOpen(true);
@@ -260,7 +234,7 @@ export default function ClientDashboard() {
 
             {!isInvoicePaid && latestInvoice && !hasUploadedProof && (
               <Button
-                className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs h-10 gap-2 shrink-0 shadow-sm shadow-rose-600/20 cursor-pointer"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-2 shrink-0 shadow-sm shadow-rose-600/20 cursor-pointer"
                 onClick={() => {
                   setFileData(null);
                   setUploadOpen(true);
@@ -305,7 +279,7 @@ export default function ClientDashboard() {
               <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-purple-600" /> Arsip Klinis Digital
               </h3>
-              <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
                 Google Drive
               </span>
             </div>
@@ -392,7 +366,7 @@ export default function ClientDashboard() {
                           setSelectedReportSession(s);
                           setIsReportOpen(true);
                         }}
-                        className="h-8 rounded-xl border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-sky-700 font-bold text-xs gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                        className="border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-sky-700 font-bold gap-1.5 shadow-2xs cursor-pointer transition-colors"
                       >
                         <FileText className="w-3.5 h-3.5 text-sky-600" />
                         View Report
@@ -491,7 +465,7 @@ export default function ClientDashboard() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl text-xs font-semibold cursor-pointer"
+                  className="font-semibold cursor-pointer"
                   onClick={() => setIsReportOpen(false)}
                 >
                   Tutup Laporan
@@ -577,7 +551,7 @@ export default function ClientDashboard() {
                   variant="outline"
                   size="sm"
                   disabled={isProcessing}
-                  className="rounded-xl text-xs font-semibold mt-1 border-sky-200 text-sky-700 bg-sky-50/50 hover:bg-sky-100 pointer-events-none"
+                  className="font-semibold mt-1 border-sky-200 text-sky-700 bg-sky-50/50 hover:bg-sky-100 pointer-events-none"
                 >
                   Pilih dari Galeri / Dokumen
                 </Button>
@@ -609,11 +583,11 @@ export default function ClientDashboard() {
                       </p>
                     </div>
                   </div>
-                  <Button
+                  <Button aria-label="Hapus file"
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl shrink-0 h-8 w-8 cursor-pointer"
+                    className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 shrink-0 cursor-pointer"
                     onClick={() => {
                       setFileData(null);
                       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -628,7 +602,7 @@ export default function ClientDashboard() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="w-full text-xs font-semibold rounded-xl border-slate-300 hover:bg-white cursor-pointer"
+                  className="w-full font-semibold border-slate-300 hover:bg-white cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-slate-500" /> Ganti dengan File Lain
@@ -640,7 +614,7 @@ export default function ClientDashboard() {
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl text-xs"
+                className=""
                 onClick={() => {
                   setUploadOpen(false);
                   setFileData(null);
@@ -651,7 +625,7 @@ export default function ClientDashboard() {
               <Button
                 type="submit"
                 disabled={!fileData || isProcessing}
-                className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs gap-1.5 cursor-pointer shadow-sm"
+                className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-1.5 cursor-pointer shadow-sm"
               >
                 {isProcessing ? (
                   <>

@@ -270,7 +270,7 @@ export default function Login() {
                   <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                     Login Portal Therapedia
                   </h1>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
                     Center
                   </span>
                 </div>
@@ -337,7 +337,7 @@ export default function Login() {
                               setStaffError("");
                             }}
                             placeholder="nama@therapedia.id"
-                            className="pl-10 h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white text-xs font-medium"
+                            className="pl-10 bg-slate-50 border-slate-200 focus:bg-white text-xs font-medium"
                             data-testid={LOGIN.emailInput}
                             required
                           />
@@ -365,7 +365,7 @@ export default function Login() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Masukkan kata sandi"
-                            className="pl-10 pr-10 h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white text-xs font-medium"
+                            className="pl-10 pr-10 bg-slate-50 border-slate-200 focus:bg-white text-xs font-medium"
                             data-testid={LOGIN.passwordInput}
                             required
                           />
@@ -398,9 +398,9 @@ export default function Login() {
                         </label>
                       </div>
 
-                      <Button
+                      <Button size="lg"
                         type="submit"
-                        className="w-full h-11 rounded-xl bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold text-xs shadow-md shadow-[#007AFF]/25 transition-all cursor-pointer mt-2"
+                        className="w-full bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold shadow-md shadow-[#007AFF]/25 transition-all cursor-pointer mt-2"
                         data-testid={LOGIN.submitButton}
                       >
                         <span>Masuk ke Dashboard Staf</span>
@@ -414,7 +414,7 @@ export default function Login() {
                         <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
                           Akun Demo Siap Uji (1-Click Fill):
                         </p>
-                        <span className="text-[10px] font-semibold text-sky-600 flex items-center gap-1">
+                        <span className="text-[11px] font-semibold text-sky-600 flex items-center gap-1">
                           <Sparkles className="w-3 h-3" />
                           Klik untuk isi form
                         </span>
@@ -442,7 +442,7 @@ export default function Login() {
                                   {preset.title}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-500 truncate">{preset.name}</span>
+                              <span className="text-[11px] text-slate-500 truncate">{preset.name}</span>
                             </button>
                           );
                         })}
@@ -485,7 +485,7 @@ export default function Login() {
                               setClientError("");
                             }}
                             placeholder="Contoh: TDC-1009"
-                            className="pl-10 h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white font-mono uppercase text-xs font-bold tracking-wider"
+                            className="pl-10 bg-slate-50 border-slate-200 focus:bg-white font-mono uppercase text-xs font-bold tracking-wider"
                             data-testid="login-client-code-input"
                             required
                           />
@@ -501,9 +501,9 @@ export default function Login() {
                         </p>
                       )}
 
-                      <Button
+                      <Button size="lg"
                         type="submit"
-                        className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer mt-2"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer mt-2"
                         data-testid="login-client-submit-button"
                       >
                         <HeartHandshake className="w-4 h-4 mr-1.5" />

@@ -47,7 +47,8 @@ export const STATUS_META = {
   scheduled: { label: "Scheduled", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
   completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
   cancelled: { label: "Cancelled", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
-  rescheduled: { label: "Rescheduled", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
+  rescheduled: { label: "Rescheduled (Sudah Pindah)", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
+  reschedule_pending: { label: "Reschedule – Belum Ada Jadwal", cls: "bg-orange-50 text-orange-800 border border-dashed border-orange-300" },
   unpaid: { label: "Belum Lunas", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
   paid: { label: "Lunas Terverifikasi", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
   frozen: { label: "Frozen (0 Kredit)", cls: "bg-cyan-50 text-cyan-900 border border-cyan-400 font-bold ring-1 ring-cyan-400/40" },
@@ -94,10 +95,22 @@ export const CANCEL_REASONS = [
   { value: "lainnya", label: "Alasan Lainnya" },
 ];
 
+// Alasan sistem (tidak muncul di dropdown pembatalan biasa)
+export const RESCHEDULE_DROPPED = "reschedule_dibatalkan";
+export const SYSTEM_CANCEL_REASONS = [
+  { value: RESCHEDULE_DROPPED, label: "Reschedule tidak dilanjutkan (tanpa potong kredit)" },
+];
+
 export const cancelReasonLabel = (val) => {
-  const found = CANCEL_REASONS.find((r) => r.value === val);
+  const found = CANCEL_REASONS.find((r) => r.value === val) || SYSTEM_CANCEL_REASONS.find((r) => r.value === val);
   return found ? found.label : val || "—";
 };
+
+// Sesi yang dibatalkan dari status "reschedule menggantung": tidak memotong kredit, tidak dihitung kuota cancel
+export const isCreditNeutralCancel = (s) => Boolean(s) && s.status === "cancelled" && s.cancelReason === RESCHEDULE_DROPPED;
+
+// Slot waktu sebuah sesi (dipakai untuk jejak jadwal asal reschedule)
+export const scheduleSlot = (s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId });
 
 export const DEFAULT_MASTER_PACKAGES = [
   { id: "pkg-reguler", name: "Regular Therapist", credits: 10, price: 2500000, description: "10 Sesi Terapi bersama Regular Therapist (OT / Sensori / Wicara)" },
@@ -179,6 +192,7 @@ export function checkConflicts({ therapistId, date, startTime, endTime, schedule
       s.therapistId === therapistId &&
       s.date === date &&
       s.status !== "cancelled" &&
+      s.status !== "reschedule_pending" &&
       rangesOverlap(startTime, endTime, s.startTime, s.endTime)
   );
   if (clashes.length > 0) {
@@ -353,3 +367,13 @@ export function resetDemoData() {
   clearPersistedData();
   window.location.assign("/");
 }
+
+// Nama cabang untuk tampilan; "—" bila id tidak dikenal (jangan menebak cabang lain)
+export const branchName = (id) => BRANCHES.find((b) => b.id === id)?.name || "—";
+
+// Daftar id layanan sebuah klien (mendukung multi-layanan dan data lama yang hanya punya serviceType)
+export const getClientServiceIds = (client) => {
+  if (!client) return [];
+  if (Array.isArray(client.serviceTypes) && client.serviceTypes.length > 0) return client.serviceTypes;
+  return client.serviceType ? [client.serviceType] : [];
+};

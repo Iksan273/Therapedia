@@ -1,19 +1,9 @@
 import React, { useState, useMemo } from "react";
+import { TablePagination, usePagination } from "@/components/common/TablePagination";
+import { useConfirm } from "@/components/common/ConfirmDialog";
 import { toast } from "sonner";
-import {
-  UserCog,
-  Plus,
-  Users,
-  Building2,
-  Mail,
-  ShieldCheck,
-  Trash2,
-  CheckCircle2,
-  Search,
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { UserCog, Plus, Trash2, Search } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +19,6 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { BRANCHES } from "@/lib/appUtils";
-import { cn } from "@/lib/utils";
 
 const ROLE_OPTIONS = [
   { value: "manager", label: "Branch Manager" },
@@ -40,6 +29,7 @@ const ROLE_OPTIONS = [
 ];
 
 export default function UserManagement() {
+  const { confirm, confirmDialog } = useConfirm();
   const { staffUsers, addStaffUser, removeStaffUser, activeBranch, auth, rolesList } = useAuth();
   const isMaster = auth?.role === "master";
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
@@ -73,14 +63,8 @@ export default function UserManagement() {
     return true;
   });
 
-  // Staff Table Pagination
-  const [staffPage, setStaffPage] = useState(1);
-  const staffPageSize = 8;
-  const totalStaffPages = Math.ceil(filteredStaff.length / staffPageSize) || 1;
-  const paginatedStaff = useMemo(() => {
-    const start = (staffPage - 1) * staffPageSize;
-    return filteredStaff.slice(start, start + staffPageSize);
-  }, [filteredStaff, staffPage, staffPageSize]);
+  // Staff Table Pagination (kembali ke halaman 1 saat filter berubah)
+  const staffPg = usePagination(filteredStaff, 8, `${branchFilter}|${search}`);
 
   const handleAddSubmit = (e) => {
     e.preventDefault();
@@ -103,8 +87,8 @@ export default function UserManagement() {
     });
   };
 
-  const handleRemove = (id, name) => {
-    if (window.confirm(`Hapus akun staff ${name}?`)) {
+  const handleRemove = async (id, name) => {
+    if (await confirm({ title: "Hapus akun staff?", description: `Akun staff ${name} akan dihapus.` })) {
       removeStaffUser(id);
       toast.info(`Akun staff ${name} telah dihapus.`);
     }
@@ -112,6 +96,7 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6" data-testid="user-management-page">
+      {confirmDialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -128,7 +113,7 @@ export default function UserManagement() {
         </div>
 
         <Button
-          className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl gap-2 shadow-sm shadow-sky-600/20 text-xs h-10"
+          className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-2 shadow-sm shadow-sky-600/20"
           onClick={() => setAddOpen(true)}
           data-testid="add-staff-button"
         >
@@ -141,7 +126,7 @@ export default function UserManagement() {
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
-            className="pl-10 h-10 rounded-xl border-slate-200 bg-slate-50 focus:bg-white text-xs"
+            className="pl-10 border-slate-200 bg-slate-50 focus:bg-white text-xs"
             placeholder="Cari berdasarkan nama staff, email, atau peran..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -151,21 +136,21 @@ export default function UserManagement() {
         <div className="flex items-center gap-2">
           {isMaster ? (
             <Select value={branchFilter} onValueChange={setBranchFilter}>
-              <SelectTrigger className="w-48 h-10 text-xs rounded-xl border-slate-200 bg-slate-50 font-semibold">
+              <SelectTrigger className="w-48 text-xs border-slate-200 bg-slate-50 font-semibold">
                 <SelectValue placeholder="Semua Cabang" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-slate-200">
-                <SelectItem value="all">🏢 Semua Cabang</SelectItem>
+                <SelectItem value="all">Semua Cabang</SelectItem>
                 {BRANCHES.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    📍 {b.name}
+                    {b.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           ) : (
             <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
-              <span>📍 {BRANCHES.find((b) => b.id === branchFilter)?.name || "Cabang Terpilih"}</span>
+              <span>{BRANCHES.find((b) => b.id === branchFilter)?.name || "Cabang Terpilih"}</span>
             </div>
           )}
         </div>
@@ -185,7 +170,7 @@ export default function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedStaff.map((u) => {
+              {staffPg.pageItems.map((u) => {
                 const br = BRANCHES.find((b) => b.id === u.branchId);
                 const roleObj = (rolesList || []).find((r) => r.id === u.role);
                 const roleLabel = roleObj ? roleObj.label : u.role;
@@ -202,7 +187,7 @@ export default function UserManagement() {
                     <TableCell className="text-xs font-mono text-slate-600 min-w-[190px] whitespace-nowrap">{u.email}</TableCell>
                     <TableCell className="text-xs min-w-[170px] whitespace-nowrap">
                       <span className="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
-                        📍 {br ? br.name : "Surabaya"}
+                        {br ? br.name : "—"}
                       </span>
                     </TableCell>
                     <TableCell className="text-xs min-w-[160px] whitespace-nowrap">
@@ -211,10 +196,10 @@ export default function UserManagement() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right pr-6 min-w-[90px] whitespace-nowrap">
-                      <Button
+                      <Button aria-label="Hapus Staff"
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                         onClick={() => handleRemove(u.id, u.name)}
                         title="Hapus Staff"
                       >
@@ -228,38 +213,12 @@ export default function UserManagement() {
           </Table>
         </CardContent>
 
-        {/* Pagination for Staff Table */}
-        {filteredStaff.length > 0 && (
-          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
-            <span className="font-medium">
-              Menampilkan {(staffPage - 1) * staffPageSize + 1} –{" "}
-              {Math.min(staffPage * staffPageSize, filteredStaff.length)} dari {filteredStaff.length} staff
-            </span>
-            <div className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                disabled={staffPage <= 1}
-                onClick={() => setStaffPage((p) => Math.max(1, p - 1))}
-              >
-                <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
-              </Button>
-              <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-800 text-xs shadow-2xs">
-                {staffPage} / {totalStaffPages}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
-                disabled={staffPage >= totalStaffPages}
-                onClick={() => setStaffPage((p) => Math.min(totalStaffPages, p + 1))}
-              >
-                Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          {...staffPg}
+          onPageChange={staffPg.setPage}
+          onPageSizeChange={staffPg.setPageSize}
+          noun="staff"
+        />
       </Card>
 
       {/* Add Staff Dialog */}
@@ -277,7 +236,7 @@ export default function UserManagement() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Nama Lengkap Staff *</Label>
               <Input
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                className="border-slate-200 bg-slate-50 text-xs"
                 placeholder="e.g. Maya Sari, S.Psi"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -287,7 +246,7 @@ export default function UserManagement() {
               <Label className="text-xs font-bold text-slate-700">Alamat Email *</Label>
               <Input
                 type="email"
-                className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10"
+                className="border-slate-200 bg-slate-50 text-xs"
                 placeholder="maya.sari@therapedia.id"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -296,7 +255,7 @@ export default function UserManagement() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Peran Akun (Role) *</Label>
               <Select value={form.role} onValueChange={(val) => setForm({ ...form, role: val })}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
+                <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -311,13 +270,13 @@ export default function UserManagement() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Penugasan Cabang *</Label>
               <Select value={form.branchId} onValueChange={(val) => setForm({ ...form, branchId: val })}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
+                <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                   {BRANCHES.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
-                      📍 {b.name} ({b.city})
+                      {b.name} ({b.city})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -327,13 +286,13 @@ export default function UserManagement() {
             {form.role === "therapist" && (
               <div className="p-3.5 bg-sky-50/70 rounded-xl border border-sky-200/80 space-y-3">
                 <div className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
-                  🩺 Atribut Spesialisasi Medis / Klinis Terapis (Profil User)
+                  Atribut Spesialisasi Medis / Klinis Terapis (Profil User)
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold text-slate-700">Gelar Klinis (Title)</Label>
                     <Input
-                      className="rounded-xl border-slate-200 bg-white text-xs h-9"
+                      className="border-slate-200 bg-white text-xs"
                       placeholder="e.g. S.Tr.Kes, S.Ft, A.Md.OT"
                       value={form.title}
                       onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -342,7 +301,7 @@ export default function UserManagement() {
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold text-slate-700">Spesialisasi (Specialty)</Label>
                     <Input
-                      className="rounded-xl border-slate-200 bg-white text-xs h-9"
+                      className="border-slate-200 bg-white text-xs"
                       placeholder="e.g. Sensory Integration / OT"
                       value={form.specialty}
                       onChange={(e) => setForm({ ...form, specialty: e.target.value })}
@@ -352,10 +311,10 @@ export default function UserManagement() {
               </div>
             )}
             <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setAddOpen(false)}>
+              <Button type="button" variant="outline" className="border-slate-200" onClick={() => setAddOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs">
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
                 Simpan Staff Baru
               </Button>
             </DialogFooter>

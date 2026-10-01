@@ -1,21 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Users,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  MapPin,
-  Award,
-  ArrowRight,
-  X,
-  CheckCircle2,
-  Calendar,
-  Layers,
-  LayoutGrid,
-  SlidersHorizontal,
-  GraduationCap
-} from "lucide-react";
+import { Users, ChevronLeft, ChevronRight, Award, ArrowRight, X, CheckCircle2, LayoutGrid, SlidersHorizontal, GraduationCap } from "lucide-react";
 import { CLINICAL_TEAM } from "@/data/landingData";
 
 export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {

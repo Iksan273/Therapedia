@@ -56,7 +56,7 @@ export const LeaveInfo = ({ leaveUsed, leaveQuota, className }) => {
     >
       {over && <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />}
       <span className="tabular-nums">Leave {leaveUsed} / {leaveQuota}</span>
-      {over && <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wide">(over quota)</span>}
+      {over && <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wide">(over quota)</span>}
     </span>
   );
 };

@@ -1,29 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { format, subMonths, startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
-import {
-  TrendingUp,
-  Building2,
-  DollarSign,
-  Receipt,
-  RotateCcw,
-  CheckCircle2,
-  AlertCircle,
-  Calendar,
-  Filter,
-  Download,
-  ArrowUpRight,
-  PieChart as PieIcon,
-  Layers,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  UserCheck,
-  UserCog,
-  CalendarDays,
-  CalendarCheck,
-  Activity,
-  BarChart3
-} from "lucide-react";
+import { TrendingUp, Building2, Receipt, CheckCircle2, AlertCircle, Layers, ChevronLeft, ChevronRight, Users, UserCog, CalendarDays, Activity, BarChart3 } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -38,9 +14,7 @@ import {
   Cell
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useLocation } from "react-router-dom";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -51,8 +25,10 @@ import { useClients } from "@/context/ClientsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { BRANCHES, fmtCurrency, fmtDate } from "@/lib/appUtils";
-import DateFilterPicker from "@/components/common/DateFilterPicker";
-import { cn } from "@/lib/utils";
+import { FilterBar, FilterField } from "@/components/common/FilterBar";
+import { BranchFilter } from "@/components/common/BranchFilter";
+import { PeriodFilter } from "@/components/common/PeriodFilter";
+import { makePeriodMatcher, periodLabel } from "@/lib/periods";
 
 const CHART_COLORS = ["#0284c7", "#0d9488", "#f59e0b", "#8b5cf6", "#ec4899", "#10b981"];
 
@@ -66,10 +42,9 @@ export default function DashboardRevenue() {
   const { therapists } = useTherapists();
   const { schedules } = useSchedules();
 
-  const [selectedBranch, setSelectedBranch] = useState(
-    isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur")
-  );
-  const [period, setPeriod] = useState("month"); // week | month | quarter | custom
+  const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
+  const [selectedBranch, setSelectedBranch] = useState(defaultBranch);
+  const [period, setPeriod] = useState("quarter"); // lihat PERIOD_OPTIONS
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
@@ -139,42 +114,43 @@ export default function DashboardRevenue() {
     });
   }, [clients]);
 
-  // Filter invoices by branch and period
+  // Filter invoices by branch and period (invoice seed memakai issuedAt, invoice baru createdAt)
   const filteredInvoices = useMemo(() => {
+    const inPeriod = makePeriodMatcher(period, customStart, customEnd);
     return allInvoices.filter((inv) => {
-      // Branch filter
       if (selectedBranch !== "all" && inv.branchId !== selectedBranch) return false;
-
-      // Date period filter
-      if (!inv.createdAt) return true;
-      const invDate = inv.createdAt;
-
-      if (period === "custom") {
-        if (customStart && invDate < customStart) return false;
-        if (customEnd && invDate > customEnd) return false;
-        return true;
-      }
-
-      const today = new Date();
-      if (period === "week") {
-        const start = format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
-        const end = format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd");
-        return invDate >= start && invDate <= end;
-      }
-
-      if (period === "month") {
-        const curMonth = format(today, "yyyy-MM");
-        return invDate.startsWith(curMonth);
-      }
-
-      if (period === "quarter") {
-        const quarterMonthsAgo = format(subMonths(today, 3), "yyyy-MM-dd");
-        return invDate >= quarterMonthsAgo;
-      }
-
-      return true;
+      const date = (inv.createdAt || inv.issuedAt || "").slice(0, 10);
+      if (!date) return true;
+      return inPeriod(date);
     });
   }, [allInvoices, selectedBranch, period, customStart, customEnd]);
+
+  const filterChips = [];
+  if (selectedBranch !== defaultBranch) {
+    filterChips.push({
+      key: "branch",
+      label: `Cabang: ${selectedBranch === "all" ? "Semua" : BRANCHES.find((b) => b.id === selectedBranch)?.name || "—"}`,
+      onRemove: () => setSelectedBranch(defaultBranch),
+    });
+  }
+  if (period !== "quarter") {
+    const range = period === "custom" ? ` (${customStart || "…"} – ${customEnd || "…"})` : "";
+    filterChips.push({
+      key: "period",
+      label: `Periode: ${periodLabel(period)}${range}`,
+      onRemove: () => {
+        setPeriod("quarter");
+        setCustomStart("");
+        setCustomEnd("");
+      },
+    });
+  }
+  const resetFilters = () => {
+    setSelectedBranch(defaultBranch);
+    setPeriod("quarter");
+    setCustomStart("");
+    setCustomEnd("");
+  };
 
   // Pagination for Invoices Table
   const [invoicesPage, setInvoicesPage] = useState(1);
@@ -262,97 +238,30 @@ export default function DashboardRevenue() {
           </p>
         </div>
 
-        {/* Global Branch Filter */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 shadow-2xs">
-            <Building2 className="w-4 h-4 text-sky-600 shrink-0" />
-            {isMaster ? (
-              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                <SelectTrigger className="h-8 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
-                  <SelectValue placeholder="Pilih Cabang" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="all">🏢 Semua Cabang (All)</SelectItem>
-                  {BRANCHES.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      📍 {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span className="text-xs font-bold text-slate-800 py-1">
-                📍 {BRANCHES.find((b) => b.id === selectedBranch)?.name || "Cabang Terpilih"}
-              </span>
-            )}
-          </div>
-        </div>
       </div>
 
-      {/* Period & Flexible Date Range Bar */}
-      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Periode:</span>
-          <div className="flex rounded-xl border border-slate-200 p-0.5 bg-slate-100">
-            {[
-              { id: "week", label: "This Week" },
-              { id: "month", label: "This Month" },
-              { id: "quarter", label: "Last 3 Months" },
-              { id: "custom", label: "Custom Dates" },
-            ].map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPeriod(p.id)}
-                className={cn(
-                  "px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
-                  period === p.id ? "bg-white text-sky-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {period === "custom" && (
-          <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">Dari:</span>
-              <DateFilterPicker
-                placeholder="DD/MM/YYYY"
-                className="w-38"
-                value={customStart}
-                onChange={(e) => setCustomStart(e?.target?.value ?? e)}
-                data-testid="revenue-filter-start"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 font-medium">Sampai:</span>
-              <DateFilterPicker
-                placeholder="DD/MM/YYYY"
-                className="w-38"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e?.target?.value ?? e)}
-                data-testid="revenue-filter-end"
-              />
-            </div>
-            {(customStart || customEnd) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 text-xs text-slate-500 hover:text-rose-600 rounded-xl"
-                onClick={() => {
-                  setCustomStart("");
-                  setCustomEnd("");
-                }}
-              >
-                Reset
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
+      <FilterBar
+        title="Filter Revenue"
+        chips={filterChips}
+        onReset={resetFilters}
+        resultText={`${filteredInvoices.length} invoice`}
+        gridClassName="lg:grid-cols-4"
+      >
+        <FilterField label="Cabang">
+          <BranchFilter value={selectedBranch} onChange={setSelectedBranch} isMaster={isMaster} />
+        </FilterField>
+        <PeriodFilter
+          preset={period}
+          start={customStart}
+          end={customEnd}
+          testidPrefix="revenue"
+          onChange={({ preset, start, end }) => {
+            if (preset !== undefined) setPeriod(preset);
+            if (start !== undefined) setCustomStart(start);
+            if (end !== undefined) setCustomEnd(end);
+          }}
+        />
+      </FilterBar>
 
       {/* EXECUTIVE OPERATIONS TELEMETRY (Client, Therapist, Invoices, Sessions) */}
       <div className="space-y-2">
@@ -633,7 +542,7 @@ export default function DashboardRevenue() {
                           </div>
                           <div>
                             <p className="font-bold text-xs text-slate-900">{t.name}</p>
-                            <p className="text-[10px] text-slate-500 font-medium">{t.specialty}</p>
+                            <p className="text-[11px] text-slate-500 font-medium">{t.specialty}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -661,7 +570,7 @@ export default function DashboardRevenue() {
                               style={{ width: `${Math.min(pct, 100)}%` }}
                             />
                           </div>
-                          <span className="text-[10px] text-slate-400 font-medium">
+                          <span className="text-[11px] text-slate-400 font-medium">
                             {t.scheduledCount} sesi terjadwal aktif
                           </span>
                         </div>
@@ -712,7 +621,7 @@ export default function DashboardRevenue() {
                       </TableCell>
                       <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
                         <p className="font-bold text-slate-900">{inv.clientName}</p>
-                        <span className="text-[11px] text-slate-500 font-medium">📍 {br ? br.name : "Surabaya"}</span>
+                        <span className="text-[11px] text-slate-500 font-medium">{br ? br.name : "—"}</span>
                       </TableCell>
                       <TableCell className="text-xs font-semibold text-slate-700 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
                       <TableCell className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">
@@ -743,7 +652,7 @@ export default function DashboardRevenue() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                className="px-2.5 font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
                 disabled={invoicesPage <= 1}
                 onClick={() => setInvoicesPage((p) => Math.max(1, p - 1))}
               >
@@ -755,7 +664,7 @@ export default function DashboardRevenue() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                className="px-2.5 font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
                 disabled={invoicesPage >= totalInvoicesPages}
                 onClick={() => setInvoicesPage((p) => Math.min(totalInvoicesPages, p + 1))}
               >

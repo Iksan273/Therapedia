@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight, CheckCircle2, X, Calendar, Clock, Baby, Activity } from "lucide-react";
+import { ArrowRight, CheckCircle2, X, Activity } from "lucide-react";
 import { CLINICAL_PROGRAMS } from "@/data/landingData";
 
 export default function LandingPrograms({ onBookClick }) {

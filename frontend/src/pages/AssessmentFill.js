@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, Activity, HelpCircle, MessageCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -239,7 +239,7 @@ export default function AssessmentFill() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <p className="font-extrabold text-base text-slate-900 leading-tight truncate">Therapedia Developmental Center</p>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
                 Clinical
               </span>
             </div>
@@ -264,7 +264,7 @@ export default function AssessmentFill() {
                   <div className="relative">
                     <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
-                      className="pl-10 uppercase rounded-xl border-slate-200 bg-slate-50 focus:bg-white font-mono text-sm h-11 font-bold"
+                      className="pl-10 uppercase border-slate-200 bg-slate-50 focus:bg-white font-mono text-sm font-bold"
                       placeholder="e.g. ASM-2011"
                       value={codeInput}
                       onChange={(e) => {
@@ -278,7 +278,7 @@ export default function AssessmentFill() {
                     <p className="text-xs font-semibold text-rose-600 mt-1" data-testid="assessment-code-error">{codeError}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold rounded-xl h-11 text-xs shadow-md shadow-[#007AFF]/25 cursor-pointer" data-testid="assessment-code-submit-button">
+                <Button size="lg" type="submit" className="w-full bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold shadow-md shadow-[#007AFF]/25 cursor-pointer" data-testid="assessment-code-submit-button">
                   Buka Instrumen Kuesioner
                 </Button>
               </form>
@@ -350,7 +350,7 @@ export default function AssessmentFill() {
 
                 {/* Quick section pills (horizontal scrolling) */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full text-[11px] font-semibold">
-                  <span className="text-slate-400 shrink-0 text-[10px] uppercase font-bold">Lompat:</span>
+                  <span className="text-slate-400 shrink-0 text-[11px] uppercase font-bold">Lompat:</span>
                   {categorizedSections.map((sec, sIdx) => {
                     const secAnswered = sec.questions.filter((q) => {
                       const val = answers[q.id];
@@ -363,14 +363,14 @@ export default function AssessmentFill() {
                         type="button"
                         onClick={() => scrollToSection(sec.id)}
                         className={cn(
-                          "px-2.5 py-1 rounded-lg border shrink-0 transition-all text-[10px] font-bold flex items-center gap-1",
+                          "px-2.5 py-1 rounded-lg border shrink-0 transition-all text-[11px] font-bold flex items-center gap-1",
                           isDone
                             ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
                             : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                         )}
                       >
                         <span>{sIdx + 1}. {sec.title.split("(")[0].trim()}</span>
-                        <span className={cn("text-[9px] px-1 py-0.2 rounded font-mono", isDone ? "bg-emerald-200 text-emerald-900" : "bg-slate-100 text-slate-600")}>
+                        <span className={cn("text-[11px] px-1 py-0.2 rounded font-mono", isDone ? "bg-emerald-200 text-emerald-900" : "bg-slate-100 text-slate-600")}>
                           {secAnswered}/{sec.questions.length}
                         </span>
                       </button>
@@ -436,7 +436,7 @@ export default function AssessmentFill() {
                             <div className="flex items-start justify-between gap-3">
                               <Label className="text-xs sm:text-sm font-bold text-slate-800 leading-snug flex items-start gap-2.5 flex-1 min-w-0 break-words">
                                 <span className={cn(
-                                  "w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 font-black mt-0.5",
+                                  "w-5 h-5 rounded-full flex items-center justify-center text-[11px] shrink-0 font-black mt-0.5",
                                   isAnswered ? "bg-emerald-600 text-white" : "bg-slate-300 text-slate-700"
                                 )}>
                                   {q.itemNo}
@@ -444,7 +444,7 @@ export default function AssessmentFill() {
                                 <span className="flex-1 min-w-0 break-words">{q.question}</span>
                               </Label>
                               {q.quadrant && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                                <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
                                   {q.quadrant}
                                 </span>
                               )}
@@ -601,7 +601,7 @@ export default function AssessmentFill() {
                                 {answers[q.id] && (
                                   <div className="p-2 rounded-lg bg-sky-50/70 border border-sky-200/80 text-[11px] font-bold text-sky-900 flex items-center justify-between">
                                     <span>Pilihan: <strong>{answers[q.id]}</strong></span>
-                                    <span className="text-[10px] text-sky-600">Tersimpan ✓</span>
+                                    <span className="text-[11px] text-sky-600">Tersimpan ✓</span>
                                   </div>
                                 )}
                               </div>
@@ -660,16 +660,16 @@ export default function AssessmentFill() {
                   <div className="text-xs text-slate-600">
                     <p className="font-bold text-slate-800">
                       {answeredCount === allCategoryQuestions.length
-                        ? "🎉 Seluruh pertanyaan telah lengkap terisi!"
+                        ? "Seluruh pertanyaan telah lengkap terisi!"
                         : `Masih ada ${allCategoryQuestions.length - answeredCount} butir pertanyaan yang belum diisi.`}
                     </p>
                     <p className="text-[11px] text-slate-400">Pastikan pengisian dilakukan seobjektif mungkin demi akurasi penanganan klinis.</p>
                   </div>
 
-                  <Button
+                  <Button size="lg"
                     type="submit"
                     className={cn(
-                      "font-bold rounded-xl h-11 text-xs px-6 shadow-xs cursor-pointer transition-all shrink-0",
+                      "font-bold px-6 shadow-xs cursor-pointer transition-all shrink-0",
                       answeredCount === allCategoryQuestions.length
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30"
                         : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/30"
@@ -726,7 +726,7 @@ export default function AssessmentFill() {
 
               <div className="pt-2">
                 <Link to="/">
-                  <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-semibold h-10 w-full sm:w-auto">
+                  <Button variant="outline" className="border-slate-200 font-semibold w-full sm:w-auto">
                     Kembali ke Beranda
                   </Button>
                 </Link>

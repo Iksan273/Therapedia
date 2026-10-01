@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Clock, Phone, ExternalLink, ChevronRight, CheckCircle2, X } from "lucide-react";
+import { MapPin, Clock, Phone, ExternalLink, CheckCircle2, X } from "lucide-react";
 import { CLINICAL_BRANCHES } from "@/data/landingData";
 
 export default function LandingBranches() {

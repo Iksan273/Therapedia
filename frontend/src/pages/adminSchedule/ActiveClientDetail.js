@@ -1,34 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import {
-  ArrowLeft,
-  CalendarPlus,
-  LogOut,
-  Receipt,
-  User,
-  Phone,
-  Mail,
-  Clock,
-  CheckCircle2,
-  CalendarDays,
-  Building2,
-  Calendar,
-  AlertCircle,
-  ExternalLink,
-  MessageCircle,
-  Activity,
-  History,
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react";
+import { ArrowLeft, CalendarPlus, Receipt, User, CalendarDays, Calendar, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -40,13 +18,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { EmptyState } from "@/components/common/EmptyState";
 import { AddScheduleModal } from "@/components/calendar/AddScheduleModal";
 import { SessionDetailModal } from "@/components/calendar/SessionDetailModal";
 import { useClients } from "@/context/ClientsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
 import { useTherapists } from "@/context/TherapistsContext";
-import { DISCHARGE_REASONS, calcAge, fmtDate, todayStr, BRANCHES, fmtCurrency, formatPackageName } from "@/lib/appUtils";
+import { DISCHARGE_REASONS, calcAge, fmtDate, todayStr, BRANCHES, formatPackageName } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 export default function ActiveClientDetail() {
@@ -116,7 +95,7 @@ export default function ActiveClientDetail() {
     return (
       <div className="p-8 text-center space-y-3">
         <p className="text-base text-slate-600">Client tidak ditemukan.</p>
-        <Button onClick={() => navigate("/admin-schedule/clients")} variant="outline" className="rounded-xl text-xs">
+        <Button onClick={() => navigate("/admin-schedule/clients")} variant="outline" className="">
           <ArrowLeft className="w-4 h-4 mr-1.5" /> Kembali ke Roster
         </Button>
       </div>
@@ -152,8 +131,8 @@ export default function ActiveClientDetail() {
         <div className="flex items-center gap-3.5">
           <Button
             variant="outline"
-            size="sm"
-            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 h-10 px-3.5 font-bold text-xs shadow-2xs"
+           
+            className="border-slate-200 text-slate-700 hover:bg-slate-100 px-3.5 font-bold shadow-2xs"
             onClick={() => navigate("/admin-schedule/clients")}
           >
             <ArrowLeft className="w-4 h-4 mr-1.5" /> Roster
@@ -164,12 +143,12 @@ export default function ActiveClientDetail() {
               <StatusBadge status={client.status} />
               {isFrozen && (
                 <span className="text-xs font-extrabold text-cyan-900 bg-cyan-100 border border-cyan-300 px-2.5 py-0.5 rounded-lg">
-                  ❄️ Sesi Frozen (0 Kredit)
+                  Sesi Frozen (0 Kredit)
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Kode Akses: <strong className="font-mono text-slate-800">{client.clientAccessCode}</strong> • Cabang: {br ? br.name : "Surabaya"}
+              Kode Akses: <strong className="font-mono text-slate-800">{client.clientAccessCode}</strong> • Cabang: {br ? br.name : "—"}
             </p>
           </div>
         </div>
@@ -187,7 +166,7 @@ export default function ActiveClientDetail() {
           )}
 
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-10 px-4 gap-2 shadow-xs"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 gap-2 shadow-xs"
             onClick={() => setAddOpen(true)}
           >
             <CalendarPlus className="w-4 h-4" /> Jadwalkan Sesi Baru
@@ -212,21 +191,21 @@ export default function ActiveClientDetail() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
             <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Nama Anak</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Nama Anak</span>
               <p className="font-bold text-slate-900 mt-1 text-sm">{client.clientName}</p>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir / Usia</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tanggal Lahir / Usia</span>
               <p className="font-bold text-slate-800 mt-1 text-sm">
                 {fmtDate(client.dob)} ({calcAge(client.dob)} th)
               </p>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Orang Tua / Wali</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Orang Tua / Wali</span>
               <p className="font-bold text-slate-800 mt-1 text-sm">{client.parentName}</p>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kontak WhatsApp</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Kontak WhatsApp</span>
               <p className="font-bold text-slate-800 mt-1 text-sm">{client.parentContact}</p>
               <p className="text-[11px] text-slate-500 truncate mt-0.5">{client.parentEmail}</p>
             </div>
@@ -253,14 +232,14 @@ export default function ActiveClientDetail() {
             <div className="space-y-2.5 pt-3.5 text-xs">
               {pkgs.length === 0 ? (
                 <p className="text-xs text-rose-600 font-bold bg-rose-50 p-3 rounded-xl border border-rose-200 leading-relaxed">
-                  Client belum memiliki paket kredit (Kredit 0). Sesi kalender otomatis berstatus Frozen ❄️.
+                  Client belum memiliki paket kredit (Kredit 0). Sesi kalender otomatis berstatus Frozen .
                 </p>
               ) : (
                 pkgs.map((p) => (
                   <div key={p.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-900">{formatPackageName(p.packageName)}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">Status: {p.status}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">Status: {p.status}</p>
                     </div>
                     <span className="font-mono font-extrabold text-sm text-slate-800">
                       {p.remainingCredit} / {p.totalCredit}
@@ -277,9 +256,9 @@ export default function ActiveClientDetail() {
               <span className="font-bold text-slate-700">Dikelola Role Finance</span>
             </div>
             <Button
-              size="sm"
+             
               variant="outline"
-              className="w-full mt-2.5 rounded-xl text-xs font-bold text-sky-700 border-sky-200 hover:bg-sky-50 h-10"
+              className="w-full mt-2.5 font-bold text-sky-700 border-sky-200 hover:bg-sky-50"
               onClick={() => navigate("/finance")}
             >
               Buka Finance Hub untuk Renewal
@@ -343,7 +322,7 @@ export default function ActiveClientDetail() {
           </div>
           {(record?.cancelCountTotal || 0) > 3 && (
             <span className="text-xs font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg">
-              ⚠️ Melebihi Kuota Cancel (&gt;3x)
+              Melebihi Kuota Cancel (&gt;3x)
             </span>
           )}
         </CardHeader>
@@ -391,7 +370,7 @@ export default function ActiveClientDetail() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 rounded-lg text-xs font-bold text-sky-700 hover:bg-sky-50 whitespace-nowrap cursor-pointer"
+                          className="font-bold text-sky-700 hover:bg-sky-50 whitespace-nowrap cursor-pointer"
                           onClick={() => {
                             setSelectedSession(s);
                             setSessionOpen(true);
@@ -419,7 +398,7 @@ export default function ActiveClientDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                className="px-2.5 font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
                 disabled={historyPage <= 1}
                 onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
               >
@@ -431,7 +410,7 @@ export default function ActiveClientDetail() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 px-2.5 rounded-xl text-xs font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
+                className="px-2.5 font-semibold border-slate-200 hover:bg-slate-100 cursor-pointer"
                 disabled={historyPage >= totalHistoryPages}
                 onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages, p + 1))}
               >
@@ -446,7 +425,7 @@ export default function ActiveClientDetail() {
       <div className="pt-4 flex justify-end">
         <Button
           variant="outline"
-          className="border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold rounded-xl"
+          className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold"
           onClick={() => setDischargeOpen(true)}
         >
           Discharge Client
@@ -479,7 +458,7 @@ export default function ActiveClientDetail() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Alasan Discharge *</Label>
               <Select value={dischargeReason} onValueChange={setDischargeReason}>
-                <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs">
+                <SelectTrigger className="border-slate-200 bg-slate-50 text-xs">
                   <SelectValue placeholder="Pilih alasan..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -502,10 +481,10 @@ export default function ActiveClientDetail() {
             </div>
           </div>
           <DialogFooter className="mt-4 gap-2">
-            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setDischargeOpen(false)}>
+            <Button variant="outline" className="" onClick={() => setDischargeOpen(false)}>
               Batal
             </Button>
-            <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs" onClick={handleDischarge}>
+            <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold" onClick={handleDischarge}>
               Konfirmasi Discharge
             </Button>
           </DialogFooter>

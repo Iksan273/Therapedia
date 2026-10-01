@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Globe, Layers, ArrowRight, Sparkles, ShieldCheck, MapPin, HeartHandshake } from "lucide-react";
+import { Globe, Layers, ArrowRight, ShieldCheck, MapPin, HeartHandshake } from "lucide-react";
 
 export default function Welcome() {
   return (
@@ -37,7 +37,7 @@ export default function Welcome() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="font-extrabold text-base tracking-tight text-slate-900">Therapedia</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/80">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/80">
               Center
             </span>
           </div>

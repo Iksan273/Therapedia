@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ChevronRight, ChevronLeft, Sparkles, MapPin, Clock, Award, ShieldCheck, Activity } from "lucide-react";
-import { CLINICAL_TEAM, CLINIC_INFO } from "@/data/landingData";
+import { ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
+import { CLINICAL_TEAM } from "@/data/landingData";
 import { useNavigate } from "react-router-dom";
 
 export default function LandingHero({ onSelectDoctor, onBookClick }) {

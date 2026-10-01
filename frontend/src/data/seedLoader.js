@@ -32,21 +32,72 @@ export function loadClientsSeed() {
 }
 
 export function loadSchedulesSeed() {
-  const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const now = new Date();
+  const monday = startOfWeek(now, { weekStartsOn: 1 });
+  const today = format(now, "yyyy-MM-dd");
+  const dateOf = (weekOffset, dayOfWeek) =>
+    format(addDays(addWeeks(monday, weekOffset != null ? weekOffset : 0), (dayOfWeek != null ? dayOfWeek : 1) - 1), "yyyy-MM-dd");
+
   return schedulesSeed.map((raw) => {
-    const { _weekOffset, _dayOfWeek, ...schedule } = raw;
-    const date = addDays(addWeeks(monday, _weekOffset != null ? _weekOffset : 0), (_dayOfWeek != null ? _dayOfWeek : 1) - 1);
-    schedule.date = format(date, "yyyy-MM-dd");
+    const { _weekOffset, _dayOfWeek, _movedFrom, _markedDaysAgo, ...schedule } = raw;
+    schedule.date = dateOf(_weekOffset, _dayOfWeek);
+    // Sesi terjadwal yang tanggalnya sudah lewat dianggap selesai, agar data demo tetap realistis kapan pun dibuka
+    if (schedule.status === "scheduled" && schedule.date < today) schedule.status = "completed";
+
+    const markedAt = _markedDaysAgo != null ? subDays(now, _markedDaysAgo).toISOString() : now.toISOString();
+    if (_movedFrom) {
+      // Jejak jadwal asal sesi yang sudah dipindah
+      schedule.rescheduledFrom = {
+        date: dateOf(_movedFrom._weekOffset, _movedFrom._dayOfWeek),
+        startTime: _movedFrom.startTime,
+        endTime: _movedFrom.endTime,
+        therapistId: _movedFrom.therapistId,
+      };
+      schedule.rescheduledAt = markedAt;
+    }
+    if (schedule.status === "reschedule_pending") {
+      schedule.pendingFrom = { date: schedule.date, startTime: schedule.startTime, endTime: schedule.endTime, therapistId: schedule.therapistId };
+      schedule.pendingAt = markedAt;
+    }
     return schedule;
   });
 }
 
+// Tanggal invoice dan riwayat kredit dihitung relatif terhadap hari ini (lihat scripts/generate_demo_seed.py)
 export function loadCreditsSeed() {
+  const now = new Date();
+  const scheduleDates = new Map(loadSchedulesSeed().map((s) => [s.id, s.date]));
+
+  const invoices = (creditsSeed.invoices || []).map((raw) => {
+    const { _seq, _issuedDaysAgo, _paidDaysAgo, ...inv } = raw;
+    if (_issuedDaysAgo != null) {
+      const issued = subDays(now, _issuedDaysAgo);
+      inv.issuedAt = issued.toISOString();
+      inv.createdAt = format(issued, "yyyy-MM-dd");
+      inv.invoiceNumber = `INV-${format(issued, "yyyy-MM")}-${String(_seq).padStart(3, "0")}`;
+    }
+    if (_paidDaysAgo != null) inv.paidAt = subDays(now, _paidDaysAgo).toISOString();
+    return inv;
+  });
+
+  const records = (creditsSeed.records || []).map((record) => ({
+    ...record,
+    history: (record.history || [])
+      .map((h) => {
+        const { _daysAgo, ...rest } = h;
+        const date =
+          (rest.scheduleId && scheduleDates.get(rest.scheduleId)) ||
+          (_daysAgo != null ? format(subDays(now, _daysAgo), "yyyy-MM-dd") : rest.date);
+        return { ...rest, date };
+      })
+      .sort((a, b) => (a.date || "").localeCompare(b.date || "")),
+  }));
+
   return {
     masterPackages: creditsSeed.masterPackages || [],
-    records: creditsSeed.records || [],
-    invoices: creditsSeed.invoices || [],
-    renewals: []
+    records,
+    invoices,
+    renewals: [],
   };
 }
 

@@ -1,4 +1,5 @@
 import "@/App.css";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -9,30 +10,38 @@ import { CreditsProvider } from "@/context/CreditsContext";
 import { AssessmentsProvider } from "@/context/AssessmentsContext";
 import { MasterDataProvider } from "@/context/MasterDataContext";
 import AppLayout from "@/components/layout/AppLayout";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 import Welcome from "@/pages/Welcome";
-import Home from "@/pages/Home";
-import Login from "@/pages/Login";
-import RoleSelect from "@/pages/RoleSelect";
-import AssessmentFill from "@/pages/AssessmentFill";
-import DashboardInquiry from "@/pages/adminInquiry/DashboardInquiry";
-import InquiryPipeline from "@/pages/adminInquiry/InquiryPipeline";
-import ClientDetailInquiry from "@/pages/adminInquiry/ClientDetailInquiry";
-import AssessmentMasterData from "@/pages/adminInquiry/AssessmentMasterData";
-import InquiryMasterData from "@/pages/adminInquiry/InquiryMasterData";
-import ParentAssessmentView from "@/pages/adminInquiry/ParentAssessmentView";
-import DashboardSchedule from "@/pages/adminSchedule/DashboardSchedule";
-import ActiveClients from "@/pages/adminSchedule/ActiveClients";
-import ActiveClientDetail from "@/pages/adminSchedule/ActiveClientDetail";
-import CalendarPage from "@/pages/adminSchedule/CalendarPage";
-import MySchedule from "@/pages/therapist/MySchedule";
-import TherapistSummary from "@/pages/therapist/TherapistSummary";
-import TherapistClientDetail from "@/pages/therapist/TherapistClientDetail";
-import ClientDashboard from "@/pages/client/ClientDashboard";
-import DashboardRevenue from "@/pages/master/DashboardRevenue";
-import BranchPerformance from "@/pages/master/BranchPerformance";
-import UserManagement from "@/pages/master/UserManagement";
-import RoleModuleAccess from "@/pages/master/RoleModuleAccess";
-import FinancePortal from "@/pages/finance/FinancePortal";
+
+const Home = lazy(() => import("@/pages/Home"));
+const Login = lazy(() => import("@/pages/Login"));
+const RoleSelect = lazy(() => import("@/pages/RoleSelect"));
+const AssessmentFill = lazy(() => import("@/pages/AssessmentFill"));
+const DashboardInquiry = lazy(() => import("@/pages/adminInquiry/DashboardInquiry"));
+const InquiryPipeline = lazy(() => import("@/pages/adminInquiry/InquiryPipeline"));
+const ClientDetailInquiry = lazy(() => import("@/pages/adminInquiry/ClientDetailInquiry"));
+const AssessmentMasterData = lazy(() => import("@/pages/adminInquiry/AssessmentMasterData"));
+const InquiryMasterData = lazy(() => import("@/pages/adminInquiry/InquiryMasterData"));
+const ParentAssessmentView = lazy(() => import("@/pages/adminInquiry/ParentAssessmentView"));
+const DashboardSchedule = lazy(() => import("@/pages/adminSchedule/DashboardSchedule"));
+const ActiveClients = lazy(() => import("@/pages/adminSchedule/ActiveClients"));
+const ActiveClientDetail = lazy(() => import("@/pages/adminSchedule/ActiveClientDetail"));
+const CalendarPage = lazy(() => import("@/pages/adminSchedule/CalendarPage"));
+const MySchedule = lazy(() => import("@/pages/therapist/MySchedule"));
+const TherapistSummary = lazy(() => import("@/pages/therapist/TherapistSummary"));
+const TherapistClientDetail = lazy(() => import("@/pages/therapist/TherapistClientDetail"));
+const ClientDashboard = lazy(() => import("@/pages/client/ClientDashboard"));
+const DashboardRevenue = lazy(() => import("@/pages/master/DashboardRevenue"));
+const BranchPerformance = lazy(() => import("@/pages/master/BranchPerformance"));
+const UserManagement = lazy(() => import("@/pages/master/UserManagement"));
+const RoleModuleAccess = lazy(() => import("@/pages/master/RoleModuleAccess"));
+const FinancePortal = lazy(() => import("@/pages/finance/FinancePortal"));
+
+const RouteFallback = () => (
+  <div className="max-w-6xl mx-auto p-4 sm:p-8">
+    <PageSkeleton variant="table" />
+  </div>
+);
 
 const RequireRole = ({ role, children }) => {
   const { auth } = useAuth();
@@ -56,6 +65,7 @@ function App() {
               <AssessmentsProvider>
                 <MasterDataProvider>
                 <BrowserRouter>
+                  <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={<Welcome />} />
                     <Route path="/landing" element={<Home />} />
@@ -168,6 +178,7 @@ function App() {
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
+                  </Suspense>
                 </BrowserRouter>
                 <Toaster position="top-right" richColors />
                 </MasterDataProvider>

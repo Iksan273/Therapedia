@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 import { usePersistentReducer } from "@/hooks/useLocalStorage";
-import { loadClientsSeed } from "@/data/seedLoader";
+import { getSeedLoader } from "@/data/seedRegistry";
 import { nowIso } from "@/lib/appUtils";
 
 const ClientsContext = createContext(null);
@@ -19,7 +19,7 @@ function clientsReducer(state, action) {
 }
 
 export const ClientsProvider = ({ children }) => {
-  const [clients, dispatch] = usePersistentReducer("clients", clientsReducer, loadClientsSeed);
+  const [clients, dispatch] = usePersistentReducer("clients", clientsReducer, () => getSeedLoader().loadClientsSeed());
 
   const addClient = (client) => dispatch({ type: "ADD", client });
   const updateClient = (id, patch) => dispatch({ type: "UPDATE", id, patch });

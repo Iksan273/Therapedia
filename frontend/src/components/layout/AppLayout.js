@@ -1,35 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  KanbanSquare,
-  ClipboardList,
-  Users,
-  CalendarDays,
-  Home,
-  RotateCcw,
-  LogOut,
-  FileQuestion,
-  Menu,
-  ShieldCheck,
-  UserCircle2,
-  MessageCircle,
-  Building2,
-  TrendingUp,
-  Receipt,
-  UserCog,
-  ShieldAlert,
-  ChevronDown,
-  BarChart3,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Maximize2,
-  Minimize2,
-  Expand,
-  Shrink,
-  FileCheck2,
-  Database
-} from "lucide-react";
+import React, { Suspense, useState, useEffect } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { LayoutDashboard, KanbanSquare, ClipboardList, Users, CalendarDays, Home, RotateCcw, LogOut, FileQuestion, Menu, ShieldCheck, UserCircle2, Building2, TrendingUp, Receipt, UserCog, ShieldAlert, BarChart3, PanelLeftClose, PanelLeftOpen, Maximize2, Minimize2, Expand, Shrink, FileCheck2, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useClients } from "@/context/ClientsContext";
 import { resetDemoData, BRANCHES } from "@/lib/appUtils";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 import { cn } from "@/lib/utils";
 
 const NAV_CONFIG = {
@@ -150,7 +122,7 @@ const Logo = ({ compact = false, onClose }) => (
       <div className="leading-tight min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="font-extrabold text-[15px] text-slate-900 tracking-tight truncate">Therapedia</p>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/80">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/80">
             Center
           </span>
         </div>
@@ -162,7 +134,7 @@ const Logo = ({ compact = false, onClose }) => (
         variant="ghost"
         size="icon"
         onClick={onClose}
-        className="h-8 w-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 shrink-0 transition-colors"
+        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 shrink-0 transition-colors"
         title="Tutup Menu Sidebar (Ctrl+B)"
         aria-label="Tutup Menu Sidebar"
         data-testid="sidebar-close-button"
@@ -250,7 +222,7 @@ const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
     <AlertDialogTrigger asChild>
       <Button
         variant="ghost"
-        className="w-full justify-start gap-2.5 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50/60 rounded-xl transition-colors h-10"
+        className="w-full justify-start gap-2.5 font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50/60 transition-colors"
         data-testid={testid}
       >
         <RotateCcw className="w-4 h-4 text-slate-400 group-hover:text-rose-500" />
@@ -285,6 +257,7 @@ const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
 
 const AppLayout = () => {
   const { auth, logout, activeBranch, setActiveBranch, rolesList, hasPermission } = useAuth();
+  const navigate = useNavigate();
   const { getTherapist } = useTherapists();
   const { getClient } = useClients();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -464,7 +437,7 @@ const AppLayout = () => {
           <ResetDemoButton />
           <Button
             variant="outline"
-            className="w-full justify-start gap-2.5 text-xs font-semibold text-slate-700 hover:text-sky-700 hover:bg-sky-50 border-slate-200 rounded-xl h-10 transition-colors"
+            className="w-full justify-start gap-2.5 font-semibold text-slate-700 hover:text-sky-700 hover:bg-sky-50 border-slate-200 transition-colors"
             onClick={handleSwitchRole}
             data-testid="switch-role-button"
           >
@@ -473,7 +446,7 @@ const AppLayout = () => {
           </Button>
           <Button
             variant="ghost"
-            className="w-full justify-start gap-2.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 rounded-xl h-8.5 transition-colors"
+            className="w-full justify-start gap-2.5 font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 h-8.5 transition-colors"
             onClick={handleGoHome}
             data-testid="layout-go-home-button"
           >
@@ -501,7 +474,7 @@ const AppLayout = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="shrink-0 rounded-xl hover:bg-slate-100"
+                    className="shrink-0 hover:bg-slate-100"
                     aria-label="Open menu"
                     data-testid="mobile-menu-button"
                   >
@@ -519,7 +492,7 @@ const AppLayout = () => {
                       <UserCircle2 className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Signed in as</p>
+                      <p className="text-[11px] uppercase font-bold tracking-wider text-slate-400">Signed in as</p>
                       <p className="text-sm font-bold text-slate-800 truncate">{identity}</p>
                     </div>
                   </div>
@@ -530,7 +503,7 @@ const AppLayout = () => {
                     <ResetDemoButton testid="mobile-reset-demo-data-button" />
                     <Button
                       variant="outline"
-                      className="w-full justify-start gap-2.5 text-xs font-semibold text-slate-700 hover:text-sky-700 hover:bg-sky-50 border-slate-200 rounded-xl h-10"
+                      className="w-full justify-start gap-2.5 font-semibold text-slate-700 hover:text-sky-700 hover:bg-sky-50 border-slate-200"
                       onClick={handleSwitchRole}
                       data-testid="mobile-switch-role-button"
                     >
@@ -539,7 +512,7 @@ const AppLayout = () => {
                     </Button>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start gap-2.5 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl h-8.5"
+                      className="w-full justify-start gap-2.5 font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 h-8.5"
                       onClick={handleGoHome}
                       data-testid="mobile-go-home-button"
                     >
@@ -560,7 +533,7 @@ const AppLayout = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="font-extrabold text-sm text-slate-900 truncate">Therapedia</span>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
                     Center
                   </span>
                 </div>
@@ -573,7 +546,7 @@ const AppLayout = () => {
               size="sm"
               onClick={() => setSidebarOpen((prev) => !prev)}
               className={cn(
-                "hidden md:flex items-center gap-2 rounded-xl transition-all h-9 px-3 border font-semibold text-xs shadow-2xs",
+                "hidden md:flex items-center gap-2 transition-all px-3 border font-semibold shadow-2xs",
                 sidebarOpen
                   ? "border-slate-200 text-slate-700 hover:text-[#007AFF] hover:bg-blue-50"
                   : "bg-[#007AFF] hover:bg-[#0062cc] text-white border-transparent shadow-sm shadow-[#007AFF]/25 font-bold"
@@ -607,7 +580,7 @@ const AppLayout = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="font-extrabold text-sm text-slate-900 truncate">Therapedia</span>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#007AFF] bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
                     Center
                   </span>
                 </div>
@@ -626,14 +599,14 @@ const AppLayout = () => {
                 <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2.5 py-1 shadow-2xs shrink-0">
                   <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                   <Select value={activeBranch} onValueChange={setActiveBranch}>
-                    <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 gap-1.5 cursor-pointer">
+                    <SelectTrigger className="border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 gap-1.5 cursor-pointer">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-                      <SelectItem value="all">🏢 All Branches (Semua Cabang)</SelectItem>
+                      <SelectItem value="all">All Branches (Semua Cabang)</SelectItem>
                       {BRANCHES.map((b) => (
                         <SelectItem key={b.id} value={b.id}>
-                          📍 {b.name} ({b.city})
+                          {b.name} ({b.city})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -642,7 +615,7 @@ const AppLayout = () => {
               ) : (
                 <span className="text-slate-700 font-semibold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-xs flex items-center gap-1.5 shrink-0">
                   <Building2 className="w-3.5 h-3.5 text-sky-600" />
-                  {BRANCHES.find((b) => b.id === (auth.branchId || activeBranch))?.name || "East"}
+                  {BRANCHES.find((b) => b.id === (auth.branchId || activeBranch))?.name || "—"}
                 </span>
               )}
             </div>
@@ -691,7 +664,7 @@ const AppLayout = () => {
               variant="outline"
               size="sm"
               className={cn(
-                "hidden sm:flex items-center gap-1.5 rounded-xl border-slate-200 transition-colors shadow-2xs font-semibold text-xs h-9 px-3",
+                "hidden sm:flex items-center gap-1.5 border-slate-200 transition-colors shadow-2xs font-semibold px-3",
                 isNativeFullscreen
                   ? "bg-sky-50 border-sky-300 text-sky-700 font-bold"
                   : "text-slate-700 hover:text-sky-700 hover:bg-sky-50"
@@ -718,7 +691,7 @@ const AppLayout = () => {
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 rounded-xl border-slate-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs font-semibold text-xs h-9 px-3.5"
+              className="gap-2 border-slate-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs font-semibold px-3.5"
               onClick={handleSwitchRole}
               data-testid="topbar-switch-role-button"
             >
@@ -739,7 +712,9 @@ const AppLayout = () => {
               : "max-w-[1440px]"
           )}
         >
-          <Outlet />
+          <Suspense fallback={<PageSkeleton variant="dashboard" />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

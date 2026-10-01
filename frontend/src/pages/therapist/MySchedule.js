@@ -1,21 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Stethoscope,
-  CalendarDays,
-  ExternalLink,
-  FileText,
-  User,
-  Filter,
-  Search,
-  Building2,
-  BookOpen,
-  ClipboardCheck,
-  FileCheck2,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Stethoscope, ExternalLink, User, BookOpen, ClipboardCheck, FileCheck2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WeeklyCalendar, CalendarLegend } from "@/components/calendar/WeeklyCalendar";
@@ -25,7 +11,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useClients } from "@/context/ClientsContext";
 import { useTherapists } from "@/context/TherapistsContext";
-import { BRANCHES } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
 export default function MySchedule() {
@@ -124,8 +109,8 @@ export default function MySchedule() {
         {/* Action button & Filter per Client */}
         <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
           <Link to="/therapist/summary">
-            <Button
-              className="bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold text-xs rounded-xl h-9 gap-1.5 shadow-2xs"
+            <Button size="sm"
+              className="bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold gap-1.5 shadow-2xs"
               data-testid="link-to-summary-header"
             >
               <FileCheck2 className="w-3.5 h-3.5" /> Summary Laporan ({reportMetrics.pending} Pending)
@@ -135,7 +120,7 @@ export default function MySchedule() {
           <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1 shadow-2xs">
             <User className="w-4 h-4 text-sky-600 shrink-0" />
             <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="h-7 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
+              <SelectTrigger className="border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
                 <SelectValue placeholder="Filter Client" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-slate-200">
@@ -154,13 +139,13 @@ export default function MySchedule() {
       {/* Date & View Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-9 w-9" onClick={goPrev} aria-label="Previous">
+          <Button variant="outline" size="icon" className="border-slate-200" onClick={goPrev} aria-label="Previous">
             <ChevronLeft className="w-4 h-4 text-slate-600" />
           </Button>
-          <Button variant="outline" className="rounded-xl border-slate-200 text-xs font-semibold text-slate-700 h-9" onClick={goToday}>
+          <Button size="sm" variant="outline" className="border-slate-200 font-semibold text-slate-700" onClick={goToday}>
             Hari Ini
           </Button>
-          <Button variant="outline" size="icon" className="rounded-xl border-slate-200 h-9 w-9" onClick={goNext} aria-label="Next">
+          <Button variant="outline" size="icon" className="border-slate-200" onClick={goNext} aria-label="Next">
             <ChevronRight className="w-4 h-4 text-slate-600" />
           </Button>
           <span className="text-sm font-bold text-slate-900 ml-2 tabular-nums">{label}</span>

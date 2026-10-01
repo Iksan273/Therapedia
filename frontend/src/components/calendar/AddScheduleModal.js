@@ -1,21 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { addWeeks, format, parseISO } from "date-fns";
-import {
-  AlertTriangle,
-  Check,
-  ChevronsUpDown,
-  Repeat,
-  CalendarPlus,
-  Layers,
-  Clock,
-  UserCheck,
-  Calendar,
-  Trash2,
-  PlusCircle,
-  Settings2,
-  Info,
-} from "lucide-react";
+import { AlertTriangle, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DateFilterPicker from "@/components/common/DateFilterPicker";
 import { Textarea } from "@/components/ui/textarea";
@@ -335,10 +319,10 @@ export const AddScheduleModal = ({
             ) : (
               <Popover open={clientOpen} onOpenChange={setClientOpen}>
                 <PopoverTrigger asChild>
-                  <Button
+                  <Button size="sm"
                     variant="outline"
                     role="combobox"
-                    className="w-full justify-between font-semibold text-xs rounded-xl border-slate-200 h-9 bg-slate-50 focus:bg-white"
+                    className="w-full justify-between font-semibold border-slate-200 bg-slate-50 focus:bg-white"
                     data-testid="add-schedule-client-select"
                   >
                     {selectedClient
@@ -390,7 +374,7 @@ export const AddScheduleModal = ({
                     : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                📅 Single Session (One Specific Date)
+                Single Session (One Specific Date)
               </button>
               <button
                 type="button"
@@ -402,7 +386,7 @@ export const AddScheduleModal = ({
                     : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                🗓️ Weekly Pattern Builder (Custom Times per Day)
+                Weekly Pattern Builder (Custom Times per Day)
               </button>
             </div>
           )}
@@ -416,7 +400,7 @@ export const AddScheduleModal = ({
                     {isAssessmentType ? "Layanan Asesmen Klinis" : "Layanan Klinis"}
                   </Label>
                   <Select value={selectedService} onValueChange={setSelectedService}>
-                    <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
+                    <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold">
                       <SelectValue placeholder="Pilih layanan klinis..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200">
@@ -432,7 +416,7 @@ export const AddScheduleModal = ({
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Assigned Therapist</Label>
                   <Select value={defaultTherapistId} onValueChange={setDefaultTherapistId}>
-                    <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
+                    <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold">
                       <SelectValue placeholder="Select therapist..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200">
@@ -462,12 +446,12 @@ export const AddScheduleModal = ({
                       value={singleCreditPackageId || (clientPackages[0]?.id || "none")}
                       onValueChange={(val) => setSingleCreditPackageId(val === "none" ? "" : val)}
                     >
-                      <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
+                      <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold">
                         <SelectValue placeholder="Pilih paket kredit..." />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-slate-200">
                         {clientPackages.length === 0 ? (
-                          <SelectItem value="none">0 Kredit (Sesi Akan Berstatus Frozen ❄️)</SelectItem>
+                          <SelectItem value="none">0 Kredit (Sesi Akan Berstatus Frozen )</SelectItem>
                         ) : (
                           clientPackages.map((p) => (
                             <SelectItem key={p.id} value={p.id}>
@@ -500,7 +484,7 @@ export const AddScheduleModal = ({
                       setDefaultEndTime(`${String(Math.min(h + 1, 18)).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
                     }
                   }}>
-                    <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
+                    <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200">
@@ -513,7 +497,7 @@ export const AddScheduleModal = ({
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700">End Time</Label>
                   <Select value={defaultEndTime} onValueChange={setDefaultEndTime}>
-                    <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs h-9 font-semibold">
+                    <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200">
@@ -600,12 +584,12 @@ export const AddScheduleModal = ({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Start Time</Label>
+                          <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Start Time</Label>
                           <Select
                             value={cfg.startTime}
                             onValueChange={(val) => updateDayConfig(dayId, "startTime", val)}
                           >
-                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold">
+                            <SelectTrigger className="text-xs border-slate-200 font-semibold">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -617,12 +601,12 @@ export const AddScheduleModal = ({
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">End Time</Label>
+                          <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">End Time</Label>
                           <Select
                             value={cfg.endTime}
                             onValueChange={(val) => updateDayConfig(dayId, "endTime", val)}
                           >
-                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold">
+                            <SelectTrigger className="text-xs border-slate-200 font-semibold">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -634,12 +618,12 @@ export const AddScheduleModal = ({
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Therapist</Label>
+                          <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Therapist</Label>
                           <Select
                             value={cfg.therapistId}
                             onValueChange={(val) => updateDayConfig(dayId, "therapistId", val)}
                           >
-                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold truncate">
+                            <SelectTrigger className="text-xs border-slate-200 font-semibold truncate">
                               <SelectValue placeholder="Therapist" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -653,12 +637,12 @@ export const AddScheduleModal = ({
                         </div>
 
                         <div className="space-y-1">
-                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Service</Label>
+                          <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Service</Label>
                           <Select
                             value={cfg.type}
                             onValueChange={(val) => updateDayConfig(dayId, "type", val)}
                           >
-                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold truncate">
+                            <SelectTrigger className="text-xs border-slate-200 font-semibold truncate">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -672,12 +656,12 @@ export const AddScheduleModal = ({
                         </div>
 
                         <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-                          <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Paket Kredit</Label>
+                          <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Paket Kredit</Label>
                           <Select
                             value={cfg.creditPackageId || (clientPackages[0]?.id || "none")}
                             onValueChange={(val) => updateDayConfig(dayId, "creditPackageId", val === "none" ? null : val)}
                           >
-                            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 font-semibold truncate">
+                            <SelectTrigger className="text-xs border-slate-200 font-semibold truncate">
                               <SelectValue placeholder="Pilih Paket" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
@@ -711,7 +695,7 @@ export const AddScheduleModal = ({
                     <Label className="text-xs font-bold text-slate-800 cursor-pointer">
                       {isRecurring ? "Repeat Weekly (Recurring Package)" : "One-Week Only (Plot This Week Only)"}
                     </Label>
-                    <p className="text-[10px] text-slate-500">
+                    <p className="text-[11px] text-slate-500">
                       {isRecurring
                         ? "Repeats this exact pattern across consecutive weeks"
                         : "Creates sessions for the selected days for 1 single week"}
@@ -723,7 +707,7 @@ export const AddScheduleModal = ({
                   <div className="flex items-center gap-2">
                     <Label className="text-[11px] font-bold text-slate-600 shrink-0">Duration:</Label>
                     <Select value={recurringWeeks} onValueChange={setRecurringWeeks}>
-                      <SelectTrigger className="w-40 h-8 text-xs rounded-lg border-slate-200 font-semibold bg-slate-50">
+                      <SelectTrigger className="w-40 text-xs border-slate-200 font-semibold bg-slate-50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-slate-200">
@@ -776,7 +760,7 @@ export const AddScheduleModal = ({
               {singleConflicts.map((c, i) => (
                 <p key={i}>• {c}</p>
               ))}
-              <p className="text-[10px] text-amber-700 italic">Warning notification only — you can still proceed with scheduling.</p>
+              <p className="text-[11px] text-amber-700 italic">Warning notification only — you can still proceed with scheduling.</p>
             </div>
           )}
         </div>
@@ -784,14 +768,14 @@ export const AddScheduleModal = ({
         <DialogFooter className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50/70 shrink-0 flex items-center justify-end gap-2.5">
           <Button
             variant="outline"
-            className="rounded-xl border-slate-200 text-xs font-bold h-10 px-4"
+            className="border-slate-200 font-bold px-4"
             onClick={() => onOpenChange(false)}
             data-testid="add-schedule-cancel-button"
           >
             Cancel
           </Button>
           <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs h-10 px-5 shadow-xs"
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 shadow-xs"
             onClick={handleSubmit}
             data-testid="add-schedule-submit-button"
           >

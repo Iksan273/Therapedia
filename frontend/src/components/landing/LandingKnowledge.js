@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Calendar, ArrowRight, X, Sparkles, CheckCircle2 } from "lucide-react";
+import { BookOpen, Calendar, ArrowRight, X } from "lucide-react";
 import { KNOWLEDGE_ARTICLES } from "@/data/landingData";
 
 export default function LandingKnowledge() {

@@ -614,14 +614,16 @@
         ]
       }
     ],
-    "invoiceStatus": "paid",
+    "invoiceStatus": "unpaid",
     "createdAt": "2026-01-02T08:30:00Z",
     "serviceTypes": [
       "f_ota"
     ],
     "assessmentCategoryId": "cat-001",
     "assessmentAccessCode": "ASM-2015",
-    "assessmentReportNote": "Profil sensorik regulasi emosi dan pemrosesan oral-motor (65 butir). Ananda Kenzo menunjukkan respons defensif taktil dan oral sensory avoidance yang memicu perilaku picky eating. Telah disusun diet sensori rumahan dan program desensitisasi oral."
+    "assessmentReportNote": "Profil sensorik regulasi emosi dan pemrosesan oral-motor (65 butir). Ananda Kenzo menunjukkan respons defensif taktil dan oral sensory avoidance yang memicu perilaku picky eating. Telah disusun diet sensori rumahan dan program desensitisasi oral.",
+    "_createdDaysAgo": 36,
+    "_joinMonthsAgo": 1
   },
   {
     "id": "c-010",
@@ -1245,7 +1247,8 @@
     ],
     "assessmentCategoryId": "cat-001",
     "assessmentAccessCode": "ASM-2011",
-    "assessmentReportNote": "Berdasarkan evaluasi Child Sensory Profile 2 (Winnie Dunn) dengan 65 butir observasi, ananda Ayla menunjukkan profil sensorik dominan pada kuadran Avoiding (AV) dan Sensory Seeking (SK). Pada domain Pemrosesan Auditori dan Taktil, ananda memiliki sensitivitas tinggi terhadap kebisingan tiba-tiba serta defensif taktil terhadap pakaian berlabel tebal. Di sisi lain, pada domain Proprioseptif dan Vestibular, ananda aktif mencari input berat (menabrakkan diri, melompat). Rekomendasi: Sesi terapi integrasi sensori 2x seminggu dengan protokol sikat Wilbarger, akomodasi ear-muff di lingkungan bising, serta diet sensori aktivitas proprioceptive heavy work sebelum jam belajar."
+    "assessmentReportNote": "Berdasarkan evaluasi Child Sensory Profile 2 (Winnie Dunn) dengan 65 butir observasi, ananda Ayla menunjukkan profil sensorik dominan pada kuadran Avoiding (AV) dan Sensory Seeking (SK). Pada domain Pemrosesan Auditori dan Taktil, ananda memiliki sensitivitas tinggi terhadap kebisingan tiba-tiba serta defensif taktil terhadap pakaian berlabel tebal. Di sisi lain, pada domain Proprioseptif dan Vestibular, ananda aktif mencari input berat (menabrakkan diri, melompat). Rekomendasi: Sesi terapi integrasi sensori 2x seminggu dengan protokol sikat Wilbarger, akomodasi ear-muff di lingkungan bising, serta diet sensori aktivitas proprioceptive heavy work sebelum jam belajar.",
+    "_createdDaysAgo": 21
   },
   {
     "id": "c-011",
@@ -1272,7 +1275,8 @@
     "createdAt": "2026-01-15T14:20:00Z",
     "serviceTypes": [
       "b_ota"
-    ]
+    ],
+    "_createdDaysAgo": 14
   },
   {
     "id": "c-012",
@@ -1348,7 +1352,9 @@
     "createdAt": "2026-01-18T09:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 92,
+    "_joinMonthsAgo": 3
   },
   {
     "id": "c-013",
@@ -1369,7 +1375,9 @@
     "createdAt": "2025-11-20T11:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 195,
+    "_joinMonthsAgo": 6
   },
   {
     "id": "c-014",
@@ -1386,11 +1394,14 @@
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ClaraSalsabilaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
-    "invoiceStatus": "paid",
+    "invoiceStatus": "unpaid",
     "createdAt": "2025-10-15T08:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 140,
+    "_joinMonthsAgo": 4,
+    "_birthdayThisMonth": true
   },
   {
     "id": "c-015",
@@ -2005,7 +2016,8 @@
     ],
     "assessmentCategoryId": "cat-003",
     "assessmentAccessCode": "ASM-2014",
-    "assessmentReportNote": "Asesmen Motorik Halus & Visual Motor Integration (64 Butir). Davin memperlihatkan keterlambatan pada pola genggaman pensil (masih static quadrupod grip) dan koordinasi bilateral saat menggunting serta meronce. Kekuatan otot intrinsik tangan dan lengkungan palmar arch masih belum optimal, menyebabkan ananda cepat lelah saat menulis lebih dari 3 kalimat. Rekomendasi: Terapi okupasi fokus pada penguatan otot intrinsik tangan (playdough resistive exercises), pematangan dynamic tripod grip menggunakan triangular pencil grip, dan latihan bilateral integration."
+    "assessmentReportNote": "Asesmen Motorik Halus & Visual Motor Integration (64 Butir). Davin memperlihatkan keterlambatan pada pola genggaman pensil (masih static quadrupod grip) dan koordinasi bilateral saat menggunting serta meronce. Kekuatan otot intrinsik tangan dan lengkungan palmar arch masih belum optimal, menyebabkan ananda cepat lelah saat menulis lebih dari 3 kalimat. Rekomendasi: Terapi okupasi fokus pada penguatan otot intrinsik tangan (playdough resistive exercises), pematangan dynamic tripod grip menggunakan triangular pencil grip, dan latihan bilateral integration.",
+    "_createdDaysAgo": 51
   },
   {
     "id": "c-016",
@@ -2027,7 +2039,8 @@
     "createdAt": "2026-01-22T15:30:00Z",
     "serviceTypes": [
       "consult_w_report"
-    ]
+    ],
+    "_createdDaysAgo": 66
   },
   {
     "id": "c-017",
@@ -2101,7 +2114,9 @@
     "createdAt": "2025-12-01T09:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 20,
+    "_joinMonthsAgo": 0
   },
   {
     "id": "c-018",
@@ -2122,7 +2137,9 @@
     "createdAt": "2026-01-25T11:20:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 153,
+    "_joinMonthsAgo": 5
   },
   {
     "id": "c-019",
@@ -2194,7 +2211,8 @@
       "b_ota"
     ],
     "assessmentCategoryId": "cat-001",
-    "assessmentAccessCode": "ASM-2016"
+    "assessmentAccessCode": "ASM-2016",
+    "_createdDaysAgo": 7
   },
   {
     "id": "c-020",
@@ -2211,11 +2229,13 @@
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RafaRadityaCitraland",
     "assessmentCodes": [],
     "assessmentAnswers": [],
-    "invoiceStatus": "unpaid",
+    "invoiceStatus": "paid",
     "createdAt": "2026-02-01T08:30:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 45,
+    "_joinMonthsAgo": 1
   },
   {
     "id": "c-021",
@@ -2236,7 +2256,8 @@
     "createdAt": "2026-02-05T10:00:00Z",
     "serviceTypes": [
       "consult_w_report"
-    ]
+    ],
+    "_createdDaysAgo": 8
   },
   {
     "id": "c-022",
@@ -2257,7 +2278,9 @@
     "createdAt": "2025-10-10T11:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 171,
+    "_joinMonthsAgo": 6
   },
   {
     "id": "c-023",
@@ -2278,7 +2301,8 @@
     "createdAt": "2026-01-14T09:30:00Z",
     "serviceTypes": [
       "consult_wo_report"
-    ]
+    ],
+    "_createdDaysAgo": 47
   },
   {
     "id": "c-024",
@@ -2300,7 +2324,8 @@
     "createdAt": "2026-01-16T14:15:00Z",
     "serviceTypes": [
       "b_ota"
-    ]
+    ],
+    "_createdDaysAgo": 94
   },
   {
     "id": "c-025",
@@ -2422,7 +2447,10 @@
     "createdAt": "2025-11-12T08:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 104,
+    "_joinMonthsAgo": 3,
+    "_birthdayThisMonth": true
   },
   {
     "id": "c-026",
@@ -3617,7 +3645,8 @@
     ],
     "assessmentCategoryId": "cat-001",
     "assessmentAccessCode": "ASM-2012",
-    "assessmentReportNote": "Evaluasi ganda komprehensif (Child Sensory Profile 2: 65 butir & School Companion Profile: 62 butir). Ananda Alea memperlihatkan profil Sensory Sensitivity (SN) dan Low Registration (RG) pada atensi kelas dan pemrosesan instruksi. Di lingkungan sekolah, ananda sering melamun saat instruksi multi-tahap dan mudah terdistraksi suara lorong kelas. Direkomendasikan penyesuaian posisi duduk di baris depan dekat meja guru, instruksi bertahap 1-2 langkah dengan visual checklist, serta latihan integrasi sensori untuk meningkatkan endurance postur duduk."
+    "assessmentReportNote": "Evaluasi ganda komprehensif (Child Sensory Profile 2: 65 butir & School Companion Profile: 62 butir). Ananda Alea memperlihatkan profil Sensory Sensitivity (SN) dan Low Registration (RG) pada atensi kelas dan pemrosesan instruksi. Di lingkungan sekolah, ananda sering melamun saat instruksi multi-tahap dan mudah terdistraksi suara lorong kelas. Direkomendasikan penyesuaian posisi duduk di baris depan dekat meja guru, instruksi bertahap 1-2 langkah dengan visual checklist, serta latihan integrasi sensori untuk meningkatkan endurance postur duduk.",
+    "_createdDaysAgo": 18
   },
   {
     "id": "c-027",
@@ -3634,11 +3663,13 @@
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RevanPutraSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
-    "invoiceStatus": "unpaid",
+    "invoiceStatus": "paid",
     "createdAt": "2026-01-29T13:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 74,
+    "_joinMonthsAgo": 2
   },
   {
     "id": "c-028",
@@ -3655,11 +3686,13 @@
     "gdriveClientLink": "https://drive.google.com/drive/folders/1FionaElysiaSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
-    "invoiceStatus": "paid",
+    "invoiceStatus": "unpaid",
     "createdAt": "2025-09-01T09:00:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 120,
+    "_joinMonthsAgo": 4
   },
   {
     "id": "c-029",
@@ -3689,7 +3722,8 @@
       "f_ota"
     ],
     "assessmentCategoryId": "cat-002",
-    "assessmentAccessCode": "ASM-2017"
+    "assessmentAccessCode": "ASM-2017",
+    "_createdDaysAgo": 7
   },
   {
     "id": "c-030",
@@ -3710,7 +3744,9 @@
     "createdAt": "2025-08-15T08:30:00Z",
     "serviceTypes": [
       "f_ota"
-    ]
+    ],
+    "_createdDaysAgo": 57,
+    "_joinMonthsAgo": 2
   },
   {
     "id": "c-031",
@@ -3731,7 +3767,8 @@
     "createdAt": "2026-02-08T09:15:00Z",
     "serviceTypes": [
       "b_ota"
-    ]
+    ],
+    "_createdDaysAgo": 3
   },
   {
     "id": "c-032",
@@ -3753,6 +3790,1862 @@
     "createdAt": "2026-01-18T16:00:00Z",
     "serviceTypes": [
       "consult_w_report"
-    ]
+    ],
+    "_createdDaysAgo": 80
+  },
+  {
+    "id": "c-033",
+    "clientName": "Nathaniel Aditya",
+    "dob": "2019-06-12",
+    "parentName": "Budi Aditya",
+    "parentContact": "088961923120",
+    "parentEmail": "budi.aditya@gmail.com",
+    "clientAccessCode": "TDC-1010",
+    "branchId": "branch-sby-timur",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1NathanielAdityaTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 175,
+    "_joinMonthsAgo": 6
+  },
+  {
+    "id": "c-034",
+    "clientName": "Queenara Zivanna",
+    "dob": "2023-07-07",
+    "parentName": "Rina Zivanna",
+    "parentContact": "085394463503",
+    "parentEmail": "rina.zivanna@gmail.com",
+    "clientAccessCode": "TDC-1011",
+    "branchId": "branch-sby-timur",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1QueenaraZivannaTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 135,
+    "_joinMonthsAgo": 4
+  },
+  {
+    "id": "c-035",
+    "clientName": "Orlando Pramono",
+    "dob": "2019-12-09",
+    "parentName": "Hadi Pramono",
+    "parentContact": "087725680769",
+    "parentEmail": "hadi.pramono@gmail.com",
+    "clientAccessCode": "TDC-1012",
+    "branchId": "branch-sby-timur",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1OrlandoPramonoTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 186,
+    "_joinMonthsAgo": 6
+  },
+  {
+    "id": "c-036",
+    "clientName": "Salsabila Nur",
+    "dob": "2017-02-27",
+    "parentName": "Dewi Nur",
+    "parentContact": "087626284077",
+    "parentEmail": "dewi.nur@gmail.com",
+    "clientAccessCode": "TDC-1013",
+    "branchId": "branch-sby-timur",
+    "status": "admitted",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1SalsabilaNurTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "_createdDaysAgo": 150,
+    "_joinMonthsAgo": 5
+  },
+  {
+    "id": "c-037",
+    "clientName": "Tristan Mahendra",
+    "dob": "2019-08-22",
+    "parentName": "Agus Mahendra",
+    "parentContact": "089872749331",
+    "parentEmail": "agus.mahendra@gmail.com",
+    "clientAccessCode": "TDC-1014",
+    "branchId": "branch-sby-timur",
+    "status": "inquiry",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "_createdDaysAgo": 7
+  },
+  {
+    "id": "c-038",
+    "clientName": "Vanessa Laurent",
+    "dob": "2019-01-19",
+    "parentName": "Mira Laurent",
+    "parentContact": "085371559127",
+    "parentEmail": "mira.laurent@gmail.com",
+    "clientAccessCode": "TDC-1015",
+    "branchId": "branch-sby-timur",
+    "status": "service_selected",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1VanessaLaurentTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile (School / Classroom Function)",
+        "code": "ASM-4005",
+        "status": "ready"
+      }
+    ],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "assessmentCategoryId": "cat-002",
+    "assessmentAccessCode": "ASM-4005",
+    "_createdDaysAgo": 11
+  },
+  {
+    "id": "c-039",
+    "clientName": "Zidane Alfarizi",
+    "dob": "2023-09-12",
+    "parentName": "Faisal Alfarizi",
+    "parentContact": "087488235707",
+    "parentEmail": "faisal.alfarizi@gmail.com",
+    "clientAccessCode": "TDC-1016",
+    "branchId": "branch-sby-timur",
+    "status": "assessment_scheduled",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1ZidaneAlfariziTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-4006",
+        "status": "ready"
+      }
+    ],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-4006",
+    "_createdDaysAgo": 12
+  },
+  {
+    "id": "c-040",
+    "clientName": "Ghea Anindya",
+    "dob": "2016-09-25",
+    "parentName": "Sari Anindya",
+    "parentContact": "086721327843",
+    "parentEmail": "sari.anindya@gmail.com",
+    "clientAccessCode": "TDC-1017",
+    "branchId": "branch-sby-timur",
+    "status": "assessment_done",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1GheaAnindyaTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-4007",
+        "status": "completed"
+      }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "submittedAt": "2026-08-30T08:12:02.594Z",
+        "answers": [
+          {
+            "questionId": "q-01",
+            "itemNo": 1,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menutup telinga untuk melindunginya dari suara-suara",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-04",
+            "itemNo": 4,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-05",
+            "itemNo": 5,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak memperdulikan saya atau mengabaikan saya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-07",
+            "itemNo": 7,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-08",
+            "itemNo": 8,
+            "quadrant": "RG",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "mendekatkan telinga ke sumber suara (mainan berbunyi, TV, speaker) untuk mendengarkan lebih intens",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-11",
+            "itemNo": 11,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar kontras",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-12",
+            "itemNo": 12,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang melihat detil-detil rumit pada obyek atau terpaku pada roda yang berputar",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "membutuhkan bantuan untuk menemukan benda yang sebenarnya terlihat jelas oleh orang lain",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-14",
+            "itemNo": 14,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-15",
+            "itemNo": 15,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "terpaku melihat orang-orang atau kendaraan yang bergerak aktif di dalam ruangan",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "domain": "Pemrosesan VISUAL",
+            "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "menabrak atau tersandung barang yang berada langsung di jalur pandang jalannya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang memandang pantulan cermin, kilauan lampu senter, atau animasi gadget secara berulang",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-19",
+            "itemNo": 19,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak potong kuku, keramas, cuci muka)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menjadi rewel ketika mengenakan sepatu, label baju kasar, atau kaos kaki berjahitan tebal",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-21",
+            "itemNo": 21,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir basah, atau karpet bertekstur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menyentuh orang atau meraba permukaan benda secara berlebihan hingga mengganggu orang lain",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-23",
+            "itemNo": 23,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-24",
+            "itemNo": 24,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menarik diri atau cemas saat disentuh secara tiba-tiba atau saat dipeluk orang lain",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-25",
+            "itemNo": 25,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "senang mengelus bahan selimut berbulu, permukaan kasar, atau mengusap permukaan dingin",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "bereaksi berlebihan atau menangis keras terhadap luka goresan kecil yang tidak berdarah",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-27",
+            "itemNo": 27,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak mengeluh sakit meskipun mengalami benturan atau memar yang cukup keras",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-29",
+            "itemNo": 29,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-31",
+            "itemNo": 31,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "senang melakukan putaran tubuh berulang-ulang tanpa memperlihatkan rasa pusing",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "takut mencoba alat bermain bergerak di playground seperti ayunan tinggi atau jungkat-jungkit",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-33",
+            "itemNo": 33,
+            "quadrant": "RG",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "tampak lamban dan pasif bergerak dibandingkan anak-anak sebayanya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-34",
+            "itemNo": 34,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mengambil risiko fisik berbahaya seperti melompat dari perabotan tinggi tanpa perhitungan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-35",
+            "itemNo": 35,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencengkeram pegangan tangga atau memegang tangan pendamping dengan sangat erat saat menuruni tangga",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah panik dan kehilangan orientasi tubuh saat posisi kepala berubah cepat ke belakang",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-38",
+            "itemNo": 38,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menggertakkan gigi, meremas mainan terlalu kuat hingga pecah, atau menghentakkan langkah kaki",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-41",
+            "itemNo": 41,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "salah mengira tenaga yang dibutuhkan, menekan alat tulis terlalu pelan atau terlalu tembus kertas",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-42",
+            "itemNo": 42,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "gemar menyelip di ruang sempit (di balik sofa, bawah kasur, atau di antara tumpukan bantal)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-43",
+            "itemNo": 43,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "kesulitan meniru gerakan atau pose fisik sederhana tanpa panduan sentuhan langsung",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "suka membantu mengangkat atau menyeret beban berat (seperti gallon air, tas berat, kardus)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-45",
+            "itemNo": 45,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering tersandung kakinya sendiri atau tampak goyah saat berjalan di permukaan datar",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-46",
+            "itemNo": 46,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "pemilih makanan ekstrem (picky eater), menolak makanan dengan tekstur lembek, berserat, atau bercampur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-47",
+            "itemNo": 47,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "memasukkan benda bukan makanan ke mulut (menggigit kerah baju, pensil, jari tangan, atau mainan)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-48",
+            "itemNo": 48,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mudah tersedak atau muntah (gagging) saat mencoba menu makanan dengan konsistensi baru",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mengunyah makanan di satu sisi mulut saja atau menumpuk makanan di pipi (pocketing) tanpa menelan",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-50",
+            "itemNo": 50,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sangat menyukai makanan yang memiliki rasa tajam (sangat pedas, asam kuat, sangat gurih asin, atau es batu)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak sikat gigi atau mengeluh sakit terhadap sensasi busa dan rasa pasta gigi",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-52",
+            "itemNo": 52,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sering meneteskan air liur (drooling) di luar masa pertumbuhan gigi susu",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-53",
+            "itemNo": 53,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "suka membuat bunyi decak lidah, meniup bibir hingga berbusa, atau mengunyah es batu berulang kali",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak makan bila jenis makanan yang berbeda bersentuhan satu sama lain di piring",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-55",
+            "itemNo": 55,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa, takut, atau marah",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-57",
+            "itemNo": 57,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "enggan melakukan kontak mata selama percakapan berlangsung",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-58",
+            "itemNo": 58,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mudah kewalahan (sensory overload) dan rewel di tempat ramai seperti pusat perbelanjaan atau pesta",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "tampak melamun atau lamban menyadari bahwa orang di sekitarnya sedang berinteraksi dengannya",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-60",
+            "itemNo": 60,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "bertindak impulsif dan kesulitan menunggu giliran saat bermain bersama",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-61",
+            "itemNo": 61,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "menolak mencoba aktivitas atau permainan baru yang belum pernah dilihat sebelumnya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "suasana hati mudah berubah drastis tanpa pemicu yang tampak jelas oleh keluarga",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-63",
+            "itemNo": 63,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mencari kontak fisik berlebih (memeluk orang asing secara erat tanpa batasan sosial)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-64",
+            "itemNo": 64,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memerlukan instruksi dipanggil berulang kali untuk menyadari bahwa dirinya diajak bicara",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-65",
+            "itemNo": 65,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memilih mengisolasi diri ke tempat sepi saat suara atau suasana rumah mulai ramai",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          }
+        ]
+      }
+    ],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-4007",
+    "_createdDaysAgo": 31
+  },
+  {
+    "id": "c-041",
+    "clientName": "Hanif Ramadhan",
+    "dob": "2021-06-20",
+    "parentName": "Yusuf Ramadhan",
+    "parentContact": "088838242177",
+    "parentEmail": "yusuf.ramadhan@gmail.com",
+    "clientAccessCode": "TDC-1018",
+    "branchId": "branch-sby-timur",
+    "status": "discharged",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1HanifRamadhanTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "dischargeReason": "graduate",
+    "_createdDaysAgo": 221,
+    "_joinMonthsAgo": 8,
+    "_dischargeMonthsAgo": 2
+  },
+  {
+    "id": "c-042",
+    "clientName": "Bryan Setiawan",
+    "dob": "2018-12-22",
+    "parentName": "Hendri Setiawan",
+    "parentContact": "089285640933",
+    "parentEmail": "hendri.setiawan@gmail.com",
+    "clientAccessCode": "TDC-2010",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1BryanSetiawanTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "_createdDaysAgo": 110,
+    "_joinMonthsAgo": 3
+  },
+  {
+    "id": "c-043",
+    "clientName": "Chika Amelia",
+    "dob": "2022-01-21",
+    "parentName": "Lina Amelia",
+    "parentContact": "083982728718",
+    "parentEmail": "lina.amelia@gmail.com",
+    "clientAccessCode": "TDC-2011",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1ChikaAmeliaTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 131,
+    "_joinMonthsAgo": 4
+  },
+  {
+    "id": "c-044",
+    "clientName": "Dewangga Putra",
+    "dob": "2021-08-10",
+    "parentName": "Rudi Putra",
+    "parentContact": "084863535053",
+    "parentEmail": "rudi.putra@gmail.com",
+    "clientAccessCode": "TDC-2012",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1DewanggaPutraTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 31,
+    "_joinMonthsAgo": 1
+  },
+  {
+    "id": "c-045",
+    "clientName": "Evelyn Tanoto",
+    "dob": "2023-11-04",
+    "parentName": "Susan Tanoto",
+    "parentContact": "086972855922",
+    "parentEmail": "susan.tanoto@gmail.com",
+    "clientAccessCode": "TDC-2013",
+    "branchId": "branch-citraland",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1EvelynTanotoTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota",
+      "school_companion"
+    ],
+    "_createdDaysAgo": 174,
+    "_joinMonthsAgo": 6
+  },
+  {
+    "id": "c-046",
+    "clientName": "Farrel Hakim",
+    "dob": "2018-01-13",
+    "parentName": "Rizal Hakim",
+    "parentContact": "089921925473",
+    "parentEmail": "rizal.hakim@gmail.com",
+    "clientAccessCode": "TDC-2014",
+    "branchId": "branch-citraland",
+    "status": "inquiry",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "_createdDaysAgo": 2
+  },
+  {
+    "id": "c-047",
+    "clientName": "Gladys Maharani",
+    "dob": "2023-11-04",
+    "parentName": "Tuti Maharani",
+    "parentContact": "082254608424",
+    "parentEmail": "tuti.maharani@gmail.com",
+    "clientAccessCode": "TDC-2015",
+    "branchId": "branch-citraland",
+    "status": "service_selected",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1GladysMaharaniTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile (School / Classroom Function)",
+        "code": "ASM-4014",
+        "status": "ready"
+      }
+    ],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "assessmentCategoryId": "cat-002",
+    "assessmentAccessCode": "ASM-4014",
+    "_createdDaysAgo": 13
+  },
+  {
+    "id": "c-048",
+    "clientName": "Harvey Wijaya",
+    "dob": "2016-11-27",
+    "parentName": "Johan Wijaya",
+    "parentContact": "083224472079",
+    "parentEmail": "johan.wijaya@gmail.com",
+    "clientAccessCode": "TDC-2016",
+    "branchId": "branch-citraland",
+    "status": "assessment_scheduled",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1HarveyWijayaTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-4015",
+        "status": "ready"
+      }
+    ],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-4015",
+    "_createdDaysAgo": 15
+  },
+  {
+    "id": "c-049",
+    "clientName": "Isabella Sutanto",
+    "dob": "2017-10-01",
+    "parentName": "Meiliana Sutanto",
+    "parentContact": "082076939588",
+    "parentEmail": "meiliana.sutanto@gmail.com",
+    "clientAccessCode": "TDC-2017",
+    "branchId": "branch-citraland",
+    "status": "done_consult",
+    "serviceType": "consult_w_report",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1IsabellaSutantoTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "code": "ASM-4016",
+        "status": "completed"
+      }
+    ],
+    "assessmentAnswers": [
+      {
+        "categoryId": "cat-001",
+        "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
+        "submittedAt": "2026-08-30T08:12:02.594Z",
+        "answers": [
+          {
+            "questionId": "q-01",
+            "itemNo": 1,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-02",
+            "itemNo": 2,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menutup telinga untuk melindunginya dari suara-suara",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-03",
+            "itemNo": 3,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-04",
+            "itemNo": 4,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-05",
+            "itemNo": 5,
+            "quadrant": "AV",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-06",
+            "itemNo": 6,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak memperdulikan saya atau mengabaikan saya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-07",
+            "itemNo": 7,
+            "quadrant": "SN",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-08",
+            "itemNo": 8,
+            "quadrant": "RG",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-09",
+            "itemNo": 9,
+            "quadrant": "SK",
+            "domain": "Pemrosesan AUDITORI",
+            "question": "mendekatkan telinga ke sumber suara (mainan berbunyi, TV, speaker) untuk mendengarkan lebih intens",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-10",
+            "itemNo": 10,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-11",
+            "itemNo": 11,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar kontras",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-12",
+            "itemNo": 12,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang melihat detil-detil rumit pada obyek atau terpaku pada roda yang berputar",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-13",
+            "itemNo": 13,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "membutuhkan bantuan untuk menemukan benda yang sebenarnya terlihat jelas oleh orang lain",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-14",
+            "itemNo": 14,
+            "quadrant": "SN",
+            "domain": "Pemrosesan VISUAL",
+            "question": "lebih terganggu dengan cahaya terang daripada anak lain seusianya",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-15",
+            "itemNo": 15,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "terpaku melihat orang-orang atau kendaraan yang bergerak aktif di dalam ruangan",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-16",
+            "itemNo": 16,
+            "quadrant": "AV",
+            "domain": "Pemrosesan VISUAL",
+            "question": "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-17",
+            "itemNo": 17,
+            "quadrant": "RG",
+            "domain": "Pemrosesan VISUAL",
+            "question": "menabrak atau tersandung barang yang berada langsung di jalur pandang jalannya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-18",
+            "itemNo": 18,
+            "quadrant": "SK",
+            "domain": "Pemrosesan VISUAL",
+            "question": "senang memandang pantulan cermin, kilauan lampu senter, atau animasi gadget secara berulang",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-19",
+            "itemNo": 19,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak potong kuku, keramas, cuci muka)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-20",
+            "itemNo": 20,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menjadi rewel ketika mengenakan sepatu, label baju kasar, atau kaos kaki berjahitan tebal",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-21",
+            "itemNo": 21,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menolak berjalan tanpa alas kaki di atas rumput, pasir basah, atau karpet bertekstur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-22",
+            "itemNo": 22,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menyentuh orang atau meraba permukaan benda secara berlebihan hingga mengganggu orang lain",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-23",
+            "itemNo": 23,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-24",
+            "itemNo": 24,
+            "quadrant": "AV",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "menarik diri atau cemas saat disentuh secara tiba-tiba atau saat dipeluk orang lain",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-25",
+            "itemNo": 25,
+            "quadrant": "SK",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "senang mengelus bahan selimut berbulu, permukaan kasar, atau mengusap permukaan dingin",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-26",
+            "itemNo": 26,
+            "quadrant": "SN",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "bereaksi berlebihan atau menangis keras terhadap luka goresan kecil yang tidak berdarah",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-27",
+            "itemNo": 27,
+            "quadrant": "RG",
+            "domain": "Pemrosesan SENTUHAN / TAKTIL",
+            "question": "tidak mengeluh sakit meskipun mengalami benturan atau memar yang cukup keras",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-28",
+            "itemNo": 28,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-29",
+            "itemNo": 29,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-30",
+            "itemNo": 30,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah pusing, mual, atau mabuk kendaraan saat bepergian",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-31",
+            "itemNo": 31,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "senang melakukan putaran tubuh berulang-ulang tanpa memperlihatkan rasa pusing",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-32",
+            "itemNo": 32,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "takut mencoba alat bermain bergerak di playground seperti ayunan tinggi atau jungkat-jungkit",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-33",
+            "itemNo": 33,
+            "quadrant": "RG",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "tampak lamban dan pasif bergerak dibandingkan anak-anak sebayanya",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-34",
+            "itemNo": 34,
+            "quadrant": "SK",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mengambil risiko fisik berbahaya seperti melompat dari perabotan tinggi tanpa perhitungan",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-35",
+            "itemNo": 35,
+            "quadrant": "AV",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mencengkeram pegangan tangga atau memegang tangan pendamping dengan sangat erat saat menuruni tangga",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-36",
+            "itemNo": 36,
+            "quadrant": "SN",
+            "domain": "Pemrosesan GERAKAN / VESTIBULAR",
+            "question": "mudah panik dan kehilangan orientasi tubuh saat posisi kepala berubah cepat ke belakang",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-37",
+            "itemNo": 37,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-38",
+            "itemNo": 38,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-39",
+            "itemNo": 39,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-40",
+            "itemNo": 40,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "menggertakkan gigi, meremas mainan terlalu kuat hingga pecah, atau menghentakkan langkah kaki",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-41",
+            "itemNo": 41,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "salah mengira tenaga yang dibutuhkan, menekan alat tulis terlalu pelan atau terlalu tembus kertas",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-42",
+            "itemNo": 42,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "gemar menyelip di ruang sempit (di balik sofa, bawah kasur, atau di antara tumpukan bantal)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-43",
+            "itemNo": 43,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "kesulitan meniru gerakan atau pose fisik sederhana tanpa panduan sentuhan langsung",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-44",
+            "itemNo": 44,
+            "quadrant": "SK",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "suka membantu mengangkat atau menyeret beban berat (seperti gallon air, tas berat, kardus)",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-45",
+            "itemNo": 45,
+            "quadrant": "RG",
+            "domain": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
+            "question": "sering tersandung kakinya sendiri atau tampak goyah saat berjalan di permukaan datar",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-46",
+            "itemNo": 46,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "pemilih makanan ekstrem (picky eater), menolak makanan dengan tekstur lembek, berserat, atau bercampur",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-47",
+            "itemNo": 47,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "memasukkan benda bukan makanan ke mulut (menggigit kerah baju, pensil, jari tangan, atau mainan)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-48",
+            "itemNo": 48,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mudah tersedak atau muntah (gagging) saat mencoba menu makanan dengan konsistensi baru",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-49",
+            "itemNo": 49,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "mengunyah makanan di satu sisi mulut saja atau menumpuk makanan di pipi (pocketing) tanpa menelan",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-50",
+            "itemNo": 50,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sangat menyukai makanan yang memiliki rasa tajam (sangat pedas, asam kuat, sangat gurih asin, atau es batu)",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-51",
+            "itemNo": 51,
+            "quadrant": "AV",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak sikat gigi atau mengeluh sakit terhadap sensasi busa dan rasa pasta gigi",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-52",
+            "itemNo": 52,
+            "quadrant": "RG",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "sering meneteskan air liur (drooling) di luar masa pertumbuhan gigi susu",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-53",
+            "itemNo": 53,
+            "quadrant": "SK",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "suka membuat bunyi decak lidah, meniup bibir hingga berbusa, atau mengunyah es batu berulang kali",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-54",
+            "itemNo": 54,
+            "quadrant": "SN",
+            "domain": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
+            "question": "menolak makan bila jenis makanan yang berbeda bersentuhan satu sama lain di piring",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-55",
+            "itemNo": 55,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-56",
+            "itemNo": 56,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa, takut, atau marah",
+            "answer": "3 - Sebagian waktu / Kadang (50% setiap waktu)",
+            "score": 3
+          },
+          {
+            "questionId": "q-57",
+            "itemNo": 57,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "enggan melakukan kontak mata selama percakapan berlangsung",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-58",
+            "itemNo": 58,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mudah kewalahan (sensory overload) dan rewel di tempat ramai seperti pusat perbelanjaan atau pesta",
+            "answer": "2 - Terkadang / Jarang (25% setiap waktu)",
+            "score": 2
+          },
+          {
+            "questionId": "q-59",
+            "itemNo": 59,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "tampak melamun atau lamban menyadari bahwa orang di sekitarnya sedang berinteraksi dengannya",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-60",
+            "itemNo": 60,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "bertindak impulsif dan kesulitan menunggu giliran saat bermain bersama",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-61",
+            "itemNo": 61,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "menolak mencoba aktivitas atau permainan baru yang belum pernah dilihat sebelumnya",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-62",
+            "itemNo": 62,
+            "quadrant": "SN",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "suasana hati mudah berubah drastis tanpa pemicu yang tampak jelas oleh keluarga",
+            "answer": "4 - Selalu / Sering (75% setiap waktu)",
+            "score": 4
+          },
+          {
+            "questionId": "q-63",
+            "itemNo": 63,
+            "quadrant": "SK",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "mencari kontak fisik berlebih (memeluk orang asing secara erat tanpa batasan sosial)",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          },
+          {
+            "questionId": "q-64",
+            "itemNo": 64,
+            "quadrant": "RG",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memerlukan instruksi dipanggil berulang kali untuk menyadari bahwa dirinya diajak bicara",
+            "answer": "1 - Hampir tidak pernah (10% setiap waktu)",
+            "score": 1
+          },
+          {
+            "questionId": "q-65",
+            "itemNo": 65,
+            "quadrant": "AV",
+            "domain": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
+            "question": "memilih mengisolasi diri ke tempat sepi saat suara atau suasana rumah mulai ramai",
+            "answer": "5 - Hampir selalu (90% atau lebih setiap waktu)",
+            "score": 5
+          }
+        ]
+      }
+    ],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "consult_w_report"
+    ],
+    "assessmentCategoryId": "cat-001",
+    "assessmentAccessCode": "ASM-4016",
+    "_createdDaysAgo": 48
+  },
+  {
+    "id": "c-050",
+    "clientName": "Joshua Kurniawan",
+    "dob": "2019-01-23",
+    "parentName": "Andi Kurniawan",
+    "parentContact": "085170280526",
+    "parentEmail": "andi.kurniawan@gmail.com",
+    "clientAccessCode": "TDC-2018",
+    "branchId": "branch-citraland",
+    "status": "discharged",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1JoshuaKurniawanTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota",
+      "school_companion"
+    ],
+    "dischargeReason": "financial",
+    "_createdDaysAgo": 213,
+    "_joinMonthsAgo": 8,
+    "_dischargeMonthsAgo": 1
+  },
+  {
+    "id": "c-051",
+    "clientName": "Kayla Safira",
+    "dob": "2019-05-12",
+    "parentName": "Dian Safira",
+    "parentContact": "087741185615",
+    "parentEmail": "dian.safira@gmail.com",
+    "clientAccessCode": "TDC-3010",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1KaylaSafiraTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 96,
+    "_joinMonthsAgo": 3
+  },
+  {
+    "id": "c-052",
+    "clientName": "Louis Hartono",
+    "dob": "2018-12-03",
+    "parentName": "Eko Hartono",
+    "parentContact": "084417109379",
+    "parentEmail": "eko.hartono@gmail.com",
+    "clientAccessCode": "TDC-3011",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1LouisHartonoTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 67,
+    "_joinMonthsAgo": 2,
+    "_birthdayThisMonth": true
+  },
+  {
+    "id": "c-053",
+    "clientName": "Maheswari Ayu",
+    "dob": "2023-03-18",
+    "parentName": "Wulan Ayu",
+    "parentContact": "081995427114",
+    "parentEmail": "wulan.ayu@gmail.com",
+    "clientAccessCode": "TDC-3012",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1MaheswariAyuTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 140,
+    "_joinMonthsAgo": 4,
+    "_birthdayThisMonth": true
+  },
+  {
+    "id": "c-054",
+    "clientName": "Nicholas Gunadi",
+    "dob": "2017-06-24",
+    "parentName": "Steven Gunadi",
+    "parentContact": "082156154978",
+    "parentEmail": "steven.gunadi@gmail.com",
+    "clientAccessCode": "TDC-3013",
+    "branchId": "branch-sby-barat",
+    "status": "admitted",
+    "serviceType": "b_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1NicholasGunadiTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "paid",
+    "serviceTypes": [
+      "b_ota"
+    ],
+    "_createdDaysAgo": 133,
+    "_joinMonthsAgo": 4
+  },
+  {
+    "id": "c-055",
+    "clientName": "Olivia Prasetyo",
+    "dob": "2018-01-13",
+    "parentName": "Retno Prasetyo",
+    "parentContact": "085372315835",
+    "parentEmail": "retno.prasetyo@gmail.com",
+    "clientAccessCode": "TDC-3014",
+    "branchId": "branch-sby-barat",
+    "status": "inquiry",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": false,
+    "gdriveClientLink": "",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota"
+    ],
+    "_createdDaysAgo": 6
+  },
+  {
+    "id": "c-056",
+    "clientName": "Pandu Wibowo",
+    "dob": "2021-11-19",
+    "parentName": "Slamet Wibowo",
+    "parentContact": "089505919844",
+    "parentEmail": "slamet.wibowo@gmail.com",
+    "clientAccessCode": "TDC-3015",
+    "branchId": "branch-sby-barat",
+    "status": "service_selected",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1PanduWibowoTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile (School / Classroom Function)",
+        "code": "ASM-4023",
+        "status": "ready"
+      }
+    ],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota",
+      "school_companion"
+    ],
+    "assessmentCategoryId": "cat-002",
+    "assessmentAccessCode": "ASM-4023",
+    "_createdDaysAgo": 9
+  },
+  {
+    "id": "c-057",
+    "clientName": "Qiana Rahmawati",
+    "dob": "2021-07-01",
+    "parentName": "Siti Rahmawati",
+    "parentContact": "082547214271",
+    "parentEmail": "siti.rahmawati@gmail.com",
+    "clientAccessCode": "TDC-3016",
+    "branchId": "branch-sby-barat",
+    "status": "assessment_scheduled",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1QianaRahmawatiTherapedia",
+    "assessmentCodes": [
+      {
+        "categoryId": "cat-002",
+        "categoryName": "School Companion Profile (School / Classroom Function)",
+        "code": "ASM-4024",
+        "status": "ready"
+      }
+    ],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota",
+      "school_companion"
+    ],
+    "assessmentCategoryId": "cat-002",
+    "assessmentAccessCode": "ASM-4024",
+    "_createdDaysAgo": 14
+  },
+  {
+    "id": "c-058",
+    "clientName": "Rafael Susanto",
+    "dob": "2021-04-10",
+    "parentName": "Dedi Susanto",
+    "parentContact": "080743080698",
+    "parentEmail": "dedi.susanto@gmail.com",
+    "clientAccessCode": "TDC-3017",
+    "branchId": "branch-sby-barat",
+    "status": "discontinued",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1RafaelSusantoTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota",
+      "school_companion"
+    ],
+    "notes": "Orang tua memilih menunda asesmen karena jadwal bentrok dengan sekolah.",
+    "_createdDaysAgo": 114
+  },
+  {
+    "id": "c-059",
+    "clientName": "Samuel Tjahjadi",
+    "dob": "2016-01-27",
+    "parentName": "Alex Tjahjadi",
+    "parentContact": "081173559220",
+    "parentEmail": "alex.tjahjadi@gmail.com",
+    "clientAccessCode": "TDC-3018",
+    "branchId": "branch-sby-barat",
+    "status": "discharged",
+    "serviceType": "f_ota",
+    "includesSchoolCompanion": true,
+    "gdriveClientLink": "https://drive.google.com/drive/folders/1SamuelTjahjadiTherapedia",
+    "assessmentCodes": [],
+    "assessmentAnswers": [],
+    "invoiceStatus": "unpaid",
+    "serviceTypes": [
+      "f_ota",
+      "school_companion"
+    ],
+    "dischargeReason": "graduate",
+    "_createdDaysAgo": 200,
+    "_joinMonthsAgo": 8,
+    "_dischargeMonthsAgo": 2
   }
 ]

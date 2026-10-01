@@ -1,18 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-  FileText,
-  BookOpen,
-  StickyNote,
-  Home,
-  CheckCircle2,
-  Sparkles,
-  Clock,
-  User,
-  Calendar,
-  X,
-  Stethoscope
-} from "lucide-react";
+import { BookOpen, StickyNote, Home, CheckCircle2, Sparkles, Clock, Calendar, Stethoscope } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useClients } from "@/context/ClientsContext";
 import { fmtDate } from "@/lib/appUtils";
-import { cn } from "@/lib/utils";
 
 const STARTER_TEMPLATES = [
   {
@@ -130,12 +117,12 @@ export function SessionReportModal({ schedule, open, onOpenChange }) {
                   Dokumentasi Klinis Terapis
                 </span>
                 {filledCount === 3 ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     Lengkap (3/3)
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                     {filledCount}/3 Bagian Terisi
                   </span>
                 )}
@@ -192,9 +179,9 @@ export function SessionReportModal({ schedule, open, onOpenChange }) {
                 1. Activity Section (Aktivitas Klinis Sesi)
               </span>
               {activitySection.trim() ? (
-                <span className="text-[10px] font-bold text-emerald-600">✓ Terisi</span>
+                <span className="text-[11px] font-bold text-emerald-600">✓ Terisi</span>
               ) : (
-                <span className="text-[10px] font-medium text-slate-400">Belum diisi</span>
+                <span className="text-[11px] font-medium text-slate-400">Belum diisi</span>
               )}
             </Label>
             <Textarea
@@ -214,9 +201,9 @@ export function SessionReportModal({ schedule, open, onOpenChange }) {
                 2. Note Section (Catatan Evaluasi & Observasi Terapis)
               </span>
               {noteSection.trim() ? (
-                <span className="text-[10px] font-bold text-emerald-600">✓ Terisi</span>
+                <span className="text-[11px] font-bold text-emerald-600">✓ Terisi</span>
               ) : (
-                <span className="text-[10px] font-medium text-slate-400">Belum diisi</span>
+                <span className="text-[11px] font-medium text-slate-400">Belum diisi</span>
               )}
             </Label>
             <Textarea
@@ -236,9 +223,9 @@ export function SessionReportModal({ schedule, open, onOpenChange }) {
                 3. Homework Section (Panduan Latihan Rumah untuk Ortu)
               </span>
               {homeworkSection.trim() ? (
-                <span className="text-[10px] font-bold text-emerald-600">✓ Terisi</span>
+                <span className="text-[11px] font-bold text-emerald-600">✓ Terisi</span>
               ) : (
-                <span className="text-[10px] font-medium text-slate-400">Belum diisi</span>
+                <span className="text-[11px] font-medium text-slate-400">Belum diisi</span>
               )}
             </Label>
             <Textarea
@@ -254,14 +241,14 @@ export function SessionReportModal({ schedule, open, onOpenChange }) {
             <Button
               type="button"
               variant="outline"
-              className="rounded-xl text-xs"
+              className=""
               onClick={() => onOpenChange(false)}
             >
               Batal
             </Button>
             <Button
               type="submit"
-              className="bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold px-5"
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5"
               data-testid="btn-save-session-report"
             >
               Simpan Laporan Sesi
