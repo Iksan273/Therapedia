@@ -39,8 +39,8 @@ import {
   calcAge,
   fmtDate,
   makeInquiryClient,
-  CLINICAL_SERVICES,
 } from "@/lib/appUtils";
+import { useMasterData } from "@/context/MasterDataContext";
 import { cn } from "@/lib/utils";
 
 const STAGE_COLUMNS = [
@@ -57,6 +57,7 @@ const STAGE_COLUMNS = [
 export default function InquiryPipeline() {
   const navigate = useNavigate();
   const { clients, addClient } = useClients();
+  const { getService } = useMasterData();
   const { activeBranch, auth } = useAuth();
   const isMaster = auth?.role === "master";
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
@@ -285,18 +286,13 @@ export default function InquiryPipeline() {
                               📍 {br ? br.name : "Surabaya"}
                             </span>
                             {((c.serviceTypes && c.serviceTypes.length > 0) ? c.serviceTypes : (c.serviceType ? [c.serviceType] : [])).map((st) => {
-                              const srv = CLINICAL_SERVICES.find((s) => s.value === st);
+                              const srv = getService(st);
                               return (
                                 <span key={st} className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
                                   {srv?.shortLabel || st}
                                 </span>
                               );
                             })}
-                            {c.hasSchoolCompanionProfile && (
-                              <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
-                                + School Profile
-                              </span>
-                            )}
                             {c.gdriveClientLink && (
                               <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded-md border border-sky-200 flex items-center gap-1">
                                 <ExternalLink className="w-2.5 h-2.5" /> GDrive

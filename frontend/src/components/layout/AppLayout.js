@@ -27,7 +27,8 @@ import {
   Minimize2,
   Expand,
   Shrink,
-  FileCheck2
+  FileCheck2,
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -58,6 +59,7 @@ const NAV_CONFIG = {
       { to: "/master/branch-performance", label: "Performa Inquiry All-Branch", icon: BarChart3, testid: "nav-master-branch-performance" },
       { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, testid: "nav-master-inquiry-dashboard" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "nav-master-pipeline" },
+      { to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, testid: "nav-master-inquiry-master-data" },
       { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, testid: "nav-master-calendar" },
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "nav-master-clients" },
       { to: "/finance", label: "Finance & Invoices", icon: Receipt, testid: "nav-master-finance" },
@@ -89,6 +91,7 @@ const NAV_CONFIG = {
       { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, end: true, testid: "nav-inquiry-dashboard" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, testid: "nav-inquiry-pipeline" },
       { to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, testid: "nav-assessment-master" },
+      { to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, testid: "nav-inquiry-master-data" },
     ],
     extras: [
       { to: "/assessment", label: "Parent Questionnaire Portal", icon: FileQuestion, testid: "nav-assessment-fill" },

@@ -1,9 +1,14 @@
 import React from "react";
 import { STATUS_META, CONCERN_TAGS } from "@/lib/appUtils";
+import { useMasterData } from "@/context/MasterDataContext";
 import { cn } from "@/lib/utils";
 
 export const StatusBadge = ({ status, showDot = true, className, ...props }) => {
-  const meta = STATUS_META[status] || { label: status || "—", cls: "bg-slate-100 text-slate-700 border border-slate-200" };
+  const masterData = useMasterData();
+  const service = masterData?.getService(status);
+  const base = STATUS_META[status] || { label: status || "—", cls: "bg-slate-100 text-slate-700 border border-slate-200" };
+  // Label layanan mengikuti master data agar hasil edit langsung terlihat
+  const meta = service ? { ...base, label: service.shortLabel || service.label } : base;
   return (
     <span
       className={cn(

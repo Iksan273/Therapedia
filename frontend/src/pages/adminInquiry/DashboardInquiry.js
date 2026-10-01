@@ -54,9 +54,9 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { useClients } from "@/context/ClientsContext";
 import { useAssessments } from "@/context/AssessmentsContext";
 import { useAuth } from "@/context/AuthContext";
+import { useMasterData } from "@/context/MasterDataContext";
 import {
   BRANCHES,
-  CLINICAL_SERVICES,
   PIPELINE_STATUSES,
   STATUS_META,
   fmtDate,
@@ -71,6 +71,7 @@ export default function DashboardInquiry() {
   const navigate = useNavigate();
   const { clients } = useClients();
   const { categories, getCategory } = useAssessments();
+  const { services, activeServices, getService } = useMasterData();
   const { activeBranch, auth } = useAuth();
 
   const isMaster = auth?.role === "master";
@@ -190,7 +191,7 @@ export default function DashboardInquiry() {
   // Service distribution chart data
   const serviceDistributionData = useMemo(() => {
     const counts = {};
-    CLINICAL_SERVICES.forEach((s) => {
+    services.forEach((s) => {
       counts[s.value] = 0;
     });
 
@@ -199,13 +200,13 @@ export default function DashboardInquiry() {
       counts[st] = (counts[st] || 0) + 1;
     });
 
-    return CLINICAL_SERVICES.map((s, idx) => ({
+    return services.map((s, idx) => ({
       name: s.shortLabel,
       fullName: s.label,
       value: counts[s.value] || 0,
       color: CHART_COLORS[idx % CHART_COLORS.length],
     })).filter((item) => item.value > 0);
-  }, [filteredClients]);
+  }, [filteredClients, services]);
 
   // Monthly intake trends (last 6 months)
   const monthlyIntakeTrends = useMemo(() => {
@@ -349,7 +350,7 @@ export default function DashboardInquiry() {
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
                   <SelectItem value="all">Semua Layanan</SelectItem>
-                  {CLINICAL_SERVICES.map((s) => (
+                  {activeServices.map((s) => (
                     <SelectItem key={s.value} value={s.value}>
                       {s.label}
                     </SelectItem>
@@ -662,7 +663,7 @@ export default function DashboardInquiry() {
                   <TableBody>
                     {awaitingQuestionnaires.map((c) => {
                       const br = BRANCHES.find((b) => b.id === c.branchId);
-                      const svc = CLINICAL_SERVICES.find((s) => s.value === c.serviceType);
+                      const svc = getService(c.serviceType);
                       const codes = (c.assessmentCodes || []).map((i) => i.code).join(", ") || c.assessmentAccessCode || "—";
 
                       return (
@@ -764,7 +765,7 @@ export default function DashboardInquiry() {
                   <TableBody>
                     {searchedRoster.map((c) => {
                       const br = BRANCHES.find((b) => b.id === c.branchId);
-                      const svc = CLINICAL_SERVICES.find((s) => s.value === c.serviceType);
+                      const svc = getService(c.serviceType);
 
                       return (
                         <TableRow key={c.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs">

@@ -25,33 +25,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useClients } from "@/context/ClientsContext";
 import { useAssessments } from "@/context/AssessmentsContext";
+import { useMasterData, getQuadrantColor } from "@/context/MasterDataContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { fmtDate, calcAgeDetailed, BRANCHES } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
-
-// Standard Clinical Quadrant Badges
-const QUADRANT_STYLES = {
-  AV: {
-    label: "AV",
-    name: "Avoiding (Penghindar Sensori)",
-    badge: "bg-blue-600 text-white font-black",
-  },
-  SN: {
-    label: "SN",
-    name: "Sensory Sensitivity (Sensitivitas Tinggi)",
-    badge: "bg-lime-600 text-white font-black",
-  },
-  RG: {
-    label: "RG",
-    name: "Low Registration (Pendaftaran Rendah)",
-    badge: "bg-pink-600 text-white font-black",
-  },
-  SK: {
-    label: "SK",
-    name: "Sensory Seeking (Pencari Sensori)",
-    badge: "bg-amber-500 text-white font-black",
-  },
-};
 
 // Fallback Default Clinical Profile Sections & Questions if client answer list is flat
 const DEFAULT_SENSORY_PROFILE_SECTIONS = [
@@ -194,6 +171,13 @@ export default function ParentAssessmentView() {
   const navigate = useNavigate();
   const { getClient } = useClients();
   const { categories } = useAssessments();
+  const { quadrantMap } = useMasterData();
+
+  // Gaya badge kuadran mengikuti master data; kode yang sudah tidak ada memakai abu-abu
+  const quadStyle = (code, fallback = "bg-slate-600 text-white font-bold") => {
+    const q = quadrantMap[code];
+    return { badge: q ? getQuadrantColor(q.color).solid : fallback };
+  };
   const { therapists } = useTherapists();
 
   // Selected questionnaire tab
@@ -704,7 +688,7 @@ export default function ParentAssessmentView() {
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {sec.items.map((it) => {
-                        const quad = QUADRANT_STYLES[it.quadrant] || { badge: "bg-slate-600 text-white font-bold" };
+                        const quad = quadStyle(it.quadrant);
                         return (
                           <tr key={it.itemNo} className="hover:bg-slate-50/70 transition-colors print-avoid-break">
                             <td className="py-2 px-2 sm:px-3 text-center">
@@ -831,7 +815,7 @@ export default function ParentAssessmentView() {
               </TableHeader>
               <TableBody>
                 {displayedSections.flatMap((sec) => sec.items).map((it, idx) => {
-                  const quad = QUADRANT_STYLES[it.quadrant] || { badge: "bg-slate-500 text-white" };
+                  const quad = quadStyle(it.quadrant, "bg-slate-500 text-white");
                   return (
                     <TableRow key={it.itemNo || idx} className="text-xs hover:bg-slate-50">
                       <TableCell className="font-bold pl-4 text-slate-500">{it.itemNo}</TableCell>

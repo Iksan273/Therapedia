@@ -50,8 +50,8 @@ import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
 import { useAssessments } from "@/context/AssessmentsContext";
 import { useTherapists } from "@/context/TherapistsContext";
+import { useMasterData } from "@/context/MasterDataContext";
 import {
-  CLINICAL_SERVICES,
   BRANCHES,
   calcAge,
   fmtDate,
@@ -68,6 +68,7 @@ export default function ClientDetailInquiry() {
   const { schedules } = useSchedules();
   const { getInvoicesForClient, addRecord, getRecordForClient } = useCredits();
   const { categories } = useAssessments();
+  const { services, getService } = useMasterData();
   const { getTherapist } = useTherapists();
 
   const client = clients.find((c) => c.id === id);
@@ -176,25 +177,12 @@ export default function ClientDetailInquiry() {
       ? current.filter((s) => s !== serviceValue)
       : [...current, serviceValue];
 
-    const allowsSchool = next.some((s) => {
-      const found = CLINICAL_SERVICES.find((cs) => cs.value === s);
-      return found?.allowsSchoolCompanion;
-    });
-
     updateClient(client.id, {
       serviceTypes: next,
       serviceType: next[0] || "",
-      hasSchoolCompanionProfile: allowsSchool ? client.hasSchoolCompanionProfile : false,
       status: next.length > 0 && client.status === "inquiry" ? "service_selected" : client.status,
     });
     toast.success(next.includes(serviceValue) ? "Layanan klinis ditambahkan." : "Layanan klinis dibatalkan.");
-  };
-
-  const handleToggleSchoolCompanion = (checked) => {
-    updateClient(client.id, {
-      hasSchoolCompanionProfile: Boolean(checked),
-    });
-    toast.success(checked ? "School Companion Profile diaktifkan." : "School Companion Profile dinonaktifkan.");
   };
 
   // STEP 3: Generate Multi-Questionnaire Code
@@ -520,7 +508,7 @@ export default function ClientDetailInquiry() {
             {selectedServices.length > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {selectedServices.map((val) => {
-                  const srv = CLINICAL_SERVICES.find((s) => s.value === val);
+                  const srv = getService(val);
                   return (
                     <span
                       key={val}
@@ -539,7 +527,7 @@ export default function ClientDetailInquiry() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {CLINICAL_SERVICES.map((srv) => {
+              {services.filter((s) => s.active !== false || selectedServices.includes(s.value)).map((srv) => {
                 const isSelected = selectedServices.includes(srv.value);
                 return (
                   <div
@@ -571,7 +559,7 @@ export default function ClientDetailInquiry() {
                           )}
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                          {srv.description || (srv.allowsSchoolCompanion ? "Mendukung tambahan School Companion Profile" : "Layanan Klinis Intake")}
+                          {srv.description || "Layanan Klinis Intake"}
                         </p>
                       </div>
                     </div>

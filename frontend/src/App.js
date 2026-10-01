@@ -7,6 +7,7 @@ import { TherapistsProvider } from "@/context/TherapistsContext";
 import { SchedulesProvider } from "@/context/SchedulesContext";
 import { CreditsProvider } from "@/context/CreditsContext";
 import { AssessmentsProvider } from "@/context/AssessmentsContext";
+import { MasterDataProvider } from "@/context/MasterDataContext";
 import AppLayout from "@/components/layout/AppLayout";
 import Welcome from "@/pages/Welcome";
 import Home from "@/pages/Home";
@@ -17,6 +18,7 @@ import DashboardInquiry from "@/pages/adminInquiry/DashboardInquiry";
 import InquiryPipeline from "@/pages/adminInquiry/InquiryPipeline";
 import ClientDetailInquiry from "@/pages/adminInquiry/ClientDetailInquiry";
 import AssessmentMasterData from "@/pages/adminInquiry/AssessmentMasterData";
+import InquiryMasterData from "@/pages/adminInquiry/InquiryMasterData";
 import ParentAssessmentView from "@/pages/adminInquiry/ParentAssessmentView";
 import DashboardSchedule from "@/pages/adminSchedule/DashboardSchedule";
 import ActiveClients from "@/pages/adminSchedule/ActiveClients";
@@ -52,6 +54,7 @@ function App() {
           <SchedulesProvider>
             <CreditsProvider>
               <AssessmentsProvider>
+                <MasterDataProvider>
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<Welcome />} />
@@ -117,6 +120,7 @@ function App() {
                       <Route path="pipeline/:id" element={<ClientDetailInquiry />} />
                       <Route path="clients/:id" element={<ClientDetailInquiry />} />
                       <Route path="assessments" element={<AssessmentMasterData />} />
+                      <Route path="master-data" element={<InquiryMasterData />} />
                       <Route path="parent-assessment/:id" element={<ParentAssessmentView />} />
                     </Route>
 
@@ -166,6 +170,7 @@ function App() {
                   </Routes>
                 </BrowserRouter>
                 <Toaster position="top-right" richColors />
+                </MasterDataProvider>
               </AssessmentsProvider>
             </CreditsProvider>
           </SchedulesProvider>

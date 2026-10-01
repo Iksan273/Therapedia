@@ -369,8 +369,108 @@ export default function DashboardSchedule() {
         />
       </div>
 
+      {/* Charts Row: Cancellation Breakdown + Birthday Radar */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Cancellation Breakdown by Reason */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
+          <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-rose-600" />
+              Statistik Pembatalan Sesi Berdasarkan Alasan
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Setiap pembatalan dipisahkan per alasan (Sakit, Izin, Bentrok Sekolah, Tanpa Kabar)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-6">
+            {cancellationByReasonData.length === 0 ? (
+              <div className="h-60 flex items-center justify-center text-xs text-slate-400">
+                Tidak ada pembatalan sesi pada periode ini.
+              </div>
+            ) : (
+              <div className="h-60 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={cancellationByReasonData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={75}
+                      innerRadius={40}
+                      paddingAngle={3}
+                    >
+                      {cancellationByReasonData.map((_, idx) => (
+                        <Cell key={`cell-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "11px" }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "6px" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Birthday Radar Dashboard */}
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden flex flex-col">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Cake className="w-4 h-4 text-pink-600" />
+              Birthday Dashboard (Bulan Berjalan)
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Radar perayaan ulang tahun anak bulan ini untuk ucapan & loyalty care
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 flex-1 space-y-3">
+            {birthdayClients.length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-xs text-slate-400">
+                Tidak ada client aktif yang berulang tahun bulan ini.
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                {birthdayClients.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-3 rounded-xl bg-pink-50/50 border border-pink-200/80 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs shrink-0">
+                        🎂
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs text-slate-900">{c.clientName}</p>
+                        <p className="text-[11px] text-slate-500">
+                          Ulang tahun ke-{calcAge(c.dob)} ({fmtDate(c.dob)})
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={`https://wa.me/${c.parentContact.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                        `Halo ${c.parentName}, segenap keluarga besar Therapedia mengucapkan Selamat Ulang Tahun untuk ananda ${c.clientName}! Semoga senantiasa sehat dan bertumbuh optimal. 🎂`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs shrink-0"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> Kirim Ucapan
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* ========================================================================= */}
-      {/* RESTORED SECTION: Advanced Client Analytics & Attendance Filters          */}
+      {/* Advanced Client Analytics & Attendance Filters (filter sendiri, tidak mengikuti filter atas) */}
       {/* ========================================================================= */}
       <Card className="rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden" data-testid="advanced-attendance-telemetry-card">
         <CardHeader className="pb-3 border-b border-sky-100 bg-sky-50/60">
@@ -608,106 +708,6 @@ export default function DashboardSchedule() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Charts Row: Cancellation Breakdown + Birthday Radar */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Cancellation Breakdown by Reason */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-          <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
-            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <XCircle className="w-4 h-4 text-rose-600" />
-              Statistik Pembatalan Sesi Berdasarkan Alasan
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-500">
-              Setiap pembatalan dipisahkan per alasan (Sakit, Izin, Bentrok Sekolah, Tanpa Kabar)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-6">
-            {cancellationByReasonData.length === 0 ? (
-              <div className="h-60 flex items-center justify-center text-xs text-slate-400">
-                Tidak ada pembatalan sesi pada periode ini.
-              </div>
-            ) : (
-              <div className="h-60 w-full flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={cancellationByReasonData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={75}
-                      innerRadius={40}
-                      paddingAngle={3}
-                    >
-                      {cancellationByReasonData.map((_, idx) => (
-                        <Cell key={`cell-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "11px" }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "6px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Birthday Radar Dashboard */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden flex flex-col">
-          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Cake className="w-4 h-4 text-pink-600" />
-              Birthday Dashboard (Bulan Berjalan)
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-500">
-              Radar perayaan ulang tahun anak bulan ini untuk ucapan & loyalty care
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 flex-1 space-y-3">
-            {birthdayClients.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-xs text-slate-400">
-                Tidak ada client aktif yang berulang tahun bulan ini.
-              </div>
-            ) : (
-              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                {birthdayClients.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-3 rounded-xl bg-pink-50/50 border border-pink-200/80 flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-700 flex items-center justify-center font-bold text-xs shrink-0">
-                        🎂
-                      </div>
-                      <div>
-                        <p className="font-bold text-xs text-slate-900">{c.clientName}</p>
-                        <p className="text-[11px] text-slate-500">
-                          Ulang tahun ke-{calcAge(c.dob)} ({fmtDate(c.dob)})
-                        </p>
-                      </div>
-                    </div>
-
-                    <a
-                      href={`https://wa.me/${c.parentContact.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                        `Halo ${c.parentName}, segenap keluarga besar Therapedia mengucapkan Selamat Ulang Tahun untuk ananda ${c.clientName}! Semoga senantiasa sehat dan bertumbuh optimal. 🎂`
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs shrink-0"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" /> Kirim Ucapan
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

@@ -37,8 +37,8 @@ import { useClients } from "@/context/ClientsContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useSchedules } from "@/context/SchedulesContext";
 import { useCredits } from "@/context/CreditsContext";
+import { useMasterData } from "@/context/MasterDataContext";
 import {
-  SESSION_TYPES,
   TIME_OPTIONS,
   WEEKDAY_OPTIONS,
   buildRecurringSchedules,
@@ -58,6 +58,7 @@ export const AddScheduleModal = ({
   onCreated,
 }) => {
   const { clients } = useClients();
+  const { activeServices } = useMasterData();
   const { therapists } = useTherapists();
   const { schedules, addSchedule, addSchedules } = useSchedules();
   const { getRecordForClient } = useCredits();
@@ -419,7 +420,7 @@ export const AddScheduleModal = ({
                       <SelectValue placeholder="Pilih layanan klinis..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200">
-                      {SESSION_TYPES.map((t) => (
+                      {activeServices.map((t) => (
                         <SelectItem key={t.value} value={t.value}>
                           {t.label}
                         </SelectItem>
@@ -661,7 +662,7 @@ export const AddScheduleModal = ({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-slate-200">
-                              {SESSION_TYPES.map((t) => (
+                              {activeServices.map((t) => (
                                 <SelectItem key={t.value} value={t.value}>
                                   {t.shortLabel || t.label}
                                 </SelectItem>

@@ -46,6 +46,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useAssessments } from "@/context/AssessmentsContext";
 import { useClients } from "@/context/ClientsContext";
+import { useMasterData, getQuadrantColor } from "@/context/MasterDataContext";
 import { uid, genCode } from "@/lib/appUtils";
 import { cn } from "@/lib/utils";
 
@@ -110,41 +111,6 @@ const getQuestionTypeInfo = (type) => {
   return QUESTION_TYPES.find((t) => t.value === normalized) || QUESTION_TYPES[0];
 };
 
-const QUADRANT_CONFIG = {
-  AV: {
-    label: "AV",
-    title: "Avoiding",
-    badge: "bg-blue-100 text-blue-900 border-blue-300 font-black",
-    cardBg: "bg-blue-50/70 border-blue-200",
-    textClass: "text-blue-950",
-    desc: "Sensation Avoiding (Penghindar Sensori)",
-  },
-  SN: {
-    label: "SN",
-    title: "Sensitivity",
-    badge: "bg-lime-100 text-lime-900 border-lime-300 font-black",
-    cardBg: "bg-lime-50/70 border-lime-200",
-    textClass: "text-lime-950",
-    desc: "Sensory Sensitivity (Sensitivitas Tinggi)",
-  },
-  RG: {
-    label: "RG",
-    title: "Registration",
-    badge: "bg-pink-100 text-pink-900 border-pink-300 font-black",
-    cardBg: "bg-pink-50/70 border-pink-200",
-    textClass: "text-pink-950",
-    desc: "Low Registration (Pendaftaran Rendah)",
-  },
-  SK: {
-    label: "SK",
-    title: "Seeking",
-    badge: "bg-amber-100 text-amber-900 border-amber-300 font-black",
-    cardBg: "bg-amber-50/70 border-amber-200",
-    textClass: "text-amber-950",
-    desc: "Sensory Seeking (Pencari Sensori)",
-  },
-};
-
 const getCategoryIcon = (categoryName = "") => {
   const name = categoryName.toLowerCase();
   if (name.includes("school")) return School;
@@ -155,22 +121,20 @@ const getCategoryIcon = (categoryName = "") => {
   return ListChecks;
 };
 
-const getQuadrantCounts = (cat) => {
-  const counts = { AV: 0, SN: 0, RG: 0, SK: 0 };
+const getQuadrantCounts = (cat, quadrants) => {
+  const counts = Object.fromEntries(quadrants.map((q) => [q.code, 0]));
   if (!cat) return counts;
   if (cat.sections && cat.sections.length > 0) {
     cat.sections.forEach((sec) => {
       (sec.questions || []).forEach((q) => {
         const quad = q.quadrant || "SN";
         if (counts[quad] !== undefined) counts[quad]++;
-        else counts.SN++;
       });
     });
   } else if (cat.questions) {
     cat.questions.forEach((q) => {
       const quad = q.quadrant || "SN";
       if (counts[quad] !== undefined) counts[quad]++;
-      else counts.SN++;
     });
   }
   return counts;
@@ -179,6 +143,7 @@ const getQuadrantCounts = (cat) => {
 export default function AssessmentMasterData() {
   const { categories, addCategory, updateCategory, deleteCategory } = useAssessments();
   const { clients, updateClient } = useClients();
+  const { quadrants, quadrantMap } = useMasterData();
 
   // Active category selection tab
   const [selectedCatId, setSelectedCatId] = useState(() => categories[0]?.id || "cat-001");
@@ -251,8 +216,8 @@ export default function AssessmentMasterData() {
 
   // Calculate quadrant counts for active category
   const activeQuadCounts = useMemo(() => {
-    return getQuadrantCounts(activeCategory);
-  }, [activeCategory]);
+    return getQuadrantCounts(activeCategory, quadrants);
+  }, [activeCategory, quadrants]);
 
   const activeCategoryTotalQuestions = useMemo(() => {
     if (!activeCategory) return 0;
@@ -812,10 +777,11 @@ export default function AssessmentMasterData() {
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-900">AV</span>
-            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-lime-100 text-lime-900">SN</span>
-            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-pink-100 text-pink-900">RG</span>
-            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">SK</span>
+            {quadrants.map((q) => (
+              <span key={q.code} className={cn("text-[10px] px-1.5 py-0.5 rounded", getQuadrantColor(q.color).badge)}>
+                {q.code}
+              </span>
+            ))}
           </div>
           <p className="text-[11px] text-slate-500 font-medium mt-1">Tersinkron dengan lembar asesor</p>
         </div>
@@ -992,41 +958,19 @@ export default function AssessmentMasterData() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-black bg-blue-600 text-white">AV</span>
-                    <span className="text-xl font-black text-blue-900">{activeQuadCounts.AV} Soal</span>
-                  </div>
-                  <p className="text-xs font-bold text-blue-950">Sensation Avoiding</p>
-                  <p className="text-[10px] text-blue-800/80 leading-snug">Penghindar Sensori (Perilaku aktif menjauh)</p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-lime-50/70 border border-lime-200 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-black bg-lime-600 text-white">SN</span>
-                    <span className="text-xl font-black text-lime-900">{activeQuadCounts.SN} Soal</span>
-                  </div>
-                  <p className="text-xs font-bold text-lime-950">Sensory Sensitivity</p>
-                  <p className="text-[10px] text-lime-800/80 leading-snug">Sensitivitas Tinggi (Mudah terganggu stimulus)</p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-pink-50/70 border border-pink-200 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-black bg-pink-600 text-white">RG</span>
-                    <span className="text-xl font-black text-pink-900">{activeQuadCounts.RG} Soal</span>
-                  </div>
-                  <p className="text-xs font-bold text-pink-950">Low Registration</p>
-                  <p className="text-[10px] text-pink-800/80 leading-snug">Pendaftaran Rendah (Pasif / Butuh intensitas lebih)</p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-black bg-amber-600 text-white">SK</span>
-                    <span className="text-xl font-black text-amber-900">{activeQuadCounts.SK} Soal</span>
-                  </div>
-                  <p className="text-xs font-bold text-amber-950">Sensory Seeking</p>
-                  <p className="text-[10px] text-amber-800/80 leading-snug">Pencari Sensori (Mendambakan stimulasi ekstra)</p>
-                </div>
+                {quadrants.map((q) => {
+                  const color = getQuadrantColor(q.color);
+                  return (
+                    <div key={q.code} className={cn("p-3.5 rounded-2xl border space-y-1", color.card)}>
+                      <div className="flex items-center justify-between">
+                        <span className={cn("px-2 py-0.5 rounded text-[11px]", color.solid)}>{q.code}</span>
+                        <span className={cn("text-xl font-black", color.count)}>{activeQuadCounts[q.code] || 0} Soal</span>
+                      </div>
+                      <p className={cn("text-xs font-bold", color.text)}>{q.fullName || q.title}</p>
+                      <p className={cn("text-[10px] leading-snug", color.textSoft)}>{q.description}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1062,10 +1006,11 @@ export default function AssessmentMasterData() {
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="ALL" className="text-xs font-bold">Semua Kuadran</SelectItem>
-                    <SelectItem value="AV" className="text-xs font-bold text-blue-700">AV - Avoiding</SelectItem>
-                    <SelectItem value="SN" className="text-xs font-bold text-lime-700">SN - Sensitivity</SelectItem>
-                    <SelectItem value="RG" className="text-xs font-bold text-pink-700">RG - Registration</SelectItem>
-                    <SelectItem value="SK" className="text-xs font-bold text-amber-700">SK - Seeking</SelectItem>
+                    {quadrants.map((q) => (
+                      <SelectItem key={q.code} value={q.code} className="text-xs font-bold">
+                        {q.code} - {q.title}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
@@ -1284,7 +1229,12 @@ export default function AssessmentMasterData() {
                       ) : (
                         visibleQuestions.map((q, qIdx) => {
                           const quad = q.quadrant || "SN";
-                          const qConfig = QUADRANT_CONFIG[quad] || QUADRANT_CONFIG.SN;
+                          const qMaster = quadrantMap[quad];
+                          const qConfig = {
+                            badge: getQuadrantColor(qMaster?.color).badge,
+                            title: qMaster?.title || quad,
+                            desc: qMaster?.description || "",
+                          };
                           const typeInfo = getQuestionTypeInfo(q.type);
 
                           return (
@@ -1634,18 +1584,12 @@ export default function AssessmentMasterData() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
-                    <SelectItem value="AV" className="text-xs font-bold text-blue-800">
-                      AV - Sensation Avoiding (Penghindar Sensori)
-                    </SelectItem>
-                    <SelectItem value="SN" className="text-xs font-bold text-lime-800">
-                      SN - Sensory Sensitivity (Sensitivitas Sensori)
-                    </SelectItem>
-                    <SelectItem value="RG" className="text-xs font-bold text-pink-800">
-                      RG - Low Registration (Pendaftaran Rendah)
-                    </SelectItem>
-                    <SelectItem value="SK" className="text-xs font-bold text-amber-800">
-                      SK - Sensory Seeking (Pencari Sensori)
-                    </SelectItem>
+                    {quadrants.map((q) => (
+                      <SelectItem key={q.code} value={q.code} className="text-xs font-bold">
+                        {q.code} - {q.fullName || q.title}
+                        {q.description ? ` (${q.description.split("(")[0].trim()})` : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
