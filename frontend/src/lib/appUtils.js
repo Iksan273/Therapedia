@@ -250,6 +250,7 @@ export function makeInquiryClient(form) {
     branchId: form.branchId || "branch-sby-timur",
     status: form.status || "inquiry",
     clientName: form.clientName.trim(),
+    gender: form.gender || "male",
     parentName: form.parentName.trim(),
     parentContact: form.parentContact.trim(),
     parentEmail: (form.parentEmail || "").trim(),

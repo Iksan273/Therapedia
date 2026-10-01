@@ -21,7 +21,7 @@ Dokumen **`schema.md`** ini berisi rancangan arsitektur database relasional skal
 
 ## 02. MATRIKS MODUL & TABEL DATABASE
 
-Berikut adalah peta distribusi 24 tabel database yang dikelompokkan ke dalam 8 modul utama sistem:
+Berikut adalah peta distribusi 22 tabel database yang dikelompokkan ke dalam 7 modul utama sistem:
 
 | No | Nama Tabel | Modul Utama Sistem | Deskripsi Singkat Fungsi Tabel |
 | :---: | :--- | :--- | :--- |
@@ -46,9 +46,7 @@ Berikut adalah peta distribusi 24 tabel database yang dikelompokkan ke dalam 8 m
 | **19** | `client_packages` | Credit & Renewal Management | Saldo kredit aktif milik anak & kuota cancel |
 | **20** | `credit_histories` | Credit Ledger & Audit | Log mutasi penambahan/pemotongan kredit & penalti |
 | **21** | `clinical_soap_notes` | Therapist Portal & EHR | Catatan rekam medis SOAP & Home Program terapis |
-| **22** | `wa_templates` | WhatsApp Automation | Template pesan dinamis 6 skenario komunikasi WA |
-| **23** | `wa_message_logs` | WhatsApp Automation | Log pengiriman notifikasi WhatsApp ke orang tua |
-| **24** | `audit_trails` | System Security & Log | Log aktivitas sistem & perubahan data sensitif |
+| **22** | `audit_trails` | System Security & Log | Log aktivitas sistem & perubahan data sensitif |
 
 ---
 
@@ -199,6 +197,8 @@ Schema::create('clients', function (Blueprint $table) {
     $table->string('email', 100)->nullable();
     $table->text('address')->nullable();
     $table->string('emergency_contact', 100)->nullable();
+    $table->boolean('has_school_companion_profile')->default(false);
+    $table->json('concern_tags_json')->nullable();
     
     // Status Pipeline Intake & Klientel Pasien
     $table->enum('status', [
@@ -590,47 +590,9 @@ Schema::create('clinical_soap_notes', function (Blueprint $table) {
 
 ---
 
-### MODUL 7: OTOMATISASI WHATSAPP & HUB KOMUNIKASI
+### MODUL 7: AUDIT TRAIL & LOG KEAMANAN SISTEM
 
-#### 22. Tabel `wa_templates`
-Master format template pesan WhatsApp.
-- **Migration Schema (Laravel):**
-```php
-Schema::create('wa_templates', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 50)->unique();
-    $table->string('scenario_name', 100);
-    $table->text('message_body');
-    $table->json('placeholder_tags_json')->nullable();
-    $table->boolean('is_active')->default(true);
-    $table->timestamps();
-});
-```
-
-#### 23. Tabel `wa_message_logs`
-Catatan pengiriman pesan WhatsApp ke orang tua pasien.
-- **Migration Schema (Laravel):**
-```php
-Schema::create('wa_message_logs', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->nullable()->constrained('clients')->onDelete('cascade');
-    $table->string('recipient_phone', 30);
-    $table->string('scenario', 50);
-    $table->text('message_content');
-    $table->enum('status', ['generated', 'sent', 'failed'])->default('generated');
-    $table->timestamp('sent_at')->nullable();
-    $table->timestamps();
-
-    $table->index(['client_id', 'status']);
-    $table->index(['recipient_phone', 'created_at']);
-});
-```
-
----
-
-### MODUL 8: AUDIT TRAIL & LOG KEAMANAN SISTEM
-
-#### 24. Tabel `audit_trails`
+#### 22. Tabel `audit_trails`
 Audit trail keamanan untuk mencatat aktivitas sensitif internal.
 - **Migration Schema (Laravel):**
 ```php
@@ -831,9 +793,7 @@ Saat menjalankan `php artisan migrate`, buatlah file migrasi dengan urutan depen
 19. `create_schedules_table`
 20. `create_credit_histories_table`
 21. `create_clinical_soap_notes_table`
-22. `create_wa_templates_table`
-23. `create_wa_message_logs_table`
-24. `create_audit_trails_table`
+22. `create_audit_trails_table`
 
 ---
 *Dokumen skema database enterprise ini telah disesuaikan khusus sebagai acuan pengembangan Backend Laravel 11.x untuk Therapedia Developmental Center.*

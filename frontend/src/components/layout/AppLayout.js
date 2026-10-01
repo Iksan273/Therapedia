@@ -43,7 +43,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { WhatsAppAutomationModal } from "@/components/common/WhatsAppAutomationModal";
 import { useAuth } from "@/context/AuthContext";
 import { useTherapists } from "@/context/TherapistsContext";
 import { useClients } from "@/context/ClientsContext";
@@ -285,9 +284,7 @@ const AppLayout = () => {
   const { auth, logout, activeBranch, setActiveBranch, rolesList, hasPermission } = useAuth();
   const { getTherapist } = useTherapists();
   const { getClient } = useClients();
-  const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [waModalOpen, setWaModalOpen] = useState(false);
 
   // Desktop sidebar state with localStorage persistence (default open)
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -713,18 +710,7 @@ const AppLayout = () => {
               )}
             </Button>
 
-            {isStaff && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors shadow-2xs font-bold text-xs h-9 px-3.5"
-                onClick={() => setWaModalOpen(true)}
-                title="WhatsApp Hub"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-600" />
-                <span className="hidden sm:inline">WhatsApp Hub</span>
-              </Button>
-            )}
+
 
             <Button
               variant="outline"
@@ -754,7 +740,6 @@ const AppLayout = () => {
         </main>
       </div>
 
-      <WhatsAppAutomationModal open={waModalOpen} onOpenChange={setWaModalOpen} />
     </div>
   );
 };

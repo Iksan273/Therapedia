@@ -59,6 +59,9 @@ export default function UserManagement() {
     email: "",
     role: "admin_inquiry",
     branchId: "branch-sby-timur",
+    title: "",
+    specialty: "",
+    bio: "",
   });
 
   const filteredStaff = (staffUsers || []).filter((u) => {
@@ -94,6 +97,9 @@ export default function UserManagement() {
       email: "",
       role: "admin_inquiry",
       branchId: "branch-sby-timur",
+      title: "",
+      specialty: "",
+      bio: "",
     });
   };
 
@@ -317,6 +323,34 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
+
+            {form.role === "therapist" && (
+              <div className="p-3.5 bg-sky-50/70 rounded-xl border border-sky-200/80 space-y-3">
+                <div className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
+                  🩺 Atribut Spesialisasi Medis / Klinis Terapis (Profil User)
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-slate-700">Gelar Klinis (Title)</Label>
+                    <Input
+                      className="rounded-xl border-slate-200 bg-white text-xs h-9"
+                      placeholder="e.g. S.Tr.Kes, S.Ft, A.Md.OT"
+                      value={form.title}
+                      onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-slate-700">Spesialisasi (Specialty)</Label>
+                    <Input
+                      className="rounded-xl border-slate-200 bg-white text-xs h-9"
+                      placeholder="e.g. Sensory Integration / OT"
+                      value={form.specialty}
+                      onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             <DialogFooter className="mt-4 gap-2">
               <Button type="button" variant="outline" className="rounded-xl border-slate-200 text-xs" onClick={() => setAddOpen(false)}>
                 Batal

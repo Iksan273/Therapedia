@@ -89,6 +89,7 @@ export default function ClientDetailInquiry() {
   const [editIntakeOpen, setEditIntakeOpen] = useState(false);
   const [editIntakeForm, setEditIntakeForm] = useState({
     clientName: "",
+    gender: "male",
     dob: "",
     parentName: "",
     parentContact: "",
@@ -100,6 +101,7 @@ export default function ClientDetailInquiry() {
     if (!client) return;
     setEditIntakeForm({
       clientName: client.clientName || "",
+      gender: client.gender || "male",
       dob: client.dob || "",
       parentName: client.parentName || "",
       parentContact: client.parentContact || "",
@@ -117,6 +119,7 @@ export default function ClientDetailInquiry() {
     }
     updateClient(client.id, {
       clientName: editIntakeForm.clientName.trim(),
+      gender: editIntakeForm.gender,
       dob: editIntakeForm.dob,
       parentName: editIntakeForm.parentName.trim(),
       parentContact: editIntakeForm.parentContact.trim(),
@@ -397,15 +400,30 @@ export default function ClientDetailInquiry() {
                 />
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak (DD/MM/YYYY)</Label>
-                <DateFilterPicker
-                  placeholder="DD/MM/YYYY"
-                  className="w-full bg-slate-50 h-10"
-                  value={editIntakeForm.dob}
-                  onChange={(e) => setEditIntakeForm({ ...editIntakeForm, dob: e?.target?.value ?? e })}
-                  data-testid="edit-intake-dob"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700">Jenis Kelamin Anak</Label>
+                  <Select value={editIntakeForm.gender} onValueChange={(val) => setEditIntakeForm({ ...editIntakeForm, gender: val })}>
+                    <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200">
+                      <SelectItem value="male">👦 Laki-laki (Male)</SelectItem>
+                      <SelectItem value="female">👧 Perempuan (Female)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak (DD/MM/YYYY)</Label>
+                  <DateFilterPicker
+                    placeholder="DD/MM/YYYY"
+                    className="w-full bg-slate-50 h-10"
+                    value={editIntakeForm.dob}
+                    onChange={(e) => setEditIntakeForm({ ...editIntakeForm, dob: e?.target?.value ?? e })}
+                    data-testid="edit-intake-dob"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">

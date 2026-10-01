@@ -68,6 +68,7 @@ export default function InquiryPipeline() {
   // New Intake Form
   const [newForm, setNewForm] = useState({
     clientName: "",
+    gender: "male",
     parentName: "",
     parentContact: "",
     parentEmail: "",
@@ -132,6 +133,7 @@ export default function InquiryPipeline() {
     setNewIntakeOpen(false);
     setNewForm({
       clientName: "",
+      gender: "male",
       parentName: "",
       parentContact: "",
       parentEmail: "",
@@ -335,15 +337,30 @@ export default function InquiryPipeline() {
               />
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak (DD/MM/YYYY) *</Label>
-              <DateFilterPicker
-                placeholder="DD/MM/YYYY"
-                className="w-full bg-slate-50 h-10"
-                value={newForm.dob}
-                onChange={(e) => setNewForm({ ...newForm, dob: e?.target?.value ?? e })}
-                data-testid="intake-dob"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Jenis Kelamin Anak *</Label>
+                <Select value={newForm.gender} onValueChange={(val) => setNewForm({ ...newForm, gender: val })}>
+                  <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 text-xs h-10 font-semibold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="male">👦 Laki-laki (Male)</SelectItem>
+                    <SelectItem value="female">👧 Perempuan (Female)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Tanggal Lahir Anak</Label>
+                <DateFilterPicker
+                  placeholder="DD/MM/YYYY"
+                  className="w-full bg-slate-50 h-10"
+                  value={newForm.dob}
+                  onChange={(e) => setNewForm({ ...newForm, dob: e?.target?.value ?? e })}
+                  data-testid="intake-dob"
+                />
+              </div>
             </div>
 
             <div className="space-y-1">
