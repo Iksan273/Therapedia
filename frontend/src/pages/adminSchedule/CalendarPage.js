@@ -379,7 +379,7 @@ export default function CalendarPage() {
               type="button"
               onClick={() => setView("week")}
               className={cn(
-                "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                "px-3 py-2 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
                 view === "week"
                   ? "bg-white text-sky-800 shadow-2xs"
                   : "text-slate-500 hover:text-slate-800"
@@ -392,7 +392,7 @@ export default function CalendarPage() {
               type="button"
               onClick={() => setView("day")}
               className={cn(
-                "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                "px-3 py-2 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
                 view === "day"
                   ? "bg-white text-sky-800 shadow-2xs"
                   : "text-slate-500 hover:text-slate-800"

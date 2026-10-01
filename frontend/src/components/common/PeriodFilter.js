@@ -14,7 +14,7 @@ export function PeriodFilter({ preset, start, end, onChange, allowed, label = "R
     <>
       <FilterField label={label}>
         <Select value={preset} onValueChange={(v) => onChange({ preset: v, start: "", end: "" })}>
-          <SelectTrigger className="border-slate-200 bg-slate-50" aria-label={label}>
+          <SelectTrigger className="border-slate-200 bg-slate-50 [&>span]:flex-1 [&>span]:text-left" aria-label={label}>
             <Calendar className="w-3.5 h-3.5 text-sky-600 shrink-0 mr-1.5" />
             <SelectValue placeholder="Pilih Periode" />
           </SelectTrigger>

@@ -159,7 +159,7 @@ export default function UserManagement() {
       {/* Staff Table */}
       <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
-          <Table className="min-w-[850px] w-full">
+          <Table stackOnMobile className="min-w-[850px] w-full">
             <TableHeader>
               <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                 <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[200px] whitespace-nowrap">Profil Staff</TableHead>
@@ -176,7 +176,7 @@ export default function UserManagement() {
                 const roleLabel = roleObj ? roleObj.label : u.role;
                 return (
                   <TableRow key={u.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                    <TableCell className="py-3.5 pl-6 min-w-[200px] whitespace-nowrap">
+                    <TableCell data-nolabel className="py-3.5 pl-6 min-w-[200px] whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-800 font-bold text-xs flex items-center justify-center shrink-0">
                           {u.name[0]}
@@ -184,18 +184,18 @@ export default function UserManagement() {
                         <p className="font-bold text-sm text-slate-900 whitespace-nowrap">{u.name}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs font-mono text-slate-600 min-w-[190px] whitespace-nowrap">{u.email}</TableCell>
-                    <TableCell className="text-xs min-w-[170px] whitespace-nowrap">
+                    <TableCell data-label="Email Akun" className="text-xs font-mono text-slate-600 min-w-[190px] whitespace-nowrap">{u.email}</TableCell>
+                    <TableCell data-label="Penugasan Cabang" className="text-xs min-w-[170px] whitespace-nowrap">
                       <span className="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
                         {br ? br.name : "—"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs min-w-[160px] whitespace-nowrap">
+                    <TableCell data-label="Peran (Role)" className="text-xs min-w-[160px] whitespace-nowrap">
                       <span className="font-bold text-sky-800 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-lg inline-flex items-center whitespace-nowrap">
                         {roleLabel}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right pr-6 min-w-[90px] whitespace-nowrap">
+                    <TableCell data-nolabel className="text-right pr-6 min-w-[90px] whitespace-nowrap">
                       <Button aria-label="Hapus Staff"
                         size="icon"
                         variant="ghost"

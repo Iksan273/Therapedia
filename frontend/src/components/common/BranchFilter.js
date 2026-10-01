@@ -22,7 +22,7 @@ export function BranchFilter({ value, onChange, isMaster, className }) {
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger
-        className={cn("text-xs border-slate-200 bg-slate-50 font-semibold", className)}
+        className={cn("text-xs border-slate-200 bg-slate-50 font-semibold [&>span]:flex-1 [&>span]:text-left", className)}
         aria-label="Filter cabang"
       >
         <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0 mr-1.5" />

@@ -35,7 +35,7 @@ export function FilteredRosterTab({ navigate, rosterPg, searchRoster, searchedRo
               {searchedRoster.length === 0 ? (
                 <EmptyState icon={ClipboardList} title="Tidak ada data" subtitle="Tidak ada client yang memenuhi kriteria pencarian ini." />
               ) : (
-                <Table>
+                <Table stackOnMobile>
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                       <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Client & Kode</TableHead>
@@ -51,22 +51,22 @@ export function FilteredRosterTab({ navigate, rosterPg, searchRoster, searchedRo
 
                       return (
                         <TableRow key={c.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs">
-                          <TableCell className="py-3 pl-6">
+                          <TableCell data-nolabel className="py-3 pl-6">
                             <p className="font-bold text-slate-900">{c.clientName}</p>
                             <p className="font-mono text-[11px] text-slate-500">
                               Kode: {c.clientAccessCode} • {c.parentName}
                             </p>
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Cabang">
                             <BranchTag branchId={c.branchId} className="font-semibold text-slate-700" />
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Layanan">
                             <ServiceChips client={c} />
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Tahap Pipeline">
                             <StatusBadge status={c.status} />
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Tagihan">
                             {c.invoiceStatus === "paid" ? (
                               <span className="font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded text-[11px]">
                                 Lunas
@@ -77,7 +77,7 @@ export function FilteredRosterTab({ navigate, rosterPg, searchRoster, searchedRo
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right pr-6">
+                          <TableCell data-nolabel className="text-right pr-6">
                             <Button
                               size="sm"
                               className="font-bold bg-sky-600 hover:bg-sky-700 text-white"

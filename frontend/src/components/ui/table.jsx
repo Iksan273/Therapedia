@@ -2,11 +2,24 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-const Table = React.forwardRef(({ className, ...props }, ref) => (
+// Mode kartu di ponsel dan tablet (<1024px; 1 kolom di ponsel, 2 kolom di tablet): thead disembunyikan, tiap baris jadi kartu, dan setiap sel diberi label
+// dari atribut data-label. Sel tanpa label (kolom identitas & aksi) memakai atribut data-nolabel.
+const STACK_ON_MOBILE = [
+  "max-lg:block max-lg:!min-w-0",
+  "max-lg:[&_thead]:hidden",
+  "max-lg:[&_tbody]:grid max-lg:[&_tbody]:grid-cols-1 md:max-lg:[&_tbody]:grid-cols-2 max-lg:[&_tbody]:gap-3 max-lg:[&_tbody]:p-3",
+  "max-lg:[&_tr]:block max-lg:[&_tr]:rounded-2xl max-lg:[&_tr]:border max-lg:[&_tr]:border-slate-200 max-lg:[&_tr]:bg-white max-lg:[&_tr]:p-3.5 max-lg:[&_tr]:shadow-sm",
+  "max-lg:[&_td]:!block max-lg:[&_td]:!min-w-0 max-lg:[&_td]:!w-auto max-lg:[&_td]:whitespace-normal max-lg:[&_td]:!px-0 max-lg:[&_td]:!py-1.5 max-lg:[&_td]:border-0 max-lg:[&_td]:text-left",
+  "max-lg:[&_td]:before:block max-lg:[&_td]:before:mb-0.5 max-lg:[&_td]:before:text-[11px] max-lg:[&_td]:before:font-bold max-lg:[&_td]:before:uppercase max-lg:[&_td]:before:tracking-wide max-lg:[&_td]:before:text-slate-400 max-lg:[&_td]:before:content-[attr(data-label)]",
+  "max-lg:[&_td[data-nolabel]]:before:hidden",
+  "max-lg:[&_td:first-child]:!border-b max-lg:[&_td:first-child]:border-slate-100 max-lg:[&_td:first-child]:!pb-2.5 max-lg:[&_td:first-child]:mb-1",
+].join(" ");
+
+const Table = React.forwardRef(({ className, stackOnMobile = false, ...props }, ref) => (
   <div className="relative w-full overflow-auto">
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn("w-full caption-bottom text-sm", stackOnMobile && STACK_ON_MOBILE, className)}
       {...props} />
   </div>
 ))

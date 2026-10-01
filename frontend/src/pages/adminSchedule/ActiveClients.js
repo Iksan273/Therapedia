@@ -201,7 +201,7 @@ export default function ActiveClients() {
                   }
                 />
               ) : (
-                <Table className="min-w-[680px] w-full">
+                <Table stackOnMobile className="min-w-[680px] w-full">
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                       <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[260px] whitespace-nowrap">Profil Client</TableHead>
@@ -221,7 +221,7 @@ export default function ActiveClients() {
 
                       return (
                         <TableRow key={c.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                          <TableCell className="py-4 pl-6 min-w-[260px]">
+                          <TableCell data-nolabel className="py-4 pl-6 min-w-[260px]">
                             <div className="flex items-center gap-3">
                               <div
                                 className={cn(
@@ -246,17 +246,17 @@ export default function ActiveClients() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs py-4 min-w-[190px] hidden md:table-cell">
+                          <TableCell data-label="Orang Tua & Kontak" className="text-xs py-4 min-w-[190px] hidden md:table-cell">
                             <p className="font-semibold text-slate-800 whitespace-nowrap">{c.parentName}</p>
                             <p className="text-[11px] text-slate-500 mt-0.5 whitespace-nowrap font-mono">{c.parentContact}</p>
                           </TableCell>
-                          <TableCell className="text-xs py-4 min-w-[170px] hidden md:table-cell">
+                          <TableCell data-label="Cabang" className="text-xs py-4 min-w-[170px] hidden md:table-cell">
                             <BranchTag
                               branchId={c.branchId}
                               className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200"
                             />
                           </TableCell>
-                          <TableCell className="text-xs py-4 min-w-[240px]">
+                          <TableCell data-label="Paket Kredit Aktif" className="text-xs py-4 min-w-[240px]">
                             {pkgs.length === 0 ? (
                               <span className="text-rose-600 font-bold bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg inline-flex items-center whitespace-nowrap">
                                 0 Kredit (Menunggu Finance)
@@ -283,7 +283,7 @@ export default function ActiveClients() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="text-xs font-medium py-4 min-w-[180px] hidden lg:table-cell">
+                          <TableCell data-label="Riwayat Cancel" className="text-xs font-medium py-4 min-w-[180px] hidden lg:table-cell">
                             <span
                               className={cn(
                                 "px-2.5 py-1 rounded-lg font-bold text-xs border inline-flex items-center whitespace-nowrap",
@@ -296,7 +296,7 @@ export default function ActiveClients() {
                               {(rec?.cancelCountTotal || 0) > 3 && " (Kena Penalti)"}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right pr-6 py-4 min-w-[170px]">
+                          <TableCell data-nolabel className="text-right pr-6 py-4 min-w-[170px]">
                             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                               <Button
                                 size="sm"

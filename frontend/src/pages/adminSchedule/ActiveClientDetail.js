@@ -330,7 +330,7 @@ export default function ActiveClientDetail() {
           {clientSchedules.length === 0 ? (
             <EmptyState icon={Calendar} title="Belum ada sesi" subtitle="Belum ada sesi tercatat untuk client ini." />
           ) : (
-            <Table className="min-w-[860px] w-full">
+            <Table stackOnMobile className="min-w-[860px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                   <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[180px] whitespace-nowrap">Tanggal & Jam</TableHead>
@@ -347,15 +347,15 @@ export default function ActiveClientDetail() {
                   const pkg = pkgs.find((p) => p.id === s.creditPackageId || p.packageId === s.creditPackageId);
                   return (
                     <TableRow key={s.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs">
-                      <TableCell className="pl-6 py-3 font-semibold text-slate-900 min-w-[180px] whitespace-nowrap">
+                      <TableCell data-nolabel className="pl-6 py-3 font-semibold text-slate-900 min-w-[180px] whitespace-nowrap">
                         {fmtDate(s.date)} • <span className="font-mono text-slate-500">{s.startTime}–{s.endTime}</span>
                       </TableCell>
-                      <TableCell className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{th?.name || "—"}</TableCell>
-                      <TableCell className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{pkg ? pkg.packageName : "Default"}</TableCell>
-                      <TableCell className="min-w-[130px] whitespace-nowrap">
+                      <TableCell data-label="Terapis" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{th?.name || "—"}</TableCell>
+                      <TableCell data-label="Paket Kredit" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{pkg ? pkg.packageName : "Default"}</TableCell>
+                      <TableCell data-label="Status" className="min-w-[130px] whitespace-nowrap">
                         <StatusBadge status={s.status} />
                       </TableCell>
-                      <TableCell className="text-slate-500 min-w-[220px]">
+                      <TableCell data-label="Alasan Cancel / Catatan" className="text-slate-500 min-w-[220px]">
                         {s.status === "cancelled" ? (
                           <span className="font-bold text-rose-700">
                             {s.cancelReason ? `[${s.cancelReason.toUpperCase()}] ${s.notes || ""}` : s.notes || "Dibatalkan"}
@@ -366,7 +366,7 @@ export default function ActiveClientDetail() {
                           s.notes || "—"
                         )}
                       </TableCell>
-                      <TableCell className="text-right pr-6 min-w-[100px] whitespace-nowrap">
+                      <TableCell data-label="Detail" className="text-right pr-6 min-w-[100px] whitespace-nowrap">
                         <Button
                           size="sm"
                           variant="ghost"

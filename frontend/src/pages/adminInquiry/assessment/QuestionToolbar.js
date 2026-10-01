@@ -101,7 +101,7 @@ export function QuestionToolbar({ activeCategory, activeCategoryTotalQuestions, 
                 <button
                   onClick={() => setSelectedDomainId("ALL")}
                   className={cn(
-                    "px-3 py-1.5 rounded-xl border shrink-0 font-bold text-xs transition-all cursor-pointer",
+                    "px-3 py-2.5 sm:py-1.5 rounded-xl border shrink-0 font-bold text-xs transition-all cursor-pointer",
                     selectedDomainId === "ALL"
                       ? "bg-slate-900 text-white border-slate-900 shadow-xs"
                       : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -116,7 +116,7 @@ export function QuestionToolbar({ activeCategory, activeCategoryTotalQuestions, 
                       key={sec.sectionId}
                       onClick={() => setSelectedDomainId(sec.sectionId)}
                       className={cn(
-                        "px-3 py-1.5 rounded-xl border shrink-0 font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5",
+                        "px-3 py-2.5 sm:py-1.5 rounded-xl border shrink-0 font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5",
                         isDomainSelected
                           ? "bg-emerald-700 text-white border-emerald-700 shadow-xs"
                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"

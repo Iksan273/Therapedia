@@ -449,16 +449,16 @@ export default function ParentAssessmentView() {
       )}
 
       {/* Filter domain dropdown for fast navigation when items are 100++ (Non-print) */}
-      <div className="flex items-center justify-between bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 print:hidden">
         <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
           <Layers className="w-4 h-4 text-emerald-700" />
           <span>Navigasi Domain Sensorik ({totalQuestionsCount} Pertanyaan):</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <select
             value={domainFilter}
             onChange={(e) => setDomainFilter(e.target.value)}
-            className="text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto max-w-full min-w-0 truncate"
           >
             <option value="all">Tampilkan Semua Domain ({totalQuestionsCount} Item)</option>
             {resolvedSections.map((sec) => (

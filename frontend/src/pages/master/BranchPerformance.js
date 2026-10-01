@@ -315,7 +315,7 @@ export default function BranchPerformance() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <Table className="min-w-[750px] w-full">
+          <Table stackOnMobile className="min-w-[750px] w-full">
             <TableHeader>
               <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b border-slate-200">
                 <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Nama Cabang</TableHead>
@@ -330,7 +330,7 @@ export default function BranchPerformance() {
             <TableBody>
               {branchComparisonData.map((b) => (
                 <TableRow key={b.branchId} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-                  <TableCell className="py-3.5 pl-6">
+                  <TableCell data-nolabel className="py-3.5 pl-6">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 font-bold text-xs flex items-center justify-center border border-sky-100 shrink-0">
                         {b.code}
@@ -341,30 +341,30 @@ export default function BranchPerformance() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center font-bold font-mono text-slate-800">
+                  <TableCell data-label="Total Intake" className="text-center font-bold font-mono text-slate-800">
                     {b.total}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label="Admitted (Aktif)" className="text-center">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       {b.admitted}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label="Dalam Proses" className="text-center">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
                       {b.inProgress}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label="Discontinued" className="text-center">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                       {b.discontinued}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label="Rasio Konversi" className="text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       <span className="font-black text-xs text-emerald-600">{b.conversionRate}%</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label="Rasio Drop-off" className="text-center">
                     <span className="font-semibold text-xs text-slate-500">{b.dropRate}%</span>
                   </TableCell>
                 </TableRow>

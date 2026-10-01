@@ -34,7 +34,7 @@ export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, navi
                   subtitle="Tidak ada kuesioner yang tertunda pengisiannya oleh orang tua saat ini."
                 />
               ) : (
-                <Table>
+                <Table stackOnMobile>
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                       <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Client & Ortu</TableHead>
@@ -51,29 +51,29 @@ export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, navi
 
                       return (
                         <TableRow key={c.id} className="border-b border-slate-100 hover:bg-amber-50/20 text-xs">
-                          <TableCell className="py-3 pl-6">
+                          <TableCell data-nolabel className="py-3 pl-6">
                             <p className="font-bold text-slate-900">{c.clientName}</p>
                             <p className="text-[11px] text-slate-500">Ortu: {c.parentName}</p>
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Cabang">
                             <BranchTag
                               branchId={c.branchId}
                               className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200"
                             />
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Layanan Dipilih">
                             <ServiceChips client={c} />
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Kode Kuesioner">
                             <span className="font-mono font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 tracking-wider">
                               {codes}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell data-label="Kontak WhatsApp">
                             <p className="font-mono text-slate-700">{c.parentContact}</p>
                             <p className="text-[11px] text-slate-400">{c.parentEmail}</p>
                           </TableCell>
-                          <TableCell className="text-right pr-6">
+                          <TableCell data-nolabel className="text-right pr-6">
                             <div className="flex items-center justify-end gap-2">
                               {c.parentContact && (
                                 <a

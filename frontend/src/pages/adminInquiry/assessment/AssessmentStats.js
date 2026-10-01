@@ -46,7 +46,7 @@ export function AssessmentStats({ activeCategory, categories, quadrants, totalDo
               <Layers className="w-4 h-4" />
             </span>
           </div>
-          <div className="flex items-center gap-1.5 mt-1">
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
             {quadrants.map((q) => (
               <span key={q.code} className={cn("text-[11px] px-1.5 py-0.5 rounded", getQuadrantColor(q.color).badge)}>
                 {q.code}

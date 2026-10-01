@@ -29,7 +29,7 @@ export function VerificationTab({ handleApprovePayment, handleRejectPayment, pen
                   subtitle="Tidak ada antrean bukti transfer yang menunggu verifikasi saat ini."
                 />
               ) : (
-                <Table className="min-w-[960px] w-full">
+                <Table stackOnMobile className="min-w-[960px] w-full">
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                       <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[160px] whitespace-nowrap">No. Invoice</TableHead>
@@ -44,18 +44,18 @@ export function VerificationTab({ handleApprovePayment, handleRejectPayment, pen
                       const br = BRANCHES.find((b) => b.id === inv.branchId);
                       return (
                         <TableRow key={inv.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                          <TableCell className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[160px] whitespace-nowrap">
+                          <TableCell data-nolabel className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[160px] whitespace-nowrap">
                             {inv.invoiceNumber}
                           </TableCell>
-                          <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
+                          <TableCell data-label="Nama Client & Cabang" className="text-xs min-w-[200px] whitespace-nowrap">
                             <p className="font-bold text-slate-900">{inv.clientName}</p>
                             <span className="text-[11px] text-slate-500 font-medium">{br ? br.name : "—"}</span>
                           </TableCell>
-                          <TableCell className="text-xs min-w-[190px] whitespace-nowrap">
+                          <TableCell data-label="Paket & Nominal" className="text-xs min-w-[190px] whitespace-nowrap">
                             <p className="font-semibold text-slate-800">{inv.packageName}</p>
                             <p className="font-bold text-slate-900 tabular-nums">{fmtCurrency(inv.amount)}</p>
                           </TableCell>
-                          <TableCell className="text-xs min-w-[160px] whitespace-nowrap">
+                          <TableCell data-label="Bukti Transfer" className="text-xs min-w-[160px] whitespace-nowrap">
                             {inv.proofOfPaymentUrl || inv.proofUrl ? (
                               <Button
                                 size="sm"
@@ -79,7 +79,7 @@ export function VerificationTab({ handleApprovePayment, handleRejectPayment, pen
                               <span className="text-xs text-rose-500 font-medium italic whitespace-nowrap">Belum upload slip</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right pr-6 py-4 min-w-[240px] whitespace-nowrap">
+                          <TableCell data-nolabel className="text-right pr-6 py-4 min-w-[240px] whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                               <Button
                                 size="sm"

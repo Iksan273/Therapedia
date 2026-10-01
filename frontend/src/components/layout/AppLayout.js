@@ -266,7 +266,8 @@ const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
       const saved = localStorage.getItem("therapedia_sidebar_open");
-      return saved !== null ? JSON.parse(saved) : true;
+      // Tanpa preferensi tersimpan: menu terbuka di desktop (>=1024px), tertutup di tablet agar konten lega
+      return saved !== null ? JSON.parse(saved) : window.innerWidth >= 1024;
     } catch {
       return true;
     }
@@ -596,10 +597,10 @@ const AppLayout = () => {
 
               {/* Branch Switcher */}
               {canSwitchBranch ? (
-                <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2.5 py-1 shadow-2xs shrink-0">
+                <div className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/90 rounded-xl px-2.5 py-0.5 shadow-2xs min-w-0 shrink overflow-hidden">
                   <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                   <Select value={activeBranch} onValueChange={setActiveBranch}>
-                    <SelectTrigger className="border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 gap-1.5 cursor-pointer">
+                    <SelectTrigger className="h-8 w-auto max-w-[200px] border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 gap-1.5 cursor-pointer">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200 shadow-lg">
@@ -664,7 +665,7 @@ const AppLayout = () => {
               variant="outline"
               size="sm"
               className={cn(
-                "hidden sm:flex items-center gap-1.5 border-slate-200 transition-colors shadow-2xs font-semibold px-3",
+                "hidden lg:flex items-center gap-1.5 border-slate-200 transition-colors shadow-2xs font-semibold px-3",
                 isNativeFullscreen
                   ? "bg-sky-50 border-sky-300 text-sky-700 font-bold"
                   : "text-slate-700 hover:text-sky-700 hover:bg-sky-50"

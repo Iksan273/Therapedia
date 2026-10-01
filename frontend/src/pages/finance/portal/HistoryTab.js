@@ -22,7 +22,7 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
               {allHistoryLogs.length === 0 ? (
                 <EmptyState icon={History} title="Belum ada riwayat" subtitle="Belum ada pencatatan kredit." />
               ) : (
-                <Table className="min-w-[940px] w-full">
+                <Table stackOnMobile className="min-w-[940px] w-full">
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                       <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[130px] whitespace-nowrap">Tanggal</TableHead>
@@ -38,13 +38,13 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                       const br = BRANCHES.find((b) => b.id === log.branchId);
                       return (
                         <TableRow key={log.id} className="border-b border-slate-100 hover:bg-slate-50/50 text-xs">
-                          <TableCell className="font-mono text-slate-600 pl-6 tabular-nums min-w-[130px] whitespace-nowrap">{fmtDate(log.date)}</TableCell>
-                          <TableCell className="min-w-[200px] whitespace-nowrap">
+                          <TableCell data-nolabel className="font-mono text-slate-600 pl-6 tabular-nums min-w-[130px] whitespace-nowrap">{fmtDate(log.date)}</TableCell>
+                          <TableCell data-label="Client & Cabang" className="min-w-[200px] whitespace-nowrap">
                             <p className="font-bold text-slate-900">{log.clientName}</p>
                             <span className="text-[11px] text-slate-500 font-medium">{br ? br.name : "—"}</span>
                           </TableCell>
-                          <TableCell className="font-semibold text-slate-700 min-w-[160px] whitespace-nowrap">{log.packageName || "Regular Therapist"}</TableCell>
-                          <TableCell className="min-w-[180px] whitespace-nowrap">
+                          <TableCell data-label="Paket Kredit" className="font-semibold text-slate-700 min-w-[160px] whitespace-nowrap">{log.packageName || "Regular Therapist"}</TableCell>
+                          <TableCell data-label="Jenis Transaksi" className="min-w-[180px] whitespace-nowrap">
                             <span
                               className={cn(
                                 "px-2.5 py-0.5 rounded-lg text-[11px] font-bold border inline-flex items-center whitespace-nowrap",
@@ -60,7 +60,7 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                               {log.action === "cancel_penalty" && "Penalti Cancel (>3x)"}
                             </span>
                           </TableCell>
-                          <TableCell className="font-bold tabular-nums min-w-[140px] whitespace-nowrap">
+                          <TableCell data-label="Perubahan Kredit" className="font-bold tabular-nums min-w-[140px] whitespace-nowrap">
                             {log.creditChange > 0 ? (
                               <span className="text-emerald-600 font-extrabold">+{log.creditChange}</span>
                             ) : log.creditChange < 0 ? (
@@ -69,7 +69,7 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                               <span className="text-slate-400">0</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-slate-600 pr-6 min-w-[220px]">{log.note}</TableCell>
+                          <TableCell data-label="Keterangan / Alasan" className="text-slate-600 pr-6 min-w-[220px]">{log.note}</TableCell>
                         </TableRow>
                       );
                     })}

@@ -689,7 +689,7 @@ export default function ClientAnalyticsTab({ activeList }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <Table className="w-full min-w-[520px]">
+            <Table stackOnMobile className="w-full min-w-[520px]">
               <TableHeader>
                 <TableRow className="bg-amber-100/30 hover:bg-amber-100/30 border-b border-amber-200/60">
                   <TableHead className="font-bold text-amber-950 text-xs pl-6 whitespace-nowrap">Client</TableHead>
@@ -701,11 +701,11 @@ export default function ClientAnalyticsTab({ activeList }) {
               <TableBody>
                 {renewalPg.pageItems.map((r) => (
                   <TableRow key={r.id} className="border-b border-amber-200/40 hover:bg-amber-100/40 text-xs">
-                    <TableCell className="pl-6 font-bold text-slate-900 whitespace-nowrap">{r.client.clientName}</TableCell>
-                    <TableCell className="text-slate-600 whitespace-nowrap hidden md:table-cell">
+                    <TableCell data-nolabel className="pl-6 font-bold text-slate-900 whitespace-nowrap">{r.client.clientName}</TableCell>
+                    <TableCell data-label="Orang Tua" className="text-slate-600 whitespace-nowrap hidden md:table-cell">
                       {r.client.parentName} ({r.client.parentContact})
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell data-label="Sisa Kredit" className="whitespace-nowrap">
                       {r.remaining === 0 ? (
                         <span className="inline-flex items-center gap-1 font-extrabold text-cyan-800">
                           <Snowflake className="w-3.5 h-3.5" /> Frozen
@@ -714,7 +714,7 @@ export default function ClientAnalyticsTab({ activeList }) {
                         <span className="font-black text-amber-700">{r.remaining} sesi</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right pr-6 whitespace-nowrap">
+                    <TableCell data-nolabel className="text-right pr-6 whitespace-nowrap">
                       <Button
                         size="sm"
                         variant="outline"
@@ -780,7 +780,7 @@ export default function ClientAnalyticsTab({ activeList }) {
           {rows.length === 0 ? (
             <NoData icon={Users} text="Tidak ada client yang cocok dengan filter ini." />
           ) : (
-            <Table className="w-full min-w-[680px]">
+            <Table stackOnMobile className="w-full min-w-[680px]">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                   <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 whitespace-nowrap">Client & Kode</TableHead>
@@ -799,7 +799,7 @@ export default function ClientAnalyticsTab({ activeList }) {
                     key={r.id}
                     className={cn("border-b border-slate-100 text-xs", r.cancelTotal > 3 ? "bg-rose-50/50 hover:bg-rose-50" : "hover:bg-slate-50/50")}
                   >
-                    <TableCell className="pl-6 py-3 whitespace-nowrap">
+                    <TableCell data-nolabel className="pl-6 py-3 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => navigate(`/admin-schedule/clients/${r.id}`)}
@@ -814,13 +814,13 @@ export default function ClientAnalyticsTab({ activeList }) {
                         )}
                       </p>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap hidden md:table-cell">
+                    <TableCell data-label="Cabang" className="whitespace-nowrap hidden md:table-cell">
                       <BranchTag
                         branchId={r.client.branchId}
                         className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200"
                       />
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell data-label="Kehadiran" className="whitespace-nowrap">
                       {r.attendanceRate === null ? (
                         <span className="text-slate-400">Belum ada riwayat</span>
                       ) : (
@@ -838,17 +838,17 @@ export default function ClientAnalyticsTab({ activeList }) {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums hidden md:table-cell">
+                    <TableCell data-label="Selesai / Batal" className="whitespace-nowrap tabular-nums hidden md:table-cell">
                       <span className="font-bold text-emerald-700">{r.completed}</span>
                       <span className="text-slate-300 mx-1">/</span>
                       <span className={cn("font-bold", r.cancelled > 0 ? "text-rose-700" : "text-slate-500")}>{r.cancelled}x</span>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap hidden lg:table-cell text-slate-700">
+                    <TableCell data-label="Sesi Berikutnya" className="whitespace-nowrap hidden lg:table-cell text-slate-700">
                       {r.nextSession ? fmtDate(r.nextSession) : <span className="text-slate-400">Belum dijadwalkan</span>}
                     </TableCell>
-                    <TableCell className="font-mono font-bold text-slate-800 hidden lg:table-cell">{r.regular}</TableCell>
-                    <TableCell className="font-mono font-bold text-purple-800 hidden lg:table-cell">{r.senior}</TableCell>
-                    <TableCell className="pr-6 whitespace-nowrap">
+                    <TableCell data-label="Sisa Regular" className="font-mono font-bold text-slate-800 hidden lg:table-cell">{r.regular}</TableCell>
+                    <TableCell data-label="Sisa Senior" className="font-mono font-bold text-purple-800 hidden lg:table-cell">{r.senior}</TableCell>
+                    <TableCell data-label="Status Kuota" className="pr-6 whitespace-nowrap">
                       {r.creditStatus === "zero" ? (
                         <span className="px-2.5 py-1 rounded-lg bg-cyan-100 text-cyan-900 border border-cyan-300 font-extrabold inline-flex items-center gap-1">
                           <Snowflake className="w-3 h-3" /> Frozen

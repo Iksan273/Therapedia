@@ -120,7 +120,7 @@ export default function MySchedule() {
           <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1 shadow-2xs">
             <User className="w-4 h-4 text-sky-600 shrink-0" />
             <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
+              <SelectTrigger className="h-8 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
                 <SelectValue placeholder="Filter Client" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-slate-200">
@@ -193,7 +193,7 @@ export default function MySchedule() {
               type="button"
               onClick={() => setView("week")}
               className={cn(
-                "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                "px-3 py-2 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
                 view === "week" ? "bg-white text-emerald-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -203,7 +203,7 @@ export default function MySchedule() {
               type="button"
               onClick={() => setView("day")}
               className={cn(
-                "px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                "px-3 py-2 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
                 view === "day" ? "bg-white text-emerald-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
               )}
             >
@@ -242,7 +242,7 @@ export default function MySchedule() {
                     href={c.gdriveClientLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] font-bold text-sky-700 hover:underline flex items-center gap-0.5"
+                    className="text-[11px] font-bold text-sky-700 hover:underline flex items-center gap-0.5 min-h-9 px-1"
                     title="Buka Google Drive Client"
                   >
                     <ExternalLink className="w-3 h-3" /> GDrive
@@ -251,7 +251,7 @@ export default function MySchedule() {
                 {(c.assessmentAnswers || []).length > 0 && (
                   <Link
                     to={`/therapist/parent-assessment/${c.id}`}
-                    className="text-[11px] font-bold text-purple-700 hover:underline flex items-center gap-0.5"
+                    className="text-[11px] font-bold text-purple-700 hover:underline flex items-center gap-0.5 min-h-9 px-1"
                     title="Buka Tabel Psikologi & Jawaban Ortu"
                   >
                     <ClipboardCheck className="w-3 h-3" /> Kuesioner

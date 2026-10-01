@@ -335,7 +335,7 @@ export default function DashboardInquiry() {
 
       {/* TABS FOR ACTIONABLE OPERATIONAL LISTS */}
       <Tabs defaultValue="awaiting" className="space-y-4">
-        <TabsList className="bg-white border border-slate-200 p-1 rounded-2xl shadow-2xs">
+        <TabsList className="bg-white border border-slate-200 p-1 rounded-2xl shadow-2xs h-auto w-full sm:w-auto flex flex-wrap justify-start gap-1">
           <TabsTrigger value="awaiting" className="rounded-xl text-xs font-bold gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
             Menunggu Kuesioner Ortu ({awaitingQuestionnaires.length})

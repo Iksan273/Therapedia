@@ -25,7 +25,7 @@ export function DiscontinuedTab({ discPg, discontinuedList, navigate }) {
                   Tidak ada intake yang discontinue pada filter saat ini.
                 </div>
               ) : (
-                <Table>
+                <Table stackOnMobile>
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 border-b border-slate-200 text-xs">
                       <TableHead className="py-3 pl-6">Client</TableHead>
@@ -40,13 +40,13 @@ export function DiscontinuedTab({ discPg, discontinuedList, navigate }) {
                       .map((c) => {
                         return (
                           <TableRow key={c.id} className="border-b border-slate-100 text-xs">
-                            <TableCell className="py-3 pl-6 font-bold text-slate-900">{c.clientName}</TableCell>
-                            <TableCell><BranchTag branchId={c.branchId} /></TableCell>
-                            <TableCell><ServiceChips client={c} /></TableCell>
-                            <TableCell className="text-rose-700 font-medium">
+                            <TableCell data-nolabel className="py-3 pl-6 font-bold text-slate-900">{c.clientName}</TableCell>
+                            <TableCell data-label="Cabang"><BranchTag branchId={c.branchId} /></TableCell>
+                            <TableCell data-label="Layanan Terakhir"><ServiceChips client={c} /></TableCell>
+                            <TableCell data-label="Alasan / Catatan" className="text-rose-700 font-medium">
                               {c.dischargeNote || c.notes || "Keluarga memutuskan tunda asesmen / lokasi terlalu jauh"}
                             </TableCell>
-                            <TableCell className="text-right pr-6">
+                            <TableCell data-nolabel className="text-right pr-6">
                               <Button
                                 size="sm"
                                 variant="outline"

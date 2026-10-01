@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Filter, RotateCcw, Search, X } from "lucide-react";
+import { ChevronDown, Filter, RotateCcw, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 export function FilterBar({ title = "Filter", children, chips = [], onReset, resultText, gridClassName, className, plain = false }) {
   const hasActive = chips.length > 0;
   const Shell = plain ? "div" : Card;
+  // Di ponsel hanya filter pertama yang tampil; sisanya dilipat agar layar tidak habis oleh filter
+  const [expanded, setExpanded] = useState(false);
+  const childCount = React.Children.toArray(children).length;
   return (
     <Shell className={cn(!plain && "rounded-2xl border border-slate-200/90 bg-white shadow-2xs p-4 sm:p-5", className)}>
       <div className="flex flex-col gap-3">
@@ -33,7 +36,27 @@ export function FilterBar({ title = "Filter", children, chips = [], onReset, res
           )}
         </div>
 
-        <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5", gridClassName)}>{children}</div>
+        <div
+          className={cn(
+            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5",
+            !expanded && "max-sm:[&>*:not(:first-child)]:hidden",
+            gridClassName
+          )}
+        >
+          {children}
+        </div>
+        {childCount > 1 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="sm:hidden inline-flex items-center justify-center gap-1.5 h-10 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer"
+            aria-expanded={expanded}
+            data-testid="filter-toggle-more"
+          >
+            {expanded ? "Sembunyikan filter lain" : `Filter lainnya (${childCount - 1})`}
+            <ChevronDown className={cn("w-4 h-4 transition-transform", expanded && "rotate-180")} />
+          </button>
+        )}
 
         {hasActive && (
           <div className="flex flex-wrap items-center gap-1.5 pt-1" aria-label="Filter aktif">

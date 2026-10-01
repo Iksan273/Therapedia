@@ -518,7 +518,7 @@ export default function DashboardRevenue() {
               Tidak ada terapis pada filter cabang ini.
             </div>
           ) : (
-            <Table className="min-w-[700px] w-full">
+            <Table stackOnMobile className="min-w-[700px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                   <TableHead className="font-bold text-slate-700 text-xs py-3 pl-6">Nama Therapist</TableHead>
@@ -535,7 +535,7 @@ export default function DashboardRevenue() {
                   const pct = Math.round((t.scheduledCount / maxWorkload) * 100);
                   return (
                     <TableRow key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="py-3 pl-6">
+                      <TableCell data-nolabel className="py-3 pl-6">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-800 font-bold text-xs flex items-center justify-center shrink-0">
                             {t.name.slice(0, 2).toUpperCase()}
@@ -546,23 +546,23 @@ export default function DashboardRevenue() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs text-slate-600 font-medium">
+                      <TableCell data-label="Cabang" className="text-xs text-slate-600 font-medium">
                         {t.branchName}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell data-label="Sesi Terjadwal" className="text-center">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {t.scheduledCount} Sesi
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell data-label="Sesi Selesai" className="text-center">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           {t.completedCount} Selesai
                         </span>
                       </TableCell>
-                      <TableCell className="text-center font-mono font-bold text-xs text-slate-800">
+                      <TableCell data-label="Total Penanganan" className="text-center font-mono font-bold text-xs text-slate-800">
                         {t.total} Sesi
                       </TableCell>
-                      <TableCell className="pr-6">
+                      <TableCell data-label="Beban Sesi Aktif" className="pr-6">
                         <div className="space-y-1">
                           <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                             <div
@@ -600,7 +600,7 @@ export default function DashboardRevenue() {
           {filteredInvoices.length === 0 ? (
             <EmptyState icon={Receipt} title="Tidak ada transaksi" subtitle="Belum ada transaksi pada filter periode ini." />
           ) : (
-            <Table className="min-w-[860px] w-full">
+            <Table stackOnMobile className="min-w-[860px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                   <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[150px] whitespace-nowrap">No. Invoice</TableHead>
@@ -616,21 +616,21 @@ export default function DashboardRevenue() {
                   const br = BRANCHES.find((b) => b.id === inv.branchId);
                   return (
                     <TableRow key={inv.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
-                      <TableCell className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[150px] whitespace-nowrap">
+                      <TableCell data-nolabel className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[150px] whitespace-nowrap">
                         {inv.invoiceNumber || inv.id}
                       </TableCell>
-                      <TableCell className="text-xs min-w-[200px] whitespace-nowrap">
+                      <TableCell data-label="Client & Cabang" className="text-xs min-w-[200px] whitespace-nowrap">
                         <p className="font-bold text-slate-900">{inv.clientName}</p>
                         <span className="text-[11px] text-slate-500 font-medium">{br ? br.name : "—"}</span>
                       </TableCell>
-                      <TableCell className="text-xs font-semibold text-slate-700 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
-                      <TableCell className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">
+                      <TableCell data-label="Paket Layanan" className="text-xs font-semibold text-slate-700 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
+                      <TableCell data-label="Nominal Tagihan" className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">
                         {fmtCurrency(inv.amount)}
                       </TableCell>
-                      <TableCell className="text-xs text-slate-500 tabular-nums min-w-[130px] whitespace-nowrap">
+                      <TableCell data-label="Tanggal Terbit" className="text-xs text-slate-500 tabular-nums min-w-[130px] whitespace-nowrap">
                         {fmtDate(inv.createdAt)}
                       </TableCell>
-                      <TableCell className="text-right pr-6 min-w-[130px] whitespace-nowrap">
+                      <TableCell data-label="Status" className="text-right pr-6 min-w-[130px] whitespace-nowrap">
                         <StatusBadge status={inv.status} />
                       </TableCell>
                     </TableRow>

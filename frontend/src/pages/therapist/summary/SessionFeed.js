@@ -164,7 +164,7 @@ export function SessionFeed({ clients, filteredSchedules, getDayName, handleOpen
                           <button
                             type="button"
                             onClick={() => handleOpenClientDrawer(client)}
-                            className="font-bold text-sky-700 hover:text-sky-900 hover:underline flex items-center gap-1 cursor-pointer"
+                            className="font-bold text-sky-700 hover:text-sky-900 hover:underline flex items-center gap-1 cursor-pointer min-h-9 py-1"
                           >
                             <FileText className="w-3.5 h-3.5" /> Buka Rekam Kumulatif Client
                           </button>
@@ -173,7 +173,7 @@ export function SessionFeed({ clients, filteredSchedules, getDayName, handleOpen
                         {client && (
                           <Link
                             to={`/therapist/clients/${client.id}`}
-                            className="text-slate-500 hover:text-slate-800 hover:underline flex items-center gap-1"
+                            className="text-slate-500 hover:text-slate-800 hover:underline flex items-center gap-1 min-h-9 py-1"
                           >
                             <User className="w-3.5 h-3.5" /> Profil Lengkap
                           </Link>

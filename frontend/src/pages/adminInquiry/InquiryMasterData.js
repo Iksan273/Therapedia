@@ -268,7 +268,7 @@ export default function InquiryMasterData() {
               <EmptyState icon={Stethoscope} title="Belum ada layanan" subtitle="Tambahkan layanan klinis pertama." />
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table stackOnMobile>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs font-bold">Layanan</TableHead>
@@ -282,18 +282,18 @@ export default function InquiryMasterData() {
                   <TableBody>
                     {pagedServices.map((srv) => (
                       <TableRow key={srv.value} data-testid={`service-row-${srv.value}`}>
-                        <TableCell className="min-w-[240px]">
+                        <TableCell data-nolabel className="min-w-[240px]">
                           <p className="text-xs font-bold text-slate-900">{srv.label}</p>
                           {srv.description && (
                             <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{srv.description}</p>
                           )}
                         </TableCell>
-                        <TableCell className="font-mono text-[11px] text-slate-600">{srv.value}</TableCell>
-                        <TableCell>
+                        <TableCell data-label="Kode" className="font-mono text-[11px] text-slate-600">{srv.value}</TableCell>
+                        <TableCell data-label="Kategori">
                           <Badge variant="outline" className="text-[11px] font-bold">{srv.category || "—"}</Badge>
                         </TableCell>
-                        <TableCell className="text-center text-xs font-mono">{serviceUsage[srv.value] || 0}</TableCell>
-                        <TableCell className="text-center">
+                        <TableCell data-label="Dipakai" className="text-center text-xs font-mono">{serviceUsage[srv.value] || 0}</TableCell>
+                        <TableCell data-label="Status" className="text-center">
                           <Switch
                             checked={srv.active !== false}
                             onCheckedChange={(checked) => {
@@ -303,7 +303,7 @@ export default function InquiryMasterData() {
                             aria-label={`Aktifkan ${srv.shortLabel}`}
                           />
                         </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
+                        <TableCell data-nolabel className="text-right whitespace-nowrap">
                           <Button aria-label="Edit layanan"
                             size="icon"
                             variant="ghost"
