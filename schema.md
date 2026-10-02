@@ -1,799 +1,1162 @@
-# DOKUMENTASI SKEMA DATABASE (DATABASE SCHEMA)
-## ONE GATE INTEGRATED CLINIC SYSTEM — THERAPEDIA
-### Standardized for Laravel 11.x RESTful Backend API & MySQL Database (Enterprise & Scalable Grade)
+# Skema Database Therapedia — v2
+
+**One Gate Integrated Clinic System** · MySQL 8.0 (InnoDB) · Laravel 11 · Sanctum · Redis
+
+Dokumen ini adalah sumber kebenaran desain database backend. Skema mencakup **seluruh fitur prototype frontend** (`frontend/`): intake & pipeline, mesin asesmen, penjadwalan + kredit, finance, portal terapis, portal orang tua, dashboard, RBAC, dan **audit log untuk setiap aksi yang mengubah data**.
+
+Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md`). Mapping field frontend ↔ kolom ada di bagian 08 dan `docs/guide/03-data-model.md`.
 
 ---
 
-## 01. PENDAHULUAN & RINGKASAN EKSEKUTIF
-
-Dokumen **`schema.md`** ini berisi rancangan arsitektur database relasional skala enterprise untuk **Therapedia Developmental Center**. Seluruh skema telah disesuaikan dengan standar konvensi **Laravel 11.x Eloquent ORM**, mencakup nama tabel (*snake_case plural*), primary key (`id` autoincrement / bigInteger), foreign key (`*_id`), penanggalan otomatis (`created_at`, `updated_at`), pencatatan penghapusan aman (`deleted_at` / soft deletes), serta **strategi komposit indeks untuk performa query berkecepatan tinggi**.
-
-### 🔒 Pemisahan Otentikasi Eksekutif & Penyatuan Akun Internal:
-1. **Tabel `users` (Satu Akun Terpadu Seluruh Staf Internal & Terapis):**
-   - Menampung seluruh pengguna internal klinik (Super Admin, Branch Manager, Admin Inquiry, Admin Schedule, Finance, dan **Terapis**).
-   - Profil klinis terapis (seperti `title`, `specialty`, dan `bio`) digabungkan secara efisien ke dalam tabel `users`.
-   - Kolom `access_code` telah **dihapus sepenuhnya** dari `users`.
-2. **Tabel `clients` (Akses Mandiri Orang Tua Pasien):**
-   - Login orang tua dilakukan **langsung menggunakan `client_access_code` dari tabel `clients`** tanpa mencampuri tabel `users`. Pendekatan ini menghilangkan *table lock contention*, menjaga kebersihan *auth guard*, dan mempercepat performa autentikasi portal orang tua.
-3. **Penjadwalan Terintegrasi Tanpa Manajerial Ruangan:** Penjadwalan terapi berfokus langsung pada ketersediaan **Staf Terapis (`users`), Pasien (`clients`), dan Saldo Kredit (`client_packages`)**.
-
----
-
-## 02. MATRIKS MODUL & TABEL DATABASE
-
-Berikut adalah peta distribusi 22 tabel database yang dikelompokkan ke dalam 7 modul utama sistem:
-
-| No | Nama Tabel | Modul Utama Sistem | Deskripsi Singkat Fungsi Tabel |
-| :---: | :--- | :--- | :--- |
-| **1** | `branches` | Executive & Master Data | Master data lokasi cabang klinik Therapedia |
-| **2** | `roles` | RBAC & Security | Master peran hak akses pengguna **Internal Klinik** |
-| **3** | `users` | RBAC, Staff & Therapists | Akun pengguna internal (Admin, Finance, **Terapis & Profil Medis**) |
-| **4** | `therapist_availabilities` | Scheduling & Capacity | Master jam & hari kerja operasional terapis (link ke `users`) |
-| **5** | `clients` | Client Intake & Parent Auth | Master pasien anak **sekaligus Kredensial Login Ortu** |
-| **6** | `client_service_interests` | Client Intake Pipeline | Daftar pilihan layanan klinis yang diminati anak |
-| **7** | `client_gdrive_links` | Clinical Record Storage | Tautan arsip dokumen rujukan & video observasi GDrive |
-| **8** | `inquiry_pipeline_logs` | Audit Intake Pipeline | Tracking riwayat perpindahan 8 tahap pipeline anak |
-| **9** | `assessment_categories` | Clinical Assessment Engine | Kategori instrumen asesmen (Sensory Profile 2, dll) |
-| **10** | `assessment_domains` | Clinical Assessment Engine | Domain sensori (Auditory, Visual, Touch, Movement, dll) |
-| **11** | `assessment_questions` | Clinical Assessment Engine | Bank kuesioner dinamis (6 tipe pertanyaan) |
-| **12** | `assessment_access_codes` | Clinical Assessment Engine | Kode unik akses publik kuesioner ortu/guru |
-| **13** | `assessment_responses` | Clinical Assessment Engine | Header pengajuan jawaban kuesioner ortu |
-| **14** | `assessment_answers` | Clinical Assessment Engine | Detail butir jawaban per soal kuesioner |
-| **15** | `assessment_quadrant_scores`| Clinical Assessment Engine | Perhitungan otomatis skor 4 kuadran sensori Winnie Dunn |
-| **16** | `schedules` | Timetable & Calendar Engine | Sesi kalender terapi/asesmen, status & proteksi zero-credit |
-| **17** | `master_packages` | Finance & Pricing | Catalog harga & kuota paket terapi |
-| **18** | `invoices` | Billing & Cashier Gateway | Transaksi tagihan, verifikasi bukti bayar transfer |
-| **19** | `client_packages` | Credit & Renewal Management | Saldo kredit aktif milik anak & kuota cancel |
-| **20** | `credit_histories` | Credit Ledger & Audit | Log mutasi penambahan/pemotongan kredit & penalti |
-| **21** | `clinical_soap_notes` | Therapist Portal & EHR | Catatan rekam medis SOAP & Home Program terapis |
-| **22** | `audit_trails` | System Security & Log | Log aktivitas sistem & perubahan data sensitif |
+## Daftar Isi
+- [00. Prinsip desain](#00-prinsip-desain)
+- [01. Query utama & target performa](#01-query-utama--target-performa)
+- [02. Peta modul & tabel](#02-peta-modul--tabel)
+- [03. ERD](#03-erd)
+- [04. Spesifikasi tabel](#04-spesifikasi-tabel)
+- [05. Audit log](#05-audit-log)
+- [06. Alur transaksi kritis](#06-alur-transaksi-kritis)
+- [07. Strategi performa](#07-strategi-performa)
+- [08. Mapping frontend ↔ database & keputusan enum](#08-mapping-frontend--database--keputusan-enum)
+- [09. Urutan migration & seeder](#09-urutan-migration--seeder)
+- [10. Catatan implementasi Laravel](#10-catatan-implementasi-laravel)
 
 ---
 
-## 03. DIAGRAM HUBUNGAN ENTITAS (ERD)
+## 00. Prinsip desain
+
+| # | Prinsip | Wujud di skema |
+|---|---|---|
+| 1 | **Indeks dari query, bukan dari kolom** | Setiap indeks komposit di bagian 04 menyebut query yang dilayani (lihat 01) |
+| 2 | **Ledger sebagai sumber kebenaran kredit** | `credit_ledger` append-only; saldo di `client_packages` & `clients` adalah denormalisasi yang diperbarui di transaksi yang sama |
+| 3 | **Tidak ada perubahan yang hilang** | `audit_logs` mencatat semua aksi + nilai lama/baru; pembatalan (undo) = aksi baru yang menunjuk aksi asal, bukan menghapus/menimpa |
+| 4 | **Reversible by design** | Kolom `previous_status`, `credit_effect`, `reverses_ledger_id`, `reverts_audit_id` memungkinkan "completed lalu dibatalkan" tanpa kehilangan jejak |
+| 5 | **Aman dari edit bersamaan** | Kolom `version` (optimistic lock) pada entity yang sering diubah → HTTP 409 |
+| 6 | **Idempoten** | `credit_ledger.idempotency_key` UNIQUE mencegah potong kredit ganda |
+| 7 | **Snapshot nilai transaksi** | Nama paket, harga, nama pelaku disalin saat transaksi agar histori tidak berubah ketika master diedit |
+| 8 | **Baca cepat untuk dashboard** | `daily_branch_metrics` (ringkasan harian) + cache Redis master data |
+| 9 | **Lookup table untuk daftar yang bisa diedit** | Layanan, kuadran, alasan cancel/discharge, tag keluhan = tabel ber-PK `code` |
+| 10 | **ENUM untuk siklus hidup tetap** | Status client/sesi/invoice/paket |
+
+Konvensi umum (detail di skill): InnoDB `utf8mb4_0900_ai_ci`; PK `BIGINT UNSIGNED`; waktu `DATETIME` UTC; tanggal kalender `DATE`; slot `TIME`; uang `BIGINT UNSIGNED` rupiah utuh; soft delete hanya untuk entity bisnis; ledger & audit tidak pernah di-UPDATE/DELETE.
+
+---
+
+## 01. Query utama & target performa
+
+Daftar ini adalah dasar desain indeks. Setiap halaman prototype dipetakan ke query utamanya.
+
+| ID | Halaman / fitur | Query | Indeks yang melayani | Target DB p95 |
+|---|---|---|---|---|
+| Q1 | Weekly Calendar (Admin Schedule) | sesi 1 cabang, 1 minggu, opsional terapis | `schedules (branch_id, session_date, status)` · `schedules (therapist_id, session_date, start_time)` | < 30 ms |
+| Q2 | Conflict check saat buat/pindah sesi | sesi aktif terapis X tanggal D yang overlap jam | `schedules (therapist_id, session_date, start_time)` | < 10 ms |
+| Q3 | My Schedule (Terapis) | sesi terapis X rentang minggu | `schedules (therapist_id, session_date, start_time)` | < 20 ms |
+| Q4 | Inquiry Pipeline (kanban) | client per cabang per status, urut terbaru | `clients (branch_id, status, created_at)` | < 30 ms |
+| Q5 | Search client (nama / ortu / kode) | prefix nama / kode akses | `clients (child_name)`, `clients (parent_name)`, UNIQUE `client_access_code` | < 30 ms |
+| Q6 | Active Clients roster + filter kredit | client `admitted` per cabang + saldo | `clients (branch_id, status, credit_balance)` | < 30 ms |
+| Q7 | Birthday radar | client aktif per cabang per bulan lahir | `clients (branch_id, birth_month)` (generated column) | < 20 ms |
+| Q8 | Detail client (kredit, sesi, invoice) | by id + relasi | PK + `schedules (client_id, session_date)` · `client_packages (client_id, status)` · `invoices (client_id, issued_at)` | < 30 ms |
+| Q9 | Finance — antrean verifikasi | invoice `pending_verification` per cabang | `invoices (branch_id, status, issued_at)` | < 20 ms |
+| Q10 | Finance — riwayat mutasi kredit | ledger semua client per cabang, terbaru, keyset | `credit_ledger (branch_id, created_at, id)` | < 30 ms |
+| Q11 | Revenue dashboard | omzet `paid` per cabang per periode | `daily_branch_metrics (branch_id, metric_date)`; fallback `invoices (status, paid_at, branch_id)` | < 20 ms |
+| Q12 | Inquiry / Schedule / Branch dashboard | KPI per cabang per periode | `daily_branch_metrics` | < 20 ms |
+| Q13 | Kode kuesioner publik | lookup kode | UNIQUE `assessment_access_codes (code)` | < 5 ms |
+| Q14 | Login ortu | lookup kode akses client | UNIQUE `clients (client_access_code)` | < 5 ms |
+| Q15 | Audit timeline 1 client / 1 sesi | log per entity / per induk, terbaru | `audit_logs (subject_type, subject_id, occurred_at)` · `audit_logs (entity_type, entity_id, occurred_at)` | < 30 ms |
+| Q16 | Audit per user / per aksi | aktivitas staf X atau aksi Y per periode | `audit_logs (actor_id, occurred_at)` · `audit_logs (action, occurred_at)` | < 50 ms |
+| Q17 | Therapist summary | sesi `completed` terapis X per periode + status laporan | `schedules (therapist_id, session_date, start_time)` + `session_reports (schedule_id)` | < 30 ms |
+| Q18 | Awaiting questionnaire | kode `issued` belum submit per cabang | `assessment_access_codes (status, issued_at)` + join client | < 30 ms |
+
+Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional < 150 ms · dashboard < 100 ms.
+
+---
+
+## 02. Peta modul & tabel
+
+| Modul | Tabel | Fungsi singkat |
+|---|---|---|
+| **A. Organisasi & akses** | `branches` | Cabang klinik |
+| | `roles` | Role sistem & kustom |
+| | `access_modules` | Daftar modul RBAC |
+| | `role_permissions` | Matriks role × modul |
+| | `users` | Staf internal + terapis (satu tabel) |
+| | `therapist_availabilities` | Jam kerja terapis |
+| **B. Master data** | `services` | Layanan intake (BOT-A, FOT-A, Consultation, …) |
+| | `sensory_quadrants` | Kuadran sensori (AV/SN/RG/SK) |
+| | `concern_tags` | Tag keluhan anak |
+| | `cancel_reasons` | Alasan cancel + aturan kuota |
+| | `discharge_reasons` | Alasan discharge |
+| | `master_packages` | Katalog paket kredit |
+| **C. Client & intake** | `clients` | Master anak + kredensial portal ortu |
+| | `client_services` | Layanan dipilih (multi) |
+| | `client_concern_tags` | Tag keluhan client |
+| | `client_documents` | Tautan GDrive / dokumen |
+| | `client_notes` | Catatan laporan asesmen & catatan umum |
+| | `client_status_histories` | Riwayat tahap pipeline |
+| **D. Asesmen** | `assessment_categories` | Instrumen (Sensory Profile 2, …) |
+| | `assessment_sections` | Bagian/domain soal |
+| | `assessment_questions` | Bank soal (6 tipe) |
+| | `assessment_access_codes` | Kode kuesioner publik |
+| | `assessment_responses` | Pengisian kuesioner (per revisi) |
+| | `assessment_answers` | Jawaban per soal |
+| | `assessment_quadrant_scores` | Skor kuadran per pengisian |
+| **E. Penjadwalan** | `schedule_series` | Pola jadwal berulang |
+| | `schedules` | Sesi terapi/asesmen |
+| | `session_reports` | Laporan sesi 3 bagian + SOAP |
+| **F. Keuangan & kredit** | `invoices` | Tagihan |
+| | `payment_proofs` | Bukti transfer (riwayat upload) |
+| | `client_packages` | Paket kredit milik client |
+| | `credit_ledger` | Mutasi kredit append-only |
+| **G. Audit & analitik** | `audit_logs` | Log semua aksi (partisi bulanan) |
+| | `daily_branch_metrics` | Ringkasan harian per cabang |
+| **H. Laravel bawaan** | `personal_access_tokens`, `cache`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, cache, queue |
+
+Total: 36 tabel domain + tabel bawaan Laravel.
+
+---
+
+## 03. ERD
 
 ```mermaid
 erDiagram
-    branches ||--o{ users : "memiliki staff & terapis"
-    branches ||--o{ clients : "tempat terapi"
-    branches ||--o{ invoices : "menerbitkan invoice"
+  branches ||--o{ users : "staf"
+  branches ||--o{ clients : "client"
+  branches ||--o{ schedules : "sesi"
+  branches ||--o{ invoices : "tagihan"
+  branches ||--o{ daily_branch_metrics : "ringkasan"
+  roles ||--o{ users : ""
+  roles ||--o{ role_permissions : ""
+  access_modules ||--o{ role_permissions : ""
+  users ||--o{ therapist_availabilities : "jam kerja"
+  users ||--o{ schedules : "terapis"
 
-    roles ||--o{ users : "diberikan ke staff/terapis"
+  clients ||--o{ client_services : ""
+  services ||--o{ client_services : ""
+  clients ||--o{ client_concern_tags : ""
+  concern_tags ||--o{ client_concern_tags : ""
+  clients ||--o{ client_documents : ""
+  clients ||--o{ client_notes : ""
+  clients ||--o{ client_status_histories : "pipeline"
+  discharge_reasons ||--o{ clients : ""
 
-    users ||--o{ therapist_availabilities : "jam kerja terapis"
-    users ||--o{ schedules : "terapis bertugas di"
-    users ||--o{ clinical_soap_notes : "terapis menulis SOAP"
-    users ||--o{ invoices : "diverifikasi oleh finance"
+  assessment_categories ||--o{ assessment_sections : ""
+  assessment_sections ||--o{ assessment_questions : ""
+  sensory_quadrants ||--o{ assessment_questions : ""
+  clients ||--o{ assessment_access_codes : ""
+  assessment_categories ||--o{ assessment_access_codes : ""
+  assessment_access_codes ||--o{ assessment_responses : "revisi"
+  assessment_responses ||--o{ assessment_answers : ""
+  assessment_responses ||--o{ assessment_quadrant_scores : ""
 
-    clients ||--o{ client_service_interests : "layanan diminati"
-    clients ||--o{ client_gdrive_links : "arsip video/dokumen"
-    clients ||--o{ inquiry_pipeline_logs : "log status pipeline"
-    clients ||--o{ assessment_access_codes : "diberikan kode"
-    clients ||--o{ assessment_responses : "mengisi asesmen"
-    clients ||--o{ schedules : "memiliki jadwal"
-    clients ||--o{ invoices : "menerima invoice"
-    clients ||--o{ client_packages : "memiliki paket kredit"
-    clients ||--o{ credit_histories : "riwayat mutasi kredit"
+  clients ||--o{ schedule_series : ""
+  schedule_series ||--o{ schedules : ""
+  clients ||--o{ schedules : ""
+  client_packages ||--o{ schedules : "dipakai"
+  cancel_reasons ||--o{ schedules : ""
+  schedules ||--o| session_reports : ""
 
-    assessment_categories ||--o{ assessment_domains : "membagi"
-    assessment_domains ||--o{ assessment_questions : "memiliki soal"
-    assessment_access_codes ||--o{ assessment_responses : "digunakan untuk"
-    assessment_responses ||--o{ assessment_answers : "berisi butir"
-    assessment_responses ||--o| assessment_quadrant_scores : "menghasilkan skor"
-
-    master_packages ||--o{ invoices : "item paket"
-    master_packages ||--o{ client_packages : "jenis paket"
-    invoices ||--o| client_packages : "menghasilkan saldo kredit"
-    client_packages ||--o{ credit_histories : "mencatat log kredit"
-    client_packages ||--o{ schedules : "dipakai untuk sesi"
-
-    schedules ||--o| clinical_soap_notes : "catatan SOAP"
-    schedules ||--o{ credit_histories : "trigged by session status"
+  master_packages ||--o{ invoices : ""
+  clients ||--o{ invoices : ""
+  invoices ||--o{ payment_proofs : ""
+  invoices ||--o| client_packages : "aktivasi"
+  clients ||--o{ client_packages : ""
+  client_packages ||--o{ credit_ledger : ""
+  schedules ||--o{ credit_ledger : ""
+  credit_ledger ||--o| credit_ledger : "reversal"
 ```
+`audit_logs` sengaja tanpa FK (partisi + data historis tetap ada walau entity dihapus).
 
 ---
 
-## 04. SPESIFIKASI DETAIL SKEMA TABEL & COMPOSITE INDEXING
+## 04. Spesifikasi tabel
 
----
+Notasi indeks: `idx_<tabel>_<kolom>` dan komentar `// Qn` = query di bagian 01 yang dilayani.
 
-### MODUL 1: MASTER DATA, RBAC & USER MANAGEMENT (INTERNAL CLINIC STAFF & THERAPISTS)
+### A. Organisasi & akses
 
-#### 1. Tabel `branches`
-Master lokasi cabang klinik Therapedia (Surabaya Timur, Citraland, Surabaya Barat).
-- **Migration Schema (Laravel):**
+#### `branches`
 ```php
 Schema::create('branches', function (Blueprint $table) {
     $table->id();
-    $table->string('code', 20)->unique(); // EAST, CTL, WEST
-    $table->string('name', 100); // East Center, Citraland, West Center
+    $table->string('code', 20)->unique();            // EAST, CTL, WEST
+    $table->string('name', 100);                      // East, Citraland, West
     $table->string('city', 50)->default('Surabaya');
-    $table->text('address');
-    $table->string('phone', 30);
-    $table->string('manager_name', 100)->nullable();
+    $table->text('address')->nullable();
+    $table->string('phone', 30)->nullable();
+    $table->boolean('is_active')->default(true);
     $table->timestamps();
     $table->softDeletes();
 });
 ```
 
-#### 2. Tabel `roles`
-Master peran untuk matriks Hak Akses RBAC pengguna **internal klinik** (termasuk peran `therapist`).
-- **Migration Schema (Laravel):**
+#### `roles`
+Role sistem (`master`, `manager`, `admin_inquiry`, `admin_schedule`, `finance`, `therapist`) + role kustom buatan Master. Orang tua **tidak** memakai tabel ini (auth via `clients`).
 ```php
 Schema::create('roles', function (Blueprint $table) {
     $table->id();
-    $table->string('slug', 50)->unique(); // super_admin, branch_manager, admin_inquiry, admin_schedule, finance, therapist
-    $table->string('name', 100); // Super Admin, Admin Intake, Tim Keuangan, Terapis Medis
+    $table->string('code', 50)->unique();             // master, admin_inquiry, custom_xxx
+    $table->string('name', 100);
+    $table->string('badge', 100)->nullable();
     $table->text('description')->nullable();
+    $table->boolean('is_system')->default(false);     // role sistem tidak bisa dihapus
     $table->timestamps();
+    $table->softDeletes();
 });
 ```
 
-#### 3. Tabel `users`
-Akun terpadu pengguna **Internal Klinik** (Super Admin, Branch Manager, Admin Inquiry, Admin Schedule, Finance, **dan Terapis**). Menampung atribut spesialisasi klinis terapis secara efisien.
-- **Migration Schema (Laravel):**
+#### `access_modules`
+```php
+Schema::create('access_modules', function (Blueprint $table) {
+    $table->string('code', 50)->primary();            // revenue, inquiry_pipeline, weekly_calendar, finance, rbac, …
+    $table->string('label', 100);
+    $table->string('category', 50);                   // Financial, Inquiry, Scheduling, Administration, Clinical
+    $table->text('description')->nullable();
+    $table->unsignedSmallInteger('sort_order')->default(0);
+});
+```
+
+#### `role_permissions`
+```php
+Schema::create('role_permissions', function (Blueprint $table) {
+    $table->foreignId('role_id')->constrained()->cascadeOnDelete();
+    $table->string('module_code', 50);
+    $table->boolean('allowed')->default(false);
+    $table->timestamps();
+    $table->primary(['role_id', 'module_code']);
+    $table->foreign('module_code')->references('code')->on('access_modules')->cascadeOnUpdate()->cascadeOnDelete();
+});
+```
+Dibaca setiap request (policy) → **cache Redis** per role (`rbac:role:{id}`), invalidasi saat matriks diubah.
+
+#### `users`
+Staf internal & terapis dalam satu tabel. Atribut klinis nullable untuk non-terapis.
 ```php
 Schema::create('users', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
-    $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
-    $table->string('name', 100);
-    $table->string('email', 100)->unique();
-    $table->string('username', 50)->unique();
+    $table->foreignId('role_id')->constrained()->restrictOnDelete();
+    $table->foreignId('branch_id')->nullable()->constrained()->nullOnDelete(); // null = semua cabang (master)
+    $table->string('name', 150);
+    $table->string('email', 150)->unique();
     $table->string('password');
     $table->string('phone', 30)->nullable();
-    
-    // ATRIBUT KLINIS SPESIFIK TERAPIS (Nullable untuk Role Non-Terapis)
-    $table->string('title', 50)->nullable(); // S.Tr.Kes, S.Ft, A.Md.OT, S.Psi
-    $table->string('specialty', 150)->nullable(); // Pediatric Occupational Therapy, Sensory Integration
+    $table->string('title', 50)->nullable();          // S.Tr.Kes, S.Ft, A.Md.OT
+    $table->string('specialty', 150)->nullable();
     $table->text('bio')->nullable();
-    
     $table->boolean('is_active')->default(true);
+    $table->timestamp('last_login_at')->nullable();
     $table->rememberToken();
     $table->timestamps();
     $table->softDeletes();
 
-    // High Performance Indexing
-    $table->index(['branch_id', 'role_id', 'is_active']);
+    $table->index(['branch_id', 'role_id', 'is_active'], 'idx_users_branch_role');   // daftar staf/terapis per cabang
 });
 ```
 
-#### 4. Tabel `therapist_availabilities`
-Master jam & hari kerja operasional terapis (berelasi langsung ke `user_id` di tabel `users`).
-- **Migration Schema (Laravel):**
+#### `therapist_availabilities`
 ```php
 Schema::create('therapist_availabilities', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // ID User ber-role Terapis
-    $table->enum('day_of_week', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->unsignedTinyInteger('day_of_week');       // 1=Senin … 7=Minggu (ISO-8601)
     $table->time('start_time');
     $table->time('end_time');
     $table->timestamps();
-
-    // Fast lookup for therapist schedule validation
-    $table->index(['user_id', 'day_of_week']);
+    $table->index(['user_id', 'day_of_week'], 'idx_avail_user_day');                 // Q2
 });
 ```
 
----
+### B. Master data
 
-### MODUL 2: INTAKE PIPELINE & CLIENT MASTER (PARENT AUTHENTICATION ENTITY)
+Semua tabel master di-cache Redis (`master:{tabel}`), invalidasi saat create/update/delete.
 
-#### 5. Tabel `clients`
-Data master anak & orang tua. **Bertindak sekaligus sebagai entitas kredensial otentikasi login Portal Orang Tua** menggunakan `client_access_code`.
-- **Migration Schema (Laravel):**
+#### `services`
 ```php
-Schema::create('clients', function (Blueprint $table) {
-    $table->id();
-    $table->string('client_code', 30)->unique(); // CLI-2026-001
-    $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
-    $table->string('child_name', 100);
-    $table->string('child_nickname', 50)->nullable();
-    $table->enum('gender', ['male', 'female']);
-    $table->date('date_of_birth');
-    $table->string('parent_name', 100);
-    $table->string('parent_relationship', 50)->default('Mother'); // Mother, Father, Guardian
-    $table->string('phone', 30); // WhatsApp Ortu
-    $table->string('email', 100)->nullable();
-    $table->text('address')->nullable();
-    $table->string('emergency_contact', 100)->nullable();
-    $table->boolean('has_school_companion_profile')->default(false);
-    $table->json('concern_tags_json')->nullable();
-    
-    // Status Pipeline Intake & Klientel Pasien
-    $table->enum('status', [
-        'inquiry', 
-        'assessment_scheduled', 
-        'admitted', 
-        'done_consult', 
-        'done_assessment', 
-        'discontinued', 
-        'discharged'
-    ])->default('inquiry')->index();
-    
-    $table->date('date_of_join')->nullable();
-    $table->date('date_of_discharge')->nullable();
-    $table->string('discharge_reason', 100)->nullable(); // Goal Achieved, Relocated, Financial, Discontinued
-    $table->text('discharge_note')->nullable();
-    
-    // KREDENSIAL UTAMA AUTH ORANG TUA (Parent Portal Login)
-    $table->string('client_access_code', 50)->unique()->index(); // e.g. "CL-8821" atau "PASIEN-KERT-09"
-    $table->string('access_pin_hash', 255)->nullable(); // Optional: PIN Keamanan tambahan jika diperlukan
-    $table->timestamp('last_login_at')->nullable();
-    
-    $table->timestamps();
-    $table->softDeletes();
-
-    // High Performance Composite Indexes
-    $table->index(['branch_id', 'status']);
-    $table->index(['client_access_code', 'status']); // Instant auth resolution
-});
-```
-
-#### 6. Tabel `client_service_interests`
-Layanan multidisiplin yang dibutuhkan oleh anak saat intake (OT, SI, TW, FT, School Companion, dll).
-- **Migration Schema (Laravel):**
-```php
-Schema::create('client_service_interests', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->string('service_type', 50); // OT, SI, TW, FT, BOT-A, FOT-A, School Companion
-    $table->text('notes')->nullable();
-    $table->timestamps();
-
-    $table->index(['client_id', 'service_type']);
-});
-```
-
-#### 7. Tabel `client_gdrive_links`
-Tautan penyimpanan cloud (Google Drive) berisi rekaman video observasi & dokumen rujukan medis.
-- **Migration Schema (Laravel):**
-```php
-Schema::create('client_gdrive_links', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->string('title', 150);
-    $table->text('url');
+Schema::create('services', function (Blueprint $table) {
+    $table->string('code', 50)->primary();            // b_ota, f_ota, school_companion, consult_wo_report, consult_w_report
+    $table->string('label', 150);
+    $table->string('short_label', 60);
+    $table->enum('category', ['assessment', 'consultation', 'therapy']);
     $table->text('description')->nullable();
+    $table->boolean('is_active')->default(true);      // nonaktif = tidak bisa dipilih, label tetap tampil
+    $table->unsignedSmallInteger('sort_order')->default(0);
     $table->timestamps();
 });
 ```
 
-#### 8. Tabel `inquiry_pipeline_logs`
-Audit log riwayat pergerakan anak pada Kanban / Pipeline 8 Tahap.
-- **Migration Schema (Laravel):**
+#### `sensory_quadrants`
 ```php
-Schema::create('inquiry_pipeline_logs', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->string('previous_status', 50)->nullable();
-    $table->string('new_status', 50);
-    $table->foreignId('changed_by_user_id')->nullable()->constrained('users')->onDelete('set null');
-    $table->text('notes')->nullable();
-    $table->timestamps();
-});
-```
-
----
-
-### MODUL 3: CLINICAL ASSESSMENT ENGINE (KUESIONER DINAMIS & KUADRAN SENSORI)
-
-#### 9. Tabel `assessment_categories`
-Master instrumen tes klinis (Sensory Profile 2 Winnie Dunn, Readiness School Test, dll).
-- **Migration Schema (Laravel):**
-```php
-Schema::create('assessment_categories', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 50)->unique();
-    $table->string('name', 150);
+Schema::create('sensory_quadrants', function (Blueprint $table) {
+    $table->string('code', 10)->primary();            // AV, SN, RG, SK
+    $table->string('title', 60);
+    $table->string('full_name', 100);
     $table->text('description')->nullable();
+    $table->string('color', 20)->default('slate');
+    $table->unsignedSmallInteger('sort_order')->default(0);
     $table->timestamps();
 });
 ```
 
-#### 10. Tabel `assessment_domains`
-Pengelompokan domain sensori / aspek observasi klinis.
-- **Migration Schema (Laravel):**
+#### `concern_tags`
 ```php
-Schema::create('assessment_domains', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('category_id')->constrained('assessment_categories')->onDelete('cascade');
-    $table->string('code', 50);
-    $table->string('name', 100);
-    $table->text('description')->nullable();
-    $table->timestamps();
+Schema::create('concern_tags', function (Blueprint $table) {
+    $table->string('code', 30)->primary();            // speech, sensory, motor, behavior, social, school
+    $table->string('label', 100);
+    $table->boolean('is_active')->default(true);
 });
 ```
 
-#### 11. Tabel `assessment_questions`
-Bank soal kuesioner dinamis mendukung 6 tipe pertanyaan.
-- **Migration Schema (Laravel):**
+#### `cancel_reasons`
+Aturan kuota cancel dibuat **data-driven** sehingga kebijakan klinik bisa diubah tanpa deploy.
 ```php
-Schema::create('assessment_questions', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('domain_id')->constrained('assessment_domains')->onDelete('cascade');
-    $table->text('question_text');
-    $table->enum('question_type', [
-        'likert_0_5',     // Skala Winnie Dunn (0: Tidak Berlaku s/d 5: Hampir Selalu)
-        'likert_custom',  // Skala Angka Custom
-        'single_choice',  // Pilihan Ganda
-        'multi_choice',   // Pilihan Jamak
-        'essay',          // Teks Bebas / Observasi Kualitatif
-        'binary'          // Ya / Tidak
-    ])->default('likert_0_5');
-    $table->json('options_json')->nullable();
-    $table->integer('order_index')->default(0);
-    $table->timestamps();
-
-    $table->index(['domain_id', 'order_index']);
+Schema::create('cancel_reasons', function (Blueprint $table) {
+    $table->string('code', 40)->primary();            // sakit, izin_keluarga, bentrok_sekolah, tanpa_kabar, lainnya, reschedule_dibatalkan
+    $table->string('label', 120);
+    $table->boolean('counts_toward_quota')->default(true);   // false = netral (mis. reschedule_dibatalkan)
+    $table->boolean('always_penalty')->default(false);       // true = langsung potong kredit (opsi kebijakan "tanpa kabar")
+    $table->boolean('is_system')->default(false);            // tidak muncul di dropdown manual
+    $table->boolean('is_active')->default(true);
 });
 ```
 
-#### 12. Tabel `assessment_access_codes`
-Kode unik sekali pakai yang diberikan Admin ke Orang Tua / Guru untuk mengisi kuesioner tanpa perlu login.
-- **Migration Schema (Laravel):**
+#### `discharge_reasons`
 ```php
-Schema::create('assessment_access_codes', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->foreignId('category_id')->constrained('assessment_categories')->onDelete('cascade');
-    $table->string('access_code', 50)->unique()->index();
-    $table->boolean('is_used')->default(false);
-    $table->timestamp('expires_at')->nullable();
-    $table->timestamps();
+Schema::create('discharge_reasons', function (Blueprint $table) {
+    $table->string('code', 40)->primary();            // moving, financial, conflict_schedule, expectation_not_met, graduate, other
+    $table->string('label', 120);
+    $table->boolean('is_active')->default(true);
 });
 ```
 
-#### 13. Tabel `assessment_responses`
-Header pengajuan saat orang tua menyelesaikan kuesioner di portal publik (`/assessment`).
-- **Migration Schema (Laravel):**
-```php
-Schema::create('assessment_responses', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->foreignId('access_code_id')->constrained('assessment_access_codes')->onDelete('cascade');
-    $table->string('filled_by_name', 100);
-    $table->string('relationship', 50);
-    $table->timestamp('submitted_at');
-    $table->timestamps();
-});
-```
-
-#### 14. Tabel `assessment_answers`
-Rincian jawaban per butir soal kuesioner.
-- **Migration Schema (Laravel):**
-```php
-Schema::create('assessment_answers', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('response_id')->constrained('assessment_responses')->onDelete('cascade');
-    $table->foreignId('question_id')->constrained('assessment_questions')->onDelete('cascade');
-    $table->integer('score')->nullable();
-    $table->text('text_response')->nullable();
-    $table->timestamps();
-});
-```
-
-#### 15. Tabel `assessment_quadrant_scores`
-Kalkulasi otomatis 4 kuadran sensori Winnie Dunn (Sensory Profile 2).
-- **Migration Schema (Laravel):**
-```php
-Schema::create('assessment_quadrant_scores', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('response_id')->constrained('assessment_responses')->onDelete('cascade');
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    
-    $table->integer('low_registration_score')->default(0);
-    $table->integer('sensation_seeking_score')->default(0);
-    $table->integer('sensory_sensitivity_score')->default(0);
-    $table->integer('sensation_avoiding_score')->default(0);
-    
-    $table->text('summary_evaluation')->nullable();
-    $table->timestamps();
-});
-```
-
----
-
-### MODUL 4: TIMETABLE & PENJADWALAN KALENDER OPERASIONAL (HIGH FREQUENCY LOOKUP)
-
-#### 16. Tabel `schedules`
-Tabel utama kalender mingguan. `therapist_user_id` berelasi langsung ke `users` (pengguna dengan role `therapist`).
-- **Migration Schema (Laravel):**
-```php
-Schema::create('schedules', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->foreignId('therapist_user_id')->constrained('users')->onDelete('cascade'); // Link ke User Terapis
-    $table->foreignId('client_package_id')->nullable()->constrained('client_packages')->onDelete('set null');
-    
-    $table->enum('schedule_type', ['therapy', 'assessment', 'consultation'])->default('therapy');
-    $table->date('date'); // Tanggal pelaksanaan sesi
-    $table->time('start_time');
-    $table->time('end_time');
-    
-    // Status Sesi & Zero Credit Lock
-    $table->enum('status', [
-        'scheduled',   // Terjadwal Aktif
-        'completed',   // Sesi Selesai (Memotong 1 Kredit)
-        'cancelled',   // Dibatalkan (Izin/Sakit/Penalti)
-        'rescheduled', // Dijadwal Ulang
-        'frozen'       // SLOT BEKU: Saldo Kredit Pasien 0 (Proteksi Klinik)
-    ])->default('scheduled');
-    
-    $table->boolean('is_recurring')->default(false);
-    $table->string('recurrence_rule', 50)->nullable();
-    
-    $table->enum('cancel_reason', [
-        'sakit', 
-        'izin_keluarga', 
-        'bentrok_sekolah', 
-        'tanpa_kabar', // Memotong Penalti 1 Kredit!
-        'internal_clinic'
-    ])->nullable();
-    $table->boolean('is_excused')->default(true);
-    
-    $table->text('activity_section')->nullable();
-    $table->text('homework_section')->nullable();
-    
-    $table->foreignId('created_by_user_id')->nullable()->constrained('users')->onDelete('set null');
-    $table->timestamps();
-    $table->softDeletes();
-
-    // ENTERPRISE COMPOSITE INDEXES (Untuk Render Kalender Ultra Cepat)
-    $table->index(['branch_id', 'date', 'status']);
-    $table->index(['therapist_user_id', 'date', 'start_time']);
-    $table->index(['client_id', 'date', 'status']);
-});
-```
-
----
-
-### MODUL 5: KEUANGAN, INVOICING, PAKET & SALDO KREDIT SESI
-
-#### 17. Tabel `master_packages`
-Katalog tarif resmi paket terapi & registrasi intake.
-- **Migration Schema (Laravel):**
+#### `master_packages`
 ```php
 Schema::create('master_packages', function (Blueprint $table) {
     $table->id();
-    $table->string('code', 50)->unique();
+    $table->string('code', 50)->unique();             // pkg-reguler, pkg-vip, pkg-consult
     $table->string('name', 150);
-    $table->string('category', 50)->default('Therapy');
-    $table->integer('credits_count')->default(10);
-    $table->decimal('price', 12, 2);
+    $table->unsignedSmallInteger('credits');
+    $table->unsignedBigInteger('price');              // rupiah
     $table->text('description')->nullable();
     $table->boolean('is_active')->default(true);
     $table->timestamps();
+    $table->softDeletes();
 });
 ```
 
-#### 18. Tabel `invoices`
-Transaksi tagihan billing & antrean verifikasi bukti transfer bank kasir/finance.
-- **Migration Schema (Laravel):**
+### C. Client & intake
+
+#### `clients`
+Master anak, entity pipeline, **sekaligus entity login portal ortu** (`client_access_code`).
 ```php
-Schema::create('invoices', function (Blueprint $table) {
+Schema::create('clients', function (Blueprint $table) {
     $table->id();
-    $table->string('invoice_number', 50)->unique();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
-    $table->foreignId('master_package_id')->nullable()->constrained('master_packages')->onDelete('set null');
-    
-    $table->enum('invoice_type', ['intake_fee', 'assessment_fee', 'package_renewal', 'single_session'])->default('package_renewal');
-    $table->decimal('total_amount', 12, 2);
-    $table->decimal('discount_amount', 12, 2)->default(0.00);
-    $table->decimal('net_amount', 12, 2);
-    
+    $table->string('client_code', 30)->unique();      // CLI-2026-0001 (nomor rekam medis internal)
+    $table->foreignId('branch_id')->constrained()->restrictOnDelete();
+
+    // Biodata
+    $table->string('child_name', 120);
+    $table->string('child_nickname', 60)->nullable();
+    $table->enum('gender', ['male', 'female']);
+    $table->date('date_of_birth');
+    $table->unsignedTinyInteger('birth_month')->storedAs('MONTH(date_of_birth)');   // Q7 birthday radar
+    $table->string('parent_name', 120);
+    $table->string('parent_relationship', 30)->default('mother');
+    $table->string('parent_phone', 30);               // WhatsApp
+    $table->string('parent_email', 150)->nullable();
+    $table->text('address')->nullable();
+    $table->boolean('has_school_companion')->default(false);
+
+    // Pipeline & outcome
     $table->enum('status', [
-        'unpaid',               // Belum Ada Pembayaran
-        'pending_verification', // Bukti Bayar Diunggah Ortu (Antrean Finance)
-        'paid',                 // Terverifikasi Lunas oleh Finance (Otomatis Top-Up Kredit)
-        'rejected'              // Bukti Bayar Ditolak
-    ])->default('unpaid');
-    
-    $table->text('payment_proof_path')->nullable();
-    $table->string('payment_method', 50)->default('Bank Transfer');
-    $table->timestamp('paid_at')->nullable();
-    $table->timestamp('verified_at')->nullable();
-    $table->foreignId('verified_by_user_id')->nullable()->constrained('users')->onDelete('set null');
-    $table->text('rejection_reason')->nullable();
-    
+        'inquiry', 'service_selected', 'assessment_scheduled', 'assessment_done',
+        'admitted', 'done_consult', 'done_assessment', 'discontinued', 'discharged',
+    ])->default('inquiry');
+    $table->enum('final_outcome', ['admitted', 'done_consult', 'done_assessment', 'discontinued'])->nullable();
+    $table->timestamp('status_changed_at')->nullable();
+    $table->date('date_of_join')->nullable();
+    $table->date('date_of_discharge')->nullable();
+    $table->string('discharge_reason_code', 40)->nullable();
+    $table->text('discharge_note')->nullable();
+
+    // Denormalisasi kredit (sumber kebenaran: credit_ledger) — diperbarui di transaksi yang sama
+    $table->integer('credit_balance')->default(0);    // Σ remaining_credit paket aktif; 0 = Frozen
+    $table->unsignedSmallInteger('cancel_count_total')->default(0);
+
+    // Kredensial portal ortu
+    $table->string('client_access_code', 20)->unique();   // TDC-XXXX — Q14
+    $table->string('access_pin_hash')->nullable();        // opsional PIN tambahan
+    $table->timestamp('last_login_at')->nullable();
+
+    $table->unsignedInteger('version')->default(1);
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
 
-    // Composite Indexing untuk Antrean Verification Queue Finance
-    $table->index(['branch_id', 'status', 'created_at']);
-    $table->index(['client_id', 'status']);
+    $table->foreign('discharge_reason_code')->references('code')->on('discharge_reasons');
+    $table->index(['branch_id', 'status', 'created_at'], 'idx_clients_pipeline');        // Q4
+    $table->index(['branch_id', 'status', 'credit_balance'], 'idx_clients_roster');      // Q6
+    $table->index(['branch_id', 'birth_month'], 'idx_clients_birthday');                 // Q7
+    $table->index('child_name', 'idx_clients_child_name');                               // Q5 prefix search
+    $table->index('parent_name', 'idx_clients_parent_name');                             // Q5
+});
+```
+Catatan:
+- **Frozen** tidak disimpan sebagai status; diturunkan dari `credit_balance = 0` (sesuai frontend).
+- Search nama memakai prefix (`LIKE 'abc%'`). Jika butuh search di tengah kata, tambahkan `FULLTEXT(child_name, parent_name)` (ngram parser).
+- Login ortu: throttle per IP & per kode (Laravel RateLimiter) karena kode pendek.
+
+#### `client_services`
+```php
+Schema::create('client_services', function (Blueprint $table) {
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->string('service_code', 50);
+    $table->timestamp('selected_at')->useCurrent();
+    $table->foreignId('selected_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->primary(['client_id', 'service_code']);
+    $table->foreign('service_code')->references('code')->on('services');
+    $table->index('service_code', 'idx_client_services_service');                         // funnel per layanan
 });
 ```
 
-#### 19. Tabel `client_packages`
-Saldo kredit aktif milik anak.
-- **Migration Schema (Laravel):**
+#### `client_concern_tags`
 ```php
-Schema::create('client_packages', function (Blueprint $table) {
+Schema::create('client_concern_tags', function (Blueprint $table) {
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->string('tag_code', 30);
+    $table->primary(['client_id', 'tag_code']);
+    $table->foreign('tag_code')->references('code')->on('concern_tags');
+});
+```
+
+#### `client_documents`
+```php
+Schema::create('client_documents', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->foreignId('invoice_id')->nullable()->constrained('invoices')->onDelete('set null');
-    $table->foreignId('master_package_id')->constrained('master_packages')->onDelete('cascade');
-    
-    $table->string('package_name', 150);
-    $table->integer('total_credit')->default(10);
-    $table->integer('remaining_credit')->default(10); // DENORMALIZED FOR REAL-TIME PERF
-    $table->integer('cancel_count')->default(0);
-    
-    $table->enum('status', ['active', 'exhausted', 'expired'])->default('active');
-    $table->date('start_date')->nullable();
-    $table->date('expiry_date')->nullable();
-    
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->enum('type', ['gdrive_folder', 'referral', 'observation_video', 'report', 'other'])->default('gdrive_folder');
+    $table->string('label', 150)->nullable();
+    $table->string('url', 500);
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
-
-    $table->index(['client_id', 'status', 'remaining_credit']);
+    $table->softDeletes();
+    $table->index(['client_id', 'type'], 'idx_client_docs_client');
 });
 ```
 
-#### 20. Tabel `credit_histories`
-Buku besar (*Ledger*) pencatatan mutasi penambahan, pemotongan, dan penalti kredit sesi.
-- **Migration Schema (Laravel):**
+#### `client_notes`
+Catatan teks panjang dipisah dari `clients` agar baris hot table tetap ramping.
 ```php
-Schema::create('credit_histories', function (Blueprint $table) {
+Schema::create('client_notes', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->foreignId('client_package_id')->constrained('client_packages')->onDelete('cascade');
-    $table->foreignId('schedule_id')->nullable()->constrained('schedules')->onDelete('set null');
-    
-    $table->date('date');
-    $table->enum('action', [
-        'purchased',       // Pembelian / Top-up Paket Baru (+)
-        'used',            // Sesi Selesai Dijalani (-1)
-        'cancel_excused',  // Izin Wajar Sesuai SOP (0)
-        'cancel_penalty',  // Penalti Pembatalan Tanpa Kabar (-1)
-        'manual_adjust'    // Penyesuaian Manual Admin
-    ]);
-    $table->integer('credit_change');
-    $table->string('cancel_reason', 100)->nullable();
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->enum('type', ['assessment_report', 'intake', 'general']);
+    $table->text('body');
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamps();
+    $table->softDeletes();
+    $table->index(['client_id', 'type', 'created_at'], 'idx_client_notes_client');
+});
+```
+
+#### `client_status_histories`
+Timeline bisnis pipeline (ditampilkan ke user). Detail teknis tetap di `audit_logs`.
+```php
+Schema::create('client_status_histories', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->string('from_status', 30)->nullable();
+    $table->string('to_status', 30);
+    $table->enum('trigger', ['manual', 'service_selected', 'code_issued', 'questionnaire_submitted', 'session_completed', 'outcome', 'discharge', 'revert']);
     $table->text('note')->nullable();
-    
-    $table->timestamps();
-
-    $table->index(['client_id', 'date']);
-    $table->index(['client_package_id', 'action']);
+    $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();  // null = sistem / ortu
+    $table->timestamp('changed_at')->useCurrent();
+    $table->index(['client_id', 'changed_at'], 'idx_csh_client');
+    $table->index(['to_status', 'changed_at'], 'idx_csh_status');                        // funnel & tren
 });
 ```
 
----
+### D. Mesin asesmen
 
-### MODUL 6: REKAM MEDIS KLINIS TERAPIS (SOAP & EHR)
-
-#### 21. Tabel `clinical_soap_notes`
-Pencatatan rekam medis klinis berbasis SOAP dan Latihan di Rumah.
-- **Migration Schema (Laravel):**
+#### `assessment_categories`
 ```php
-Schema::create('clinical_soap_notes', function (Blueprint $table) {
+Schema::create('assessment_categories', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('schedule_id')->unique()->constrained('schedules')->onDelete('cascade');
-    $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-    $table->foreignId('therapist_user_id')->constrained('users')->onDelete('cascade'); // Link ke User Terapis
-    
-    $table->text('subjective_note')->nullable();
+    $table->string('code', 50)->unique();             // cat-001
+    $table->string('name', 200);                      // Child Sensory Profile 2 (Winnie Dunn…)
+    $table->string('standard_title', 150)->nullable();
+    $table->string('author', 150)->nullable();
+    $table->string('domain', 150)->nullable();
+    $table->json('scoring_key')->nullable();          // {"0": "Tidak berlaku", … "5": "Hampir selalu"}
+    $table->boolean('is_active')->default(true);
+    $table->unsignedInteger('version')->default(1);
+    $table->timestamps();
+    $table->softDeletes();
+});
+```
+
+#### `assessment_sections`
+```php
+Schema::create('assessment_sections', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('category_id')->constrained('assessment_categories')->cascadeOnDelete();
+    $table->string('title', 150);                     // Pemrosesan AUDITORI
+    $table->string('lead_text', 150)->nullable();     // "Anakku ..."
+    $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->timestamps();
+    $table->index(['category_id', 'sort_order'], 'idx_sections_category');
+});
+```
+
+#### `assessment_questions`
+```php
+Schema::create('assessment_questions', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('category_id')->constrained('assessment_categories')->cascadeOnDelete(); // denormalisasi untuk load 1 query
+    $table->foreignId('section_id')->constrained('assessment_sections')->cascadeOnDelete();
+    $table->unsignedSmallInteger('item_no');
+    $table->string('quadrant_code', 10)->nullable();
+    $table->enum('question_type', ['scale_0_5', 'range', 'multiple_choice', 'checkbox_multi', 'free_text', 'yes_no'])->default('scale_0_5');
+    $table->text('question');
+    $table->json('options')->nullable();              // pilihan untuk multiple_choice / checkbox_multi
+    $table->smallInteger('range_min')->nullable();
+    $table->smallInteger('range_max')->nullable();
+    $table->string('range_min_label', 60)->nullable();
+    $table->string('range_max_label', 60)->nullable();
+    $table->boolean('is_required')->default(true);
+    $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->timestamps();
+    $table->softDeletes();
+
+    $table->foreign('quadrant_code')->references('code')->on('sensory_quadrants');
+    $table->index(['category_id', 'section_id', 'sort_order'], 'idx_questions_form');  // render form
+});
+```
+
+#### `assessment_access_codes`
+```php
+Schema::create('assessment_access_codes', function (Blueprint $table) {
+    $table->id();
+    $table->string('code', 20)->unique();             // ASM-XXXX — Q13
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('category_id')->constrained('assessment_categories')->restrictOnDelete();
+    $table->enum('status', ['issued', 'submitted', 'revoked', 'expired'])->default('issued');
+    $table->foreignId('issued_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('issued_at')->useCurrent();
+    $table->timestamp('expires_at')->nullable();
+    $table->timestamp('last_submitted_at')->nullable();
+    $table->timestamps();
+
+    $table->index(['client_id', 'category_id'], 'idx_codes_client');
+    $table->index(['status', 'issued_at'], 'idx_codes_awaiting');                         // Q18
+});
+```
+
+#### `assessment_responses`
+Setiap submit = 1 baris (revisi). Submit ulang **tidak menimpa** — revisi lama tetap ada, yang terbaru `is_latest = 1`.
+```php
+Schema::create('assessment_responses', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('access_code_id')->constrained('assessment_access_codes')->cascadeOnDelete();
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('category_id')->constrained('assessment_categories')->restrictOnDelete();
+    $table->unsignedSmallInteger('revision')->default(1);
+    $table->boolean('is_latest')->default(true);
+    $table->string('respondent_name', 120)->nullable();
+    $table->string('respondent_relation', 30)->nullable();
+    $table->unsignedSmallInteger('answered_count');
+    $table->timestamp('submitted_at')->useCurrent();
+    $table->string('ip_address', 45)->nullable();
+    $table->timestamps();
+
+    $table->unique(['access_code_id', 'revision'], 'uq_responses_revision');
+    $table->index(['client_id', 'category_id', 'is_latest'], 'idx_responses_latest');    // hasil terbaru per client
+});
+```
+
+#### `assessment_answers`
+```php
+Schema::create('assessment_answers', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('response_id')->constrained('assessment_responses')->cascadeOnDelete();
+    $table->foreignId('question_id')->constrained('assessment_questions')->restrictOnDelete();
+    $table->unsignedSmallInteger('item_no');          // snapshot
+    $table->string('quadrant_code', 10)->nullable();  // snapshot
+    $table->text('answer_text');                      // "4 - Sering (75%)"
+    $table->json('answer_values')->nullable();        // checkbox_multi
+    $table->smallInteger('score')->nullable();
+    $table->unique(['response_id', 'question_id'], 'uq_answers_question');
+});
+```
+
+#### `assessment_quadrant_scores`
+Dihitung **server** saat submit (Σ score per kuadran). Disimpan agar laporan & dashboard tidak menghitung ulang.
+```php
+Schema::create('assessment_quadrant_scores', function (Blueprint $table) {
+    $table->foreignId('response_id')->constrained('assessment_responses')->cascadeOnDelete();
+    $table->string('quadrant_code', 10);
+    $table->unsignedSmallInteger('raw_score');
+    $table->unsignedSmallInteger('item_count');
+    $table->string('classification', 40)->nullable(); // mis. "Much More Than Others"
+    $table->primary(['response_id', 'quadrant_code']);
+    $table->foreign('quadrant_code')->references('code')->on('sensory_quadrants');
+});
+```
+
+### E. Penjadwalan
+
+#### `schedule_series`
+Pola jadwal berulang (multi-hari, N minggu) agar operasi "ubah/batalkan seluruh seri" efisien.
+```php
+Schema::create('schedule_series', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('branch_id')->constrained()->restrictOnDelete();
+    $table->json('pattern');                          // [{"day":1,"start":"09:00","end":"10:00","therapist_id":7,"client_package_id":3,"type":"therapy"}]
+    $table->unsignedTinyInteger('weeks');             // default 12
+    $table->date('starts_on');
+    $table->date('ends_on');
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamps();
+    $table->index(['client_id', 'starts_on'], 'idx_series_client');
+});
+```
+
+#### `schedules`
+Tabel paling sering dibaca (kalender). Teks laporan dipisah ke `session_reports` agar baris tetap ramping.
+```php
+Schema::create('schedules', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('branch_id')->constrained()->restrictOnDelete();
+    $table->foreignId('client_id')->constrained()->restrictOnDelete();
+    $table->foreignId('therapist_id')->constrained('users')->restrictOnDelete();
+    $table->foreignId('series_id')->nullable()->constrained('schedule_series')->nullOnDelete();
+    $table->foreignId('client_package_id')->nullable()->constrained()->nullOnDelete();   // null untuk asesmen
+    $table->string('service_code', 50)->nullable();
+    $table->enum('type', ['therapy', 'assessment', 'consultation'])->default('therapy');
+
+    $table->date('session_date');
+    $table->time('start_time');
+    $table->time('end_time');
+
+    $table->enum('status', ['scheduled', 'completed', 'cancelled', 'rescheduled', 'reschedule_pending'])->default('scheduled');
+    $table->string('previous_status', 30)->nullable();   // status sebelum transisi terakhir — dipakai revert
+    $table->enum('credit_effect', ['none', 'used', 'excused', 'penalty'])->default('none'); // efek kredit transisi terakhir
+
+    // Cancel
+    $table->string('cancel_reason_code', 40)->nullable();
+    $table->text('cancel_note')->nullable();
+    $table->timestamp('cancelled_at')->nullable();
+    $table->foreignId('cancelled_by')->nullable()->constrained('users')->nullOnDelete();
+
+    // Complete
+    $table->timestamp('completed_at')->nullable();
+    $table->foreignId('completed_by')->nullable()->constrained('users')->nullOnDelete();
+
+    // Reschedule (jejak slot asal pertama) & reschedule menggantung
+    $table->date('origin_date')->nullable();
+    $table->time('origin_start_time')->nullable();
+    $table->time('origin_end_time')->nullable();
+    $table->foreignId('origin_therapist_id')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('rescheduled_at')->nullable();
+    $table->string('pending_reason_code', 40)->nullable();
+    $table->text('pending_note')->nullable();
+    $table->timestamp('pending_at')->nullable();
+
+    $table->unsignedInteger('version')->default(1);
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamps();
+    $table->softDeletes();
+
+    $table->foreign('service_code')->references('code')->on('services');
+    $table->foreign('cancel_reason_code')->references('code')->on('cancel_reasons');
+    $table->foreign('pending_reason_code')->references('code')->on('cancel_reasons');
+
+    $table->index(['branch_id', 'session_date', 'status'], 'idx_sch_calendar');           // Q1
+    $table->index(['therapist_id', 'session_date', 'start_time'], 'idx_sch_therapist');   // Q2, Q3, Q17
+    $table->index(['client_id', 'session_date'], 'idx_sch_client');                       // Q8, portal ortu
+    $table->index(['status', 'session_date'], 'idx_sch_status');                          // auto-complete job, rekap
+    $table->index('series_id', 'idx_sch_series');
+});
+```
+Catatan:
+- `rescheduled` = sudah pindah slot (slot baru di `session_date/start_time`, asal di `origin_*`).
+- `reschedule_pending` diabaikan oleh conflict check (sama dengan frontend).
+- **Frozen** tidak disimpan; diturunkan dari `clients.credit_balance = 0` saat render.
+
+#### `session_reports`
+Laporan sesi 3 bagian (prototype) + kolom SOAP terstruktur opsional.
+```php
+Schema::create('session_reports', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('schedule_id')->unique()->constrained()->cascadeOnDelete();
+    $table->foreignId('client_id')->constrained()->cascadeOnDelete();         // denormalisasi: riwayat laporan per client
+    $table->foreignId('therapist_id')->constrained('users')->restrictOnDelete();
+    $table->text('activity_section')->nullable();     // Aktivitas sesi
+    $table->text('note_section')->nullable();         // Catatan klinis (ringkas, prototype)
+    $table->text('homework_section')->nullable();     // PR / home program
+    $table->text('subjective_note')->nullable();      // SOAP opsional
     $table->text('objective_note')->nullable();
     $table->text('assessment_note')->nullable();
     $table->text('plan_note')->nullable();
-    $table->text('home_program_note')->nullable();
-    
+    $table->unsignedTinyInteger('filled_sections')->storedAs(
+        "(activity_section IS NOT NULL AND activity_section <> '') + (note_section IS NOT NULL AND note_section <> '') + (homework_section IS NOT NULL AND homework_section <> '')"
+    );                                                // 0..3 → filter "laporan lengkap 3/3" (TherapistSummary)
+    $table->unsignedInteger('version')->default(1);
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
 
-    $table->index(['client_id', 'created_at']);
-    $table->index(['therapist_user_id', 'created_at']);
+    $table->index(['client_id', 'created_at'], 'idx_reports_client');
+    $table->index(['therapist_id', 'filled_sections'], 'idx_reports_therapist');
 });
 ```
 
----
+### F. Keuangan & kredit
 
-### MODUL 7: AUDIT TRAIL & LOG KEAMANAN SISTEM
-
-#### 22. Tabel `audit_trails`
-Audit trail keamanan untuk mencatat aktivitas sensitif internal.
-- **Migration Schema (Laravel):**
+#### `invoices`
 ```php
-Schema::create('audit_trails', function (Blueprint $table) {
+Schema::create('invoices', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
-    $table->string('action', 100);
-    $table->string('module', 50);
-    $table->unsignedBigInteger('record_id')->nullable();
-    $table->json('old_values_json')->nullable();
-    $table->json('new_values_json')->nullable();
-    $table->string('ip_address', 45)->nullable();
-    $table->text('user_agent')->nullable();
-    $table->timestamps();
+    $table->string('invoice_number', 30)->unique();   // INV-2026-0001 (sequence per tahun, dibuat server)
+    $table->foreignId('client_id')->constrained()->restrictOnDelete();
+    $table->foreignId('branch_id')->constrained()->restrictOnDelete();
+    $table->foreignId('master_package_id')->nullable()->constrained()->nullOnDelete();
+    $table->enum('invoice_type', ['package_purchase', 'package_renewal', 'assessment_fee', 'consultation_fee', 'single_session'])->default('package_purchase');
 
-    $table->index(['module', 'created_at']);
-    $table->index(['user_id', 'created_at']);
+    // Snapshot saat tagihan diterbitkan
+    $table->string('package_name', 150);
+    $table->unsignedSmallInteger('credits')->default(0);
+    $table->unsignedBigInteger('amount');             // rupiah
+
+    $table->enum('status', ['unpaid', 'pending_verification', 'paid', 'rejected', 'void'])->default('unpaid');
+    $table->timestamp('issued_at')->useCurrent();
+    $table->date('due_date')->nullable();
+    $table->timestamp('paid_at')->nullable();
+    $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('verified_at')->nullable();
+    $table->text('rejection_reason')->nullable();
+    $table->string('payment_method', 40)->default('bank_transfer');
+
+    $table->unsignedInteger('version')->default(1);
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamps();
+    $table->softDeletes();
+
+    $table->index(['branch_id', 'status', 'issued_at'], 'idx_inv_queue');                // Q9
+    $table->index(['client_id', 'issued_at'], 'idx_inv_client');                         // Q8, portal ortu
+    $table->index(['status', 'paid_at', 'branch_id', 'amount'], 'idx_inv_revenue');     // Q11 fallback (covering)
+});
+```
+Status: `unpaid` → (ortu upload) `pending_verification` → Finance `paid` / `rejected` (ortu bisa upload ulang → `pending_verification`). `void` = dibatalkan Finance (wajib alasan, tercatat audit).
+
+#### `payment_proofs`
+Riwayat setiap upload bukti (bukan hanya yang terakhir).
+```php
+Schema::create('payment_proofs', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
+    $table->string('file_path', 500);                 // storage privat (bukan public URL)
+    $table->string('file_name', 200);
+    $table->string('mime_type', 80);
+    $table->unsignedInteger('file_size');
+    $table->enum('uploaded_by_type', ['client', 'user']);
+    $table->unsignedBigInteger('uploaded_by_id');
+    $table->timestamp('uploaded_at')->useCurrent();
+    $table->enum('review_status', ['pending', 'accepted', 'rejected'])->default('pending');
+    $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('reviewed_at')->nullable();
+    $table->text('review_note')->nullable();
+    $table->index(['invoice_id', 'uploaded_at'], 'idx_proofs_invoice');
 });
 ```
 
----
-
-## 05. PENJELASAN RINCI PER MODUL & PENGGUNAAN TABEL
-
-### 1. Modul Executive & HQ Multi-Branch Control
-- **Tabel Yang Terlibat:** `branches`, `roles`, `users`, `audit_trails`.
-- **Untuk Apa & Digunakan Di Mana:**
-  - Dipakai pada **Dashboard Direksi / HQ Executive**.
-  - Tabel `branches` memisahkan performa cabang (East Center, Citraland, West Center).
-  - Tabel `users` **menampung seluruh staf internal & terapis**. Kolom `access_code` telah dihapus. Hak akses diatur oleh `roles`.
-
-### 2. Modul Intake Pipeline & Registrasi Pasien (Admin Inquiry)
-- **Tabel Yang Terlibat:** `clients`, `client_service_interests`, `client_gdrive_links`, `inquiry_pipeline_logs`.
-- **Untuk Apa & Digunakan Di Mana:**
-  - Dipakai pada **Admin Inquiry Pipeline (Kanban Board 8 Tahap)**.
-  - Data pasien tersimpan di `clients`. Kolom `client_access_code` otomatis digenerate sebagai kode unik yang nantinya akan dipakai oleh orang tua untuk masuk ke Portal Mandiri.
-
-### 3. Modul Engine Kuesioner Asesmen Psikologi (Clinical Assessment Engine)
-- **Tabel Yang Terlibat:** `assessment_categories`, `assessment_domains`, `assessment_questions`, `assessment_access_codes`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`.
-- **Untuk Apa & Digunakan Di Mana:**
-  - Dipakai di **Master Asesmen**, **Portal Pengisian Publik (`/assessment`)**, dan **Laporan Klinis**.
-  - Kode akses unik di `assessment_access_codes` memungkinkan orang tua mengisi kuesioner tanpa login, dan backend Laravel menghitung skor kuadran sensori Winnie Dunn di `assessment_quadrant_scores`.
-
-### 4. Modul Timetable Kalender & Deteksi Bentrok (Admin Schedule)
-- **Tabel Yang Terlibat:** `therapist_availabilities`, `schedules`, `users`.
-- **Untuk Apa & Digunakan Di Mana:**
-  - Dipakai pada **Weekly Timetable Grid**.
-  - Admin memasukkan jadwal. Backend Laravel memvalidasi ketersediaan terapis (`users` dengan role `therapist`) berdasarkan jam kerja di `therapist_availabilities`.
-  - **❄️ Zero-Credit Lock:** Jika saldo kredit pasien 0, jadwal tersimpan dengan `status = frozen`.
-
-### 5. Modul Keuangan, Invoicing & Kasir (Finance & Billing Gateway)
-- **Tabel Yang Terlibat:** `master_packages`, `invoices`, `client_packages`, `credit_histories`.
-- **Untuk Apa & Digunakan Di Mana:**
-  - Finance melakukan verifikasi bukti bayar di `invoices`. Begitu diset `paid`, saldo kredit di `client_packages` otomatis bertambah (+10), dan mutasi tercatat di `credit_histories`.
-
-### 6. Modul Portal Terapis & SOAP Rekam Medis (Therapist Portal)
-- **Tabel Yang Terlibat:** `clinical_soap_notes`, `schedules`, `users`, `clients`.
-- **Untuk Apa & Digunakan Di Mana:**
-  - Dipakai pada **Portal Terapis (My Schedule & SOAP Note Editor)**.
-  - Terapis (akun di `users`) mencatat perkembangan klinis di `clinical_soap_notes`. Ketika status sesi diset `completed`, 1 saldo kredit pasien otomatis dipotong.
-
-### 7. Modul Portal Keluarga Pasien (Parent Portal — Independent Client Auth)
-- **Tabel Yang Terlibat:** `clients` (sebagai Authenticatable Entity), `client_packages`, `schedules`, `invoices`.
-- **Untuk Apa & Digunakan Di Mana:**
-  - Dipakai pada **Portal Mandiri Orang Tua (`/parent-portal`)**.
-  - Orang tua login menggunakan `client_access_code` ke endpoint API `/api/v1/parent/login`. Backend Laravel memverifikasi langsung ke tabel `clients`.
-
----
-
-## 06. PANDUAN IMPLEMENTASI LARAVEL (DUAL AUTH GUARDS & ELOQUENT MODELS)
-
-### 1. Eloquent Model `User.php` (Internal Staff & Therapists)
+#### `client_packages`
+Paket kredit milik client. Satu client bisa punya banyak paket; saldo total = Σ `remaining_credit` paket aktif.
 ```php
-namespace App\Models;
+Schema::create('client_packages', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('client_id')->constrained()->restrictOnDelete();
+    $table->foreignId('invoice_id')->nullable()->unique()->constrained()->nullOnDelete(); // 1 invoice paid → 1 paket
+    $table->foreignId('master_package_id')->nullable()->constrained()->nullOnDelete();
+    $table->string('package_name', 150);              // snapshot
+    $table->unsignedSmallInteger('total_credit');
+    $table->smallInteger('remaining_credit');         // denormalisasi dari ledger; CHECK >= 0
+    $table->unsignedSmallInteger('cancel_count')->default(0);
+    $table->enum('status', ['active', 'depleted', 'expired'])->default('active');
+    $table->timestamp('activated_at')->useCurrent();
+    $table->date('expires_at')->nullable();
+    $table->unsignedInteger('version')->default(1);
+    $table->timestamps();
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
-class User extends Authenticatable
-{
-    use HasApiTokens, SoftDeletes;
-
-    protected $guarded = ['id'];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    public function branch()
-    {
-        return $this->belongsTo(Branch::class);
-    }
-
-    public function role()
-    {
-        return $this->belongsTo(Role::class);
-    }
-
-    // Untuk User dengan Role Therapist
-    public function availabilities(): HasMany
-    {
-        return $this->hasMany(TherapistAvailability::class, 'user_id');
-    }
-
-    public function therapistSchedules(): HasMany
-    {
-        return $this->hasMany(Schedule::class, 'therapist_user_id');
-    }
-
-    public function therapistSoapNotes(): HasMany
-    {
-        return $this->hasMany(ClinicalSoapNote::class, 'therapist_user_id');
-    }
-}
+    $table->index(['client_id', 'status', 'activated_at'], 'idx_pkg_client');            // pilih paket aktif tertua (FIFO)
+});
+// MySQL 8.0.16+: CHECK constraint
+DB::statement('ALTER TABLE client_packages ADD CONSTRAINT chk_pkg_remaining CHECK (remaining_credit >= 0 AND remaining_credit <= total_credit)');
 ```
 
-### 2. Eloquent Model `Client.php` (Sebagai Authenticatable Parent Entity)
+#### `credit_ledger`
+Mutasi kredit **append-only**. Tidak ada UPDATE/DELETE; koreksi = baris `reversal`.
 ```php
-namespace App\Models;
+Schema::create('credit_ledger', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('client_id')->constrained()->restrictOnDelete();
+    $table->foreignId('branch_id')->constrained()->restrictOnDelete();          // denormalisasi untuk Q10
+    $table->foreignId('client_package_id')->nullable()->constrained()->restrictOnDelete();
+    $table->foreignId('schedule_id')->nullable()->constrained()->nullOnDelete();
+    $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
+    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust']);
+    $table->smallInteger('credit_change');            // +N / -1 / 0
+    $table->smallInteger('package_balance_after');    // saldo paket setelah mutasi (audit cepat)
+    $table->integer('client_balance_after');          // saldo total client setelah mutasi
+    $table->unsignedSmallInteger('cancel_count_after')->nullable();
+    $table->string('cancel_reason_code', 40)->nullable();
+    $table->string('package_name', 150)->nullable();  // snapshot
+    $table->text('note')->nullable();
+    $table->foreignId('reverses_ledger_id')->nullable()->unique()->constrained('credit_ledger')->restrictOnDelete(); // 1 baris hanya bisa di-reverse sekali
+    $table->string('idempotency_key', 100)->nullable()->unique();   // used:schedule:{id}:v{version}
+    $table->char('batch_id', 26)->nullable();         // ULID — sama dengan audit_logs.batch_id
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('created_at', 3)->useCurrent();
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
-class Client extends Authenticatable
-{
-    use HasApiTokens, SoftDeletes;
-
-    protected $guarded = ['id'];
-
-    protected $hidden = [
-        'access_pin_hash',
-    ];
-
-    protected $casts = [
-        'date_of_birth' => 'date',
-        'date_of_join' => 'date',
-        'date_of_discharge' => 'date',
-        'last_login_at' => 'datetime',
-    ];
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
-    }
-
-    public function serviceInterests(): HasMany
-    {
-        return $this->hasMany(ClientServiceInterest::class);
-    }
-
-    public function packages(): HasMany
-    {
-        return $this->hasMany(ClientPackage::class);
-    }
-
-    public function schedules(): HasMany
-    {
-        return $this->hasMany(Schedule::class);
-    }
-
-    public function activePackage()
-    {
-        return $this->hasOne(ClientPackage::class)->where('status', 'active')->latestOfMany();
-    }
-}
+    $table->index(['client_id', 'created_at'], 'idx_ledger_client');                     // riwayat per client
+    $table->index(['branch_id', 'created_at', 'id'], 'idx_ledger_branch');               // Q10 keyset
+    $table->index(['schedule_id', 'action'], 'idx_ledger_schedule');                     // revert sesi
+});
 ```
 
+### G. Audit & analitik
+
+#### `audit_logs`
+Dijelaskan lengkap di bagian 05.
+
+#### `daily_branch_metrics`
+Ringkasan harian per cabang untuk dashboard (Q11, Q12). Diperbarui incremental oleh listener event domain (queue) dan direkonsiliasi job malam.
+```php
+Schema::create('daily_branch_metrics', function (Blueprint $table) {
+    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+    $table->date('metric_date');
+    $table->unsignedInteger('new_inquiries')->default(0);
+    $table->unsignedInteger('codes_issued')->default(0);
+    $table->unsignedInteger('questionnaires_submitted')->default(0);
+    $table->unsignedInteger('admitted')->default(0);
+    $table->unsignedInteger('done_consult')->default(0);
+    $table->unsignedInteger('done_assessment')->default(0);
+    $table->unsignedInteger('discontinued')->default(0);
+    $table->unsignedInteger('discharged')->default(0);
+    $table->unsignedInteger('sessions_scheduled')->default(0);
+    $table->unsignedInteger('sessions_completed')->default(0);
+    $table->unsignedInteger('sessions_cancelled')->default(0);
+    $table->unsignedInteger('cancel_penalties')->default(0);
+    $table->unsignedInteger('credits_used')->default(0);
+    $table->unsignedInteger('invoices_issued')->default(0);
+    $table->unsignedBigInteger('invoiced_amount')->default(0);
+    $table->unsignedBigInteger('revenue_paid')->default(0);
+    $table->timestamp('refreshed_at')->useCurrent();
+    $table->primary(['branch_id', 'metric_date']);
+    $table->index('metric_date', 'idx_metrics_date');                                    // agregat all-branch
+});
+```
+Metrik per layanan / per terapis bila dibutuhkan dashboard baru: tambahkan tabel ringkasan serupa (`daily_service_metrics`, `daily_therapist_metrics`) — jangan agregasi tabel transaksi saat request.
+
 ---
 
-## 07. ANJURAN PENULISAN SEEDER & MIGRATION SEQUENCE
+## 05. Audit log
 
-Saat menjalankan `php artisan migrate`, buatlah file migrasi dengan urutan dependensi foreign key berikut:
+### 5.1 Tujuan
+Mencatat **setiap aksi yang mengubah data** (dan aksi baca sensitif tertentu) sehingga bisa dijawab: *siapa, melakukan apa, terhadap data apa, kapan, dari mana, nilai sebelum & sesudahnya, alasannya, dan apakah aksi itu kemudian dibatalkan*.
 
-1. `create_branches_table`
-2. `create_roles_table`
-3. `create_users_table`
-4. `create_therapist_availabilities_table`
-5. `create_clients_table`
-6. `create_client_service_interests_table`
-7. `create_client_gdrive_links_table`
-8. `create_inquiry_pipeline_logs_table`
-9. `create_assessment_categories_table`
-10. `create_assessment_domains_table`
-11. `create_assessment_questions_table`
-12. `create_assessment_access_codes_table`
-13. `create_assessment_responses_table`
-14. `create_assessment_answers_table`
-15. `create_assessment_quadrant_scores_table`
-16. `create_master_packages_table`
-17. `create_invoices_table`
-18. `create_client_packages_table`
-19. `create_schedules_table`
-20. `create_credit_histories_table`
-21. `create_clinical_soap_notes_table`
-22. `create_audit_trails_table`
+Contoh yang harus terlacak: Admin Schedule menandai sesi **completed** (kredit terpotong), lalu **membatalkan completed** itu (kredit kembali). Kedua aksi tercatat, saling terhubung, dan log pertama tidak berubah.
+
+### 5.2 Skema
+```php
+// Tabel dipartisi bulanan → tanpa FK, PK komposit memuat kolom partisi.
+Schema::create('audit_logs', function (Blueprint $table) {
+    $table->unsignedBigInteger('id', true);          // auto increment
+    $table->dateTime('occurred_at', 6);
+    $table->char('batch_id', 26)->nullable();        // ULID: semua log dari 1 aksi user (mis. complete → sesi + ledger + client)
+    $table->char('request_id', 26)->nullable();      // korelasi dengan log aplikasi
+
+    // Pelaku (snapshot — tetap terbaca walau user dihapus/diganti nama)
+    $table->enum('actor_type', ['user', 'client', 'system', 'public']);
+    $table->unsignedBigInteger('actor_id')->nullable();
+    $table->string('actor_name', 150)->nullable();
+    $table->string('actor_role', 50)->nullable();
+    $table->unsignedBigInteger('branch_id')->nullable();  // cakupan cabang data yang diubah
+
+    // Aksi & objek
+    $table->string('action', 64);                    // <entity>.<verb>, lihat katalog 5.4
+    $table->string('entity_type', 40);               // schedule, client, invoice, credit_ledger, …
+    $table->unsignedBigInteger('entity_id')->nullable();
+    $table->string('entity_label', 200)->nullable(); // snapshot: "Sesi Kenzo 2026-10-02 09:00"
+    $table->string('subject_type', 40)->nullable();  // induk untuk timeline (biasanya client)
+    $table->unsignedBigInteger('subject_id')->nullable();
+
+    // Perubahan
+    $table->json('old_values')->nullable();          // hanya field yang berubah
+    $table->json('new_values')->nullable();
+    $table->json('meta')->nullable();                // efek turunan: {credit_change:-1, ledger_id:…, bulk_count:12}
+    $table->text('reason')->nullable();              // wajib untuk cancel, revert, void, discharge, manual_adjust
+    $table->unsignedBigInteger('reverts_audit_id')->nullable(); // log asal yang dibatalkan oleh aksi ini
+
+    // Konteks teknis
+    $table->enum('source', ['web', 'api', 'public_form', 'system', 'import'])->default('web');
+    $table->string('ip_address', 45)->nullable();
+    $table->string('user_agent', 255)->nullable();
+
+    $table->primary(['id', 'occurred_at']);
+    $table->index(['entity_type', 'entity_id', 'occurred_at'], 'idx_audit_entity');      // Q15
+    $table->index(['subject_type', 'subject_id', 'occurred_at'], 'idx_audit_subject');   // Q15 timeline client
+    $table->index(['actor_id', 'occurred_at'], 'idx_audit_actor');                       // Q16
+    $table->index(['action', 'occurred_at'], 'idx_audit_action');                        // Q16
+    $table->index(['branch_id', 'occurred_at'], 'idx_audit_branch');
+    $table->index('batch_id', 'idx_audit_batch');
+    $table->index('reverts_audit_id', 'idx_audit_reverts');
+});
+
+// Partisi bulanan (dibuat via migration raw SQL; job bulanan menambah partisi berikutnya)
+DB::statement("
+  ALTER TABLE audit_logs PARTITION BY RANGE (TO_DAYS(occurred_at)) (
+    PARTITION p2026_10 VALUES LESS THAN (TO_DAYS('2026-11-01')),
+    PARTITION p2026_11 VALUES LESS THAN (TO_DAYS('2026-12-01')),
+    PARTITION pmax     VALUES LESS THAN MAXVALUE
+  )
+");
+```
+
+### 5.3 Aturan penulisan
+1. **Satu transaksi**: log ditulis di transaksi DB yang sama dengan perubahan data. Jika bisnis gagal/rollback, log ikut batal; tidak ada log "palsu" dan tidak ada perubahan tanpa log.
+2. **Append-only**: user DB aplikasi hanya punya `INSERT, SELECT` pada `audit_logs`. Tambahan proteksi:
+   ```sql
+   CREATE TRIGGER audit_logs_no_update BEFORE UPDATE ON audit_logs FOR EACH ROW
+     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'audit_logs bersifat append-only';
+   CREATE TRIGGER audit_logs_no_delete BEFORE DELETE ON audit_logs FOR EACH ROW
+     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'audit_logs bersifat append-only';
+   ```
+   Penghapusan data lama hanya lewat `DROP/EXCHANGE PARTITION` oleh DBA (arsip), bukan DELETE.
+3. **Hanya field yang berubah** di `old_values`/`new_values` (hemat storage, mudah dibaca). Field sensitif (password, PIN, token) **tidak pernah** dicatat; diganti `"[redacted]"`.
+4. **Snapshot pelaku & label** supaya log tetap bermakna walau data master berubah.
+5. **Undo = log baru**: aksi pembatalan menulis `action = <entity>.<verb>_reverted` (atau aksi kebalikannya) dengan `reverts_audit_id` = id log asal dan `reason` wajib.
+6. **Bulk**: satu log per entity yang berubah, semuanya berbagi `batch_id`, plus satu log ringkasan `schedule.bulk_completed` dengan `meta.count`.
+7. **Aksi baca sensitif** yang dicatat: lihat bukti bayar, export/print laporan klinis, login/logout & login gagal.
+
+### 5.4 Katalog kode aksi
+
+| Entity | Aksi |
+|---|---|
+| auth | `auth.login`, `auth.logout`, `auth.login_failed`, `auth.client_login`, `auth.client_login_failed` |
+| client | `client.created`, `client.updated`, `client.status_changed`, `client.services_updated`, `client.admitted`, `client.done_consult`, `client.done_assessment`, `client.discontinued`, `client.discharged`, `client.outcome_reverted`, `client.document_added`, `client.document_removed`, `client.note_saved`, `client.deleted`, `client.restored` |
+| assessment | `assessment_code.issued`, `assessment_code.revoked`, `assessment_response.submitted` (actor `public`), `assessment_response.viewed`, `assessment_category.created/updated/deleted`, `assessment_question.created/updated/deleted` |
+| schedule | `schedule.created`, `schedule.series_created`, `schedule.updated`, `schedule.completed`, `schedule.completion_reverted`, `schedule.cancelled`, `schedule.cancellation_reverted`, `schedule.rescheduled`, `schedule.marked_pending`, `schedule.pending_dropped`, `schedule.report_saved`, `schedule.bulk_completed`, `schedule.bulk_cancelled`, `schedule.bulk_rescheduled`, `schedule.deleted` |
+| credit | `credit.package_activated`, `credit.used`, `credit.cancel_excused`, `credit.cancel_penalty`, `credit.reversed`, `credit.manual_adjusted` |
+| invoice | `invoice.issued`, `invoice.proof_uploaded` (actor `client`), `invoice.proof_viewed`, `invoice.verified`, `invoice.rejected`, `invoice.voided`, `invoice.renewal_created` |
+| master | `service.*`, `quadrant.*`, `package.*`, `cancel_reason.*`, `discharge_reason.*` (`created/updated/deleted`) |
+| access | `user.created`, `user.updated`, `user.deactivated`, `user.deleted`, `role.created`, `role.updated`, `role.deleted`, `role.permission_changed` |
+| report | `report.printed`, `report.exported` |
+
+### 5.5 Skenario: completed lalu dibatalkan
+
+**Langkah 1** — Admin Fajar (id 5) menandai sesi #9012 (Kenzo, client #9) completed. Satu transaksi, `batch_id = 01J…A`.
+
+| tabel | isi |
+|---|---|
+| `schedules` #9012 | `status: scheduled → completed`, `previous_status = scheduled`, `credit_effect = used`, `completed_by = 5`, `version 3 → 4` |
+| `client_packages` #31 | `remaining_credit 6 → 5` |
+| `clients` #9 | `credit_balance 6 → 5` |
+| `credit_ledger` #7001 | `action=used, credit_change=-1, schedule_id=9012, idempotency_key=used:schedule:9012:v3` |
+| `audit_logs` #500 | `action=schedule.completed, entity=schedule#9012, subject=client#9, old={"status":"scheduled"}, new={"status":"completed"}, meta={"credit_change":-1,"ledger_id":7001}` |
+| `audit_logs` #501 | `action=credit.used, entity=credit_ledger#7001, subject=client#9, new={"package_balance":5}` |
+
+**Langkah 2** — Fajar sadar salah sesi dan membatalkan completed dengan alasan "Salah klik, sesi belum berlangsung". Transaksi baru, `batch_id = 01J…B`.
+
+| tabel | isi |
+|---|---|
+| `schedules` #9012 | `status: completed → scheduled` (dari `previous_status`), `credit_effect = none`, `completed_at/by = null`, `version 4 → 5` |
+| `client_packages` #31 | `remaining_credit 5 → 6` |
+| `clients` #9 | `credit_balance 5 → 6` |
+| `credit_ledger` #7002 | `action=reversal, credit_change=+1, reverses_ledger_id=7001` (#7001 tetap ada) |
+| `audit_logs` #502 | `action=schedule.completion_reverted, reverts_audit_id=500, reason="Salah klik…", old={"status":"completed"}, new={"status":"scheduled"}, meta={"credit_change":1,"ledger_id":7002}` |
+| `audit_logs` #503 | `action=credit.reversed, entity=credit_ledger#7002, reverts_audit_id=501` |
+
+Jika sesi itu kemudian di-complete lagi, `idempotency_key = used:schedule:9012:v5` (versi berbeda) sehingga pemotongan baru sah dan tidak bentrok dengan #7001.
+
+### 5.6 Query contoh
+```sql
+-- Timeline lengkap satu client (semua aksi pada client, sesi, invoice, kredit miliknya)
+SELECT occurred_at, actor_name, action, entity_type, entity_id, old_values, new_values, reason
+FROM audit_logs
+WHERE subject_type = 'client' AND subject_id = 9
+ORDER BY occurred_at DESC, id DESC
+LIMIT 50;
+
+-- Semua aksi yang pernah dibatalkan beserta pembatalannya
+SELECT a.occurred_at AS done_at, a.actor_name AS done_by, a.action,
+       r.occurred_at AS reverted_at, r.actor_name AS reverted_by, r.reason
+FROM audit_logs r
+JOIN audit_logs a ON a.id = r.reverts_audit_id
+WHERE r.reverts_audit_id IS NOT NULL
+  AND r.occurred_at >= '2026-10-01';
+
+-- Aktivitas satu staf hari ini (keyset: tambahkan AND (occurred_at, id) < (:last_at, :last_id))
+SELECT * FROM audit_logs
+WHERE actor_id = 5 AND occurred_at >= CURDATE()
+ORDER BY occurred_at DESC, id DESC LIMIT 50;
+```
+
+### 5.7 Retensi & volume
+- Estimasi: ±3 cabang × ±400 aksi/hari ≈ 1.200 baris/hari ≈ 450 ribu/tahun (±0,5 KB/baris → ±250 MB/tahun). Partisi bulanan menjaga indeks kecil.
+- Retensi online: **24 bulan**; partisi lebih lama di-`EXCHANGE` ke tabel arsip / di-export ke object storage (rekam medis & keuangan: simpan arsip ≥ 5 tahun sesuai kebijakan klinik).
+- Job bulanan: tambah partisi bulan depan (`REORGANIZE PARTITION pmax`).
 
 ---
-*Dokumen skema database enterprise ini telah disesuaikan khusus sebagai acuan pengembangan Backend Laravel 11.x untuk Therapedia Developmental Center.*
+
+## 06. Alur transaksi kritis
+
+Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `version` (optimistic lock), tulis audit di transaksi yang sama. Respons error: 409 (versi berubah / bentrok jadwal), 422 (validasi).
+
+### 6.1 Complete sesi (`POST /schedules/{id}/complete`)
+1. Lock `schedules` (id) → cek `version` & status ∈ {scheduled, rescheduled}.
+2. Jika `type = therapy`: lock `client_packages` aktif client (`ORDER BY activated_at` — FIFO; prioritas `client_package_id` sesi) → `remaining_credit -= 1` (CHECK ≥ 0), status `depleted` bila 0.
+3. Insert `credit_ledger` (`used`, idempotency key) → update `clients.credit_balance`.
+4. Update sesi: `status=completed`, `previous_status`, `credit_effect=used`, `completed_*`, `version+1`; upsert `session_reports`.
+5. Jika `type = assessment` dan status client sebelum `assessment_done` → update `clients.status`, insert `client_status_histories` (`trigger=session_completed`).
+6. Audit: `schedule.completed`, `credit.used`, (`client.status_changed`). Event → update `daily_branch_metrics` (queue).
+
+### 6.2 Cancel sesi (`POST /schedules/{id}/cancel`)
+1. Lock sesi + client. Ambil `cancel_reasons` (code).
+2. Jika `counts_toward_quota`: `clients.cancel_count_total += 1`.
+3. Penalti bila `always_penalty` **atau** `cancel_count_total > 3` (kuota): potong 1 kredit seperti 6.1 → ledger `cancel_penalty`, `credit_effect=penalty`. Selain itu ledger `cancel_excused` (0), `credit_effect=excused`.
+4. Update sesi `cancelled` + alasan; audit `schedule.cancelled` (+ `credit.cancel_penalty`).
+
+### 6.3 Revert (`POST /schedules/{id}/revert`, wajib `reason`)
+| Dari | Ke | Efek |
+|---|---|---|
+| `completed` | `previous_status` | Bila `credit_effect=used`: ledger `reversal` (+1) untuk ledger `used` sesi ini; kembalikan status client bila transisi otomatis terjadi di batch yang sama |
+| `cancelled` | `previous_status` | Bila `credit_effect=penalty`: reversal (+1). Bila kuota terhitung: `cancel_count_total -= 1` |
+| `rescheduled` | slot `origin_*` | Cek bentrok slot asal dulu (409 bila terisi) |
+Audit `*_reverted` dengan `reverts_audit_id`. Hak akses revert: `master`, `admin_schedule` (policy), opsional batas waktu (mis. ≤ 7 hari) via konfigurasi.
+
+### 6.4 Buat / pindah sesi (conflict check)
+1. `SELECT … FROM schedules WHERE therapist_id=? AND session_date=? AND status NOT IN ('cancelled','reschedule_pending') FOR UPDATE` (indeks `idx_sch_therapist`).
+2. Cek overlap jam & `therapist_availabilities`. Bentrok → 409 dengan daftar sesi bentrok (kecuali `force=true` oleh role yang diizinkan; dicatat di audit `meta.forced=true`).
+3. Insert/update. Seri berulang: insert batch dalam satu transaksi (`schedule_series` + N `schedules`).
+
+### 6.5 Verifikasi pembayaran (`POST /invoices/{id}/verify`)
+1. Lock invoice (status harus `pending_verification`) + cek `version`.
+2. `approve`: invoice `paid`, `paid_at`, `verified_by`; insert `client_packages` (snapshot paket, `invoice_id` UNIQUE mencegah aktivasi ganda); ledger `purchased`/`renewed` (+N); update `clients.credit_balance`; `payment_proofs.review_status=accepted`.
+3. `reject`: invoice `rejected` + `rejection_reason`; proof `rejected`.
+4. Audit `invoice.verified`/`invoice.rejected` + `credit.package_activated`.
+
+### 6.6 Transisi status client (`POST /clients/{id}/transition`)
+Validasi transisi di server (alur maju otomatis = `advanceStatus` di `frontend/src/domain/client.js`; outcome manual bebas dari tahap mana pun, sesuai prototype). Selalu insert `client_status_histories` + audit `client.status_changed` (atau `client.admitted` dsb.). Admit: set `date_of_join`, tidak membuat paket (saldo 0 = frozen sampai Finance mengaktifkan paket).
+
+---
+
+## 07. Strategi performa
+
+| Area | Strategi |
+|---|---|
+| **Indeks** | Komposit sesuai bagian 01; urutan kolom: equality (`branch_id`, `therapist_id`, `status`) → range (`session_date`, `issued_at`) → sort. Tidak ada indeks tunggal untuk kolom kardinalitas rendah |
+| **Baris ramping** | Teks panjang dipisah (`session_reports`, `client_notes`); tabel hot (`schedules`, `clients`) hanya kolom yang difilter/ditampilkan di list |
+| **Denormalisasi terkendali** | `clients.credit_balance`, `cancel_count_total`, `client_packages.remaining_credit`, `credit_ledger.branch_id`, `session_reports.client_id` — diperbarui di transaksi yang sama; job rekonsiliasi malam membandingkan dengan Σ ledger dan menulis audit `system` bila ada selisih |
+| **Generated column** | `clients.birth_month`, `session_reports.filled_sections` → filter tanpa fungsi di WHERE (indeks tetap terpakai) |
+| **Ringkasan dashboard** | `daily_branch_metrics` (PK `branch_id, metric_date`): dashboard 12 bulan = ≤ 3×365 baris. Update incremental via event + rebuild malam |
+| **Cache** | Redis: master data (services, quadrants, packages, reasons, roles+permissions) TTL panjang + invalidasi saat tulis; hasil dashboard per (branch, periode) TTL 60 detik |
+| **Pagination** | Keyset untuk `audit_logs`, `credit_ledger`, riwayat sesi; offset hanya untuk list kecil ber-filter |
+| **N+1** | API Resource memakai `with()` eksplisit; aktifkan `Model::preventLazyLoading()` di non-produksi |
+| **Payload** | List mengembalikan kolom ringkas (Resource khusus list), detail lengkap di endpoint detail |
+| **Kalender** | Satu query per minggu per cabang (Q1) + `therapists`/`clients` ringkas dari cache; frontend tidak memanggil per sel |
+| **Lock singkat** | `lockForUpdate` hanya pada baris yang diubah; transaksi tidak memanggil I/O eksternal (WA, upload) — itu dilakukan setelah commit via queue |
+| **Partisi** | `audit_logs` per bulan. Tabel lain belum perlu (estimasi < 5 juta baris/5 tahun) |
+| **Konfigurasi MySQL** | `innodb_buffer_pool_size` ≈ 60–70% RAM, `innodb_flush_log_at_trx_commit=1` (data finansial), slow query log ≥ 200 ms dipantau |
+| **Skala lanjut** | Read replica untuk dashboard & laporan bila beban baca naik; koneksi persistent via Octane/PHP-FPM tuning |
+
+Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed ±50 ribu sesi; target `type` = `ref`/`range`, tanpa `Using filesort` untuk list utama.
+
+---
+
+## 08. Mapping frontend ↔ database & keputusan enum
+
+### 8.1 Mapping field utama
+| Frontend (`frontend/src`) | Database |
+|---|---|
+| `clients[].clientName / dob / parentContact / parentEmail` | `clients.child_name / date_of_birth / parent_phone / parent_email` |
+| `clients[].serviceTypes[]` (+ legacy `serviceType`) | `client_services` |
+| `clients[].gdriveClientLink` | `client_documents (type=gdrive_folder)` |
+| `clients[].assessmentCodes[]` | `assessment_access_codes` |
+| `clients[].assessmentAnswers[]` | `assessment_responses` + `assessment_answers` + `assessment_quadrant_scores` |
+| `clients[].assessmentReportNote` | `client_notes (type=assessment_report)` |
+| `clients[].includesSchoolCompanion` | `clients.has_school_companion` |
+| `clients[].dischargeReason / dischargeNote` | `clients.discharge_reason_code / discharge_note` |
+| perubahan status client | `client_status_histories` + `audit_logs` |
+| `schedules[].date / startTime / endTime / therapistId` | `schedules.session_date / start_time / end_time / therapist_id` |
+| `schedules[].creditPackageId` | `schedules.client_package_id` |
+| `schedules[].rescheduledFrom{…}` | `schedules.origin_date / origin_start_time / origin_end_time / origin_therapist_id` |
+| `schedules[].pendingFrom / pendingReason / pendingNote` | slot tetap + `pending_reason_code / pending_note / pending_at` |
+| `schedules[].activitySection / noteSection / homeworkSection` | `session_reports.*` |
+| `schedules[].recurrenceRule / isRecurring` | `schedule_series` + `schedules.series_id` |
+| `credits.masterPackages[]` | `master_packages` |
+| `credits.records[].packages[]` | `client_packages` |
+| `credits.records[].history[]` | `credit_ledger` |
+| `credits.records[].cancelCountTotal` | `clients.cancel_count_total` |
+| `credits.invoices[]` (+ `proof*`) | `invoices` + `payment_proofs` |
+| `therapists[]` + `staffUsers[]` | `users` (+ `therapist_availabilities`) |
+| `rolesList[]` / `rbacPermissions` | `roles` / `role_permissions` (+ `access_modules`) |
+| `master_services` / `master_quadrants` | `services` / `sensory_quadrants` |
+| `CANCEL_REASONS`, `DISCHARGE_REASONS`, `CONCERN_TAGS` | `cancel_reasons`, `discharge_reasons`, `concern_tags` |
+| dashboard (hitung di `useMemo`) | `daily_branch_metrics` |
+
+Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services/http/httpClient.js`.
+
+### 8.2 Keputusan enum (menyelesaikan gap prototype vs schema v1)
+| Area | Keputusan v2 | Dampak ke frontend |
+|---|---|---|
+| `clients.status` | Ikut prototype: 9 status termasuk `service_selected`, `assessment_done`, `discharged` | Tidak ada |
+| `schedules.status` | `scheduled, completed, cancelled, rescheduled, reschedule_pending`; **frozen = turunan** | Tidak ada |
+| `cancel_reasons` | Lookup table + flag `counts_toward_quota`, `always_penalty` | Default: semua alasan manual dihitung kuota, `reschedule_dibatalkan` netral → sama dengan prototype |
+| Aturan penalti | Kuota 3 cancel per client (prototype) + opsi kebijakan `always_penalty` per alasan | Tidak ada (opsi baru di backend) |
+| `invoices.status` | `unpaid, pending_verification, paid, rejected, void` | Frontend perlu menampilkan `pending_verification` & `rejected` (sekarang: bukti diunggah tetap `unpaid`) |
+| `client_packages.status` | `active, depleted, expired` | Tambah `expired` (paket berbatas waktu, opsional) |
+| `credit_ledger.action` | `purchased, renewed, used, cancel_excused, cancel_penalty, reversal, manual_adjust` | Label baru di riwayat kredit Finance |
+| Revert sesi | Endpoint baru `POST /schedules/{id}/revert` | Fitur UI "Batalkan completed/cancel" (belum ada di prototype) |
+
+---
+
+## 09. Urutan migration & seeder
+
+1. `branches`, `roles`, `access_modules`, `role_permissions`, `users`, `therapist_availabilities`
+2. `services`, `sensory_quadrants`, `concern_tags`, `cancel_reasons`, `discharge_reasons`, `master_packages`
+3. `clients`, `client_services`, `client_concern_tags`, `client_documents`, `client_notes`, `client_status_histories`
+4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`
+5. `invoices`, `payment_proofs`, `client_packages`
+6. `schedule_series`, `schedules`, `session_reports`
+7. `credit_ledger`
+8. `audit_logs` (+ partisi + trigger), `daily_branch_metrics`
+9. Laravel bawaan: `personal_access_tokens`, `cache`, `jobs`, `failed_jobs`, `job_batches`
+
+Seeder:
+- **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, concern_tags, cancel_reasons, discharge_reasons, master_packages, akun master awal.
+- **Demo/staging**: konversi seed frontend (`frontend/src/data/*.seed.json`, `scripts/generate_demo_seed.py`) — tanggal relatif hari ini, ledger dibangun dari histori agar saldo konsisten.
+- Setelah seed demo: jalankan `metrics:rebuild` untuk mengisi `daily_branch_metrics`.
+
+---
+
+## 10. Catatan implementasi Laravel
+
+- **Auth ganda**: guard `staff` (model `User`, Sanctum token) dan guard `client` (model `Client` sebagai `Authenticatable`, login dengan `client_access_code` + throttle). Token ability membedakan portal.
+- **Policy**: berbasis `role_permissions` (modul) + aturan aksi (mis. `SchedulePolicy::complete` hanya `master`/`admin_schedule`), selaras `frontend/src/domain/rbac.js` & `canManageSchedule`.
+- **Scope cabang**: global scope `BranchScope` pada model ber-`branch_id` untuk user non-master.
+- **Action class per use-case** (`CompleteSessionAction`, `CancelSessionAction`, `RevertSessionAction`, `VerifyPaymentAction`, `TransitionClientAction`) — padanan hook use-case frontend; semua aturan kredit mengikuti `frontend/src/domain/credit.js` (acuan test).
+- **AuditLogger** service:
+  ```php
+  AuditLogger::batch(function () use ($schedule, $dto) {
+      $before = $schedule->only(['status']);
+      // … perubahan data …
+      AuditLogger::log('schedule.completed', $schedule, old: $before, new: $schedule->only(['status']),
+          subject: $schedule->client, meta: ['credit_change' => -1, 'ledger_id' => $ledger->id]);
+  });
+  ```
+  `batch()` membungkus `DB::transaction` + membuat `batch_id` (ULID). Trait `Auditable` (observer) hanya untuk CRUD master sederhana; aksi bisnis selalu eksplisit agar `reason`, `subject`, dan `meta` lengkap.
+- **Optimistic lock**: request mengirim `version`; `update … where version = ?` → 0 baris = `409 Conflict` (frontend: `ApiError.isConflict`).
+- **Event & queue**: `SessionCompleted`, `InvoicePaid`, `ClientStatusChanged` → listener update `daily_branch_metrics`, kirim notifikasi WA (setelah commit).
+- **Kontrak API & endpoint**: `docs/guide/10-api-migration.md` dan `frontend/src/services/api/endpoints.js`.

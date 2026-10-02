@@ -5,6 +5,8 @@ import therapistsSeed from "@/data/therapists.seed.json";
 import schedulesSeed from "@/data/schedules.seed.json";
 import creditsSeed from "@/data/credits.seed.json";
 import categoriesSeed from "@/data/assessmentCategories.seed.json";
+import staffSeed from "@/data/staffUsers.seed.json";
+import { buildAuditSeed } from "@/data/auditSeed";
 
 export function loadBranchesSeed() {
   return branchesSeed;
@@ -107,4 +109,15 @@ export function loadTherapistsSeed() {
 
 export function loadCategoriesSeed() {
   return categoriesSeed;
+}
+
+// Audit log demo diturunkan dari seed lain (lihat data/auditSeed.js)
+export function loadAuditLogsSeed() {
+  return buildAuditSeed({
+    clients: loadClientsSeed(),
+    schedules: loadSchedulesSeed(),
+    credits: loadCreditsSeed(),
+    therapists: therapistsSeed,
+    staff: staffSeed,
+  });
 }

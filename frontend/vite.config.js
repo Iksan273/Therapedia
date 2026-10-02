@@ -26,6 +26,12 @@ export default defineConfig({
     port: 3000,
     open: false,
   },
+  // Vitest: unit test untuk domain/, shared/lib/, dan reducer (fungsi pure)
+  test: {
+    globals: true,
+    environment: "node",
+    include: ["src/**/*.test.{js,jsx}"],
+  },
   build: {
     outDir: "dist",
     chunkSizeWarningLimit: 600,
