@@ -13,6 +13,7 @@ Siap untuk fase API: @tanstack/react-query (QueryClient terpasang), axios (`serv
 | `npm run build` | build produksi ke `dist/` |
 | `npm test` | Vitest: domain, hook use-case, smoke semua route |
 | `npm run lint` | ESLint + batas lapisan (harus 0 error) |
+| `npm run gen:dark` | membuat ulang `src/styles/dark-utilities.css` (padanan gelap class warna Tailwind); otomatis dijalankan sebelum `dev`/`build` |
 
 ## Struktur `src/`
 ```
@@ -62,6 +63,11 @@ config/env.js data/ (seed demo)
 ### Siap API
 21. Jangan memanggil axios langsung; pakai `api.*` (`services/http/httpClient.js`) + `ENDPOINTS`. Tangani `ApiError` (`message`, `fieldErrors`, `isConflict`). Kirim `version` untuk entity ber-optimistic-lock.
 22. Nama action/hook = nama use-case (calon endpoint), bukan operasi storage.
+
+### Mode gelap
+- Class `dark` dipasang di `<html>` oleh `useAppTheme()` (dipanggil sekali di `AppLayout`); halaman publik (landing, `/assessment`, `/roles`) tetap terang. Preferensi tersimpan di key `ui_theme`.
+- Pakai token (`bg-background`, `text-muted-foreground`, …) atau class warna Tailwind biasa: padanan gelap `bg-white`, `*-slate-*`, dan warna `*-50..300 / 600..950` dihasilkan otomatis dari `scripts/gen-dark-css.cjs`. Warna di luar itu (hex arbitrary, inline style, varian `[&_…]`) tidak ikut: tambahkan `dark:` manual atau aturan di `index.css`.
+- Jangan edit `dark-utilities.css` manual (dihasilkan).
 
 ### Batasan
 23. Dependency baru hanya dengan alasan kuat (tulis ADR di `docs/adr/` bila signifikan).

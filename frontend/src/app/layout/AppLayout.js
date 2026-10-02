@@ -21,6 +21,8 @@ import { useClients } from "@/stores/clientsStore";
 import { resetDemoData } from "@/services/storage/localStore";
 import { BRANCHES } from "@/domain/branch";
 import { PageSkeleton } from "@/shared/components/PageSkeleton";
+import { ThemeToggle } from "@/shared/components/ThemeToggle";
+import { useAppTheme } from "@/shared/hooks/useAppTheme";
 import { cn } from "@/shared/lib/utils";
 import { buildNavConfig } from "@/app/layout/navConfig";
 
@@ -176,6 +178,7 @@ const AppLayout = () => {
   const { getTherapist } = useTherapists();
   const { getClient } = useClients();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { isDark, toggleTheme } = useAppTheme();
 
   // Desktop sidebar state with localStorage persistence (default open)
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -562,6 +565,8 @@ const AppLayout = () => {
             </Button>
 
 
+
+            <ThemeToggle isDark={isDark} onToggle={toggleTheme} className="border-slate-200 shadow-2xs shrink-0" />
 
             <Button
               variant="outline"

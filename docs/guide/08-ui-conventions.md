@@ -32,6 +32,13 @@ button, card, dialog, sheet, drawer, select, tabs, table, popover, calendar, too
 
 Komponen domain: `features/schedule/components/calendar/*`, `features/therapist/components/*`, `features/schedule/components/analytics/*`, `features/landing/components/*`, `app/layout/AppLayout.js`.
 
+## Mode gelap
+- **Tombol**: ikon bulan/matahari di header `AppLayout` (`shared/components/ThemeToggle.js`, state di `shared/hooks/useAppTheme.js`). Tanpa preferensi tersimpan, ikut pengaturan sistem (`prefers-color-scheme`); pilihan disimpan di key `ui_theme`.
+- **Cakupan**: hanya area aplikasi (`AppLayout`). Class `dark` dipasang di `<html>` saat layout tampil dan dilepas saat keluar, jadi landing, `/assessment`, `/roles`, dan halaman cetak tetap terang.
+- **Cara kerja**: token shadcn (`--background`, `--card`, …) punya nilai gelap di `index.css` (`.dark`). Class warna Tailwind yang dipakai di kode (`bg-white`, `*-slate-*`, warna `-50…-300` untuk latar, `-600…-950` untuk teks, border/ring) dipetakan otomatis oleh `scripts/gen-dark-css.cjs` ke `src/styles/dark-utilities.css`. Skrip jalan otomatis sebelum `npm run dev` dan `npm run build`; jalankan `npm run gen:dark` bila perlu cek manual.
+- **Tidak tercakup otomatis**: hex arbitrary (`bg-[#…]`), inline style, dan varian arbitrary (`[&_tr]:…`). Untuk itu tambahkan varian `dark:` pada class atau aturan `.dark …` di `index.css` (contoh: kartu tabel mobile di `shared/ui/table.jsx`, tooltip/grid recharts).
+- **Menambah komponen**: pakai class warna Tailwind biasa atau token; hindari warna hex di inline style.
+
 ## Struktur halaman
 - Halaman besar dipecah menjadi folder sub-komponen di samping file halaman. Contoh: `features/inquiry/pages/ClientDetailInquiry.js` + `features/inquiry/components/clientDetail/*Card.js`, `features/finance/pages/FinancePortal.js` + `features/finance/components/*Tab.js`.
 - Halaman (state + handler + orkestrasi context) tinggal di file halaman, sedangkan sub-komponen menerima props (presentational).

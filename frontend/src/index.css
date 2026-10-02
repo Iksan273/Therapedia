@@ -77,6 +77,82 @@ code {
     }
 }
 
+/* ===== Mode gelap (aktif lewat class `dark` di <html>, dipasang AppLayout) =====
+   Token shadcn + aturan CSS kustom. Padanan class warna Tailwind ada di styles/dark-utilities.css (dihasilkan). */
+@layer base {
+    .dark {
+        --color-surface: #0b1220;
+        --color-surface-subtle: #111a2e;
+        --color-text: #e2e8f0;
+        --color-text-muted: #94a3b8;
+        --color-border: #26344f;
+
+        --background: 222 47% 7%;
+        --foreground: 210 40% 96%;
+        --card: 222 40% 12%;
+        --card-foreground: 210 40% 96%;
+        --popover: 222 40% 12%;
+        --popover-foreground: 210 40% 96%;
+        --primary: 211 100% 55%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 222 32% 18%;
+        --secondary-foreground: 210 40% 96%;
+        --muted: 222 32% 18%;
+        --muted-foreground: 215 20% 70%;
+        --accent: 222 32% 18%;
+        --accent-foreground: 210 40% 96%;
+        --destructive: 0 72% 55%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 220 30% 22%;
+        --input: 220 30% 22%;
+        --ring: 211 100% 60%;
+    }
+}
+
+html.dark {
+    color-scheme: dark;
+}
+.dark body {
+    background-color: #0b1220;
+    color: #e2e8f0;
+}
+.dark .glass-header {
+    background: rgba(11, 18, 32, 0.88);
+}
+.dark .clinical-card,
+.dark .filter-card-bar {
+    background: #111a2e;
+    border-color: rgba(38, 52, 79, 0.9);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.dark ::-webkit-scrollbar-thumb {
+    background: #334562;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #475a7a;
+}
+.dark .noise-bg {
+    opacity: 0.6;
+}
+/* Grafik (recharts) */
+.dark .recharts-default-tooltip {
+    background-color: #111a2e !important;
+    border-color: #26344f !important;
+}
+.dark .recharts-tooltip-label,
+.dark .recharts-tooltip-item {
+    color: #e2e8f0 !important;
+}
+.dark .recharts-legend-item-text {
+    color: #cbd5e1 !important;
+}
+.dark .recharts-cartesian-axis-tick-value {
+    fill: #94a3b8;
+}
+.dark .recharts-cartesian-grid line {
+    stroke: #26344f;
+}
+
 /* Clinical subtle scrollbars */
 ::-webkit-scrollbar {
     width: 6px;

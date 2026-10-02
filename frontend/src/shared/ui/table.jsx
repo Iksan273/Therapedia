@@ -13,6 +13,8 @@ const STACK_ON_MOBILE = [
   "max-lg:[&_td]:before:block max-lg:[&_td]:before:mb-0.5 max-lg:[&_td]:before:text-[11px] max-lg:[&_td]:before:font-bold max-lg:[&_td]:before:uppercase max-lg:[&_td]:before:tracking-wide max-lg:[&_td]:before:text-slate-400 max-lg:[&_td]:before:content-[attr(data-label)]",
   "max-lg:[&_td[data-nolabel]]:before:hidden",
   "max-lg:[&_td:first-child]:!border-b max-lg:[&_td:first-child]:border-slate-100 max-lg:[&_td:first-child]:!pb-2.5 max-lg:[&_td:first-child]:mb-1",
+  // Mode gelap: kartu baris memakai permukaan & garis gelap (class arbitrary tidak dicakup dark-utilities.css)
+  "max-lg:dark:[&_tr]:border-[#26344f] max-lg:dark:[&_tr]:bg-[#111a2e] max-lg:dark:[&_td:first-child]:border-[#1c2742]",
 ].join(" ");
 
 const Table = React.forwardRef(({ className, stackOnMobile = false, ...props }, ref) => (

@@ -60,6 +60,10 @@
     "zod": "3.24.4"
   },
   "scripts": {
+    "gen:dark": "node scripts/gen-dark-css.cjs",
+    "predev": "npm run gen:dark",
+    "prestart": "npm run gen:dark",
+    "prebuild": "npm run gen:dark",
     "dev": "vite",
     "start": "vite",
     "build": "vite build",
