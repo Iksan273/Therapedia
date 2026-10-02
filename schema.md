@@ -1,6 +1,6 @@
 # Skema Database Therapedia — v2
 
-**One Gate Integrated Clinic System** · MySQL 8.0 (InnoDB) · Laravel 11 · Sanctum · Redis
+**One Gate Integrated Clinic System** · MySQL 8.0.22+ (InnoDB) · Laravel 11 · Sanctum · **tanpa Redis** (cache, queue, session memakai MySQL)
 
 Dokumen ini adalah sumber kebenaran desain database backend. Skema mencakup **seluruh fitur prototype frontend** (`frontend/`): intake & pipeline, mesin asesmen, penjadwalan + kredit, finance, portal terapis, portal orang tua, dashboard, RBAC, dan **audit log untuk setiap aksi yang mengubah data**.
 
@@ -20,6 +20,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 - [08. Mapping frontend ↔ database & keputusan enum](#08-mapping-frontend--database--keputusan-enum)
 - [09. Urutan migration & seeder](#09-urutan-migration--seeder)
 - [10. Catatan implementasi Laravel](#10-catatan-implementasi-laravel)
+- [11. Job terjadwal (Laravel Scheduler)](#11-job-terjadwal-laravel-scheduler)
 
 ---
 
@@ -34,7 +35,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 | 5 | **Aman dari edit bersamaan** | Kolom `version` (optimistic lock) pada entity yang sering diubah → HTTP 409 |
 | 6 | **Idempoten** | `credit_ledger.idempotency_key` UNIQUE mencegah potong kredit ganda |
 | 7 | **Snapshot nilai transaksi** | Nama paket, harga, nama pelaku disalin saat transaksi agar histori tidak berubah ketika master diedit |
-| 8 | **Baca cepat untuk dashboard** | `daily_branch_metrics` (ringkasan harian) + cache Redis master data |
+| 8 | **Baca cepat tanpa infrastruktur tambahan** | Dashboard = **VIEW + JOIN** di atas indeks covering & generated column tanggal; tanpa Redis dan tanpa tabel ringkasan selama target terpenuhi (§04-G, §07) |
 | 9 | **Lookup table untuk daftar yang bisa diedit** | Layanan, kuadran, alasan cancel/discharge, tag keluhan = tabel ber-PK `code` |
 | 10 | **ENUM untuk siklus hidup tetap** | Status client/sesi/invoice/paket |
 
@@ -58,8 +59,8 @@ Daftar ini adalah dasar desain indeks. Setiap halaman prototype dipetakan ke que
 | Q8 | Detail client (kredit, sesi, invoice) | by id + relasi | PK + `schedules (client_id, session_date)` · `client_packages (client_id, status)` · `invoices (client_id, issued_at)` | < 30 ms |
 | Q9 | Finance — antrean verifikasi | invoice `pending_verification` per cabang | `invoices (branch_id, status, issued_at)` | < 20 ms |
 | Q10 | Finance — riwayat mutasi kredit | ledger semua client per cabang, terbaru, keyset | `credit_ledger (branch_id, created_at, id)` | < 30 ms |
-| Q11 | Revenue dashboard | omzet `paid` per cabang per periode | `daily_branch_metrics (branch_id, metric_date)`; fallback `invoices (status, paid_at, branch_id)` | < 20 ms |
-| Q12 | Inquiry / Schedule / Branch dashboard | KPI per cabang per periode | `daily_branch_metrics` | < 20 ms |
+| Q11 | Revenue dashboard | omzet `paid` per cabang per periode | view `v_daily_revenue` → `invoices idx_inv_paid_date (status, branch_id, paid_date, amount, deleted_at)` | < 50 ms |
+| Q12 | Inquiry / Schedule / Branch dashboard | KPI per cabang per periode | view `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage` (indeks diawali `branch_id, tanggal`) | < 50 ms |
 | Q13 | Kode kuesioner publik | lookup kode | UNIQUE `assessment_access_codes (code)` | < 5 ms |
 | Q14 | Login ortu | lookup kode akses client | UNIQUE `clients (client_access_code)` | < 5 ms |
 | Q15 | Audit timeline 1 client / 1 sesi | log per entity / per induk, terbaru | `audit_logs (subject_type, subject_id, occurred_at)` · `audit_logs (entity_type, entity_id, occurred_at)` | < 30 ms |
@@ -108,10 +109,10 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `client_packages` | Paket kredit milik client |
 | | `credit_ledger` | Mutasi kredit append-only |
 | **G. Audit & analitik** | `audit_logs` | Log semua aksi (partisi bulanan) |
-| | `daily_branch_metrics` | Ringkasan harian per cabang |
-| **H. Laravel bawaan** | `personal_access_tokens`, `cache`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, cache, queue |
+| | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
+| **H. Laravel bawaan** | `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, session, cache & queue driver `database` (MySQL) |
 
-Total: 36 tabel domain + tabel bawaan Laravel.
+Total: 35 tabel domain + 6 view + tabel bawaan Laravel.
 
 ---
 
@@ -123,7 +124,6 @@ erDiagram
   branches ||--o{ clients : "client"
   branches ||--o{ schedules : "sesi"
   branches ||--o{ invoices : "tagihan"
-  branches ||--o{ daily_branch_metrics : "ringkasan"
   roles ||--o{ users : ""
   roles ||--o{ role_permissions : ""
   access_modules ||--o{ role_permissions : ""
@@ -226,7 +226,7 @@ Schema::create('role_permissions', function (Blueprint $table) {
     $table->foreign('module_code')->references('code')->on('access_modules')->cascadeOnUpdate()->cascadeOnDelete();
 });
 ```
-Dibaca setiap request (policy) → **cache Redis** per role (`rbac:role:{id}`), invalidasi saat matriks diubah.
+Dibaca setiap request (policy): satu query by PK `role_id` (±12 baris) — cukup **dimemo per request** di `PermissionService`. Opsional: cache driver `database` (`Cache::remember("rbac:role:{id}")`, tabel `cache` MySQL) dengan invalidasi saat matriks diubah. Tidak butuh Redis.
 
 #### `users`
 Staf internal & terapis dalam satu tabel. Atribut klinis nullable untuk non-terapis.
@@ -267,7 +267,7 @@ Schema::create('therapist_availabilities', function (Blueprint $table) {
 
 ### B. Master data
 
-Semua tabel master di-cache Redis (`master:{tabel}`), invalidasi saat create/update/delete.
+Tabel master kecil (puluhan baris) dan dibaca lewat PK → query langsung < 1 ms dari buffer pool InnoDB. Frontend memuatnya sekali per sesi (react-query `staleTime` panjang). Tidak perlu Redis.
 
 #### `services`
 ```php
@@ -465,14 +465,16 @@ Timeline bisnis pipeline (ditampilkan ke user). Detail teknis tetap di `audit_lo
 Schema::create('client_status_histories', function (Blueprint $table) {
     $table->id();
     $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('branch_id')->constrained()->restrictOnDelete();          // denormalisasi dari clients (untuk view per cabang)
     $table->string('from_status', 30)->nullable();
     $table->string('to_status', 30);
     $table->enum('trigger', ['manual', 'service_selected', 'code_issued', 'questionnaire_submitted', 'session_completed', 'outcome', 'discharge', 'revert']);
     $table->text('note')->nullable();
     $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();  // null = sistem / ortu
     $table->timestamp('changed_at')->useCurrent();
-    $table->index(['client_id', 'changed_at'], 'idx_csh_client');
-    $table->index(['to_status', 'changed_at'], 'idx_csh_status');                        // funnel & tren
+    $table->date('changed_date')->storedAs("DATE(changed_at + INTERVAL 7 HOUR)");  // tanggal WIB
+    $table->index(['client_id', 'changed_at'], 'idx_csh_client');                        // timeline client
+    $table->index(['branch_id', 'changed_date', 'to_status'], 'idx_csh_branch_date');    // v_daily_pipeline (funnel & tren)
 });
 ```
 
@@ -549,6 +551,7 @@ Schema::create('assessment_access_codes', function (Blueprint $table) {
 
     $table->index(['client_id', 'category_id'], 'idx_codes_client');
     $table->index(['status', 'issued_at'], 'idx_codes_awaiting');                         // Q18
+    $table->index(['status', 'expires_at'], 'idx_codes_expiry');                         // job assessment-codes:expire
 });
 ```
 
@@ -673,7 +676,7 @@ Schema::create('schedules', function (Blueprint $table) {
     $table->foreign('cancel_reason_code')->references('code')->on('cancel_reasons');
     $table->foreign('pending_reason_code')->references('code')->on('cancel_reasons');
 
-    $table->index(['branch_id', 'session_date', 'status'], 'idx_sch_calendar');           // Q1
+    $table->index(['branch_id', 'session_date', 'status', 'deleted_at'], 'idx_sch_calendar'); // Q1 + v_daily_sessions (covering)
     $table->index(['therapist_id', 'session_date', 'start_time'], 'idx_sch_therapist');   // Q2, Q3, Q17
     $table->index(['client_id', 'session_date'], 'idx_sch_client');                       // Q8, portal ortu
     $table->index(['status', 'session_date'], 'idx_sch_status');                          // auto-complete job, rekap
@@ -733,6 +736,7 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->timestamp('issued_at')->useCurrent();
     $table->date('due_date')->nullable();
     $table->timestamp('paid_at')->nullable();
+    $table->date('paid_date')->nullable()->storedAs("DATE(paid_at + INTERVAL 7 HOUR)");  // tanggal WIB untuk v_daily_revenue
     $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamp('verified_at')->nullable();
     $table->text('rejection_reason')->nullable();
@@ -745,7 +749,8 @@ Schema::create('invoices', function (Blueprint $table) {
 
     $table->index(['branch_id', 'status', 'issued_at'], 'idx_inv_queue');                // Q9
     $table->index(['client_id', 'issued_at'], 'idx_inv_client');                         // Q8, portal ortu
-    $table->index(['status', 'paid_at', 'branch_id', 'amount'], 'idx_inv_revenue');     // Q11 fallback (covering)
+    $table->index(['status', 'branch_id', 'paid_date', 'amount', 'deleted_at'], 'idx_inv_paid_date'); // Q11 v_daily_revenue (covering)
+    $table->index(['status', 'due_date'], 'idx_inv_due');                                // job invoices:flag-overdue
 });
 ```
 Status: `unpaid` → (ortu upload) `pending_verification` → Finance `paid` / `rejected` (ortu bisa upload ulang → `pending_verification`). `void` = dibatalkan Finance (wajib alasan, tercatat audit).
@@ -790,6 +795,7 @@ Schema::create('client_packages', function (Blueprint $table) {
     $table->timestamps();
 
     $table->index(['client_id', 'status', 'activated_at'], 'idx_pkg_client');            // pilih paket aktif tertua (FIFO)
+    $table->index(['status', 'expires_at'], 'idx_pkg_expiry');                           // job packages:expire
 });
 // MySQL 8.0.16+: CHECK constraint
 DB::statement('ALTER TABLE client_packages ADD CONSTRAINT chk_pkg_remaining CHECK (remaining_credit >= 0 AND remaining_credit <= total_credit)');
@@ -805,7 +811,7 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->foreignId('client_package_id')->nullable()->constrained()->restrictOnDelete();
     $table->foreignId('schedule_id')->nullable()->constrained()->nullOnDelete();
     $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust']);
+    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust', 'expired']);
     $table->smallInteger('credit_change');            // +N / -1 / 0
     $table->smallInteger('package_balance_after');    // saldo paket setelah mutasi (audit cepat)
     $table->integer('client_balance_after');          // saldo total client setelah mutasi
@@ -822,6 +828,8 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->index(['client_id', 'created_at'], 'idx_ledger_client');                     // riwayat per client
     $table->index(['branch_id', 'created_at', 'id'], 'idx_ledger_branch');               // Q10 keyset
     $table->index(['schedule_id', 'action'], 'idx_ledger_schedule');                     // revert sesi
+    $table->date('entry_date')->storedAs("DATE(created_at + INTERVAL 7 HOUR)");  // tanggal WIB
+    $table->index(['branch_id', 'entry_date', 'action'], 'idx_ledger_branch_date');      // v_daily_credit_usage
 });
 ```
 
@@ -830,34 +838,90 @@ Schema::create('credit_ledger', function (Blueprint $table) {
 #### `audit_logs`
 Dijelaskan lengkap di bagian 05.
 
-#### `daily_branch_metrics`
-Ringkasan harian per cabang untuk dashboard (Q11, Q12). Diperbarui incremental oleh listener event domain (queue) dan direkonsiliasi job malam.
+#### View dashboard (tanpa tabel ringkasan)
+Dashboard membaca **VIEW MySQL** di atas tabel transaksi. View tidak menyimpan data (bukan materialized) — kecepatannya sama dengan query di dalamnya, jadi setiap view dirancang agar:
+1. Kolom yang di-`GROUP BY` / difilter **terindeks** dan **sargable** (tanpa fungsi di kolom saat WHERE).
+2. Tanggal bisnis memakai **generated column tanggal WIB** (`… + INTERVAL 7 HOUR`, WIB tanpa DST) agar transaksi jam 00:00–06:59 WIB tidak tercatat di tanggal UTC kemarin.
+3. Query ke view **selalu** memakai filter cabang + rentang tanggal. MySQL ≥ 8.0.22 mendorong filter itu ke dalam view ber-`GROUP BY` (*derived condition pushdown*), sehingga hanya rentang indeks yang dibaca.
+
+Generated column & indeks pendukung (ringkasan — sudah tercantum di spesifikasi tabel masing-masing):
 ```php
-Schema::create('daily_branch_metrics', function (Blueprint $table) {
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-    $table->date('metric_date');
-    $table->unsignedInteger('new_inquiries')->default(0);
-    $table->unsignedInteger('codes_issued')->default(0);
-    $table->unsignedInteger('questionnaires_submitted')->default(0);
-    $table->unsignedInteger('admitted')->default(0);
-    $table->unsignedInteger('done_consult')->default(0);
-    $table->unsignedInteger('done_assessment')->default(0);
-    $table->unsignedInteger('discontinued')->default(0);
-    $table->unsignedInteger('discharged')->default(0);
-    $table->unsignedInteger('sessions_scheduled')->default(0);
-    $table->unsignedInteger('sessions_completed')->default(0);
-    $table->unsignedInteger('sessions_cancelled')->default(0);
-    $table->unsignedInteger('cancel_penalties')->default(0);
-    $table->unsignedInteger('credits_used')->default(0);
-    $table->unsignedInteger('invoices_issued')->default(0);
-    $table->unsignedBigInteger('invoiced_amount')->default(0);
-    $table->unsignedBigInteger('revenue_paid')->default(0);
-    $table->timestamp('refreshed_at')->useCurrent();
-    $table->primary(['branch_id', 'metric_date']);
-    $table->index('metric_date', 'idx_metrics_date');                                    // agregat all-branch
-});
+// invoices
+$table->date('paid_date')->nullable()->storedAs("DATE(paid_at + INTERVAL 7 HOUR)");
+$table->index(['status', 'branch_id', 'paid_date', 'amount', 'deleted_at'], 'idx_inv_paid_date'); // v_daily_revenue (covering)
+// client_status_histories (branch_id ikut disimpan saat insert — denormalisasi dari clients)
+$table->date('changed_date')->storedAs("DATE(changed_at + INTERVAL 7 HOUR)");
+$table->index(['branch_id', 'changed_date', 'to_status'], 'idx_csh_branch_date');       // v_daily_pipeline (covering)
+// credit_ledger
+$table->date('entry_date')->storedAs("DATE(created_at + INTERVAL 7 HOUR)");
+$table->index(['branch_id', 'entry_date', 'action'], 'idx_ledger_branch_date');         // v_daily_credit_usage
+// schedules: session_date sudah DATE lokal → cukup idx_sch_calendar (branch_id, session_date, status, deleted_at), covering untuk v_daily_sessions
 ```
-Metrik per layanan / per terapis bila dibutuhkan dashboard baru: tambahkan tabel ringkasan serupa (`daily_service_metrics`, `daily_therapist_metrics`) — jangan agregasi tabel transaksi saat request.
+
+```sql
+-- Q11 Revenue dashboard: omzet harian per cabang
+CREATE OR REPLACE VIEW v_daily_revenue AS
+SELECT branch_id, paid_date, COUNT(*) AS invoices_paid, SUM(amount) AS revenue
+FROM invoices
+WHERE status = 'paid' AND deleted_at IS NULL
+GROUP BY branch_id, paid_date;
+
+-- Q12 Schedule dashboard: status sesi harian per cabang
+CREATE OR REPLACE VIEW v_daily_sessions AS
+SELECT branch_id, session_date,
+       COUNT(*)                                   AS sessions_total,
+       SUM(status = 'completed')                  AS sessions_completed,
+       SUM(status = 'cancelled')                  AS sessions_cancelled,
+       SUM(status = 'reschedule_pending')         AS sessions_pending,
+       SUM(status IN ('scheduled','rescheduled')) AS sessions_upcoming
+FROM schedules
+WHERE deleted_at IS NULL
+GROUP BY branch_id, session_date;
+
+-- Q12 Inquiry dashboard & Branch performance: funnel pipeline harian per cabang
+CREATE OR REPLACE VIEW v_daily_pipeline AS
+SELECT branch_id, changed_date, to_status, COUNT(*) AS transitions
+FROM client_status_histories
+GROUP BY branch_id, changed_date, to_status;
+
+-- Finance / revenue: pemakaian & penambahan kredit harian per cabang
+CREATE OR REPLACE VIEW v_daily_credit_usage AS
+SELECT branch_id, entry_date, action, COUNT(*) AS entries, SUM(credit_change) AS credit_change
+FROM credit_ledger
+GROUP BY branch_id, entry_date, action;
+
+-- Q17 Therapist summary: JOIN tanpa agregasi (algoritma MERGE → filter langsung memakai idx_sch_therapist)
+CREATE OR REPLACE VIEW v_therapist_sessions AS
+SELECT s.id AS schedule_id, s.branch_id, s.therapist_id, s.client_id, c.child_name,
+       s.session_date, s.start_time, s.end_time, s.type, s.status,
+       COALESCE(r.filled_sections, 0) AS filled_sections, r.updated_at AS report_updated_at
+FROM schedules s
+JOIN clients c ON c.id = s.client_id
+LEFT JOIN session_reports r ON r.schedule_id = s.id
+WHERE s.deleted_at IS NULL;
+
+-- Q9 Antrean verifikasi Finance: JOIN invoice + bukti terakhir + client (MERGE)
+CREATE OR REPLACE VIEW v_invoice_queue AS
+SELECT i.id AS invoice_id, i.branch_id, i.invoice_number, i.status, i.amount, i.issued_at,
+       c.id AS client_id, c.child_name, c.parent_name,
+       p.id AS last_proof_id, p.uploaded_at AS last_proof_at, p.review_status
+FROM invoices i
+JOIN clients c ON c.id = i.client_id
+LEFT JOIN payment_proofs p ON p.id = (
+  SELECT p2.id FROM payment_proofs p2 WHERE p2.invoice_id = i.id ORDER BY p2.uploaded_at DESC LIMIT 1
+)
+WHERE i.deleted_at IS NULL;
+```
+
+Contoh pemakaian (dari Laravel: `DB::table('v_daily_revenue')->where(...)`):
+```sql
+SELECT paid_date, revenue FROM v_daily_revenue
+WHERE branch_id = 1 AND paid_date BETWEEN '2026-01-01' AND '2026-12-31';
+```
+
+**Perkiraan beban:** 3 cabang × ±60 sesi/hari ≈ 65 ribu sesi/tahun. Dashboard 12 bulan satu cabang membaca ±22 ribu entri indeks (covering, tanpa akses baris) → orde puluhan milidetik. Masih jauh di bawah target selama filter cabang + tanggal selalu ada.
+
+**Kapan pindah ke tabel ringkasan?** Hanya jika `EXPLAIN ANALYZE` view dashboard konsisten > 100 ms (mis. data > 5 tahun / cabang bertambah banyak). Saat itu buat `daily_branch_metrics` (PK `branch_id, metric_date`) yang diisi job malam `metrics:rebuild` (lihat §11) — struktur view di atas bisa langsung dipakai sebagai query pengisinya, jadi API dashboard tidak berubah.
 
 ---
 
@@ -948,11 +1012,12 @@ DB::statement("
 | client | `client.created`, `client.updated`, `client.status_changed`, `client.services_updated`, `client.admitted`, `client.done_consult`, `client.done_assessment`, `client.discontinued`, `client.discharged`, `client.outcome_reverted`, `client.document_added`, `client.document_removed`, `client.note_saved`, `client.deleted`, `client.restored` |
 | assessment | `assessment_code.issued`, `assessment_code.revoked`, `assessment_response.submitted` (actor `public`), `assessment_response.viewed`, `assessment_category.created/updated/deleted`, `assessment_question.created/updated/deleted` |
 | schedule | `schedule.created`, `schedule.series_created`, `schedule.updated`, `schedule.completed`, `schedule.completion_reverted`, `schedule.cancelled`, `schedule.cancellation_reverted`, `schedule.rescheduled`, `schedule.marked_pending`, `schedule.pending_dropped`, `schedule.report_saved`, `schedule.bulk_completed`, `schedule.bulk_cancelled`, `schedule.bulk_rescheduled`, `schedule.deleted` |
-| credit | `credit.package_activated`, `credit.used`, `credit.cancel_excused`, `credit.cancel_penalty`, `credit.reversed`, `credit.manual_adjusted` |
+| credit | `credit.package_activated`, `credit.used`, `credit.cancel_excused`, `credit.cancel_penalty`, `credit.reversed`, `credit.manual_adjusted`, `credit.expired` (job), `credit.reconciled` (job) |
 | invoice | `invoice.issued`, `invoice.proof_uploaded` (actor `client`), `invoice.proof_viewed`, `invoice.verified`, `invoice.rejected`, `invoice.voided`, `invoice.renewal_created` |
 | master | `service.*`, `quadrant.*`, `package.*`, `cancel_reason.*`, `discharge_reason.*` (`created/updated/deleted`) |
 | access | `user.created`, `user.updated`, `user.deactivated`, `user.deleted`, `role.created`, `role.updated`, `role.deleted`, `role.permission_changed` |
 | report | `report.printed`, `report.exported` |
+| system (job, `actor_type = system`) | `assessment_code.expired`, `system.job_completed`, `system.job_failed` (ringkasan tiap run: jumlah baris diproses, durasi) — lihat §11 |
 
 ### 5.5 Skenario: completed lalu dibatalkan
 
@@ -1006,7 +1071,7 @@ ORDER BY occurred_at DESC, id DESC LIMIT 50;
 ### 5.7 Retensi & volume
 - Estimasi: ±3 cabang × ±400 aksi/hari ≈ 1.200 baris/hari ≈ 450 ribu/tahun (±0,5 KB/baris → ±250 MB/tahun). Partisi bulanan menjaga indeks kecil.
 - Retensi online: **24 bulan**; partisi lebih lama di-`EXCHANGE` ke tabel arsip / di-export ke object storage (rekam medis & keuangan: simpan arsip ≥ 5 tahun sesuai kebijakan klinik).
-- Job bulanan: tambah partisi bulan depan (`REORGANIZE PARTITION pmax`).
+- Job bulanan `audit:partitions` menambah partisi bulan depan (`REORGANIZE PARTITION pmax`) dan mengarsip partisi > 24 bulan — lihat §11.
 
 ---
 
@@ -1020,7 +1085,7 @@ Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `vers
 3. Insert `credit_ledger` (`used`, idempotency key) → update `clients.credit_balance`.
 4. Update sesi: `status=completed`, `previous_status`, `credit_effect=used`, `completed_*`, `version+1`; upsert `session_reports`.
 5. Jika `type = assessment` dan status client sebelum `assessment_done` → update `clients.status`, insert `client_status_histories` (`trigger=session_completed`).
-6. Audit: `schedule.completed`, `credit.used`, (`client.status_changed`). Event → update `daily_branch_metrics` (queue).
+6. Audit: `schedule.completed`, `credit.used`, (`client.status_changed`). Dashboard otomatis ikut berubah karena membaca view (tidak ada ringkasan yang perlu di-update).
 
 ### 6.2 Cancel sesi (`POST /schedules/{id}/cancel`)
 1. Lock sesi + client. Ambil `cancel_reasons` (code).
@@ -1060,13 +1125,13 @@ Validasi transisi di server (alur maju otomatis = `advanceStatus` di `frontend/s
 | **Baris ramping** | Teks panjang dipisah (`session_reports`, `client_notes`); tabel hot (`schedules`, `clients`) hanya kolom yang difilter/ditampilkan di list |
 | **Denormalisasi terkendali** | `clients.credit_balance`, `cancel_count_total`, `client_packages.remaining_credit`, `credit_ledger.branch_id`, `session_reports.client_id` — diperbarui di transaksi yang sama; job rekonsiliasi malam membandingkan dengan Σ ledger dan menulis audit `system` bila ada selisih |
 | **Generated column** | `clients.birth_month`, `session_reports.filled_sections` → filter tanpa fungsi di WHERE (indeks tetap terpakai) |
-| **Ringkasan dashboard** | `daily_branch_metrics` (PK `branch_id, metric_date`): dashboard 12 bulan = ≤ 3×365 baris. Update incremental via event + rebuild malam |
-| **Cache** | Redis: master data (services, quadrants, packages, reasons, roles+permissions) TTL panjang + invalidasi saat tulis; hasil dashboard per (branch, periode) TTL 60 detik |
+| **Dashboard via VIEW** | `v_daily_*` di atas indeks covering + generated column tanggal WIB; selalu difilter cabang + rentang tanggal (pushdown MySQL ≥ 8.0.22). Tabel ringkasan hanya jika view > 100 ms (§04-G) |
+| **Tanpa Redis** | Andalkan InnoDB buffer pool (data hot: kalender, client aktif, master data muat di RAM). Cache Laravel & queue memakai driver `database` (tabel `cache`, `jobs`). Permission dimemo per request. Hasil dashboard boleh di-cache driver `database` TTL 60 detik bila perlu |
 | **Pagination** | Keyset untuk `audit_logs`, `credit_ledger`, riwayat sesi; offset hanya untuk list kecil ber-filter |
 | **N+1** | API Resource memakai `with()` eksplisit; aktifkan `Model::preventLazyLoading()` di non-produksi |
 | **Payload** | List mengembalikan kolom ringkas (Resource khusus list), detail lengkap di endpoint detail |
-| **Kalender** | Satu query per minggu per cabang (Q1) + `therapists`/`clients` ringkas dari cache; frontend tidak memanggil per sel |
-| **Lock singkat** | `lockForUpdate` hanya pada baris yang diubah; transaksi tidak memanggil I/O eksternal (WA, upload) — itu dilakukan setelah commit via queue |
+| **Kalender** | Satu query per minggu per cabang (Q1) + daftar terapis/client ringkas (dimuat sekali di frontend); frontend tidak memanggil per sel |
+| **Lock singkat** | `lockForUpdate` hanya pada baris yang diubah; transaksi tidak memanggil I/O eksternal (WA, upload) — itu dilakukan setelah commit via queue `database` |
 | **Partisi** | `audit_logs` per bulan. Tabel lain belum perlu (estimasi < 5 juta baris/5 tahun) |
 | **Konfigurasi MySQL** | `innodb_buffer_pool_size` ≈ 60–70% RAM, `innodb_flush_log_at_trx_commit=1` (data finansial), slow query log ≥ 200 ms dipantau |
 | **Skala lanjut** | Read replica untuk dashboard & laporan bila beban baca naik; koneksi persistent via Octane/PHP-FPM tuning |
@@ -1104,7 +1169,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `rolesList[]` / `rbacPermissions` | `roles` / `role_permissions` (+ `access_modules`) |
 | `master_services` / `master_quadrants` | `services` / `sensory_quadrants` |
 | `CANCEL_REASONS`, `DISCHARGE_REASONS`, `CONCERN_TAGS` | `cancel_reasons`, `discharge_reasons`, `concern_tags` |
-| dashboard (hitung di `useMemo`) | `daily_branch_metrics` |
+| dashboard (hitung di `useMemo`) | view `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage` |
 
 Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services/http/httpClient.js`.
 
@@ -1117,7 +1182,7 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 | Aturan penalti | Kuota 3 cancel per client (prototype) + opsi kebijakan `always_penalty` per alasan | Tidak ada (opsi baru di backend) |
 | `invoices.status` | `unpaid, pending_verification, paid, rejected, void` | Frontend perlu menampilkan `pending_verification` & `rejected` (sekarang: bukti diunggah tetap `unpaid`) |
 | `client_packages.status` | `active, depleted, expired` | Tambah `expired` (paket berbatas waktu, opsional) |
-| `credit_ledger.action` | `purchased, renewed, used, cancel_excused, cancel_penalty, reversal, manual_adjust` | Label baru di riwayat kredit Finance |
+| `credit_ledger.action` | `purchased, renewed, used, cancel_excused, cancel_penalty, reversal, manual_adjust, expired` | Label baru di riwayat kredit Finance (`expired` hanya dari job `packages:expire`, §11) |
 | Revert sesi | Endpoint baru `POST /schedules/{id}/revert` | Fitur UI "Batalkan completed/cancel" (belum ada di prototype) |
 
 ---
@@ -1131,13 +1196,14 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 5. `invoices`, `payment_proofs`, `client_packages`
 6. `schedule_series`, `schedules`, `session_reports`
 7. `credit_ledger`
-8. `audit_logs` (+ partisi + trigger), `daily_branch_metrics`
-9. Laravel bawaan: `personal_access_tokens`, `cache`, `jobs`, `failed_jobs`, `job_batches`
+8. `audit_logs` (+ partisi + trigger)
+9. View dashboard (`CREATE OR REPLACE VIEW …` di migration terpisah, setelah semua tabel)
+10. Laravel bawaan: `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` (`php artisan cache:table`, `queue:table`, `session:table`)
 
 Seeder:
 - **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, concern_tags, cancel_reasons, discharge_reasons, master_packages, akun master awal.
 - **Demo/staging**: konversi seed frontend (`frontend/src/data/*.seed.json`, `scripts/generate_demo_seed.py`) — tanggal relatif hari ini, ledger dibangun dari histori agar saldo konsisten.
-- Setelah seed demo: jalankan `metrics:rebuild` untuk mengisi `daily_branch_metrics`.
+- Setelah seed demo: jalankan `credits:reconcile` sekali untuk memastikan saldo denormalisasi cocok dengan ledger.
 
 ---
 
@@ -1158,5 +1224,71 @@ Seeder:
   ```
   `batch()` membungkus `DB::transaction` + membuat `batch_id` (ULID). Trait `Auditable` (observer) hanya untuk CRUD master sederhana; aksi bisnis selalu eksplisit agar `reason`, `subject`, dan `meta` lengkap.
 - **Optimistic lock**: request mengirim `version`; `update … where version = ?` → 0 baris = `409 Conflict` (frontend: `ApiError.isConflict`).
-- **Event & queue**: `SessionCompleted`, `InvoicePaid`, `ClientStatusChanged` → listener update `daily_branch_metrics`, kirim notifikasi WA (setelah commit).
+- **Event & queue** (driver `database`, worker `php artisan queue:work`): `SessionCompleted`, `InvoicePaid`, `ClientStatusChanged` → listener kirim notifikasi WA setelah commit (`ShouldQueue` + `afterCommit`). Tidak ada listener pengisi ringkasan.
+- **`.env` tanpa Redis**: `CACHE_STORE=database`, `QUEUE_CONNECTION=database`, `SESSION_DRIVER=database`.
 - **Kontrak API & endpoint**: `docs/guide/10-api-migration.md` dan `frontend/src/services/api/endpoints.js`.
+
+---
+
+## 11. Job terjadwal (Laravel Scheduler)
+
+Semua job dijalankan **Laravel Scheduler** + **queue driver `database`** (tanpa Redis). Di server cukup:
+
+```bash
+# crontab (satu baris, setiap menit) — Laravel yang menentukan job mana yang jalan
+* * * * * cd /var/www/therapedia && php artisan schedule:run >> /dev/null 2>&1
+
+# Supervisor: worker queue (notifikasi WA, upload, dsb.)
+php artisan queue:work --queue=default --tries=3 --max-time=3600
+```
+
+Prinsip:
+- Jadwal memakai zona **Asia/Jakarta** dan jam sepi (00:30–04:30 WIB), agar tidak berebut lock dengan jam operasional klinik (07:00–18:00).
+- Setiap job `withoutOverlapping()` + `onOneServer()` (lock disimpan di tabel `cache_locks` MySQL).
+- Data diproses **per batch kecil** (`chunkById(500)`), satu transaksi per batch, supaya lock InnoDB singkat.
+- Setiap perubahan data oleh job ditulis ke `audit_logs` dengan `actor_type = system`, `source = system`, satu `batch_id` per run, ditutup log ringkasan `system.job_completed` (jumlah baris, durasi) atau `system.job_failed`.
+- Job harus **idempoten**: dijalankan dua kali tidak menghasilkan efek ganda.
+
+### 11.1 Daftar job
+
+| Jam (WIB) | Command | Untuk apa | Tabel / indeks | Wajib? |
+|---|---|---|---|---|
+| Setiap hari 00:30 | `assessment-codes:expire` | Kode kuesioner ortu yang lewat `expires_at` dan belum dipakai → status `expired`, sehingga link lama tidak bisa dipakai lagi | `assessment_access_codes` · `idx_codes_expiry` | Ya, bila kode diberi masa berlaku |
+| Setiap hari 01:00 | `packages:expire` | Paket kredit `active` yang lewat `expires_at` → `expired`. Sisa kredit dicatat ledger `expired` (−sisa) dan `clients.credit_balance` dikurangi | `client_packages` · `idx_pkg_expiry`, `credit_ledger`, `clients` | Hanya bila klinik memakai masa berlaku paket |
+| Setiap hari 02:00 | `credits:reconcile` | **Pengaman denormalisasi**: bandingkan Σ `credit_ledger.credit_change` per paket dengan `client_packages.remaining_credit`, serta Σ per client dengan `clients.credit_balance` & `cancel_count_total`. Bila beda → perbaiki dari ledger (ledger = sumber kebenaran), catat `credit.reconciled`, dan kirim peringatan ke Master. Normalnya selisih 0; bila ada selisih, itu tanda bug yang harus diselidiki | `credit_ledger` (`idx_ledger_client`), `client_packages`, `clients` | **Ya** |
+| Tanggal 1 tiap bulan, 03:00 | `audit:partitions` | Tambah partisi `audit_logs` bulan depan (`REORGANIZE PARTITION pmax`); partisi > 24 bulan di-`EXCHANGE` ke `audit_logs_archive` lalu diekspor ke file (arsip ≥ 5 tahun) | `audit_logs` | **Ya** (tanpa ini log menumpuk di `pmax` dan partisi tidak efektif) |
+| Setiap hari 03:30 | backup DB (cron sistem, bukan Laravel) | `mysqldump --single-transaction --routines --triggers` (atau Percona XtraBackup) + binary log untuk point-in-time recovery; simpan 14 hari lokal + salinan off-server | seluruh DB | **Ya** |
+| Setiap hari 04:00 | housekeeping Laravel | `sanctum:prune-expired --hours=24`, `queue:prune-failed --hours=168`, `queue:prune-batches --hours=48`, `auth:clear-resets`, dan hapus baris `cache` yang sudah lewat `expiration` (driver `database` tidak menghapusnya otomatis) | `personal_access_tokens`, `failed_jobs`, `job_batches`, `password_reset_tokens`, `cache` | Ya |
+| Minggu 04:30 | `db:analyze` | `ANALYZE TABLE schedules, clients, invoices, credit_ledger, client_status_histories` — menyegarkan statistik indeks agar optimizer tetap memilih indeks yang tepat saat data bertambah | tabel transaksi utama | Disarankan |
+| Setiap hari 07:00 | `schedules:overdue-digest` | Kirim ringkasan ke Admin Schedule tiap cabang: sesi `scheduled/rescheduled` yang tanggalnya sudah lewat tapi belum di-complete/cancel. **Tidak** auto-complete, karena complete memotong kredit dan butuh laporan terapis | `schedules` · `idx_sch_status (status, session_date)` | Disarankan |
+| Setiap hari 08:00 | `invoices:overdue-reminder` | Invoice `unpaid` yang lewat `due_date` → pengingat WA ke ortu (via queue) & daftar untuk Finance. Status invoice tidak diubah | `invoices` · `idx_inv_due` | Opsional |
+
+Contoh pendaftaran di `routes/console.php`:
+```php
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('assessment-codes:expire')->dailyAt('00:30')->timezone('Asia/Jakarta')->withoutOverlapping()->onOneServer();
+Schedule::command('packages:expire')->dailyAt('01:00')->timezone('Asia/Jakarta')->withoutOverlapping()->onOneServer();
+Schedule::command('credits:reconcile')->dailyAt('02:00')->timezone('Asia/Jakarta')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => NotifyMaster::dispatch('credits:reconcile gagal'));
+Schedule::command('audit:partitions')->monthlyOn(1, '03:00')->timezone('Asia/Jakarta')->onOneServer();
+Schedule::command('sanctum:prune-expired --hours=24')->dailyAt('04:00')->timezone('Asia/Jakarta');
+Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:05')->timezone('Asia/Jakarta');
+Schedule::command('cache:purge-expired')->dailyAt('04:10')->timezone('Asia/Jakarta');   // custom: DELETE FROM cache WHERE expiration < UNIX_TIMESTAMP()
+Schedule::command('db:analyze')->weeklyOn(0, '04:30')->timezone('Asia/Jakarta');
+Schedule::command('schedules:overdue-digest')->dailyAt('07:00')->timezone('Asia/Jakarta')->onOneServer();
+Schedule::command('invoices:overdue-reminder')->dailyAt('08:00')->timezone('Asia/Jakarta')->onOneServer();
+```
+
+### 11.2 Yang sengaja **tidak** memakai job
+| Fitur | Kenapa tidak perlu job |
+|---|---|
+| Dashboard revenue / inquiry / schedule / cabang | Dibaca langsung dari view `v_daily_*` (§04-G), selalu real-time |
+| Status **Frozen** (kredit 0) | Turunan `clients.credit_balance = 0`, dihitung saat query |
+| Birthday radar | Query live `clients (branch_id, birth_month)` dengan generated column + indeks |
+| Kuota cancel & penalti | Diterapkan di transaksi cancel (§06.2), bukan batch malam |
+| Skor kuadran asesmen | Dihitung saat ortu submit, disimpan di `assessment_quadrant_scores` |
+| Notifikasi WA saat aksi terjadi | Queue `database` setelah commit, bukan terjadwal |
+
+### 11.3 Kapan menambah job ringkasan
+Hanya jika view dashboard melewati target (> 100 ms p95, lihat §04-G). Saat itu tambahkan `metrics:rebuild` (setiap hari 01:30, membangun ulang `daily_branch_metrics` untuk H-1 s.d. H-7 memakai query view yang sama) dan arahkan endpoint dashboard ke tabel itu. Sebelum itu, job ini **tidak dibuat**.

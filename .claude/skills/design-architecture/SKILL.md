@@ -23,7 +23,8 @@ Skill ini dipakai untuk **keputusan desain**, bukan untuk mengetik kode. Hasil a
           Laravel 11: Controller → FormRequest → Action/Service (transaksi) → Model
                           │                         └→ AuditLogger (audit_logs)
                           ▼
-          MySQL 8 (schema.md)  ·  Redis (cache master data, queue)
+          MySQL 8 (schema.md) — juga untuk cache, queue, session (driver database; tanpa Redis)
+          Laravel Scheduler: job malam (schema.md §11)
 ```
 
 Aturan dependensi (ditegakkan ESLint `frontend/.eslintrc.cjs`):

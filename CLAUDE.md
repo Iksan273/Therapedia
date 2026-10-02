@@ -4,7 +4,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 
 ## Status project
 - **Sekarang**: frontend (React + Vite) di `frontend/`, arsitektur feature-based + domain layer. Data mode demo di **localStorage** (seed JSON); login = simulasi role. Lapisan HTTP untuk API sudah siap (`frontend/src/services/http`).
-- **Berikutnya**: backend **Laravel 11 + MySQL 8 + Sanctum + Redis** sesuai `schema.md` v2. Kode baru harus **siap API** (`docs/guide/10-api-migration.md`).
+- **Berikutnya**: backend **Laravel 11 + MySQL 8 + Sanctum** (tanpa Redis: cache/queue/session driver `database`) sesuai `schema.md` v2. Kode baru harus **siap API** (`docs/guide/10-api-migration.md`).
 - Deploy frontend: Vercel (`frontend/vercel.json`).
 
 ## Peta repo

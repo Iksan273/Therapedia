@@ -1,6 +1,6 @@
 # 10 — Integrasi Laravel API
 
-Target backend: **Laravel 11 + MySQL 8 + Sanctum + Redis**. Desain database lengkap (tabel, indeks, audit log, alur transaksi): **`schema.md`**. Dokumen ini memetakan frontend → API.
+Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis (cache, queue, session memakai driver `database`; job malam dijelaskan di `schema.md` §11). Desain database lengkap (tabel, indeks, audit log, alur transaksi): **`schema.md`**. Dokumen ini memetakan frontend → API.
 
 ## Yang sudah siap di frontend
 | Bagian | File | Fungsi |
@@ -51,7 +51,7 @@ Target backend: **Laravel 11 + MySQL 8 + Sanctum + Redis**. Desain database leng
 | layanan / kuadran | `master.services` / `master.quadrants` | `services` / `sensory_quadrants` | `service.*` / `quadrant.*` |
 | `addStaffUser` / `removeStaffUser` | `users.*` | `users` | `user.created` / `user.deleted` |
 | `addRole` / `updateRole` / `deleteRole` / `updateRolePermission` | `roles.*`, `roles.permissions(id)` | `roles`, `role_permissions` | `role.*` |
-| dashboard revenue / inquiry / schedule / cabang / terapis | `dashboards.*?branchId=&period=` | `daily_branch_metrics` | — |
+| dashboard revenue / inquiry / schedule / cabang / terapis | `dashboards.*?branchId=&period=` | view `v_daily_revenue` / `v_daily_sessions` / `v_daily_pipeline` / `v_daily_credit_usage` / `v_therapist_sessions` | — |
 | timeline audit | `auditLogs.list`, `auditLogs.forEntity(type, id)` | `audit_logs` | — |
 
 ## Keputusan yang sudah diambil di `schema.md` v2

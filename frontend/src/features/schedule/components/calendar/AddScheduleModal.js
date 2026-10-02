@@ -310,7 +310,8 @@ export const AddScheduleModal = ({
                 <span className="text-slate-500 font-normal ml-1.5">({lockedClient.parentName})</span>
               </div>
             ) : (
-              <Popover open={clientOpen} onOpenChange={setClientOpen}>
+              <Popover modal open={clientOpen} onOpenChange={setClientOpen}>
+                {/* modal: popover punya area scroll sendiri; tanpa ini wheel/touch scroll diblokir oleh Dialog induk */}
                 <PopoverTrigger asChild>
                   <Button size="sm"
                     variant="outline"
@@ -324,12 +325,19 @@ export const AddScheduleModal = ({
                     <ChevronsUpDown className="w-4 h-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[360px] p-0 rounded-2xl border-slate-200 shadow-xl" align="start">
+                <PopoverContent
+                  className="w-[var(--radix-popover-trigger-width)] min-w-[min(300px,calc(100vw-2rem))] p-0 rounded-2xl border-slate-200 shadow-xl overflow-hidden"
+                  align="start"
+                  collisionPadding={16}
+                >
                   <Command>
                     <CommandInput placeholder="Search client or parent..." data-testid="add-schedule-client-search" />
-                    <CommandList>
+                    <CommandList
+                      className="max-h-[min(320px,calc(var(--radix-popover-content-available-height)-3.5rem))] overflow-y-auto overscroll-contain"
+                      data-testid="add-schedule-client-list"
+                    >
                       <CommandEmpty className="p-3 text-xs text-slate-500 text-center">No matching client found.</CommandEmpty>
-                      <CommandGroup>
+                      <CommandGroup className="p-1.5">
                         {selectableClients.map((c) => (
                           <CommandItem
                             key={c.id}
@@ -342,8 +350,8 @@ export const AddScheduleModal = ({
                             data-testid={`add-schedule-client-option-${c.id}`}
                           >
                             <Check className={cn("mr-2 w-4 h-4 text-sky-600", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                            <span className="font-bold text-xs text-slate-900">{c.clientName}</span>
-                            <span className="ml-auto text-[11px] text-slate-400 font-normal">{c.parentName}</span>
+                            <span className="font-bold text-xs text-slate-900 truncate min-w-0">{c.clientName}</span>
+                            <span className="ml-auto pl-2 text-[11px] text-slate-400 font-normal truncate max-w-[45%]">{c.parentName}</span>
                           </CommandItem>
                         ))}
                       </CommandGroup>
