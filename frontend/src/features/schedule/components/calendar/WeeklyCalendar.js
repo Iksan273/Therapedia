@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { addDays, format, isToday, parseISO } from "date-fns";
-import { CornerUpRight, FileText, Hourglass, Snowflake } from "lucide-react";
+import { AlertTriangle, CornerUpRight, FileText, Hourglass, Snowflake } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/ui/tooltip";
-import { CALENDAR_HOURS, timeToMin } from "@/domain/schedule";
+import { CALENDAR_HOURS, findTherapistClashIds, timeToMin } from "@/domain/schedule";
 import { STATUS_META } from "@/domain/status";
 import { cn } from "@/shared/lib/utils";
 
@@ -12,6 +13,7 @@ const CHIP_STYLES = {
   rescheduled: "bg-amber-50 border-amber-200/90 text-amber-900 hover:border-amber-300",
   reschedule_pending: "bg-orange-50 border-dashed border-orange-300 text-orange-950 hover:border-orange-400",
   frozen: "bg-cyan-50 border-cyan-300 text-cyan-950 ring-1 ring-cyan-400 shadow-2xs",
+  conflict: "bg-red-50 border-red-400 text-red-950 ring-1 ring-red-400 hover:border-red-500",
 };
 
 const TYPE_DOT = {
@@ -40,7 +42,7 @@ const shortSlot = (slot) => {
 const hasReport = (s) => Boolean(s.activitySection || s.noteSection || s.progressNote || s.homeworkSection);
 
 // Detail lengkap sesi untuk tooltip hover
-function SessionTooltip({ s, name, therapistName, isFrozen }) {
+function SessionTooltip({ s, name, therapistName, isFrozen, isConflict }) {
   return (
     <div className="space-y-1 text-xs max-w-[260px]">
       <p className="font-extrabold text-sm">{name}</p>
@@ -52,15 +54,17 @@ function SessionTooltip({ s, name, therapistName, isFrozen }) {
       {s.status === "rescheduled" && s.rescheduledFrom && <p>Dipindah dari {shortSlot(s.rescheduledFrom)}</p>}
       {s.status === "reschedule_pending" && <p>Menunggu jadwal pengganti</p>}
       {isFrozen && <p className="font-bold">Frozen — kredit client 0</p>}
+      {isConflict && <p className="font-bold text-red-600">Bentrok — terapis sudah menangani client lain di jam ini</p>}
       <p className="opacity-80">{hasReport(s) ? "Laporan sesi terisi" : "Laporan sesi belum diisi"}</p>
     </div>
   );
 }
 
 // Kartu sesi ringkas dengan tinggi seragam (2 baris). Detail lengkap ada di tooltip.
-function SessionChip({ s, name, therapistName, isFrozen, isSelected, isBulkMode, onActivate }) {
+function SessionChip({ s, name, therapistName, isFrozen, isConflict, isSelected, isBulkMode, onActivate }) {
   let subLabel = null;
-  if (isFrozen) subLabel = { icon: Snowflake, text: "Frozen", cls: "text-cyan-800" };
+  if (isConflict) subLabel = { icon: AlertTriangle, text: "Bentrok", cls: "text-red-700" };
+  else if (isFrozen) subLabel = { icon: Snowflake, text: "Frozen", cls: "text-cyan-800" };
   else if (s.status === "rescheduled" && s.rescheduledFrom) subLabel = { icon: CornerUpRight, text: `dari ${shortSlot(s.rescheduledFrom)}`, cls: "text-amber-800" };
   else if (s.status === "reschedule_pending") subLabel = { icon: Hourglass, text: "Menunggu", cls: "text-orange-800" };
 
@@ -75,10 +79,11 @@ function SessionChip({ s, name, therapistName, isFrozen, isSelected, isBulkMode,
           }}
           className={cn(
             "w-full min-w-0 text-left rounded-lg border px-2 py-1.5 text-[11px] leading-tight shadow-2xs hover:shadow-xs transition-all duration-150 cursor-pointer",
-            isFrozen ? CHIP_STYLES.frozen : CHIP_STYLES[s.status] || CHIP_STYLES.scheduled,
+            isConflict ? CHIP_STYLES.conflict : isFrozen ? CHIP_STYLES.frozen : CHIP_STYLES[s.status] || CHIP_STYLES.scheduled,
             isSelected && "ring-2 ring-sky-600 shadow-md"
           )}
           data-testid={`calendar-session-${s.id}`}
+          data-conflict={isConflict ? "true" : undefined}
         >
           <span className="flex items-center gap-1.5 min-w-0">
             {isBulkMode && (
@@ -100,7 +105,7 @@ function SessionChip({ s, name, therapistName, isFrozen, isSelected, isBulkMode,
         </button>
       </TooltipTrigger>
       <TooltipContent side="right" align="start" className="z-50">
-        <SessionTooltip s={s} name={name} therapistName={therapistName} isFrozen={isFrozen} />
+        <SessionTooltip s={s} name={name} therapistName={therapistName} isFrozen={isFrozen} isConflict={isConflict} />
       </TooltipContent>
     </Tooltip>
   );
@@ -148,8 +153,12 @@ export const WeeklyCalendar = ({
 }) => {
   const days = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
 
+  // Sesi yang bentrok: terapis sama handle client lain di jam yang overlap
+  const clashIds = useMemo(() => findTherapistClashIds(schedules), [schedules]);
+
   const inHour = (startTime, hour) => timeToMin(startTime) >= timeToMin(hour) && timeToMin(startTime) < timeToMin(hour) + 60;
-  const sessionsFor = (dayStr, hour) => schedules.filter((s) => s.date === dayStr && inHour(s.startTime, hour));
+  const sessionsFor = (dayStr, hour) =>
+    schedules.filter((s) => s.date === dayStr && inHour(s.startTime, hour)).sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 
   // Jejak jadwal asal sesi yang sudah dipindah: tampil redup di slot lamanya agar admin tidak bingung
   const ghostsFor = (dayStr, hour) =>
@@ -172,6 +181,7 @@ export const WeeklyCalendar = ({
         name={name}
         therapistName={getTherapistName?.(s.therapistId)}
         isFrozen={isFrozen}
+        isConflict={clashIds.has(s.id)}
         isSelected={selectedSessionIds.includes(s.id)}
         isBulkMode={isBulkMode}
         onActivate={activate}
@@ -245,6 +255,7 @@ export const CalendarLegend = () => (
       ["Menunggu jadwal pengganti", "bg-orange-100 border-orange-400 border-dashed text-orange-950"],
       ["Jadwal asal (dipindah)", "bg-slate-50 border-slate-400 border-dashed text-slate-500"],
       ["Frozen (0 Credit)", "bg-cyan-100 border-cyan-400 text-cyan-950"],
+      ["Bentrok terapis", "bg-red-100 border-red-400 text-red-950"],
     ].map(([label, cls]) => (
       <span key={label} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200">
         <span className={cn("w-2.5 h-2.5 rounded-full border", cls)} />

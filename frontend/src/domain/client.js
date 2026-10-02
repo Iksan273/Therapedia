@@ -1,6 +1,6 @@
 import { uid, nowIso, todayStr, genCode } from "@/shared/lib/id";
 
-// Domain client: tahap pipeline, layanan, tag keluhan, alasan discharge, dan factory client baru.
+// Domain client: tahap pipeline, layanan, alasan discharge, dan factory client baru.
 
 export const PIPELINE_STATUSES = [
   "inquiry",
@@ -24,15 +24,6 @@ export const advanceStatus = (current, target) => {
   return from !== -1 && to !== -1 && from < to ? target : current;
 };
 
-export const CONCERN_TAGS = [
-  { value: "speech", label: "Speech & Language", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  { value: "sensory", label: "Sensory Processing", cls: "bg-purple-50 text-purple-700 border-purple-200" },
-  { value: "motor", label: "Fine/Gross Motor", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  { value: "behavior", label: "Behavioral & Focus", cls: "bg-rose-50 text-rose-700 border-rose-200" },
-  { value: "social", label: "Social Skills", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { value: "school", label: "School Readiness", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-];
-
 export const INTAKE_SERVICES = [
   { value: "b_ota", label: "BOT-A (Brief Occupational Therapy Assessment)", shortLabel: "BOT-A", fullLabel: "BOT-A (Brief Occupational Therapy Assessment)", category: "Asesmen", description: "Brief Occupational Therapy Assessment & Sensory Screening" },
   { value: "f_ota", label: "FOT-A (Full Occupational Therapy Assessment)", shortLabel: "FOT-A", fullLabel: "FOT-A (Full Occupational Therapy Assessment)", category: "Asesmen", description: "Full Occupational Therapy Comprehensive Assessment" },
@@ -49,18 +40,30 @@ export const THERAPY_SERVICES = INTAKE_SERVICES;
 
 export const SESSION_TYPES = INTAKE_SERVICES;
 
-export const DISCHARGE_REASONS = [
+// Seed pilihan cepat alasan discharge (bisa diubah di Master Data). `dischargeReason` di client adalah STRING:
+// `value` pilihan cepat atau teks bebas yang diketik user, tanpa relasi ke daftar ini.
+export const DEFAULT_DISCHARGE_REASONS = [
   { value: "moving", label: "Moving / Relocation" },
   { value: "financial", label: "Financial / Biaya" },
   { value: "conflict_schedule", label: "Schedule Conflict / Bentrok" },
   { value: "expectation_not_met", label: "Expectation Not Met" },
   { value: "graduate", label: "Tercapai Target (Graduated)" },
-  { value: "other", label: "Lainnya" },
 ];
 
-export const dischargeReasonLabel = (value) => {
-  const found = DISCHARGE_REASONS.find((r) => r.value === value);
-  return found ? found.label : value || "—";
+// Kode lama (discontinue otomatis memakai "other" + catatan); tetap terbaca di data lama.
+const LEGACY_DISCHARGE_LABELS = { other: "Lainnya" };
+
+// `list` = daftar pilihan cepat dari Master Data. Tidak ditemukan → string apa adanya (teks custom).
+export const dischargeReasonLabel = (value, list = DEFAULT_DISCHARGE_REASONS) => {
+  const found = list.find((r) => r.value === value);
+  return found ? found.label : LEGACY_DISCHARGE_LABELS[value] || value || "—";
+};
+
+// Kode kuesioner sudah diisi ortu? Kode baru punya `status` ("issued" | "submitted"); kode lama (seed) tanpa status
+// dianggap terisi bila sudah ada jawaban untuk kategorinya. Kode yang belum diisi boleh dihapus.
+export const isQuestionnaireCodeFilled = (client, codeItem) => {
+  if (codeItem?.status) return codeItem.status === "submitted";
+  return (client?.assessmentAnswers || []).some((a) => a.categoryId === codeItem?.categoryId);
 };
 
 export function makeInquiryClient(form) {
@@ -77,7 +80,7 @@ export function makeInquiryClient(form) {
     serviceType: form.serviceType || null,
     assessmentCodes: [],
     assessmentAnswers: [],
-    assessmentReportNote: null,
+    intakeNote: (form.intakeNote || "").trim() || null,
     gdriveClientLink: null,
     invoice: null,
     dateOfJoin: null,

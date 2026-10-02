@@ -2,10 +2,11 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Button } from "@/shared/ui/button";
-import { Copy, Plus } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
+import { isQuestionnaireCodeFilled } from "@/domain/client";
 import { Link } from "react-router-dom";
 
-export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory }) {
+export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory }) {
   return (
     <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -59,6 +60,15 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                         {item.name}
                       </span>
                       <p className="font-mono font-black text-sm text-slate-900 mt-0.5">{item.code}</p>
+                      {isQuestionnaireCodeFilled(client, item) ? (
+                        <span className="inline-block mt-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md" data-testid={`code-status-${item.code}`}>
+                          Sudah diisi
+                        </span>
+                      ) : (
+                        <span className="inline-block mt-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md" data-testid={`code-status-${item.code}`}>
+                          Belum diisi
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Button aria-label="Salin Kode"
@@ -76,6 +86,18 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                       >
                         Buka Form
                       </Link>
+                      {!isQuestionnaireCodeFilled(client, item) && (
+                        <Button aria-label="Hapus Kode"
+                          size="icon"
+                          variant="ghost"
+                          className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                          onClick={() => handleDeleteQuestionnaireCode(item)}
+                          title="Hapus kode (belum diisi)"
+                          data-testid={`delete-code-${item.code}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

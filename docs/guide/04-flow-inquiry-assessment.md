@@ -10,8 +10,8 @@ Role: **Admin Inquiry** (utama), Master, Manager (lihat), Terapis (lihat hasil a
 stateDiagram-v2
   [*] --> inquiry: New Intake (InquiryPipeline)
   inquiry --> service_selected: pilih layanan / generate kode dari Master Data
-  inquiry --> assessment_scheduled: generate kode kuesioner (Client Detail)
-  service_selected --> assessment_scheduled: generate kode kuesioner
+  inquiry --> assessment_scheduled: generate kode kuesioner ATAU jadwalkan sesi asesmen
+  service_selected --> assessment_scheduled: generate kode kuesioner ATAU jadwalkan sesi asesmen
   inquiry --> assessment_done: ortu submit kuesioner / sesi asesmen completed
   service_selected --> assessment_done
   assessment_scheduled --> assessment_done
@@ -21,13 +21,13 @@ stateDiagram-v2
   assessment_done --> discontinued
   admitted --> discharged: Discharge (Active Client Detail)
 ```
-Catatan: tombol outcome (Admit / Done Consult / Done Assessment / Discontinue) di `OutcomeCard` **tidak dikunci** ke tahap tertentu, jadi bisa dipakai dari tahap mana pun. Transisi otomatis hanya **maju** lewat `advanceStatus(current, target)` di `domain/client.js` (urutan `PIPELINE_FLOW`; status hasil akhir tidak disentuh).
+Catatan: urutan langkah **tidak dikunci**. Layanan, kode kuesioner, dan jadwal asesmen boleh diisi dalam urutan apa pun; status hanya melompat maju ke tahap tertinggi yang sudah tercapai (mis. langsung jadwalkan asesmen dari `inquiry` → `assessment_scheduled`). Tombol outcome (Admit / Done Consult / Done Assessment / Discontinue) di `OutcomeCard` **tidak dikunci** ke tahap tertentu, jadi bisa dipakai dari tahap mana pun. Transisi otomatis hanya **maju** lewat `advanceStatus(current, target)` di `domain/client.js` (urutan `PIPELINE_FLOW`; status hasil akhir tidak disentuh).
 
 ## Langkah per layar
 
 ### 1. New Intake: `/admin-inquiry/pipeline`
 - Komponen: `features/inquiry/pages/InquiryPipeline.js` → board `pipeline/PipelineBoard.js`, kartu `pipeline/PipelineCard.js`, kolom dari `STAGE_COLUMNS` di `pipeline/pipelineConfig.js` (grup `main` dan `outcome`).
-- Dialog New Intake → `handleCreateIntake`. Field wajib: nama anak, DOB, nama ortu, WhatsApp, email.
+- Dialog New Intake → `handleCreateIntake`. Field wajib: nama anak (nama lengkap), DOB, nama ortu, WhatsApp, email. Opsional: **catatan intake** (`intakeNote`: keluhan utama, rujukan, dll; bisa diedit di `EditIntakeDialog`, tampil di `IntakeDataCard`, portal terapis, dan laporan cetak). Hasil asesmen memakai laporan sesi yang sama dengan terapi (`session_reports`), bukan catatan di client.
 - Data: `makeInquiryClient(form)` → `addClient()`. Status `inquiry` dan `clientAccessCode = genCode("TDC")`.
 - Pipeline **tidak** mendukung drag & drop. Status berubah lewat aksi di Client Detail.
 - Filter & search disimpan di URL (`useUrlFilters`). Cabang mengikuti pola scoping (02).
@@ -39,8 +39,8 @@ Catatan: tombol outcome (Admit / Done Consult / Done Assessment / Discontinue) d
 |---|---|---|---|
 | 1 | `IntakeDataCard` + `EditIntakeDialog` | `handleSaveEditIntake` → `updateClient` | edit biodata |
 | 2 | `ServiceSelectionCard` | `handleToggleService` → `updateClient` | `serviceTypes[]`, `serviceType`; `inquiry` → `service_selected` |
-| 3 | `QuestionnaireCodeCard` | `handleGenerateQuestionnaireCode` → `updateClient` | tambah `{code: ASM-XXXX, categoryId}` ke `assessmentCodes`; `inquiry/service_selected` → `assessment_scheduled` |
-| 4 | `AssessmentScheduleCard` | buka `features/schedule/components/calendar/AddScheduleModal` (type `assessment`) | `addSchedule` sesi asesmen (tanpa kredit) |
+| 3 | `QuestionnaireCodeCard` | `handleGenerateQuestionnaireCode` → `updateClient`; hapus: `handleDeleteQuestionnaireCode` → `useQuestionnaireCodeActions.deleteCode` | tambah `{code: ASM-XXXX, categoryId, status: "issued"}` ke `assessmentCodes` (jadi `submitted` saat ortu mengisi); `inquiry/service_selected` → `assessment_scheduled`. Kode yang **belum diisi** bisa dihapus (konfirmasi; hanya tercatat di audit `assessment_code.deleted`, tanpa revert; status client tidak mundur). Kode yang sudah diisi tidak bisa dihapus (`isQuestionnaireCodeFilled`) |
+| 4 | `AssessmentScheduleCard` | buka `features/schedule/components/calendar/AddScheduleModal` (type `assessment`) | `useSessionActions.createSessions` → sesi asesmen (tanpa kredit); `inquiry/service_selected` → `assessment_scheduled` (sama seperti step 3, salah satu cukup, urutan bebas) |
 | 5 | `ParentAnswerCard` | link ke `/admin-inquiry/parent-assessment/:id` | baca jawaban |
 | 6 | `GDriveLinkCard` | `handleSaveGDriveLink` → `updateClient` | `gdriveClientLink` |
 | 7 | `InvoiceCard` | lihat invoice terakhir + `PaymentProofViewerModal` | read-only (invoice diterbitkan Finance, lihat 06) |
@@ -70,7 +70,7 @@ Jika sesi `type=assessment` di-complete dari `SessionDetailModal`, status client
 | Route | Halaman | Isi |
 |---|---|---|
 | `/admin-inquiry/assessments` | `AssessmentMasterData.js` + `assessment/*` | CRUD kategori kuesioner, section, pertanyaan. 6 tipe soal di `assessment/assessmentConfig.js` (`QUESTION_TYPES`: `scale_0_5`, `range`, `multiple_choice`, `checkbox_multi`, `free_text`, `yes_no`). `GenerateCodeDialog` bisa menerbitkan kode untuk client mana pun (`inquiry` → `service_selected`) |
-| `/admin-inquiry/master-data` | `InquiryMasterData.js` | CRUD layanan (`services`, bisa aktif/nonaktif) & kuadran (`quadrants`) |
+| `/admin-inquiry/master-data` | `InquiryMasterData.js` | CRUD layanan (`services`, bisa aktif/nonaktif), kuadran (`quadrants`), serta pilihan cepat **alasan cancel** & **alasan discharge** (`ReasonListTab`; user tetap bisa mengetik alasan sendiri di form) |
 
 ## Dashboard inquiry: `/admin-inquiry`
 `DashboardInquiry.js` + `dashboard/*`: `KpiCards`, `TrendCharts`, `FunnelServiceCharts`, tab `AwaitingQuestionnaireTab` (kode sudah terbit tapi belum diisi, dengan tombol follow-up WA), `FilteredRosterTab`, `DiscontinuedTab`. Filter periode memakai `shared/lib/periods.js`.

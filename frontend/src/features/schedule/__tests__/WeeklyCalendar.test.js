@@ -33,3 +33,19 @@ test("header & semua baris jam memakai template kolom yang sama dan terkunci", a
   expect(el.querySelectorAll('[data-testid^="calendar-session-"]').length).toBe(6);
   act(() => root.unmount());
 });
+
+test("sesi terapis yang sama di jam overlap ditandai bentrok; terapis lain tidak", async () => {
+  const weekStart = new Date("2026-09-28T00:00:00");
+  const mk = (id, therapistId, startTime, endTime) => ({ id, clientId: id, therapistId, date: "2026-10-01", startTime, endTime, type: "therapy", status: "scheduled" });
+  const schedules = [mk("a", "t-1", "09:00", "10:00"), mk("b", "t-1", "09:30", "10:30"), mk("c", "t-2", "09:00", "10:00"), mk("d", "t-1", "11:00", "12:00")];
+  const el = document.createElement("div");
+  const root = createRoot(el);
+  await act(async () => root.render(<WeeklyCalendar weekStart={weekStart} schedules={schedules} getClientName={() => "Client"} />));
+
+  const conflict = (id) => el.querySelector(`[data-testid="calendar-session-${id}"]`).getAttribute("data-conflict");
+  expect(conflict("a")).toBe("true");
+  expect(conflict("b")).toBe("true");
+  expect(conflict("c")).toBeNull();
+  expect(conflict("d")).toBeNull();
+  act(() => root.unmount());
+});

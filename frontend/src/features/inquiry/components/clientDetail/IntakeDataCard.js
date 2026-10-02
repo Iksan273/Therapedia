@@ -52,6 +52,10 @@ export function IntakeDataCard({ client, handleOpenEditIntake }) {
               <p className="font-semibold text-slate-800 mt-0.5">{client.parentContact || "—"}</p>
               <p className="text-[11px] text-slate-500">{client.parentEmail || "—"}</p>
             </div>
+            <div className="col-span-2 sm:col-span-4" data-testid="intake-note-display">
+              <span className="text-[11px] font-bold uppercase text-slate-400">Catatan Intake</span>
+              <p className="font-medium text-slate-700 mt-0.5 leading-relaxed whitespace-pre-wrap">{client.intakeNote || "—"}</p>
+            </div>
           </CardContent>
         </Card>
   );

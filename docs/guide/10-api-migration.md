@@ -25,7 +25,7 @@ Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis (cache, queue, s
 | Frontend (store / hook) | Endpoint (`ENDPOINTS`) | Tabel utama | Audit |
 |---|---|---|---|
 | `login` staf | `POST auth.staffLogin` | `users`, `personal_access_tokens` | `auth.login` |
-| `login` ortu (kode) | `POST auth.clientLogin` | `clients.client_access_code` | `auth.client_login` |
+| `login` ortu (kode + tanggal lahir anak) | `POST auth.clientLogin` | `clients.client_access_code` | `auth.client_login` |
 | `addClient` | `POST clients.list` | `clients`, `client_status_histories` | `client.created` |
 | `updateClient` (biodata) | `PATCH clients.detail(id)` | `clients` | `client.updated` |
 | toggle layanan | `PUT clients.services(id)` | `client_services` | `client.services_updated` |
@@ -37,11 +37,11 @@ Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis (cache, queue, s
 | `addSchedule` / `addSchedules` | `POST schedules.list` / `POST schedules.bulkCreate` | `schedules`, `schedule_series` | `schedule.created` / `schedule.series_created` |
 | `useSessionActions.saveReport` | `PUT schedules.report(id)` | `session_reports` | `schedule.report_saved` |
 | `useSessionActions.completeSession` | `POST schedules.complete(id)` | `schedules`, `client_packages`, `credit_ledger`, `clients` | `schedule.completed` + `credit.used` |
-| `useSessionActions.cancelSession` | `POST schedules.cancel(id)` | + `cancel_reasons` | `schedule.cancelled` (+ `credit.cancel_penalty`) |
+| `useSessionActions.cancelSession` | `POST schedules.cancel(id)` | (alasan = string di body) | `schedule.cancelled` (+ `credit.cancel_penalty`) |
 | `rescheduleSession` / `markPending` / `dropPending` | `schedules.reschedule/markPending/dropPending(id)` | `schedules` | `schedule.rescheduled` / `…marked_pending` / `…pending_dropped` |
 | (baru) batalkan completed/cancel | `POST schedules.revert(id)` | `schedules`, `credit_ledger` (reversal) | `schedule.completion_reverted` / `…cancellation_reverted` |
-| `bulkComplete` / `bulkCancel` / `bulkReschedule` | `POST schedules.bulkAction(action)` | sama + `batch_id` | `schedule.bulk_*` |
-| cek bentrok (preview) | `GET schedules.conflicts` | `schedules`, `therapist_availabilities` | — |
+| `bulkComplete` / `bulkCancel` / `bulkReschedule` | `POST schedules.bulkAction(action)` (action: complete / cancel / reschedule / revert) | sama + `batch_id` | `schedule.bulk_*` |
+| cek bentrok (preview) | `GET schedules.conflicts` | `schedules` | — |
 | `issueInvoice` | `POST invoices.list` | `invoices` | `invoice.issued` |
 | `uploadPaymentProof` | `POST invoices.proof(id)` (multipart, `api.upload`) | `payment_proofs`, `invoices` | `invoice.proof_uploaded` |
 | `verifyPaymentProof` | `POST invoices.verify(id)` | `invoices`, `client_packages`, `credit_ledger` | `invoice.verified` / `invoice.rejected` |
@@ -57,17 +57,17 @@ Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis (cache, queue, s
 ## Keputusan yang sudah diambil di `schema.md` v2
 Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2):
 - Enum `clients.status` & `schedules.status` mengikuti prototype; **frozen** = turunan `credit_balance = 0`.
-- Alasan cancel = lookup table `cancel_reasons` dengan `counts_toward_quota` & `always_penalty` (default perilaku = prototype: kuota 3 per client).
+- Alasan cancel/pending/discharge = **string bebas** di `schedules.cancel_reason`, `pending_reason`, `clients.discharge_reason`, `credit_ledger.cancel_reason` (kode pilihan cepat atau teks custom, maks 150 karakter, tanpa FK). Tabel `cancel_reasons`/`discharge_reasons` hanya sumber dropdown. Kuota cancel 3 per client = aturan global.
 - Laporan sesi → `session_reports` (3 bagian prototype + SOAP opsional).
 - Riwayat kredit → `credit_ledger` append-only (+ `reversal`).
-- Master layanan & kuadran → `services`, `sensory_quadrants`.
+- Master layanan & kuadran → `services`, `sensory_quadrants`. Pilihan cepat alasan → `cancel_reasons`, `discharge_reasons`.
 
 ### Pekerjaan frontend saat integrasi
 | Item | Perubahan |
 |---|---|
 | Status invoice | Tampilkan `pending_verification` (setelah ortu upload), `rejected` (+ alasan), `void` |
 | Riwayat kredit | Label aksi baru: `purchased`, `reversal`, `manual_adjust` |
-| Revert sesi | Tombol "Batalkan completed / cancel" (wajib alasan) di `SessionDetailModal` → `schedules.revert` |
+| Revert sesi | Tombol "Batalkan completed / cancel" (wajib alasan) sudah ada di `SessionDetailModal` (`RevertSessionPanel`, `useSessionActions.revertSession`); ganti isinya menjadi satu request `schedules.revert` |
 | Timeline audit | Panel riwayat perubahan per client/sesi/invoice (`auditLogs.forEntity`) |
 | Upload bukti | Kirim file asli via `api.upload` (multipart), bukan dataURL |
 

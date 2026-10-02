@@ -33,6 +33,7 @@ export const AUDIT_ACTIONS = {
   "client.document_added": { label: "Dokumen/GDrive ditambahkan", category: "client", tone: "neutral" },
 
   "assessment_code.issued": { label: "Kode kuesioner diterbitkan", category: "assessment", tone: "info" },
+  "assessment_code.deleted": { label: "Kode kuesioner dihapus (belum diisi)", category: "assessment", tone: "warning" },
   "assessment_response.submitted": { label: "Kuesioner dikirim ortu", category: "assessment", tone: "success" },
   "assessment_response.viewed": { label: "Hasil asesmen dibuka", category: "assessment", tone: "neutral" },
 
@@ -43,12 +44,14 @@ export const AUDIT_ACTIONS = {
   "schedule.cancelled": { label: "Sesi dibatalkan", category: "schedule", tone: "warning" },
   "schedule.cancellation_reverted": { label: "Pembatalan sesi dibatalkan", category: "schedule", tone: "revert" },
   "schedule.rescheduled": { label: "Sesi dipindah", category: "schedule", tone: "info" },
+  "schedule.reschedule_reverted": { label: "Pemindahan jadwal dibatalkan", category: "schedule", tone: "revert" },
   "schedule.marked_pending": { label: "Reschedule menggantung", category: "schedule", tone: "warning" },
   "schedule.pending_dropped": { label: "Sesi menggantung dibatalkan", category: "schedule", tone: "warning" },
   "schedule.report_saved": { label: "Laporan sesi disimpan", category: "schedule", tone: "neutral" },
   "schedule.bulk_completed": { label: "Bulk complete", category: "schedule", tone: "success" },
   "schedule.bulk_cancelled": { label: "Bulk cancel", category: "schedule", tone: "warning" },
   "schedule.bulk_rescheduled": { label: "Bulk reschedule", category: "schedule", tone: "info" },
+  "schedule.bulk_reverted": { label: "Bulk revert", category: "schedule", tone: "revert" },
 
   "credit.package_activated": { label: "Paket kredit aktif", category: "credit", tone: "success" },
   "credit.used": { label: "Kredit terpakai", category: "credit", tone: "neutral" },

@@ -36,7 +36,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 | 6 | **Idempoten** | `credit_ledger.idempotency_key` UNIQUE mencegah potong kredit ganda |
 | 7 | **Snapshot nilai transaksi** | Nama paket, harga, nama pelaku disalin saat transaksi agar histori tidak berubah ketika master diedit |
 | 8 | **Baca cepat tanpa infrastruktur tambahan** | Dashboard = **VIEW + JOIN** di atas indeks covering & generated column tanggal; tanpa Redis dan tanpa tabel ringkasan selama target terpenuhi (§04-G, §07) |
-| 9 | **Lookup table untuk daftar yang bisa diedit** | Layanan, kuadran, alasan cancel/discharge, tag keluhan = tabel ber-PK `code` |
+| 9 | **Lookup table untuk daftar yang bisa diedit** | Layanan dan kuadran = tabel ber-PK `code`. Alasan cancel/discharge juga tabel `code`, tetapi hanya **pilihan cepat tanpa FK** (transaksi menyimpan string, boleh teks custom) |
 | 10 | **ENUM untuk siklus hidup tetap** | Status client/sesi/invoice/paket |
 
 Konvensi umum (detail di skill): InnoDB `utf8mb4_0900_ai_ci`; PK `BIGINT UNSIGNED`; waktu `DATETIME` UTC; tanggal kalender `DATE`; slot `TIME`; uang `BIGINT UNSIGNED` rupiah utuh; soft delete hanya untuk entity bisnis; ledger & audit tidak pernah di-UPDATE/DELETE.
@@ -81,18 +81,14 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `access_modules` | Daftar modul RBAC |
 | | `role_permissions` | Matriks role × modul |
 | | `users` | Staf internal + terapis (satu tabel) |
-| | `therapist_availabilities` | Jam kerja terapis |
 | **B. Master data** | `services` | Layanan intake (BOT-A, FOT-A, Consultation, …) |
 | | `sensory_quadrants` | Kuadran sensori (AV/SN/RG/SK) |
-| | `concern_tags` | Tag keluhan anak |
-| | `cancel_reasons` | Alasan cancel + aturan kuota |
-| | `discharge_reasons` | Alasan discharge |
+| | `cancel_reasons` | Pilihan cepat alasan cancel (tanpa FK; transaksi menyimpan string) |
+| | `discharge_reasons` | Pilihan cepat alasan discharge (tanpa FK; transaksi menyimpan string) |
 | | `master_packages` | Katalog paket kredit |
 | **C. Client & intake** | `clients` | Master anak + kredensial portal ortu |
 | | `client_services` | Layanan dipilih (multi) |
-| | `client_concern_tags` | Tag keluhan client |
 | | `client_documents` | Tautan GDrive / dokumen |
-| | `client_notes` | Catatan laporan asesmen & catatan umum |
 | | `client_status_histories` | Riwayat tahap pipeline |
 | **D. Asesmen** | `assessment_categories` | Instrumen (Sensory Profile 2, …) |
 | | `assessment_sections` | Bagian/domain soal |
@@ -112,7 +108,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
 | **H. Laravel bawaan** | `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, session, cache & queue driver `database` (MySQL) |
 
-Total: 35 tabel domain + 6 view + tabel bawaan Laravel.
+Total: 29 tabel domain + 6 view + tabel bawaan Laravel.
 
 ---
 
@@ -127,17 +123,12 @@ erDiagram
   roles ||--o{ users : ""
   roles ||--o{ role_permissions : ""
   access_modules ||--o{ role_permissions : ""
-  users ||--o{ therapist_availabilities : "jam kerja"
   users ||--o{ schedules : "terapis"
 
   clients ||--o{ client_services : ""
   services ||--o{ client_services : ""
-  clients ||--o{ client_concern_tags : ""
-  concern_tags ||--o{ client_concern_tags : ""
   clients ||--o{ client_documents : ""
-  clients ||--o{ client_notes : ""
   clients ||--o{ client_status_histories : "pipeline"
-  discharge_reasons ||--o{ clients : ""
 
   assessment_categories ||--o{ assessment_sections : ""
   assessment_sections ||--o{ assessment_questions : ""
@@ -152,7 +143,6 @@ erDiagram
   schedule_series ||--o{ schedules : ""
   clients ||--o{ schedules : ""
   client_packages ||--o{ schedules : "dipakai"
-  cancel_reasons ||--o{ schedules : ""
   schedules ||--o| session_reports : ""
 
   master_packages ||--o{ invoices : ""
@@ -252,19 +242,6 @@ Schema::create('users', function (Blueprint $table) {
 });
 ```
 
-#### `therapist_availabilities`
-```php
-Schema::create('therapist_availabilities', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-    $table->unsignedTinyInteger('day_of_week');       // 1=Senin … 7=Minggu (ISO-8601)
-    $table->time('start_time');
-    $table->time('end_time');
-    $table->timestamps();
-    $table->index(['user_id', 'day_of_week'], 'idx_avail_user_day');                 // Q2
-});
-```
-
 ### B. Master data
 
 Tabel master kecil (puluhan baris) dan dibaca lewat PK → query langsung < 1 ms dari buffer pool InnoDB. Frontend memuatnya sekali per sesi (react-query `staleTime` panjang). Tidak perlu Redis.
@@ -275,7 +252,7 @@ Schema::create('services', function (Blueprint $table) {
     $table->string('code', 50)->primary();            // b_ota, f_ota, school_companion, consult_wo_report, consult_w_report
     $table->string('label', 150);
     $table->string('short_label', 60);
-    $table->enum('category', ['assessment', 'consultation', 'therapy']);
+    $table->string('category', 50);                   // string bebas (tanpa enum): combo box UI menawarkan Asesmen / Konsultasi / Terapi + opsi ketik kategori sendiri
     $table->text('description')->nullable();
     $table->boolean('is_active')->default(true);      // nonaktif = tidak bisa dipilih, label tetap tampil
     $table->unsignedSmallInteger('sort_order')->default(0);
@@ -296,34 +273,24 @@ Schema::create('sensory_quadrants', function (Blueprint $table) {
 });
 ```
 
-#### `concern_tags`
-```php
-Schema::create('concern_tags', function (Blueprint $table) {
-    $table->string('code', 30)->primary();            // speech, sensory, motor, behavior, social, school
-    $table->string('label', 100);
-    $table->boolean('is_active')->default(true);
-});
-```
-
-#### `cancel_reasons`
-Aturan kuota cancel dibuat **data-driven** sehingga kebijakan klinik bisa diubah tanpa deploy.
+#### `cancel_reasons` & `discharge_reasons` (pilihan cepat, TANPA foreign key)
+Hanya **sumber pilihan cepat** untuk dropdown di UI (dikelola di menu Master Data). Tabel transaksi (`schedules`, `clients`, `credit_ledger`) menyimpan alasan sebagai **string biasa** (`cancel_reason`, `pending_reason`, `discharge_reason`): berisi `code` pilihan cepat **atau** teks bebas yang diketik user ("Lainnya"). Karena itu tidak ada FK: mengubah/menghapus pilihan tidak memengaruhi riwayat, dan teks bebas tidak perlu terdaftar. Label tampil = `label` bila string cocok dengan `code`, selain itu string apa adanya.
+Kuota cancel (3/client) adalah aturan global di service (§6.2), bukan atribut per alasan. Alasan sistem `reschedule_dibatalkan` (drop reschedule menggantung, netral kredit) adalah konstanta kode, bukan baris tabel.
 ```php
 Schema::create('cancel_reasons', function (Blueprint $table) {
-    $table->string('code', 40)->primary();            // sakit, izin_keluarga, bentrok_sekolah, tanpa_kabar, lainnya, reschedule_dibatalkan
+    $table->string('code', 40)->primary();            // sakit, izin_keluarga, bentrok_sekolah, tanpa_kabar
     $table->string('label', 120);
-    $table->boolean('counts_toward_quota')->default(true);   // false = netral (mis. reschedule_dibatalkan)
-    $table->boolean('always_penalty')->default(false);       // true = langsung potong kredit (opsi kebijakan "tanpa kabar")
-    $table->boolean('is_system')->default(false);            // tidak muncul di dropdown manual
-    $table->boolean('is_active')->default(true);
+    $table->boolean('is_active')->default(true);      // nonaktif = tidak muncul di pilihan baru
+    $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->timestamps();
 });
-```
 
-#### `discharge_reasons`
-```php
 Schema::create('discharge_reasons', function (Blueprint $table) {
-    $table->string('code', 40)->primary();            // moving, financial, conflict_schedule, expectation_not_met, graduate, other
+    $table->string('code', 40)->primary();            // moving, financial, conflict_schedule, expectation_not_met, graduate
     $table->string('label', 120);
     $table->boolean('is_active')->default(true);
+    $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->timestamps();
 });
 ```
 
@@ -353,17 +320,15 @@ Schema::create('clients', function (Blueprint $table) {
     $table->foreignId('branch_id')->constrained()->restrictOnDelete();
 
     // Biodata
-    $table->string('child_name', 120);
-    $table->string('child_nickname', 60)->nullable();
+    $table->string('child_name', 120);                // nama lengkap (tanpa nama panggilan)
     $table->enum('gender', ['male', 'female']);
     $table->date('date_of_birth');
     $table->unsignedTinyInteger('birth_month')->storedAs('MONTH(date_of_birth)');   // Q7 birthday radar
     $table->string('parent_name', 120);
-    $table->string('parent_relationship', 30)->default('mother');
     $table->string('parent_phone', 30);               // WhatsApp
     $table->string('parent_email', 150)->nullable();
     $table->text('address')->nullable();
-    $table->boolean('has_school_companion')->default(false);
+    $table->text('intake_note')->nullable();          // catatan saat intake (keluhan utama, rujukan, dll). Laporan asesmen memakai session_reports, bukan kolom ini
 
     // Pipeline & outcome
     $table->enum('status', [
@@ -374,7 +339,7 @@ Schema::create('clients', function (Blueprint $table) {
     $table->timestamp('status_changed_at')->nullable();
     $table->date('date_of_join')->nullable();
     $table->date('date_of_discharge')->nullable();
-    $table->string('discharge_reason_code', 40)->nullable();
+    $table->string('discharge_reason', 150)->nullable();   // string bebas: code pilihan cepat atau teks custom (tanpa FK)
     $table->text('discharge_note')->nullable();
 
     // Denormalisasi kredit (sumber kebenaran: credit_ledger) — diperbarui di transaksi yang sama
@@ -383,7 +348,6 @@ Schema::create('clients', function (Blueprint $table) {
 
     // Kredensial portal ortu
     $table->string('client_access_code', 20)->unique();   // TDC-XXXX — Q14
-    $table->string('access_pin_hash')->nullable();        // opsional PIN tambahan
     $table->timestamp('last_login_at')->nullable();
 
     $table->unsignedInteger('version')->default(1);
@@ -392,7 +356,6 @@ Schema::create('clients', function (Blueprint $table) {
     $table->timestamps();
     $table->softDeletes();
 
-    $table->foreign('discharge_reason_code')->references('code')->on('discharge_reasons');
     $table->index(['branch_id', 'status', 'created_at'], 'idx_clients_pipeline');        // Q4
     $table->index(['branch_id', 'status', 'credit_balance'], 'idx_clients_roster');      // Q6
     $table->index(['branch_id', 'birth_month'], 'idx_clients_birthday');                 // Q7
@@ -403,7 +366,8 @@ Schema::create('clients', function (Blueprint $table) {
 Catatan:
 - **Frozen** tidak disimpan sebagai status; diturunkan dari `credit_balance = 0` (sesuai frontend).
 - Search nama memakai prefix (`LIKE 'abc%'`). Jika butuh search di tengah kata, tambahkan `FULLTEXT(child_name, parent_name)` (ngram parser).
-- Login ortu: throttle per IP & per kode (Laravel RateLimiter) karena kode pendek.
+- Login ortu: `client_access_code` **+ tanggal lahir anak** (`date_of_birth`) sebagai verifikasi kedua (tanpa PIN). Respons gagal selalu generik (tidak membocorkan mana yang salah). Throttle per IP & per kode (Laravel RateLimiter) karena kode pendek.
+- Nama anak hanya satu kolom `child_name` (nama lengkap). Layanan pendamping sekolah = layanan `school_companion` di `client_services`, bukan flag di `clients`.
 
 #### `client_services`
 ```php
@@ -415,16 +379,6 @@ Schema::create('client_services', function (Blueprint $table) {
     $table->primary(['client_id', 'service_code']);
     $table->foreign('service_code')->references('code')->on('services');
     $table->index('service_code', 'idx_client_services_service');                         // funnel per layanan
-});
-```
-
-#### `client_concern_tags`
-```php
-Schema::create('client_concern_tags', function (Blueprint $table) {
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->string('tag_code', 30);
-    $table->primary(['client_id', 'tag_code']);
-    $table->foreign('tag_code')->references('code')->on('concern_tags');
 });
 ```
 
@@ -443,22 +397,6 @@ Schema::create('client_documents', function (Blueprint $table) {
 });
 ```
 
-#### `client_notes`
-Catatan teks panjang dipisah dari `clients` agar baris hot table tetap ramping.
-```php
-Schema::create('client_notes', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->enum('type', ['assessment_report', 'intake', 'general']);
-    $table->text('body');
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-    $table->softDeletes();
-    $table->index(['client_id', 'type', 'created_at'], 'idx_client_notes_client');
-});
-```
-
 #### `client_status_histories`
 Timeline bisnis pipeline (ditampilkan ke user). Detail teknis tetap di `audit_logs`.
 ```php
@@ -468,7 +406,7 @@ Schema::create('client_status_histories', function (Blueprint $table) {
     $table->foreignId('branch_id')->constrained()->restrictOnDelete();          // denormalisasi dari clients (untuk view per cabang)
     $table->string('from_status', 30)->nullable();
     $table->string('to_status', 30);
-    $table->enum('trigger', ['manual', 'service_selected', 'code_issued', 'questionnaire_submitted', 'session_completed', 'outcome', 'discharge', 'revert']);
+    $table->enum('trigger', ['manual', 'service_selected', 'code_issued', 'assessment_scheduled', 'questionnaire_submitted', 'session_completed', 'outcome', 'discharge', 'revert']);
     $table->text('note')->nullable();
     $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();  // null = sistem / ortu
     $table->timestamp('changed_at')->useCurrent();
@@ -542,7 +480,7 @@ Schema::create('assessment_access_codes', function (Blueprint $table) {
     $table->string('code', 20)->unique();             // ASM-XXXX — Q13
     $table->foreignId('client_id')->constrained()->cascadeOnDelete();
     $table->foreignId('category_id')->constrained('assessment_categories')->restrictOnDelete();
-    $table->enum('status', ['issued', 'submitted', 'revoked', 'expired'])->default('issued');
+    $table->enum('status', ['issued', 'submitted', 'expired'])->default('issued');   // kode `issued` yang belum diisi boleh DIHAPUS (baris dihapus, hanya jejak di audit_logs); `submitted` tidak bisa dihapus
     $table->foreignId('issued_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamp('issued_at')->useCurrent();
     $table->timestamp('expires_at')->nullable();
@@ -647,7 +585,7 @@ Schema::create('schedules', function (Blueprint $table) {
     $table->enum('credit_effect', ['none', 'used', 'excused', 'penalty'])->default('none'); // efek kredit transisi terakhir
 
     // Cancel
-    $table->string('cancel_reason_code', 40)->nullable();
+    $table->string('cancel_reason', 150)->nullable();    // string bebas: code pilihan cepat atau teks custom (tanpa FK)
     $table->text('cancel_note')->nullable();
     $table->timestamp('cancelled_at')->nullable();
     $table->foreignId('cancelled_by')->nullable()->constrained('users')->nullOnDelete();
@@ -662,7 +600,7 @@ Schema::create('schedules', function (Blueprint $table) {
     $table->time('origin_end_time')->nullable();
     $table->foreignId('origin_therapist_id')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamp('rescheduled_at')->nullable();
-    $table->string('pending_reason_code', 40)->nullable();
+    $table->string('pending_reason', 150)->nullable();   // string bebas, sama seperti cancel_reason
     $table->text('pending_note')->nullable();
     $table->timestamp('pending_at')->nullable();
 
@@ -673,8 +611,6 @@ Schema::create('schedules', function (Blueprint $table) {
     $table->softDeletes();
 
     $table->foreign('service_code')->references('code')->on('services');
-    $table->foreign('cancel_reason_code')->references('code')->on('cancel_reasons');
-    $table->foreign('pending_reason_code')->references('code')->on('cancel_reasons');
 
     $table->index(['branch_id', 'session_date', 'status', 'deleted_at'], 'idx_sch_calendar'); // Q1 + v_daily_sessions (covering)
     $table->index(['therapist_id', 'session_date', 'start_time'], 'idx_sch_therapist');   // Q2, Q3, Q17
@@ -816,7 +752,7 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->smallInteger('package_balance_after');    // saldo paket setelah mutasi (audit cepat)
     $table->integer('client_balance_after');          // saldo total client setelah mutasi
     $table->unsignedSmallInteger('cancel_count_after')->nullable();
-    $table->string('cancel_reason_code', 40)->nullable();
+    $table->string('cancel_reason', 150)->nullable();   // string bebas (tanpa FK)
     $table->string('package_name', 150)->nullable();  // snapshot
     $table->text('note')->nullable();
     $table->foreignId('reverses_ledger_id')->nullable()->unique()->constrained('credit_ledger')->restrictOnDelete(); // 1 baris hanya bisa di-reverse sekali
@@ -1009,9 +945,9 @@ DB::statement("
 | Entity | Aksi |
 |---|---|
 | auth | `auth.login`, `auth.logout`, `auth.login_failed`, `auth.client_login`, `auth.client_login_failed` |
-| client | `client.created`, `client.updated`, `client.status_changed`, `client.services_updated`, `client.admitted`, `client.done_consult`, `client.done_assessment`, `client.discontinued`, `client.discharged`, `client.outcome_reverted`, `client.document_added`, `client.document_removed`, `client.note_saved`, `client.deleted`, `client.restored` |
-| assessment | `assessment_code.issued`, `assessment_code.revoked`, `assessment_response.submitted` (actor `public`), `assessment_response.viewed`, `assessment_category.created/updated/deleted`, `assessment_question.created/updated/deleted` |
-| schedule | `schedule.created`, `schedule.series_created`, `schedule.updated`, `schedule.completed`, `schedule.completion_reverted`, `schedule.cancelled`, `schedule.cancellation_reverted`, `schedule.rescheduled`, `schedule.marked_pending`, `schedule.pending_dropped`, `schedule.report_saved`, `schedule.bulk_completed`, `schedule.bulk_cancelled`, `schedule.bulk_rescheduled`, `schedule.deleted` |
+| client | `client.created`, `client.updated`, `client.status_changed`, `client.services_updated`, `client.admitted`, `client.done_consult`, `client.done_assessment`, `client.discontinued`, `client.discharged`, `client.outcome_reverted`, `client.document_added`, `client.document_removed`, `client.deleted`, `client.restored` |
+| assessment | `assessment_code.issued`, `assessment_code.deleted`, `assessment_response.submitted` (actor `public`), `assessment_response.viewed`, `assessment_category.created/updated/deleted`, `assessment_question.created/updated/deleted` |
+| schedule | `schedule.created`, `schedule.series_created`, `schedule.updated`, `schedule.completed`, `schedule.completion_reverted`, `schedule.cancelled`, `schedule.cancellation_reverted`, `schedule.rescheduled`, `schedule.reschedule_reverted`, `schedule.marked_pending`, `schedule.pending_dropped`, `schedule.report_saved`, `schedule.bulk_completed`, `schedule.bulk_cancelled`, `schedule.bulk_rescheduled`, `schedule.bulk_reverted`, `schedule.deleted` |
 | credit | `credit.package_activated`, `credit.used`, `credit.cancel_excused`, `credit.cancel_penalty`, `credit.reversed`, `credit.manual_adjusted`, `credit.expired` (job), `credit.reconciled` (job) |
 | invoice | `invoice.issued`, `invoice.proof_uploaded` (actor `client`), `invoice.proof_viewed`, `invoice.verified`, `invoice.rejected`, `invoice.voided`, `invoice.renewal_created` |
 | master | `service.*`, `quadrant.*`, `package.*`, `cancel_reason.*`, `discharge_reason.*` (`created/updated/deleted`) |
@@ -1088,9 +1024,9 @@ Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `vers
 6. Audit: `schedule.completed`, `credit.used`, (`client.status_changed`). Dashboard otomatis ikut berubah karena membaca view (tidak ada ringkasan yang perlu di-update).
 
 ### 6.2 Cancel sesi (`POST /schedules/{id}/cancel`)
-1. Lock sesi + client. Ambil `cancel_reasons` (code).
-2. Jika `counts_toward_quota`: `clients.cancel_count_total += 1`.
-3. Penalti bila `always_penalty` **atau** `cancel_count_total > 3` (kuota): potong 1 kredit seperti 6.1 → ledger `cancel_penalty`, `credit_effect=penalty`. Selain itu ledger `cancel_excused` (0), `credit_effect=excused`.
+1. Lock sesi + client. Alasan = string dari request (code pilihan cepat atau teks custom; wajib terisi, maks 150 karakter; tidak divalidasi ke tabel `cancel_reasons`).
+2. `clients.cancel_count_total += 1` (setiap cancel manual dihitung kuota).
+3. Penalti bila `cancel_count_total > 3` (kuota global): potong 1 kredit seperti 6.1 → ledger `cancel_penalty`, `credit_effect=penalty`. Selain itu ledger `cancel_excused` (0), `credit_effect=excused`.
 4. Update sesi `cancelled` + alasan; audit `schedule.cancelled` (+ `credit.cancel_penalty`).
 
 ### 6.3 Revert (`POST /schedules/{id}/revert`, wajib `reason`)
@@ -1098,13 +1034,21 @@ Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `vers
 |---|---|---|
 | `completed` | `previous_status` | Bila `credit_effect=used`: ledger `reversal` (+1) untuk ledger `used` sesi ini; kembalikan status client bila transisi otomatis terjadi di batch yang sama |
 | `cancelled` | `previous_status` | Bila `credit_effect=penalty`: reversal (+1). Bila kuota terhitung: `cancel_count_total -= 1` |
-| `rescheduled` | slot `origin_*` | Cek bentrok slot asal dulu (409 bila terisi) |
+| `rescheduled` | `scheduled` di slot `origin_*` (tanggal, jam, terapis asal) | Cek bentrok slot asal dulu (409 bila terisi); `origin_*` dan `rescheduled_at` dikosongkan; tanpa efek kredit. Audit `schedule.reschedule_reverted` |
 Audit `*_reverted` dengan `reverts_audit_id`. Hak akses revert: `master`, `admin_schedule` (policy), opsional batas waktu (mis. ≤ 7 hari) via konfigurasi.
+
+Aturan tambahan (sudah diterapkan di frontend demo, `useSessionActions.revertSession`):
+- **Alasan wajib** (maks 300 karakter). Sesi yang kembali aktif (`scheduled`/`rescheduled`) harus lolos cek bentrok §6.4 (409 bila slot sudah terisi).
+- **Ledger append-only**: baris `used` / `cancel_*` lama tidak diubah. Revert = baris `reversal` baru dengan `reverses_ledger_id` → baris asal (UNIQUE, jadi satu baris hanya bisa dibalik sekali). `cancel_excused` direverse dengan `credit_change = 0` (hanya kuota −1).
+- **Complete lagi setelah revert** sah dan membuat baris `used` **baru** (id berbeda, `idempotency_key` memakai `version` baru). Revert berikutnya menunjuk baris `used` yang terbaru yang belum dibalik, bukan yang lama.
+- **Asesmen completed**: bila di aksi asal status client naik otomatis ke `assessment_done`, revert mengembalikannya ke status sebelumnya (hanya jika status client masih `assessment_done`) + `client_status_histories` `trigger = revert`.
+- Revert `completed` memakai `previous_status` sesi; data lama tanpa `previous_status` dianggap `scheduled` (atau `rescheduled` bila ada jejak `origin_*`).
 
 ### 6.4 Buat / pindah sesi (conflict check)
 1. `SELECT … FROM schedules WHERE therapist_id=? AND session_date=? AND status NOT IN ('cancelled','reschedule_pending') FOR UPDATE` (indeks `idx_sch_therapist`).
-2. Cek overlap jam & `therapist_availabilities`. Bentrok → 409 dengan daftar sesi bentrok (kecuali `force=true` oleh role yang diizinkan; dicatat di audit `meta.forced=true`).
+2. Cek overlap jam dengan sesi aktif terapis itu (tidak ada konsep jam kerja; bentrok = terapis sudah handle client lain di jam yang sama). Bentrok → 409 dengan daftar sesi bentrok (kecuali `force=true` oleh role yang diizinkan; dicatat di audit `meta.forced=true`).
 3. Insert/update. Seri berulang: insert batch dalam satu transaksi (`schedule_series` + N `schedules`).
+4. Saat **membuat** sesi `type = assessment` dan `clients.status` masih sebelum `assessment_scheduled` (`inquiry` / `service_selected`): update `clients.status = assessment_scheduled` + insert `client_status_histories` (`trigger=assessment_scheduled`) + audit `client.status_changed`, di transaksi yang sama. Boleh melompat dari `inquiry` (tidak perlu `service_selected` / kode kuesioner dulu); tidak pernah mundur. Pindah jadwal (reschedule) tidak memicu transisi.
 
 ### 6.5 Verifikasi pembayaran (`POST /invoices/{id}/verify`)
 1. Lock invoice (status harus `pending_verification`) + cek `version`.
@@ -1122,7 +1066,7 @@ Validasi transisi di server (alur maju otomatis = `advanceStatus` di `frontend/s
 | Area | Strategi |
 |---|---|
 | **Indeks** | Komposit sesuai bagian 01; urutan kolom: equality (`branch_id`, `therapist_id`, `status`) → range (`session_date`, `issued_at`) → sort. Tidak ada indeks tunggal untuk kolom kardinalitas rendah |
-| **Baris ramping** | Teks panjang dipisah (`session_reports`, `client_notes`); tabel hot (`schedules`, `clients`) hanya kolom yang difilter/ditampilkan di list |
+| **Baris ramping** | Teks panjang dipisah (`session_reports`); tabel hot (`schedules`, `clients`) hanya kolom yang difilter/ditampilkan di list |
 | **Denormalisasi terkendali** | `clients.credit_balance`, `cancel_count_total`, `client_packages.remaining_credit`, `credit_ledger.branch_id`, `session_reports.client_id` — diperbarui di transaksi yang sama; job rekonsiliasi malam membandingkan dengan Σ ledger dan menulis audit `system` bila ada selisih |
 | **Generated column** | `clients.birth_month`, `session_reports.filled_sections` → filter tanpa fungsi di WHERE (indeks tetap terpakai) |
 | **Dashboard via VIEW** | `v_daily_*` di atas indeks covering + generated column tanggal WIB; selalu difilter cabang + rentang tanggal (pushdown MySQL ≥ 8.0.22). Tabel ringkasan hanya jika view > 100 ms (§04-G) |
@@ -1150,14 +1094,13 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `clients[].gdriveClientLink` | `client_documents (type=gdrive_folder)` |
 | `clients[].assessmentCodes[]` | `assessment_access_codes` |
 | `clients[].assessmentAnswers[]` | `assessment_responses` + `assessment_answers` + `assessment_quadrant_scores` |
-| `clients[].assessmentReportNote` | `client_notes (type=assessment_report)` |
-| `clients[].includesSchoolCompanion` | `clients.has_school_companion` |
-| `clients[].dischargeReason / dischargeNote` | `clients.discharge_reason_code / discharge_note` |
+| `clients[].intakeNote` | `clients.intake_note` |
+| `clients[].dischargeReason / dischargeNote` | `clients.discharge_reason / discharge_note` |
 | perubahan status client | `client_status_histories` + `audit_logs` |
 | `schedules[].date / startTime / endTime / therapistId` | `schedules.session_date / start_time / end_time / therapist_id` |
 | `schedules[].creditPackageId` | `schedules.client_package_id` |
 | `schedules[].rescheduledFrom{…}` | `schedules.origin_date / origin_start_time / origin_end_time / origin_therapist_id` |
-| `schedules[].pendingFrom / pendingReason / pendingNote` | slot tetap + `pending_reason_code / pending_note / pending_at` |
+| `schedules[].pendingFrom / pendingReason / pendingNote` | slot tetap + `pending_reason / pending_note / pending_at` |
 | `schedules[].activitySection / noteSection / homeworkSection` | `session_reports.*` |
 | `schedules[].recurrenceRule / isRecurring` | `schedule_series` + `schedules.series_id` |
 | `credits.masterPackages[]` | `master_packages` |
@@ -1165,10 +1108,10 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `credits.records[].history[]` | `credit_ledger` |
 | `credits.records[].cancelCountTotal` | `clients.cancel_count_total` |
 | `credits.invoices[]` (+ `proof*`) | `invoices` + `payment_proofs` |
-| `therapists[]` + `staffUsers[]` | `users` (+ `therapist_availabilities`) |
+| `therapists[]` + `staffUsers[]` | `users` |
 | `rolesList[]` / `rbacPermissions` | `roles` / `role_permissions` (+ `access_modules`) |
 | `master_services` / `master_quadrants` | `services` / `sensory_quadrants` |
-| `CANCEL_REASONS`, `DISCHARGE_REASONS`, `CONCERN_TAGS` | `cancel_reasons`, `discharge_reasons`, `concern_tags` |
+| `master_cancel_reasons`, `master_discharge_reasons` (+ `DEFAULT_*` seed) | `cancel_reasons`, `discharge_reasons` (pilihan cepat; kolom transaksi = string, tanpa FK) |
 | dashboard (hitung di `useMemo`) | view `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage` |
 
 Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services/http/httpClient.js`.
@@ -1178,8 +1121,8 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 |---|---|---|
 | `clients.status` | Ikut prototype: 9 status termasuk `service_selected`, `assessment_done`, `discharged` | Tidak ada |
 | `schedules.status` | `scheduled, completed, cancelled, rescheduled, reschedule_pending`; **frozen = turunan** | Tidak ada |
-| `cancel_reasons` | Lookup table + flag `counts_toward_quota`, `always_penalty` | Default: semua alasan manual dihitung kuota, `reschedule_dibatalkan` netral → sama dengan prototype |
-| Aturan penalti | Kuota 3 cancel per client (prototype) + opsi kebijakan `always_penalty` per alasan | Tidak ada (opsi baru di backend) |
+| `cancel_reasons` / `discharge_reasons` | Tabel pilihan cepat tanpa FK; kolom transaksi menyimpan **string** (code atau teks custom) | Tidak ada: UI menyediakan pilihan cepat + opsi "Lainnya (ketik sendiri)"; label tampil dicari dari master, fallback ke string |
+| Aturan penalti | Kuota 3 cancel per client (global, prototype); semua alasan manual dihitung kuota | Tidak ada |
 | `invoices.status` | `unpaid, pending_verification, paid, rejected, void` | Frontend perlu menampilkan `pending_verification` & `rejected` (sekarang: bukti diunggah tetap `unpaid`) |
 | `client_packages.status` | `active, depleted, expired` | Tambah `expired` (paket berbatas waktu, opsional) |
 | `credit_ledger.action` | `purchased, renewed, used, cancel_excused, cancel_penalty, reversal, manual_adjust, expired` | Label baru di riwayat kredit Finance (`expired` hanya dari job `packages:expire`, §11) |
@@ -1189,9 +1132,9 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 
 ## 09. Urutan migration & seeder
 
-1. `branches`, `roles`, `access_modules`, `role_permissions`, `users`, `therapist_availabilities`
-2. `services`, `sensory_quadrants`, `concern_tags`, `cancel_reasons`, `discharge_reasons`, `master_packages`
-3. `clients`, `client_services`, `client_concern_tags`, `client_documents`, `client_notes`, `client_status_histories`
+1. `branches`, `roles`, `access_modules`, `role_permissions`, `users`
+2. `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`
+3. `clients`, `client_services`, `client_documents`, `client_status_histories`
 4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`
 5. `invoices`, `payment_proofs`, `client_packages`
 6. `schedule_series`, `schedules`, `session_reports`
@@ -1201,7 +1144,7 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 10. Laravel bawaan: `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` (`php artisan cache:table`, `queue:table`, `session:table`)
 
 Seeder:
-- **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, concern_tags, cancel_reasons, discharge_reasons, master_packages, akun master awal.
+- **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, cancel_reasons, discharge_reasons, master_packages, akun master awal.
 - **Demo/staging**: konversi seed frontend (`frontend/src/data/*.seed.json`, `scripts/generate_demo_seed.py`) — tanggal relatif hari ini, ledger dibangun dari histori agar saldo konsisten.
 - Setelah seed demo: jalankan `credits:reconcile` sekali untuk memastikan saldo denormalisasi cocok dengan ledger.
 
@@ -1209,7 +1152,7 @@ Seeder:
 
 ## 10. Catatan implementasi Laravel
 
-- **Auth ganda**: guard `staff` (model `User`, Sanctum token) dan guard `client` (model `Client` sebagai `Authenticatable`, login dengan `client_access_code` + throttle). Token ability membedakan portal.
+- **Auth ganda**: guard `staff` (model `User`, Sanctum token) dan guard `client` (model `Client` sebagai `Authenticatable`, login dengan `client_access_code` + tanggal lahir anak + throttle). Token ability membedakan portal.
 - **Policy**: berbasis `role_permissions` (modul) + aturan aksi (mis. `SchedulePolicy::complete` hanya `master`/`admin_schedule`), selaras `frontend/src/domain/rbac.js` & `canManageSchedule`.
 - **Scope cabang**: global scope `BranchScope` pada model ber-`branch_id` untuk user non-master.
 - **Action class per use-case** (`CompleteSessionAction`, `CancelSessionAction`, `RevertSessionAction`, `VerifyPaymentAction`, `TransitionClientAction`) — padanan hook use-case frontend; semua aturan kredit mengikuti `frontend/src/domain/credit.js` (acuan test).

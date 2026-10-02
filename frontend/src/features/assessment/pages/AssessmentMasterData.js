@@ -230,6 +230,7 @@ export default function AssessmentMasterData() {
       code: genDialog.generatedCode,
       categoryId: targetCat.id,
       name: targetCat.categoryName,
+      status: "issued",
       issuedAt: new Date().toISOString(),
     };
 

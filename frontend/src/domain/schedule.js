@@ -4,12 +4,13 @@ import { uid } from "@/shared/lib/id";
 // Domain penjadwalan: jam kalender, alasan cancel, deteksi bentrok, dan generator jadwal berulang.
 // Aturan di sini adalah acuan untuk Service Laravel (lihat docs/guide/05 & 10).
 
-export const CANCEL_REASONS = [
+// Seed pilihan cepat alasan cancel (bisa diubah di Master Data). Alasan yang tersimpan di sesi adalah STRING:
+// `value` pilihan cepat atau teks bebas yang diketik user, tanpa relasi ke daftar ini.
+export const DEFAULT_CANCEL_REASONS = [
   { value: "sakit", label: "Sakit / Kondisi Medis" },
   { value: "izin_keluarga", label: "Izin / Keperluan Keluarga" },
   { value: "bentrok_sekolah", label: "Bentrok Jadwal Sekolah" },
   { value: "tanpa_kabar", label: "Tanpa Kabar (No Show)" },
-  { value: "lainnya", label: "Alasan Lainnya" },
 ];
 
 // Alasan sistem (tidak muncul di dropdown pembatalan biasa)
@@ -19,13 +20,32 @@ export const SYSTEM_CANCEL_REASONS = [
   { value: RESCHEDULE_DROPPED, label: "Reschedule tidak dilanjutkan (tanpa potong kredit)" },
 ];
 
-export const cancelReasonLabel = (val) => {
-  const found = CANCEL_REASONS.find((r) => r.value === val) || SYSTEM_CANCEL_REASONS.find((r) => r.value === val);
-  return found ? found.label : val || "—";
+// Kode lama sebelum ada opsi "ketik sendiri"; tetap terbaca di data lama.
+const LEGACY_CANCEL_LABELS = { lainnya: "Alasan Lainnya" };
+
+// `list` = daftar pilihan cepat dari Master Data. Tidak ditemukan → string apa adanya (teks custom).
+export const cancelReasonLabel = (val, list = DEFAULT_CANCEL_REASONS) => {
+  const found = list.find((r) => r.value === val) || SYSTEM_CANCEL_REASONS.find((r) => r.value === val);
+  return found ? found.label : LEGACY_CANCEL_LABELS[val] || val || "—";
 };
 
 // Sesi yang dibatalkan dari status "reschedule menggantung": tidak memotong kredit, tidak dihitung kuota cancel
 export const isCreditNeutralCancel = (s) => Boolean(s) && s.status === "cancelled" && s.cancelReason === RESCHEDULE_DROPPED;
+
+// Revert: sesi completed / cancelled kembali ke status sebelumnya; sesi rescheduled kembali ke slot asal.
+export const canRevertSession = (s) =>
+  Boolean(s) && (s.status === "completed" || s.status === "cancelled" || (s.status === "rescheduled" && Boolean(s.rescheduledFrom)));
+
+// Status tujuan revert: reschedule → scheduled (di slot asal); lainnya `previousStatus` bila tersimpan,
+// data lama (seed) ditebak dari jejak reschedule.
+export const restoreStatusOf = (s) => {
+  if (s.status === "rescheduled") return "scheduled";
+  if (s.previousStatus && s.previousStatus !== s.status) return s.previousStatus;
+  return s.rescheduledFrom ? "rescheduled" : "scheduled";
+};
+
+// Slot tujuan revert: reschedule → slot asal (`rescheduledFrom`); lainnya slot sesi saat ini.
+export const restoreSlotOf = (s) => (s.status === "rescheduled" && s.rescheduledFrom ? s.rescheduledFrom : scheduleSlot(s));
 
 // Slot waktu sebuah sesi (dipakai untuk jejak jadwal asal reschedule)
 export const scheduleSlot = (s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId });
@@ -59,35 +79,50 @@ export const timeToMin = (t) => {
 export const rangesOverlap = (s1, e1, s2, e2) =>
   timeToMin(s1) < timeToMin(e2) && timeToMin(s2) < timeToMin(e1);
 
+// Sesi yang ikut dihitung dalam bentrok: cancelled & reschedule_pending tidak memakai slot terapis.
+const occupiesTherapist = (s) => s.status !== "cancelled" && s.status !== "reschedule_pending";
+
+// Bentrok = terapis yang sama sudah handle client lain di jam yang overlap pada tanggal itu.
+// Tidak ada konsep jam kerja terapis.
 export function checkConflicts({ therapistId, date, startTime, endTime, schedules, therapists, excludeId }) {
   const issues = [];
   if (!therapistId || !date || !startTime || !endTime) return issues;
   const therapist = therapists.find((t) => t.id === therapistId);
-  let dayName = "";
-  try {
-    dayName = format(parseISO(date), "EEEE");
-  } catch (e) {
-    return issues;
-  }
-  if (therapist && therapist.availableSlots) {
-    const slots = therapist.availableSlots.filter((s) => s.day === dayName);
-    if (slots.length > 0 && !slots.some((s) => timeToMin(startTime) >= timeToMin(s.startTime) && timeToMin(endTime) <= timeToMin(s.endTime))) {
-      issues.push(`Di luar jam kerja ${therapist.name} hari ${dayName} (${slots.map((s) => `${s.startTime}–${s.endTime}`).join(", ")}).`);
-    }
-  }
   const clashes = schedules.filter(
     (s) =>
       s.id !== excludeId &&
       s.therapistId === therapistId &&
       s.date === date &&
-      s.status !== "cancelled" &&
-      s.status !== "reschedule_pending" &&
+      occupiesTherapist(s) &&
       rangesOverlap(startTime, endTime, s.startTime, s.endTime)
   );
   if (clashes.length > 0) {
-    issues.push(`${therapist ? therapist.name : "Terapis ini"} sudah memiliki ${clashes.length} jadwal bersamaan di jam tersebut.`);
+    issues.push(`${therapist ? therapist.name : "Terapis ini"} sudah menangani client lain di jam tersebut (${clashes.length} jadwal bersamaan).`);
   }
   return issues;
+}
+
+// Id semua sesi yang bentrok dengan sesi aktif lain milik terapis & tanggal yang sama (untuk penanda kalender).
+export function findTherapistClashIds(schedules) {
+  const ids = new Set();
+  const groups = new Map();
+  for (const s of schedules) {
+    if (!s.therapistId || !occupiesTherapist(s)) continue;
+    const key = `${s.therapistId}|${s.date}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(s);
+  }
+  for (const list of groups.values()) {
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        if (rangesOverlap(list[i].startTime, list[i].endTime, list[j].startTime, list[j].endTime)) {
+          ids.add(list[i].id);
+          ids.add(list[j].id);
+        }
+      }
+    }
+  }
+  return ids;
 }
 
 export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayConfigs = {}) {

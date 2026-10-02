@@ -53,13 +53,23 @@ export function newClientPackage({ packageId, packageName, credits }) {
   };
 }
 
-// Sesi therapy selesai: −1 kredit. Idempoten per scheduleId (tidak memotong dua kali).
+const REVERTIBLE_ACTIONS = ["used", "cancel_excused", "cancel_penalty"];
+
+// Mutasi sesi ini yang belum dibalik (belum ada baris `reversal` yang menunjuk id-nya).
+// Setelah revert lalu complete lagi, mutasi baru (id berbeda) menjadi mutasi aktif.
+export function findLiveSessionEntry(record, scheduleId, actions = REVERTIBLE_ACTIONS) {
+  const history = record?.history || [];
+  const reversed = new Set(history.filter((h) => h.action === "reversal").map((h) => h.reversesId));
+  return [...history].reverse().find((h) => h.scheduleId === scheduleId && actions.includes(h.action) && !reversed.has(h.id)) || null;
+}
+
+// Sesi therapy selesai: −1 kredit. Idempoten per scheduleId selama mutasi `used` belum dibalik.
 export function applySessionCompleted(record, { packageId, scheduleId, date }) {
   const packages = record.packages || [];
   if (packages.length === 0) return record;
   const idx = findPackageIndex(packages, packageId);
   if (idx === -1) return record;
-  if ((record.history || []).some((h) => h.scheduleId === scheduleId && h.action === "used")) return record;
+  if (findLiveSessionEntry(record, scheduleId, ["used"])) return record;
 
   const target = packages[idx];
   const nextPackages = [...packages];
@@ -127,6 +137,51 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
         creditChange: -1,
         cancelReason: reason,
         note: `Cancel ke-${cancelCount} (>${CANCEL_QUOTA}x) — Penalti memotong 1 kredit ${target.packageName}`,
+      }),
+    ],
+  };
+}
+
+// Batalkan efek kredit satu sesi (revert completed / cancel). Ledger append-only: baris lama tidak diubah,
+// koreksi = baris `reversal` yang menunjuk id baris asal (`reversesId`); satu baris hanya bisa dibalik sekali.
+//   used           → +1 kredit ke paket asal
+//   cancel_penalty → +1 kredit, kuota cancel −1
+//   cancel_excused → kuota cancel −1 (kredit tidak berubah)
+export function applySessionReverted(record, { scheduleId, date, reason }) {
+  const entry = findLiveSessionEntry(record, scheduleId);
+  if (!entry) return record;
+
+  const packages = record.packages || [];
+  const idx = packages.findIndex((p) => p.id === entry.packageId);
+  const refunds = entry.action !== "cancel_excused";
+  let nextPackages = packages;
+  if (refunds && idx !== -1) {
+    const pkg = packages[idx];
+    const remaining = Math.min(pkg.totalCredit, pkg.remainingCredit + 1);
+    nextPackages = [...packages];
+    nextPackages[idx] = {
+      ...pkg,
+      remainingCredit: remaining,
+      status: remaining > 0 ? "active" : pkg.status,
+      cancelCount: entry.action === "cancel_penalty" ? Math.max(0, (pkg.cancelCount || 0) - 1) : pkg.cancelCount,
+    };
+  }
+  const countsQuota = entry.action !== "used";
+  return {
+    ...record,
+    packages: nextPackages,
+    cancelCountTotal: countsQuota ? Math.max(0, (record.cancelCountTotal || 0) - 1) : record.cancelCountTotal,
+    history: [
+      ...(record.history || []),
+      historyEntry({
+        date: date || todayStr(),
+        scheduleId,
+        packageId: entry.packageId,
+        packageName: entry.packageName,
+        action: "reversal",
+        creditChange: refunds && idx !== -1 ? 1 : 0,
+        reversesId: entry.id,
+        note: `Dibatalkan (revert) — ${reason || "tanpa alasan"}`,
       }),
     ],
   };

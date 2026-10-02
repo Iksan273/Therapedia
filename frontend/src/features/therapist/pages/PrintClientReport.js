@@ -10,7 +10,7 @@ import { useCredits } from "@/stores/creditsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
-import { dischargeReasonLabel } from "@/domain/client";
+import { useMasterData } from "@/stores/masterDataStore";
 import { format } from "date-fns";
 
 const Section = ({ title, children }) => (
@@ -38,6 +38,7 @@ export default function PrintClientReport() {
   const { getRecordForClient } = useCredits();
   const { getCategory } = useAssessments();
   const { getTherapist } = useTherapists();
+  const { getDischargeReasonLabel } = useMasterData();
 
   const client = clients.find((c) => c.id === id);
   const record = client ? getRecordForClient(client.id) : null;
@@ -121,15 +122,15 @@ export default function PrintClientReport() {
               <InfoItem label="Clinical Service Type" value={client.serviceType ? <StatusBadge status={client.serviceType} /> : "\u2014"} />
               <InfoItem label="Portal Access Code" value={<span className="font-mono font-bold text-sky-800">#{client.clientAccessCode}</span>} />
             </div>
-            {client.parentComplaint && (
+            {client.intakeNote && (
               <div className="rounded-xl print:rounded-none bg-amber-50/70 print:bg-white print:border print:border-slate-200 border border-amber-200/80 p-3.5 mt-2">
-                <p className="text-[11px] text-amber-800 print:text-slate-500 font-bold uppercase tracking-wider mb-1">Parent Chief Concern at Intake</p>
-                <p className="text-xs text-slate-700 leading-relaxed font-medium" data-testid="print-report-complaint">{client.parentComplaint}</p>
+                <p className="text-[11px] text-amber-800 print:text-slate-500 font-bold uppercase tracking-wider mb-1">Intake Notes</p>
+                <p className="text-xs text-slate-700 leading-relaxed font-medium" data-testid="print-report-intake-note">{client.intakeNote}</p>
               </div>
             )}
             {client.dateOfDischarge && (
               <p className="text-xs text-slate-500 bg-slate-100 p-3 rounded-xl border border-slate-200 mt-2 font-medium">
-                <strong>{client.status === "discharged" ? "Discharged" : "Discontinued"}</strong> on {fmtDate(client.dateOfDischarge)} · Reason: {dischargeReasonLabel(client.dischargeReason)}
+                <strong>{client.status === "discharged" ? "Discharged" : "Discontinued"}</strong> on {fmtDate(client.dateOfDischarge)} · Reason: {getDischargeReasonLabel(client.dischargeReason)}
                 {client.dischargeNote ? ` \u2014 Note: ${client.dischargeNote}` : ""}
               </p>
             )}
@@ -137,18 +138,12 @@ export default function PrintClientReport() {
 
           {/* Assessment */}
           <Section title="Developmental Assessment">
-            {!category && !client.assessmentReportNote ? (
+            {!category ? (
               <p className="text-xs text-slate-400 italic">No formal developmental assessment on record.</p>
             ) : (
               <div className="space-y-3">
                 {category && (
                   <InfoItem label="Assessment Tool / Category" value={category.categoryName} />
-                )}
-                {client.assessmentReportNote && (
-                  <div className="rounded-xl print:rounded-none bg-sky-50/60 print:bg-white print:border print:border-slate-200 border border-sky-200/80 p-3.5">
-                    <p className="text-[11px] font-bold text-sky-900 uppercase tracking-wider mb-1">Therapist Clinical Summary</p>
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium" data-testid="print-report-note">{client.assessmentReportNote}</p>
-                  </div>
                 )}
                 {client.assessmentAnswers && client.assessmentAnswers.length > 0 && category && (() => {
                   const allQuestions = category.questions || (category.sections ? category.sections.flatMap((s) => s.questions || []) : []);

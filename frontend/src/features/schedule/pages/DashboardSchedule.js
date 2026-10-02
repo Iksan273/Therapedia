@@ -13,6 +13,7 @@ import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useAuth } from "@/stores/authStore";
+import { useMasterData } from "@/stores/masterDataStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { BRANCHES, branchName } from "@/domain/branch";
 import { isCreditNeutralCancel } from "@/domain/schedule";
@@ -30,6 +31,7 @@ export default function DashboardSchedule() {
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { therapists } = useTherapists();
+  const { cancelReasons } = useMasterData();
   const { activeBranch, auth } = useAuth();
   const isMaster = auth?.role === "master";
 
@@ -110,32 +112,19 @@ export default function DashboardSchedule() {
 
   // Cancellation Breakdown by Reason
   const cancellationByReasonData = useMemo(() => {
-    const reasonCounts = {
-      sakit: 0,
-      izin_keluarga: 0,
-      bentrok_sekolah: 0,
-      tanpa_kabar: 0,
-      lainnya: 0,
-    };
+    // Pilihan cepat dihitung per kode; teks yang diketik sendiri (dan kode lama "lainnya") dikelompokkan ke "Lainnya"
+    const counts = Object.fromEntries(cancelReasons.map((r) => [r.value, 0]));
+    let other = 0;
 
     filteredSchedules.forEach((s) => {
       if (s.status === "cancelled" && s.cancelReason && !isCreditNeutralCancel(s)) {
-        if (reasonCounts[s.cancelReason] !== undefined) {
-          reasonCounts[s.cancelReason] += 1;
-        } else {
-          reasonCounts.lainnya += 1;
-        }
+        if (counts[s.cancelReason] !== undefined) counts[s.cancelReason] += 1;
+        else other += 1;
       }
     });
 
-    return [
-      { name: "Sakit / Medis", value: reasonCounts.sakit },
-      { name: "Izin Keluarga", value: reasonCounts.izin_keluarga },
-      { name: "Bentrok Sekolah", value: reasonCounts.bentrok_sekolah },
-      { name: "Tanpa Kabar (No Show)", value: reasonCounts.tanpa_kabar },
-      { name: "Lainnya", value: reasonCounts.lainnya },
-    ].filter((item) => item.value > 0);
-  }, [filteredSchedules]);
+    return [...cancelReasons.map((r) => ({ name: r.label, value: counts[r.value] })), { name: "Lainnya", value: other }].filter((item) => item.value > 0);
+  }, [filteredSchedules, cancelReasons]);
 
   // Birthday Radar (active clients with birthday this month)
   const birthdayClients = useMemo(() => {

@@ -26,6 +26,8 @@ import { OutcomeCard } from "@/features/inquiry/components/clientDetail/OutcomeC
 import { DiscontinueDialog } from "@/features/inquiry/components/clientDetail/DiscontinueDialog";
 import { advanceStatus } from "@/domain/client";
 import { useClientOutcomeActions } from "@/features/inquiry/hooks/useClientOutcomeActions";
+import { useQuestionnaireCodeActions } from "@/features/inquiry/hooks/useQuestionnaireCodeActions";
+import { useConfirm } from "@/shared/components/ConfirmDialog";
 
 export default function ClientDetailInquiry() {
   const { id } = useParams();
@@ -34,6 +36,8 @@ export default function ClientDetailInquiry() {
   const { schedules } = useSchedules();
   const { getInvoicesForClient, getRecordForClient } = useCredits();
   const outcomeActions = useClientOutcomeActions();
+  const codeActions = useQuestionnaireCodeActions();
+  const { confirm, confirmDialog } = useConfirm();
   const { categories } = useAssessments();
   const { services, getService } = useMasterData();
   const { getTherapist } = useTherapists();
@@ -74,6 +78,7 @@ export default function ClientDetailInquiry() {
       parentName: client.parentName || "",
       parentContact: client.parentContact || "",
       parentEmail: client.parentEmail || "",
+      intakeNote: client.intakeNote || "",
       branchId: client.branchId || "branch-sby-timur",
     });
     setEditIntakeOpen(true);
@@ -92,6 +97,7 @@ export default function ClientDetailInquiry() {
       parentName: editIntakeForm.parentName.trim(),
       parentContact: editIntakeForm.parentContact.trim(),
       parentEmail: editIntakeForm.parentEmail.trim(),
+      intakeNote: (editIntakeForm.intakeNote || "").trim() || null,
       branchId: editIntakeForm.branchId,
       updatedAt: new Date().toISOString(),
     });
@@ -164,6 +170,7 @@ export default function ClientDetailInquiry() {
         code: newCode,
         categoryId: selectedCat.id,
         name: selectedCat.categoryName,
+        status: "issued",
         createdAt: todayStr(),
       },
     ];
@@ -174,6 +181,18 @@ export default function ClientDetailInquiry() {
     });
 
     toast.success(`Kode kuesioner baru '${newCode}' (${selectedCat.categoryName}) berhasil dibuat!`);
+  };
+
+  // STEP 3b: Hapus kode kuesioner yang belum diisi ortu (hanya tercatat di audit log)
+  const handleDeleteQuestionnaireCode = async (item) => {
+    const ok = await confirm({
+      title: "Hapus kode kuesioner?",
+      description: `Kode ${item.code} (${item.name || "kuesioner"}) belum diisi ortu. Setelah dihapus, kode tidak bisa dipakai lagi. Penghapusan tercatat di audit log.`,
+    });
+    if (!ok) return;
+    const result = codeActions.deleteCode(client, item);
+    if (result.deleted) toast.success(`Kode ${item.code} dihapus.`);
+    else toast.error("Kode ini sudah diisi ortu sehingga tidak bisa dihapus.");
   };
 
   // STEP 6: Save GDrive Client Link
@@ -213,6 +232,7 @@ export default function ClientDetailInquiry() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto" data-testid="client-detail-inquiry-page">
+      {confirmDialog}
       {/* Top Breadcrumb & Actions */}
       <ClientDetailHeader br={br} client={client} navigate={navigate} />
 
@@ -228,7 +248,7 @@ export default function ClientDetailInquiry() {
         <ServiceSelectionCard getService={getService} handleToggleService={handleToggleService} selectedServices={selectedServices} services={services} />
 
         {/* STEP 3: QUESTIONNAIRE CODE GENERATOR (MULTI-CODE) */}
-        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
+        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
 
         {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
         <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={setScheduleModalOpen} />

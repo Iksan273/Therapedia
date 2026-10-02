@@ -213,7 +213,11 @@ export default function AssessmentFill() {
       },
     ];
 
+    const usedCode = codeInput.trim().toUpperCase();
     updateClient(client.id, {
+      assessmentCodes: (client.assessmentCodes || []).map((c) =>
+        c.code && c.code.toUpperCase() === usedCode ? { ...c, status: "submitted", submittedAt: new Date().toISOString() } : c
+      ),
       assessmentAnswers: updatedAnswers,
       status: advanceStatus(client.status, "assessment_done"),
     });

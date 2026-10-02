@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, ClipboardList } from "lucide-react";
 import { Input } from "@/shared/ui/input";
+import { Textarea } from "@/shared/ui/textarea";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
@@ -54,6 +55,7 @@ export default function InquiryPipeline() {
     parentContact: "",
     parentEmail: "",
     dob: "",
+    intakeNote: "",
     branchId: auth?.branchId || "branch-sby-timur",
   });
 
@@ -141,6 +143,7 @@ export default function InquiryPipeline() {
       parentContact: "",
       parentEmail: "",
       dob: "",
+      intakeNote: "",
       branchId: "branch-sby-timur",
     });
 
@@ -298,6 +301,17 @@ export default function InquiryPipeline() {
                 value={newForm.parentEmail}
                 onChange={(e) => setNewForm({ ...newForm, parentEmail: e.target.value })}
                 data-testid="intake-parent-email"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Catatan Intake (opsional)</Label>
+              <Textarea
+                className="border-slate-200 bg-slate-50 text-xs min-h-[70px]"
+                placeholder="Keluhan utama orang tua, sumber rujukan, atau catatan awal lain..."
+                value={newForm.intakeNote}
+                onChange={(e) => setNewForm({ ...newForm, intakeNote: e.target.value })}
+                data-testid="intake-note"
               />
             </div>
 

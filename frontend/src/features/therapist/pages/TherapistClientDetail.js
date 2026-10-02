@@ -226,21 +226,10 @@ export default function TherapistClientDetail() {
             </div>
           </div>
 
-          {client.parentComplaint && (
-            <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5" data-testid="therapist-client-complaint">
-              <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1">
-                Keluhan Utama Orang Tua (Parent Chief Concern)
-              </p>
-              <p className="text-xs text-slate-700 leading-relaxed font-medium">{client.parentComplaint}</p>
-            </div>
-          )}
-
-          {client.assessmentReportNote && (
-            <div className="rounded-xl bg-sky-50/60 border border-sky-200/80 p-3.5 space-y-1">
-              <p className="text-[11px] font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-sky-600" /> Ringkasan Asesmen Klinis
-              </p>
-              <p className="text-xs text-slate-700 leading-relaxed font-medium">{client.assessmentReportNote}</p>
+          {client.intakeNote && (
+            <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5" data-testid="therapist-client-intake-note">
+              <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1">Catatan Intake</p>
+              <p className="text-xs text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{client.intakeNote}</p>
             </div>
           )}
 

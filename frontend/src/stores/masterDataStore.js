@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
-import { INTAKE_SERVICES } from "@/domain/client";
+import { DEFAULT_DISCHARGE_REASONS, INTAKE_SERVICES, dischargeReasonLabel } from "@/domain/client";
+import { DEFAULT_CANCEL_REASONS, cancelReasonLabel } from "@/domain/schedule";
 
 const MasterDataContext = createContext(null);
 
@@ -99,6 +100,8 @@ const SEED_QUADRANTS = [
 
 const seedServices = () => INTAKE_SERVICES.map((s) => ({ ...s, active: true }));
 const seedQuadrants = () => SEED_QUADRANTS.map((q) => ({ ...q }));
+const seedCancelReasons = () => DEFAULT_CANCEL_REASONS.map((r) => ({ ...r, active: true }));
+const seedDischargeReasons = () => DEFAULT_DISCHARGE_REASONS.map((r) => ({ ...r, active: true }));
 
 // Reducer generik untuk daftar master yang dikunci oleh `idKey`.
 const makeListReducer = (idKey) => (state, action) => {
@@ -116,10 +119,13 @@ const makeListReducer = (idKey) => (state, action) => {
 
 const servicesReducer = makeListReducer("value");
 const quadrantsReducer = makeListReducer("code");
+const reasonsReducer = makeListReducer("value");
 
 export const MasterDataProvider = ({ children }) => {
   const [services, dispatchServices] = usePersistentReducer("master_services", servicesReducer, seedServices);
   const [quadrants, dispatchQuadrants] = usePersistentReducer("master_quadrants", quadrantsReducer, seedQuadrants);
+  const [cancelReasons, dispatchCancel] = usePersistentReducer("master_cancel_reasons", reasonsReducer, seedCancelReasons);
+  const [dischargeReasons, dispatchDischarge] = usePersistentReducer("master_discharge_reasons", reasonsReducer, seedDischargeReasons);
 
   const value = useMemo(() => {
     const quadrantMap = Object.fromEntries(quadrants.map((q) => [q.code, q]));
@@ -138,8 +144,23 @@ export const MasterDataProvider = ({ children }) => {
       addQuadrant: (item) => dispatchQuadrants({ type: "ADD", item }),
       updateQuadrant: (id, patch) => dispatchQuadrants({ type: "UPDATE", id, patch }),
       deleteQuadrant: (id) => dispatchQuadrants({ type: "DELETE", id }),
+
+      // Pilihan cepat alasan. Data transaksi menyimpan string (code atau teks custom), bukan relasi ke daftar ini.
+      cancelReasons,
+      activeCancelReasons: cancelReasons.filter((r) => r.active !== false),
+      getCancelReasonLabel: (val) => cancelReasonLabel(val, cancelReasons),
+      addCancelReason: (item) => dispatchCancel({ type: "ADD", item }),
+      updateCancelReason: (id, patch) => dispatchCancel({ type: "UPDATE", id, patch }),
+      deleteCancelReason: (id) => dispatchCancel({ type: "DELETE", id }),
+
+      dischargeReasons,
+      activeDischargeReasons: dischargeReasons.filter((r) => r.active !== false),
+      getDischargeReasonLabel: (val) => dischargeReasonLabel(val, dischargeReasons),
+      addDischargeReason: (item) => dispatchDischarge({ type: "ADD", item }),
+      updateDischargeReason: (id, patch) => dispatchDischarge({ type: "UPDATE", id, patch }),
+      deleteDischargeReason: (id) => dispatchDischarge({ type: "DELETE", id }),
     };
-  }, [services, quadrants, dispatchServices, dispatchQuadrants]);
+  }, [services, quadrants, cancelReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchDischarge]);
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
 };

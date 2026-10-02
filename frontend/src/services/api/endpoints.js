@@ -22,7 +22,6 @@ export const ENDPOINTS = {
   },
   therapists: {
     list: "/therapists",
-    availabilities: (id) => `/therapists/${id}/availabilities`,
   },
   clients: {
     list: "/clients",

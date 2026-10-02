@@ -18,7 +18,6 @@ Diperbarui 2026-10-02 setelah restrukturisasi enterprise. Hapus baris yang sudah
 | B5 | `shared/lib/id.js` `genCode` | Kode `TDC-`/`ASM-` acak 4 karakter tanpa cek unik | Potensi duplikat di demo; backend wajib UNIQUE (`schema.md`) |
 | I1 | Status invoice | Prototype hanya `unpaid`/`paid`; bukti terunggah tetap `unpaid` | Diselaraskan saat integrasi (lihat 10) |
 | I2 | Bukti bayar | Disimpan dataURL di localStorage | Mudah melewati kuota ~5MB; fase API pakai upload multipart |
-| I3 | Revert sesi | Belum ada UI "batalkan completed/cancel" | Backend sudah dirancang (`schema.md` §06.3) |
 | I4 | Audit | Mode demo baru mencatat aksi sesi (`useSessionActions`) & outcome client (`useClientOutcomeActions`). Intake, kuesioner, invoice, RBAC, user belum tercatat live (hanya dummy) | Backend mencatat semua aksi (`schema.md` §05); di demo tambahkan `useAuditLogger` bila perlu |
 
 ## Inkonsistensi data

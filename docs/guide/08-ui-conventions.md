@@ -17,7 +17,7 @@ button, card, dialog, sheet, drawer, select, tabs, table, popover, calendar, too
 ### `shared/components/*.js`: komponen app yang wajib dipakai ulang
 | Komponen | Kegunaan |
 |---|---|
-| `StatusBadge`, `ConcernTag` | badge status/tag dari `STATUS_META` / `CONCERN_TAGS` |
+| `StatusBadge` | badge status dari `STATUS_META` |
 | `EmptyState` | state kosong, selalu dengan langkah berikutnya |
 | `useConfirm()` (`ConfirmDialog.js`) | pengganti `window.confirm`; `const { confirm, confirmDialog } = useConfirm()` |
 | `FilterBar`, `FilterField`, `SearchInput` | bar filter list |

@@ -7,13 +7,15 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 
 | Key | Store | Bentuk | Tabel target (`schema.md` v2) |
 |---|---|---|---|
-| `clients` | `clientsStore` | `Client[]` | `clients`, `client_services`, `client_documents`, `client_notes`, `assessment_access_codes`, `assessment_responses`, `assessment_answers` |
+| `clients` | `clientsStore` | `Client[]` | `clients`, `client_services`, `client_documents`, `assessment_access_codes`, `assessment_responses`, `assessment_answers` |
 | `schedules` | `schedulesStore` | `Schedule[]` | `schedules`, `schedule_series`, `session_reports` |
 | `credits` | `creditsStore` | `{ masterPackages, records, invoices, renewals }` | `master_packages`, `client_packages`, `credit_ledger`, `invoices`, `payment_proofs` |
-| `therapists` | `therapistsStore` | `Therapist[]` (read-only) | `users` (role therapist) + `therapist_availabilities` |
+| `therapists` | `therapistsStore` | `Therapist[]` (read-only) | `users` (role therapist) |
 | `assessment_categories` | `assessmentsStore` | `Category[]` | `assessment_categories`, `assessment_sections`, `assessment_questions` |
 | `master_services` | `masterDataStore` | `Service[]` (key `value`) | `services` |
 | `master_quadrants` | `masterDataStore` | `Quadrant[]` (key `code`) | `sensory_quadrants` |
+| `master_cancel_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `cancel_reasons` (tanpa FK) |
+| `master_discharge_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `discharge_reasons` (tanpa FK) |
 | `auth`, `activeBranch`, `staffUsers`, `rolesList`, `rbacPermissions` | `authStore` | lihat 02 | `users`, `roles`, `role_permissions`, `access_modules`, `branches` |
 | `audit_logs` | `auditStore` | `AuditEntry[]` (terbaru dulu, append-only) | `audit_logs` |
 | `therapedia_seed_version` (tanpa prefix) | `data/seedRegistry.js` | string | — |
@@ -26,20 +28,19 @@ Dibuat oleh `makeInquiryClient(form)` di `domain/client.js`.
 | `id` | string | `uid()`; seed memakai `c-001` dst. |
 | `branchId` | string | id cabang |
 | `status` | enum | lihat **Status client** |
-| `clientName`, `gender`, `dob` | string | `dob` = `yyyy-MM-dd` |
+| `clientName`, `gender`, `dob` | string | `clientName` = nama lengkap (tanpa nama panggilan); `dob` = `yyyy-MM-dd` |
 | `parentName`, `parentContact`, `parentEmail` | string | `parentContact` = nomor WhatsApp |
-| `clientAccessCode` | string | `TDC-XXXX`, dipakai login portal ortu |
+| `clientAccessCode` | string | `TDC-XXXX`, dipakai login portal ortu (fase API: kode + tanggal lahir anak sebagai verifikasi kedua) |
 | `serviceTypes` | string[] | layanan terpilih (multi). **Pakai `getClientServiceIds(client)`** |
 | `serviceType` | string | legacy single = `serviceTypes[0]` |
-| `includesSchoolCompanion` | bool | *opsional* |
 | `assessmentCodes` | `{ code, categoryId, name/categoryName, createdAt, status? }[]` | kode kuesioner `ASM-XXXX` |
 | `assessmentAnswers` | `{ categoryId, categoryName, submittedAt?, answers: Answer[] }[]` | satu entry per kategori (submit ulang = replace) |
 | `Answer` | `{ questionId, itemNo, quadrant, domain, question, answer, score }` | `score` diambil dari angka di awal jawaban |
-| `assessmentReportNote` | string \| null | |
+| `intakeNote` | string \| null | catatan saat intake (input di New Intake / Edit Intake; tampil di Client Detail, portal terapis, dan laporan cetak) |
 | `gdriveClientLink` | string \| null | |
 | `finalOutcome` | enum \| null | `admitted` / `done_consult` / `done_assessment` / `discontinued` |
 | `dateOfJoin`, `dateOfDischarge` | `yyyy-MM-dd` \| null | |
-| `dischargeReason`, `dischargeNote` | string \| null | reason = `DISCHARGE_REASONS[].value` |
+| `dischargeReason`, `dischargeNote` | string \| null | reason = **string bebas**: `value` pilihan cepat (Master Data) atau teks yang diketik user ("Lainnya"); tanpa relasi/FK |
 | `createdAt`, `updatedAt` | ISO | `updateClient` otomatis set `updatedAt` |
 
 **Status client** (`PIPELINE_STATUSES` + `discharged`):
@@ -58,13 +59,14 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `status` | enum | `scheduled`, `completed`, `cancelled`, `rescheduled`, `reschedule_pending` |
 | `creditPackageId` | string \| null | id item paket di `credits.records[].packages[]` |
 | `isRecurring`, `recurrenceRule` | bool, string | `none`, `weekly`, `weekly_Monday,Thursday`, `single_week` |
-| `cancelReason` | string \| null | `CANCEL_REASONS[].value` atau `RESCHEDULE_DROPPED` |
+| `cancelReason` | string \| null | **string bebas**: `value` pilihan cepat (Master Data), teks custom, atau `RESCHEDULE_DROPPED` (alasan sistem); `pendingReason` sama |
 | `notes` | string \| null | |
 | `activitySection`, `noteSection`, `homeworkSection` | string | laporan sesi 3 bagian (Activity / SOAP note / Homework) |
 | `progressNote` | string | duplikat `noteSection` (legacy sync) |
 | `reportUpdatedAt` | ISO | |
 | `rescheduledFrom` `{date,startTime,endTime,therapistId}`, `rescheduledAt` | | jejak slot asal (lihat `scheduleSlot()`) |
 | `pendingFrom`, `pendingAt`, `pendingReason`, `pendingNote` | | hanya saat `reschedule_pending` |
+| `previousStatus` | string \| null | status sebelum transisi terakhir (complete/cancel/drop); dipakai revert. Data lama tanpa field ini → `restoreStatusOf` |
 
 ## Credits (`credits`)
 ```
@@ -73,7 +75,7 @@ credits = {
   records: [{
     id, clientId, branchId, cancelCountTotal,
     packages: [{ id /*cp-...*/, packageId /*pkg-...*/, packageName, totalCredit, remainingCredit, cancelCount, status /*active|depleted*/ }],
-    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, note }]
+    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, note }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal)
   }],
   invoices: [{ id, invoiceNumber, clientId, clientName, branchId, packageId, packageName, amount, status /*unpaid|paid*/,
                proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, createdAt, issuedAt?, paidAt }],
@@ -82,14 +84,14 @@ credits = {
 ```
 - `history.action`: `used` (−1), `cancel_excused` (0), `cancel_penalty` (−1), `renewed` (+N).
 - Satu client punya **satu record** dan **banyak paket**. Sisa kredit total = jumlah `remainingCredit` semua paket (`summarizeCreditRecord` di `domain/credit.js`, dipakai `getRecordForClient`; juga memberi `leaveQuota: CANCEL_QUOTA` = 3).
-- Aturan mutasi (pure, ber-test): `applySessionCompleted`, `applySessionCancelled`, `applyPackageAdded`, `newClientPackage`, `newCreditRecord`, `nextInvoiceNumber` di `domain/credit.js`.
+- Aturan mutasi (pure, ber-test): `applySessionCompleted`, `applySessionCancelled`, `applySessionReverted`, `findLiveSessionEntry`, `applyPackageAdded`, `newClientPackage`, `newCreditRecord`, `nextInvoiceNumber` di `domain/credit.js`.
 - **Frozen** = sisa kredit total 0. Ini status turunan (tidak disimpan), ditampilkan di kalender dan detail client.
 
 ## Audit log (`audit_logs[]`)
 `{ id, occurredAt, batchId, actorType /*user|client|public|system*/, actorId, actorName, actorRole, branchId /*null = global*/, action /*entity.verb*/, entityType, entityId, entityLabel, subjectType, subjectId, subjectLabel, oldValues, newValues, meta, reason, revertsAuditId, source, ipAddress, userAgent }` — sama dengan kolom `audit_logs` di `schema.md` §05 (camelCase).
 
 ## Therapist (`therapists[]`)
-`{ id /*t-001*/, name, specialty, branchId, availableSlots: [{ day /*Monday..*/, startTime, endTime }] }`
+`{ id /*t-001*/, name, specialty, branchId }`
 Akun login terapis ada di `staffUsers` (`authStore`, seed `data/staffUsers.seed.json`) dan dihubungkan lewat `therapistId`.
 
 ## Assessment category (`assessment_categories[]`)
@@ -105,8 +107,8 @@ Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `Assessme
 |---|---|
 | `domain/branch.js` | `BRANCHES`, `branchName` |
 | `domain/status.js` | `STATUS_META` (label + kelas warna semua status) |
-| `domain/client.js` | `PIPELINE_STATUSES`, `PIPELINE_FLOW`, `advanceStatus`, `CONCERN_TAGS`, `INTAKE_SERVICES` (+ alias legacy), `DISCHARGE_REASONS`, `dischargeReasonLabel`, `makeInquiryClient`, `getClientServiceIds` |
-| `domain/schedule.js` | `CANCEL_REASONS`, `RESCHEDULE_DROPPED`, `SYSTEM_CANCEL_REASONS`, `cancelReasonLabel`, `isCreditNeutralCancel`, `scheduleSlot`, `getOriginSlot`, `buildReportPatch`, `CLEAR_PENDING_PATCH`, `CALENDAR_DAYS`, `CALENDAR_HOURS`, `TIME_OPTIONS`, `WEEKDAY_OPTIONS`, `timeToMin`, `rangesOverlap`, `checkConflicts`, `buildRecurringSchedules`, `SCHEDULE_MANAGER_ROLES`, `canManageSchedule` |
+| `domain/client.js` | `PIPELINE_STATUSES`, `PIPELINE_FLOW`, `advanceStatus`, `INTAKE_SERVICES` (+ alias legacy), `DEFAULT_DISCHARGE_REASONS` (seed pilihan cepat), `dischargeReasonLabel(value, list?)`, `makeInquiryClient`, `getClientServiceIds` |
+| `domain/schedule.js` | `DEFAULT_CANCEL_REASONS` (seed pilihan cepat), `RESCHEDULE_DROPPED`, `SYSTEM_CANCEL_REASONS`, `cancelReasonLabel(val, list?)`, `isCreditNeutralCancel`, `scheduleSlot`, `getOriginSlot`, `buildReportPatch`, `CLEAR_PENDING_PATCH`, `CALENDAR_DAYS`, `CALENDAR_HOURS`, `TIME_OPTIONS`, `WEEKDAY_OPTIONS`, `timeToMin`, `rangesOverlap`, `checkConflicts`, `findTherapistClashIds`, `buildRecurringSchedules`, `SCHEDULE_MANAGER_ROLES`, `canManageSchedule`, `canRevertSession`, `restoreStatusOf` |
 | `domain/credit.js` | `DEFAULT_MASTER_PACKAGES`, `formatPackageName`, `CANCEL_QUOTA` + aturan mutasi kredit (lihat di atas) |
 | `domain/rbac.js` | `ACCESS_MODULES`, `DEFAULT_ROLES`, `DEFAULT_PERMISSIONS`, `SYSTEM_ROLE_IDS`, `isSystemRole`, `roleHasPermission`, `withDefaultPermissions` |
 | `domain/audit.js` | `AUDIT_CATEGORIES`, `AUDIT_ACTIONS`, `auditActionMeta`, `auditCategoryLabel`, `buildAuditEntry`, `auditChanges`, `indexReverts`, `auditInBranch`, `newAuditBatchId` |
@@ -133,5 +135,5 @@ Tabel lengkap ada di `schema.md` bagian 08. Yang paling sering dipakai:
 | `credits.records[].packages[]` | `client_packages` | |
 | `credits.records[].history[]` | `credit_ledger` (append-only) | |
 | `credits.records[].cancelCountTotal` | `clients.cancel_count_total` | |
-| `therapists[]` + `staffUsers[]` | `users` (+ `therapist_availabilities`) | |
+| `therapists[]` + `staffUsers[]` | `users` | |
 | camelCase | snake_case | dikonversi otomatis oleh `services/http/httpClient.js` |

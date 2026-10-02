@@ -22,6 +22,7 @@ import { useTherapists } from "@/stores/therapistsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useMasterData } from "@/stores/masterDataStore";
+import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { TIME_OPTIONS, WEEKDAY_OPTIONS, buildRecurringSchedules, checkConflicts, timeToMin } from "@/domain/schedule";
 import { todayStr, uid } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
@@ -37,8 +38,9 @@ export const AddScheduleModal = ({
   const { clients } = useClients();
   const { activeServices } = useMasterData();
   const { therapists } = useTherapists();
-  const { schedules, addSchedule, addSchedules } = useSchedules();
+  const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
+  const sessionActions = useSessionActions();
 
   // Stable primitives extracted from defaults / props to prevent infinite re-render loops
   const defaultsClientId = defaults?.clientId || defaultClientId || "";
@@ -227,8 +229,9 @@ export const AddScheduleModal = ({
         activitySection: "",
         homeworkSection: "",
       };
-      addSchedule(singleBase);
+      const { assessmentScheduled } = sessionActions.createSessions([singleBase]);
       createdList.push(singleBase);
+      if (assessmentScheduled) toast.info(`${selectedClient?.clientName || "Client"} otomatis beralih ke tahap "Asesmen Terjadwal".`);
       toast.success(`${isAssessmentType ? "Sesi asesmen" : "Sesi terapi"} berhasil dijadwalkan untuk ${date}.`);
     } else {
       // Multi-day pattern (therapy only)
@@ -255,7 +258,7 @@ export const AddScheduleModal = ({
       };
 
       const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs);
-      addSchedules(schedulesList);
+      sessionActions.createSessions(schedulesList);
       createdList.push(...schedulesList);
 
       if (isRecurring) {

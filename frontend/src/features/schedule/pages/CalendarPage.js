@@ -10,7 +10,7 @@ import {
   ListChecks,
   Plus,
   XCircle,
-  CalendarDays, Hourglass } from "lucide-react";
+  CalendarDays, Hourglass, Undo2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -30,11 +30,13 @@ import { WeeklyCalendar, CalendarLegend } from "@/features/schedule/components/c
 import { DayAgenda } from "@/features/schedule/components/calendar/DayAgenda";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
+import { BulkRevertDialog } from "@/features/schedule/components/calendar/BulkRevertDialog";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useCredits } from "@/stores/creditsStore";
-import { CLEAR_PENDING_PATCH, cancelReasonLabel, getOriginSlot, scheduleSlot } from "@/domain/schedule";
+import { useMasterData } from "@/stores/masterDataStore";
+import { CLEAR_PENDING_PATCH, getOriginSlot, scheduleSlot } from "@/domain/schedule";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
@@ -45,6 +47,7 @@ export default function CalendarPage() {
   const { clients } = useClients();
   const { therapists } = useTherapists();
   const { getRecordForClient } = useCredits();
+  const { getCancelReasonLabel } = useMasterData();
 
   // Mobile defaults to day agenda, desktop to weekly grid
   const [view, setView] = useState(() =>
@@ -62,6 +65,7 @@ export default function CalendarPage() {
   const [selectedSessionIds, setSelectedSessionIds] = useState([]);
   const [bulkRescheduleOpen, setBulkRescheduleOpen] = useState(false);
   const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
+  const [bulkRevertOpen, setBulkRevertOpen] = useState(false);
 
   // Bulk Reschedule form states
   const [bulkTargetDate, setBulkTargetDate] = useState("");
@@ -206,6 +210,20 @@ export default function CalendarPage() {
     clearSelection();
   };
 
+  // Bulk Action: Revert (batalkan completed / cancel / reschedule). Sesi yang slot-nya terisi dilewati.
+  const handleBulkRevertConfirm = (reason) => {
+    const result = sessionActions.bulkRevert(selectedSessionIds, { reason });
+    const parts = [`${result.reverted} sesi di-revert`];
+    if (result.creditChange > 0) parts.push(`+${result.creditChange} kredit dikembalikan`);
+    if (result.reverted > 0) toast.success(`${parts.join(", ")}.`);
+    const conflicts = result.skipped.filter((x) => x.cause === "conflict").length;
+    const statusSkips = result.skipped.length - conflicts;
+    if (conflicts > 0) toast.warning(`${conflicts} sesi dilewati karena slot-nya sudah terisi sesi lain.`);
+    if (statusSkips > 0) toast.info(`${statusSkips} sesi dilewati karena statusnya tidak bisa di-revert.`);
+    if (result.reverted === 0 && result.skipped.length === 0) toast.info("Tidak ada sesi yang di-revert.");
+    clearSelection();
+  };
+
   // Bulk Action: Cancel Confirm. "leave" = masuk kuota cancel client; "other" = tanpa perubahan kredit.
   const handleBulkCancelConfirm = () => {
     if (selectedSessionIds.length === 0) return;
@@ -333,6 +351,16 @@ export default function CalendarPage() {
               data-testid="bulk-cancel-button"
             >
               <XCircle className="w-3.5 h-3.5" /> Bulk Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 bg-white text-violet-700 hover:text-violet-800 border-violet-200 hover:bg-violet-50 font-semibold"
+              disabled={selectedSessionIds.length === 0}
+              onClick={() => setBulkRevertOpen(true)}
+              data-testid="bulk-revert-button"
+            >
+              <Undo2 className="w-3.5 h-3.5" /> Bulk Revert
             </Button>
           </div>
         </div>
@@ -486,7 +514,7 @@ export default function CalendarPage() {
                     <span className="block text-xs font-bold text-slate-900 truncate">{getClientName(s.clientId)}</span>
                     <span className="block text-[11px] text-slate-500 truncate">
                       Asal {fmtDate(s.date)} • {s.startTime}–{s.endTime}
-                      {s.pendingReason ? ` • ${cancelReasonLabel(s.pendingReason)}` : ""}
+                      {s.pendingReason ? ` • ${getCancelReasonLabel(s.pendingReason)}` : ""}
                     </span>
                   </span>
                   <span className="shrink-0 text-[11px] font-extrabold text-orange-800">Tindak lanjuti</span>
@@ -617,6 +645,16 @@ export default function CalendarPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Revert Dialog */}
+      <BulkRevertDialog
+        key={bulkRevertOpen ? "open" : "closed"}
+        open={bulkRevertOpen}
+        onOpenChange={setBulkRevertOpen}
+        sessions={schedules.filter((s) => selectedSessionIds.includes(s.id))}
+        previewRevert={sessionActions.previewRevert}
+        onConfirm={handleBulkRevertConfirm}
+      />
 
       {/* Bulk Cancel Dialog */}
       <Dialog open={bulkCancelOpen} onOpenChange={setBulkCancelOpen}>

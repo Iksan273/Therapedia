@@ -16,6 +16,10 @@ import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { Textarea } from "@/shared/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { StatusBadge } from "@/shared/components/StatusBadge";
+import { ReasonPicker } from "@/shared/components/ReasonPicker";
+import { RevertSessionPanel } from "@/features/schedule/components/calendar/RevertSessionPanel";
+import { STATUS_META } from "@/domain/status";
+import { useMasterData } from "@/stores/masterDataStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useSchedules } from "@/stores/schedulesStore";
@@ -24,10 +28,9 @@ import { useAuth } from "@/stores/authStore";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import {
   TIME_OPTIONS,
-  CANCEL_REASONS,
   RESCHEDULE_DROPPED,
-  cancelReasonLabel,
   canManageSchedule,
+  canRevertSession,
   checkConflicts,
   getOriginSlot,
   isCreditNeutralCancel,
@@ -44,13 +47,14 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
   const sessionActions = useSessionActions();
+  const { activeCancelReasons, getCancelReasonLabel } = useMasterData();
 
   const [mode, setMode] = useState("view"); // view | cancel | reschedule | drop
   const [rescheduleKind, setRescheduleKind] = useState("move"); // move = pindah sekarang, pending = jadwal pengganti menyusul
-  const [pendingReason, setPendingReason] = useState("sakit");
+  const [pendingReason, setPendingReason] = useState("");
   const [pendingNote, setPendingNote] = useState("");
   const [dropNote, setDropNote] = useState("");
-  const [cancelReason, setCancelReason] = useState("sakit");
+  const [cancelReason, setCancelReason] = useState("");
   const [cancelNote, setCancelNote] = useState("");
 
   // Report sections (Activity, Note & Homework)
@@ -68,10 +72,10 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     if (open && schedule) {
       setMode("view");
       setRescheduleKind("move");
-      setPendingReason(schedule.pendingReason || "sakit");
+      setPendingReason(schedule.pendingReason || "");
       setPendingNote(schedule.pendingNote || "");
       setDropNote("");
-      setCancelReason(schedule.cancelReason || "sakit");
+      setCancelReason(schedule.cancelReason || "");
       setCancelNote(schedule.notes || "");
       setActivitySection(schedule.activitySection || "");
       setNoteSection(schedule.noteSection || schedule.progressNote || "");
@@ -110,6 +114,37 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
 
   // Role permissions: hanya Admin Schedule & Master yang mengubah status sesi
   const canManage = canManageSchedule(auth.role);
+
+  // Revert (completed / cancelled → status sebelumnya). Slot harus masih kosong bila sesi kembali aktif.
+  const revertPreview = canRevertSession(schedule) ? sessionActions.previewRevert(schedule) : null;
+  const revertConflicts =
+    revertPreview && ["scheduled", "rescheduled"].includes(revertPreview.toStatus)
+      ? checkConflicts({
+          therapistId: revertPreview.toSlot.therapistId,
+          date: revertPreview.toSlot.date,
+          startTime: revertPreview.toSlot.startTime,
+          endTime: revertPreview.toSlot.endTime,
+          schedules,
+          therapists,
+          excludeId: schedule.id,
+        })
+      : [];
+
+  const handleRevert = (reason) => {
+    if (!canManage) {
+      toast.error("Hanya Admin Schedule yang berhak membatalkan status sesi.");
+      return;
+    }
+    const result = sessionActions.revertSession(schedule, { reason });
+    const parts =
+      result.kind === "reschedule"
+        ? [`Jadwal dikembalikan ke ${fmtDate(result.toSlot.date)} ${result.toSlot.startTime}–${result.toSlot.endTime}.`]
+        : [`Status sesi dikembalikan ke "${STATUS_META[result.toStatus]?.label || result.toStatus}".`];
+    if (result.creditChange > 0) parts.push("+1 kredit dikembalikan.");
+    if (result.quotaChange < 0) parts.push("Kuota cancel −1.");
+    toast.success(parts.join(" "));
+    onOpenChange(false);
+  };
   const canMarkCompleted = canManage;
   const canCancel = canManage;
   const canReschedule = canManage;
@@ -155,11 +190,17 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       return;
     }
 
-    const { cancelCount, penalized } = sessionActions.cancelSession(schedule, { cancelReason, note: cancelNote });
+    const reason = cancelReason.trim();
+    if (!reason) {
+      toast.error("Pilih atau tulis alasan pembatalan.");
+      return;
+    }
+
+    const { cancelCount, penalized } = sessionActions.cancelSession(schedule, { cancelReason: reason, note: cancelNote });
     if (!penalized) {
-      toast.info(`Sesi dibatalkan (${cancelReasonLabel(cancelReason)}). Kuota cancel wajar (${cancelCount}/${CANCEL_QUOTA}) — Kredit sesi tetap utuh.`);
+      toast.info(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). Kuota cancel wajar (${cancelCount}/${CANCEL_QUOTA}) — Kredit sesi tetap utuh.`);
     } else {
-      toast.warning(`Sesi dibatalkan (${cancelReasonLabel(cancelReason)}). Cancel ke-${cancelCount} (>${CANCEL_QUOTA}x cancel) — Penalti memotong 1 kredit dari paket sesi.`);
+      toast.warning(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). Cancel ke-${cancelCount} (>${CANCEL_QUOTA}x cancel) — Penalti memotong 1 kredit dari paket sesi.`);
     }
 
     onOpenChange(false);
@@ -198,7 +239,12 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       toast.error("Hanya Admin Schedule yang berhak mereschedule sesi.");
       return;
     }
-    sessionActions.markPending(schedule, { reason: pendingReason, note: pendingNote });
+    const reason = pendingReason.trim();
+    if (!reason) {
+      toast.error("Pilih atau tulis alasan reschedule.");
+      return;
+    }
+    sessionActions.markPending(schedule, { reason, note: pendingNote });
     toast.info("Sesi ditandai menunggu jadwal pengganti. Kredit tidak berubah dan tidak dihitung sebagai cancel.");
     onOpenChange(false);
   };
@@ -281,7 +327,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               <p className="text-orange-900/90 leading-relaxed">
                 Jadwal asal: <strong>{slotText(originSlot)}</strong>
                 {originTherapist ? ` • ${originTherapist.name}` : ""}.
-                {schedule.pendingReason && <> Alasan: <strong>{cancelReasonLabel(schedule.pendingReason)}</strong>.</>}
+                {schedule.pendingReason && <> Alasan: <strong>{getCancelReasonLabel(schedule.pendingReason)}</strong>.</>}
                 {schedule.pendingAt && <> Ditandai {fmtDate(schedule.pendingAt.slice(0, 10))}.</>}
               </p>
               {schedule.pendingNote && <p className="text-orange-900/80 italic">"{schedule.pendingNote}"</p>}
@@ -555,18 +601,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
 
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700 text-xs">Pilih Alasan Pembatalan *</Label>
-                    <Select value={cancelReason} onValueChange={setCancelReason}>
-                      <SelectTrigger className="border-slate-200 bg-white font-semibold text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-slate-200">
-                        {CANCEL_REASONS.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>
-                            {r.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ReasonPicker options={activeCancelReasons} value={cancelReason} onChange={setCancelReason} testId="cancel-reason" />
                   </div>
 
                   <div className="space-y-1.5">
@@ -636,18 +671,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     <>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700 text-xs">Alasan Reschedule *</Label>
-                        <Select value={pendingReason} onValueChange={setPendingReason}>
-                          <SelectTrigger className="border-slate-200 bg-white font-semibold text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl border-slate-200">
-                            {CANCEL_REASONS.map((r) => (
-                              <SelectItem key={r.value} value={r.value}>
-                                {r.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <ReasonPicker options={activeCancelReasons} value={pendingReason} onChange={setPendingReason} testId="pending-reason" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700 text-xs">Catatan</Label>
@@ -766,7 +790,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                   <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 space-y-1 leading-relaxed">
                     <p>• <strong>Kredit tidak dipotong</strong> dan sesi tidak dihitung ke <strong>kuota cancel</strong> client.</p>
                     <p>• Berbeda dengan pembatalan biasa (cancel ke-4 dst. dikenai penalti 1 kredit).</p>
-                    <p>• Sesi tercatat sebagai dibatalkan dengan alasan <strong>{cancelReasonLabel(RESCHEDULE_DROPPED)}</strong>.</p>
+                    <p>• Sesi tercatat sebagai dibatalkan dengan alasan <strong>{getCancelReasonLabel(RESCHEDULE_DROPPED)}</strong>.</p>
                   </div>
                   <div className="flex items-center gap-2.5 pt-1">
                     <Button variant="outline" className="font-bold flex-1" onClick={() => setMode("view")}>
@@ -780,6 +804,18 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               )}
             </div>
           ) : null}
+
+          {/* REVERT: batalkan completed / cancel (hanya master & admin_schedule) */}
+          {!readOnly && canManage && canRevertSession(schedule) && (
+            <RevertSessionPanel
+              key={`${schedule.id}-${schedule.status}`}
+              schedule={schedule}
+              preview={revertPreview}
+              toSlotLabel={`${fmtDate(revertPreview.toSlot.date)} • ${revertPreview.toSlot.startTime}–${revertPreview.toSlot.endTime}${getTherapist(revertPreview.toSlot.therapistId) ? ` • ${getTherapist(revertPreview.toSlot.therapistId).name}` : ""}`}
+              conflicts={revertConflicts}
+              onConfirm={handleRevert}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>

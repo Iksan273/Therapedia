@@ -6,6 +6,7 @@ import {
   applyPackageAdded,
   applySessionCancelled,
   applySessionCompleted,
+  applySessionReverted,
   newClientPackage,
   newCreditRecord,
   nextInvoiceNumber,
@@ -56,6 +57,9 @@ function creditsReducer(state, action) {
 
     case "HANDLE_CANCELLATION":
       return { ...state, records: mapClientRecord(state.records, action.clientId, (r) => applySessionCancelled(r, action)) };
+
+    case "REVERT_SESSION_CREDIT":
+      return { ...state, records: mapClientRecord(state.records, action.clientId, (r) => applySessionReverted(r, action)) };
 
     case "ISSUE_INVOICE":
       return {
@@ -137,6 +141,8 @@ export const CreditsProvider = ({ children }) => {
     dispatch({ type: "SPEND_PACKAGE_CREDIT", clientId, packageId, scheduleId, date });
   const handleScheduleCancellation = ({ clientId, packageId, scheduleId, cancelReason, date }) =>
     dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date });
+  const revertSessionCredit = ({ clientId, scheduleId, date, reason }) =>
+    dispatch({ type: "REVERT_SESSION_CREDIT", clientId, scheduleId, date, reason });
   const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount }) =>
     dispatch({ type: "ISSUE_INVOICE", clientId, clientName, branchId, packageId, packageName, amount });
   const uploadPaymentProof = ({ invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt }) =>
@@ -160,6 +166,7 @@ export const CreditsProvider = ({ children }) => {
         addRecord,
         spendPackageCredit,
         handleScheduleCancellation,
+        revertSessionCredit,
         issueInvoice,
         uploadPaymentProof,
         verifyPaymentProof,

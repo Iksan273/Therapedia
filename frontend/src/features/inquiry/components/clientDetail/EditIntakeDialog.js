@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Pencil } from "lucide-react";
 import { Label } from "@/shared/ui/label";
 import { Input } from "@/shared/ui/input";
+import { Textarea } from "@/shared/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { BRANCHES } from "@/domain/branch";
@@ -89,6 +90,17 @@ export function EditIntakeDialog({ editIntakeForm, editIntakeOpen, handleSaveEdi
                   onChange={(e) => setEditIntakeForm({ ...editIntakeForm, parentEmail: e.target.value })}
                   placeholder="liana.santoso@gmail.com"
                   data-testid="edit-intake-parent-email"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Catatan Intake</Label>
+                <Textarea
+                  className="border-slate-200 bg-slate-50 text-xs min-h-[70px]"
+                  value={editIntakeForm.intakeNote || ""}
+                  onChange={(e) => setEditIntakeForm({ ...editIntakeForm, intakeNote: e.target.value })}
+                  placeholder="Keluhan utama orang tua, sumber rujukan, atau catatan awal lain..."
+                  data-testid="edit-intake-note"
                 />
               </div>
 

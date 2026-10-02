@@ -47,7 +47,7 @@ import { useMasterData } from "@/stores/masterDataStore";
 import { PERIOD_OPTIONS, makePeriodMatcher, periodLabel } from "@/shared/lib/periods";
 import { branchName } from "@/domain/branch";
 import { calcAge, fmtDate } from "@/shared/lib/format";
-import { cancelReasonLabel, isCreditNeutralCancel } from "@/domain/schedule";
+import { isCreditNeutralCancel } from "@/domain/schedule";
 import { getClientServiceIds } from "@/domain/client";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
@@ -114,7 +114,7 @@ export default function ClientAnalyticsTab({ activeList }) {
   const { getRecordForClient } = useCredits();
   const { therapists } = useTherapists();
   const { activeBranch, auth } = useAuth();
-  const { getService } = useMasterData();
+  const { getService, getCancelReasonLabel } = useMasterData();
 
   const isMaster = auth?.role === "master";
   const defaultBranch = isMaster ? activeBranch || "all" : auth?.branchId || activeBranch || "branch-sby-timur";
@@ -259,10 +259,10 @@ export default function ClientAnalyticsTab({ activeList }) {
       counts.set(key, (counts.get(key) || 0) + 1);
     });
     return [...counts.entries()]
-      .map(([key, value]) => ({ key, name: cancelReasonLabel(key), value }))
+      .map(([key, value]) => ({ key, name: getCancelReasonLabel(key), value }))
       .sort((a, b) => b.value - a.value)
       .map((r, i) => ({ ...r, color: REASON_COLORS[i % REASON_COLORS.length] }));
-  }, [scopeSchedules]);
+  }, [scopeSchedules, getCancelReasonLabel]);
 
   // ---- Beban terapis ----
   const therapistLoad = useMemo(() => {

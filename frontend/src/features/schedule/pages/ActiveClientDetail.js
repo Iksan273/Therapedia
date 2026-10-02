@@ -8,7 +8,6 @@ import { Textarea } from "@/shared/ui/textarea";
 import { Label } from "@/shared/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +24,8 @@ import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useTherapists } from "@/stores/therapistsStore";
-import { DISCHARGE_REASONS } from "@/domain/client";
+import { ReasonPicker } from "@/shared/components/ReasonPicker";
+import { useMasterData } from "@/stores/masterDataStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { todayStr } from "@/shared/lib/id";
 import { BRANCHES } from "@/domain/branch";
@@ -39,6 +39,7 @@ export default function ActiveClientDetail() {
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { getTherapist } = useTherapists();
+  const { activeDischargeReasons } = useMasterData();
 
   const [addOpen, setAddOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -113,14 +114,15 @@ export default function ActiveClientDetail() {
 
   // Discharge client handler
   const handleDischarge = () => {
-    if (!dischargeReason) {
-      toast.error("Mohon pilih alasan discharge.");
+    const reason = dischargeReason.trim();
+    if (!reason) {
+      toast.error("Mohon pilih atau tulis alasan discharge.");
       return;
     }
     updateClient(client.id, {
       status: "discharged",
       dateOfDischarge: todayStr(),
-      dischargeReason,
+      dischargeReason: reason,
       dischargeNote: dischargeNote.trim() || null,
     });
     setDischargeOpen(false);
@@ -461,18 +463,7 @@ export default function ActiveClientDetail() {
           <div className="space-y-3 pt-2">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Alasan Discharge *</Label>
-              <Select value={dischargeReason} onValueChange={setDischargeReason}>
-                <SelectTrigger className="border-slate-200 bg-slate-50 text-xs">
-                  <SelectValue placeholder="Pilih alasan..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  {DISCHARGE_REASONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ReasonPicker options={activeDischargeReasons} value={dischargeReason} onChange={setDischargeReason} testId="discharge-reason" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Catatan Klinis Discharge</Label>

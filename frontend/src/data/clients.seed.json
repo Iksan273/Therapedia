@@ -10,7 +10,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1KenzoWirawanTherapediaSBYT",
     "assessmentCodes": [
       {
@@ -621,7 +620,6 @@
     ],
     "assessmentCategoryId": "cat-001",
     "assessmentAccessCode": "ASM-2015",
-    "assessmentReportNote": "Profil sensorik regulasi emosi dan pemrosesan oral-motor (65 butir). Ananda Kenzo menunjukkan respons defensif taktil dan oral sensory avoidance yang memicu perilaku picky eating. Telah disusun diet sensori rumahan dan program desensitisasi oral.",
     "_createdDaysAgo": 36,
     "_joinMonthsAgo": 1
   },
@@ -636,7 +634,6 @@
     "branchId": "branch-sby-timur",
     "status": "assessment_done",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1AylaKhansaTherapediaSBYT",
     "assessmentCodes": [
       {
@@ -1247,7 +1244,6 @@
     ],
     "assessmentCategoryId": "cat-001",
     "assessmentAccessCode": "ASM-2011",
-    "assessmentReportNote": "Berdasarkan evaluasi Child Sensory Profile 2 (Winnie Dunn) dengan 65 butir observasi, ananda Ayla menunjukkan profil sensorik dominan pada kuadran Avoiding (AV) dan Sensory Seeking (SK). Pada domain Pemrosesan Auditori dan Taktil, ananda memiliki sensitivitas tinggi terhadap kebisingan tiba-tiba serta defensif taktil terhadap pakaian berlabel tebal. Di sisi lain, pada domain Proprioseptif dan Vestibular, ananda aktif mencari input berat (menabrakkan diri, melompat). Rekomendasi: Sesi terapi integrasi sensori 2x seminggu dengan protokol sikat Wilbarger, akomodasi ear-muff di lingkungan bising, serta diet sensori aktivitas proprioceptive heavy work sebelum jam belajar.",
     "_createdDaysAgo": 21
   },
   {
@@ -1261,7 +1257,6 @@
     "branchId": "branch-sby-timur",
     "status": "service_selected",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [
       {
@@ -1289,7 +1284,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ZahraFarzanaTherapediaSBYT",
     "assessmentCodes": [
       {
@@ -1367,7 +1361,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1KeanoArsakhaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -1390,7 +1383,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ClaraSalsabilaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -1414,7 +1406,6 @@
     "branchId": "branch-sby-timur",
     "status": "done_assessment",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1DavinPratamaTherapedia",
     "assessmentCodes": [
       {
@@ -2016,7 +2007,6 @@
     ],
     "assessmentCategoryId": "cat-003",
     "assessmentAccessCode": "ASM-2014",
-    "assessmentReportNote": "Asesmen Motorik Halus & Visual Motor Integration (64 Butir). Davin memperlihatkan keterlambatan pada pola genggaman pensil (masih static quadrupod grip) dan koordinasi bilateral saat menggunting serta meronce. Kekuatan otot intrinsik tangan dan lengkungan palmar arch masih belum optimal, menyebabkan ananda cepat lelah saat menulis lebih dari 3 kalimat. Rekomendasi: Terapi okupasi fokus pada penguatan otot intrinsik tangan (playdough resistive exercises), pematangan dynamic tripod grip menggunakan triangular pencil grip, dan latihan bilateral integration.",
     "_createdDaysAgo": 51
   },
   {
@@ -2030,7 +2020,6 @@
     "branchId": "branch-sby-timur",
     "status": "discontinued",
     "serviceType": "consult_w_report",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -2053,7 +2042,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1GibranAlFarisiCitraland",
     "assessmentCodes": [
       {
@@ -2129,7 +2117,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1AlvaroRayyanCitraland",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -2152,7 +2139,6 @@
     "branchId": "branch-citraland",
     "status": "assessment_scheduled",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1MikaelaChandraCitraland",
     "assessmentCodes": [
       {
@@ -2225,7 +2211,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RafaRadityaCitraland",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -2248,7 +2233,6 @@
     "branchId": "branch-citraland",
     "status": "inquiry",
     "serviceType": "consult_w_report",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -2270,7 +2254,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ArkaDanendraCitraland",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -2293,7 +2276,6 @@
     "branchId": "branch-citraland",
     "status": "done_consult",
     "serviceType": "consult_wo_report",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -2315,7 +2297,6 @@
     "branchId": "branch-citraland",
     "status": "discontinued",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -2338,7 +2319,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1KenzieBramantyoSBYB",
     "assessmentCodes": [
       {
@@ -2463,7 +2443,6 @@
     "branchId": "branch-sby-barat",
     "status": "assessment_done",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1AleaNatashaSBYB",
     "assessmentCodes": [
       {
@@ -3645,7 +3624,6 @@
     ],
     "assessmentCategoryId": "cat-001",
     "assessmentAccessCode": "ASM-2012",
-    "assessmentReportNote": "Evaluasi ganda komprehensif (Child Sensory Profile 2: 65 butir & School Companion Profile: 62 butir). Ananda Alea memperlihatkan profil Sensory Sensitivity (SN) dan Low Registration (RG) pada atensi kelas dan pemrosesan instruksi. Di lingkungan sekolah, ananda sering melamun saat instruksi multi-tahap dan mudah terdistraksi suara lorong kelas. Direkomendasikan penyesuaian posisi duduk di baris depan dekat meja guru, instruksi bertahap 1-2 langkah dengan visual checklist, serta latihan integrasi sensori untuk meningkatkan endurance postur duduk.",
     "_createdDaysAgo": 18
   },
   {
@@ -3659,7 +3637,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RevanPutraSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3682,7 +3659,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1FionaElysiaSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3705,7 +3681,6 @@
     "branchId": "branch-sby-barat",
     "status": "assessment_scheduled",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RayyanDaniswaraSBYB",
     "assessmentCodes": [
       {
@@ -3736,7 +3711,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ChelseaValerieSBYB",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3759,7 +3733,6 @@
     "branchId": "branch-sby-barat",
     "status": "inquiry",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3781,7 +3754,6 @@
     "branchId": "branch-sby-barat",
     "status": "discontinued",
     "serviceType": "consult_w_report",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3804,7 +3776,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1NathanielAdityaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3826,7 +3797,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1QueenaraZivannaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3848,7 +3818,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1OrlandoPramonoTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3870,7 +3839,6 @@
     "branchId": "branch-sby-timur",
     "status": "admitted",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1SalsabilaNurTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3892,7 +3860,6 @@
     "branchId": "branch-sby-timur",
     "status": "inquiry",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -3913,7 +3880,6 @@
     "branchId": "branch-sby-timur",
     "status": "service_selected",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1VanessaLaurentTherapedia",
     "assessmentCodes": [
       {
@@ -3943,7 +3909,6 @@
     "branchId": "branch-sby-timur",
     "status": "assessment_scheduled",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ZidaneAlfariziTherapedia",
     "assessmentCodes": [
       {
@@ -3973,7 +3938,6 @@
     "branchId": "branch-sby-timur",
     "status": "assessment_done",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1GheaAnindyaTherapedia",
     "assessmentCodes": [
       {
@@ -4596,7 +4560,6 @@
     "branchId": "branch-sby-timur",
     "status": "discharged",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1HanifRamadhanTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -4620,7 +4583,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1BryanSetiawanTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -4642,7 +4604,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1ChikaAmeliaTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -4664,7 +4625,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1DewanggaPutraTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -4686,7 +4646,6 @@
     "branchId": "branch-citraland",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1EvelynTanotoTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -4709,7 +4668,6 @@
     "branchId": "branch-citraland",
     "status": "inquiry",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -4730,7 +4688,6 @@
     "branchId": "branch-citraland",
     "status": "service_selected",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1GladysMaharaniTherapedia",
     "assessmentCodes": [
       {
@@ -4760,7 +4717,6 @@
     "branchId": "branch-citraland",
     "status": "assessment_scheduled",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1HarveyWijayaTherapedia",
     "assessmentCodes": [
       {
@@ -4790,7 +4746,6 @@
     "branchId": "branch-citraland",
     "status": "done_consult",
     "serviceType": "consult_w_report",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1IsabellaSutantoTherapedia",
     "assessmentCodes": [
       {
@@ -5413,7 +5368,6 @@
     "branchId": "branch-citraland",
     "status": "discharged",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1JoshuaKurniawanTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -5438,7 +5392,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1KaylaSafiraTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -5460,7 +5413,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1LouisHartonoTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -5483,7 +5435,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1MaheswariAyuTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -5506,7 +5457,6 @@
     "branchId": "branch-sby-barat",
     "status": "admitted",
     "serviceType": "b_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1NicholasGunadiTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -5528,7 +5478,6 @@
     "branchId": "branch-sby-barat",
     "status": "inquiry",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": false,
     "gdriveClientLink": "",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -5549,7 +5498,6 @@
     "branchId": "branch-sby-barat",
     "status": "service_selected",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1PanduWibowoTherapedia",
     "assessmentCodes": [
       {
@@ -5580,7 +5528,6 @@
     "branchId": "branch-sby-barat",
     "status": "assessment_scheduled",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1QianaRahmawatiTherapedia",
     "assessmentCodes": [
       {
@@ -5611,7 +5558,6 @@
     "branchId": "branch-sby-barat",
     "status": "discontinued",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1RafaelSusantoTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],
@@ -5634,7 +5580,6 @@
     "branchId": "branch-sby-barat",
     "status": "discharged",
     "serviceType": "f_ota",
-    "includesSchoolCompanion": true,
     "gdriveClientLink": "https://drive.google.com/drive/folders/1SamuelTjahjadiTherapedia",
     "assessmentCodes": [],
     "assessmentAnswers": [],

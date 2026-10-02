@@ -52,13 +52,15 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                                 log.action === "renewed" && "bg-emerald-50 text-emerald-800 border-emerald-200",
                                 log.action === "used" && "bg-sky-50 text-sky-800 border-sky-200",
                                 log.action === "cancel_excused" && "bg-slate-100 text-slate-700 border-slate-200",
-                                log.action === "cancel_penalty" && "bg-rose-50 text-rose-800 border-rose-200 font-extrabold"
+                                log.action === "cancel_penalty" && "bg-rose-50 text-rose-800 border-rose-200 font-extrabold",
+                                log.action === "reversal" && "bg-violet-50 text-violet-800 border-violet-200"
                               )}
                             >
                               {log.action === "renewed" && "Top Up / Renewal"}
                               {log.action === "used" && "Sesi Terpakai"}
                               {log.action === "cancel_excused" && "Cancel (Kredit Utuh)"}
                               {log.action === "cancel_penalty" && "Penalti Cancel (>3x)"}
+                              {log.action === "reversal" && "Dibatalkan (Reversal)"}
                             </span>
                           </TableCell>
                           <TableCell data-label="Perubahan Kredit" className="font-bold tabular-nums min-w-[140px] whitespace-nowrap">

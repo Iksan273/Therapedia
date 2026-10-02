@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Stethoscope, Grid2x2, Database, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pencil, Plus, Trash2, Stethoscope, Grid2x2, Database, ChevronLeft, ChevronRight, CalendarX2, LogOut } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { EmptyState } from "@/shared/components/EmptyState";
+import { ReasonListTab } from "@/features/inquiry/components/masterData/ReasonListTab";
 import { useMasterData, QUADRANT_COLORS, getQuadrantColor } from "@/stores/masterDataStore";
 import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
@@ -56,8 +57,12 @@ const questionsOf = (cat) =>
 
 export default function InquiryMasterData() {
   const { confirm, confirmDialog } = useConfirm();
-  const { services, addService, updateService, deleteService, quadrants, addQuadrant, updateQuadrant, deleteQuadrant } =
-    useMasterData();
+  const {
+    services, addService, updateService, deleteService,
+    quadrants, addQuadrant, updateQuadrant, deleteQuadrant,
+    cancelReasons, addCancelReason, updateCancelReason, deleteCancelReason,
+    dischargeReasons, addDischargeReason, updateDischargeReason, deleteDischargeReason,
+  } = useMasterData();
   const { clients } = useClients();
   const { schedules } = useSchedules();
   const { categories } = useAssessments();
@@ -233,18 +238,24 @@ export default function InquiryMasterData() {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Master Data Inquiry</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
-            Kelola daftar layanan klinis dan kuadran sensori yang dipakai di pipeline inquiry, jadwal, dan kuesioner.
+            Kelola daftar layanan klinis, kuadran sensori, serta pilihan cepat alasan cancel dan discharge.
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="services">
-        <TabsList className="rounded-xl">
+        <TabsList className="rounded-xl h-auto flex-wrap justify-start">
           <TabsTrigger value="services" className="gap-1.5 text-xs font-bold" data-testid="tab-master-services">
             <Stethoscope className="w-3.5 h-3.5" /> Layanan ({services.length})
           </TabsTrigger>
           <TabsTrigger value="quadrants" className="gap-1.5 text-xs font-bold" data-testid="tab-master-quadrants">
             <Grid2x2 className="w-3.5 h-3.5" /> Kuadran Sensori ({quadrants.length})
+          </TabsTrigger>
+          <TabsTrigger value="cancel-reasons" className="gap-1.5 text-xs font-bold" data-testid="tab-master-cancel-reasons">
+            <CalendarX2 className="w-3.5 h-3.5" /> Alasan Cancel ({cancelReasons.length})
+          </TabsTrigger>
+          <TabsTrigger value="discharge-reasons" className="gap-1.5 text-xs font-bold" data-testid="tab-master-discharge-reasons">
+            <LogOut className="w-3.5 h-3.5" /> Alasan Discharge ({dischargeReasons.length})
           </TabsTrigger>
         </TabsList>
 
@@ -274,7 +285,6 @@ export default function InquiryMasterData() {
                       <TableHead className="text-xs font-bold">Layanan</TableHead>
                       <TableHead className="text-xs font-bold">Kode</TableHead>
                       <TableHead className="text-xs font-bold">Kategori</TableHead>
-                      <TableHead className="text-xs font-bold text-center">Dipakai</TableHead>
                       <TableHead className="text-xs font-bold text-center">Status</TableHead>
                       <TableHead className="text-xs font-bold text-right">Aksi</TableHead>
                     </TableRow>
@@ -292,7 +302,6 @@ export default function InquiryMasterData() {
                         <TableCell data-label="Kategori">
                           <Badge variant="outline" className="text-[11px] font-bold">{srv.category || "—"}</Badge>
                         </TableCell>
-                        <TableCell data-label="Dipakai" className="text-center text-xs font-mono">{serviceUsage[srv.value] || 0}</TableCell>
                         <TableCell data-label="Status" className="text-center">
                           <Switch
                             checked={srv.active !== false}
@@ -428,6 +437,34 @@ export default function InquiryMasterData() {
               })}
             </div>
           </div>
+        </TabsContent>
+
+        {/* ===== ALASAN CANCEL ===== */}
+        <TabsContent value="cancel-reasons" className="mt-4">
+          <ReasonListTab
+            noun="alasan cancel"
+            icon={CalendarX2}
+            hint="Pilihan cepat saat membatalkan / mereschedule sesi. User juga bisa memilih “Lainnya” dan mengetik alasan sendiri; alasan disimpan sebagai teks, tanpa relasi ke daftar ini."
+            items={cancelReasons}
+            onAdd={addCancelReason}
+            onUpdate={updateCancelReason}
+            onDelete={deleteCancelReason}
+            testId="cancel-reason"
+          />
+        </TabsContent>
+
+        {/* ===== ALASAN DISCHARGE ===== */}
+        <TabsContent value="discharge-reasons" className="mt-4">
+          <ReasonListTab
+            noun="alasan discharge"
+            icon={LogOut}
+            hint="Pilihan cepat saat men-discharge client. User juga bisa memilih “Lainnya” dan mengetik alasan sendiri; alasan disimpan sebagai teks, tanpa relasi ke daftar ini."
+            items={dischargeReasons}
+            onAdd={addDischargeReason}
+            onUpdate={updateDischargeReason}
+            onDelete={deleteDischargeReason}
+            testId="discharge-reason"
+          />
         </TabsContent>
       </Tabs>
 
