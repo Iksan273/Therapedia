@@ -8,9 +8,10 @@ import { BRANCHES } from "@/domain/branch";
 import { fmtCurrency } from "@/shared/lib/format";
 import { Button } from "@/shared/ui/button";
 import { getProofFileType } from "@/shared/lib/fileUpload";
+import { DeleteButton } from "@/shared/components/DeleteControls";
 import { TablePagination } from "@/shared/components/TablePagination";
 
-export function VerificationTab({ handleApprovePayment, handleRejectPayment, pendingInvoices, pendingPg, setSelectedProofInvoice }) {
+export function VerificationTab({ handleApprovePayment, handleRejectPayment, pendingInvoices, pendingPg, setSelectedProofInvoice, onDeleteInvoice }) {
   return (
     <TabsContent value="verification" className="space-y-4">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -97,6 +98,15 @@ export function VerificationTab({ handleApprovePayment, handleRejectPayment, pen
                               >
                                 Setujui & Tambah Kredit
                               </Button>
+                              <DeleteButton
+                                module="finance"
+                                iconOnly
+                                label={`Hapus invoice ${inv.invoiceNumber}`}
+                                title={`Hapus invoice ${inv.invoiceNumber}?`}
+                                description="Invoice disembunyikan (soft delete) dan tercatat di audit. Paket dan kredit client tidak berubah."
+                                onConfirm={() => onDeleteInvoice?.(inv)}
+                                testId={`delete-pending-invoice-${inv.id}`}
+                              />
                             </div>
                           </TableCell>
                         </TableRow>

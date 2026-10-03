@@ -279,7 +279,7 @@ export default function FinancePortal() {
         </TabsList>
 
         {/* TAB 1: VERIFIKASI TRANSFER */}
-        <VerificationTab handleApprovePayment={handleApprovePayment} handleRejectPayment={handleRejectPayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} setSelectedProofInvoice={setSelectedProofInvoice} />
+        <VerificationTab handleApprovePayment={handleApprovePayment} handleRejectPayment={handleRejectPayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} />
 
         {/* TAB 2: SEMUA TAGIHAN */}
         <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} />

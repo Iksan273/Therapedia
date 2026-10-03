@@ -27,7 +27,7 @@ Jalur pintas: **Renewal langsung** (`renewClientCredit`) membuat invoice `paid` 
 | Tab | Komponen | Isi / aksi |
 |---|---|---|
 | `verification` | `VerificationTab.js` | Antrean semua invoice yang belum `paid` (`pendingInvoices`, dengan atau tanpa bukti). Lihat bukti (`shared/components/PaymentProofViewerModal.js`, mendukung gambar/PDF), lalu Approve (`handleApprovePayment`) atau Reject (`handleRejectPayment`) |
-| `billing` | `BillingTab.js` + `CreateInvoiceDialog.js` + `RenewalDialog.js` | Daftar invoice (badge jenis). Terbitkan invoice: pilih **jenis** Paket Sesi (pilih paket) atau Assessment (nominal bebas, tanpa paket) → `issueInvoice`. Renewal langsung (`renewClientCredit`). Tombol hapus invoice (hanya role `canDelete`, soft delete + audit `invoice.deleted`) |
+| `billing` | `BillingTab.js` + `CreateInvoiceDialog.js` + `RenewalDialog.js` | Daftar invoice (badge jenis). Terbitkan invoice: pilih **jenis** Paket Sesi (pilih paket) atau Assessment (nominal bebas, tanpa paket) → `issueInvoice`. Renewal langsung (`renewClientCredit`). Tombol hapus invoice (juga di antrean `verification`; hanya role `canDelete`, soft delete + audit `invoice.deleted`) |
 | `history` | `HistoryTab.js` | Gabungan semua `records[].history` dari semua client, diurutkan berdasarkan tanggal, dengan pagination 10 |
 | `packages` | `PackagesTab.js` + `NewPackageDialog.js` | Master paket (`masterPackages`). Tambah paket (`addMasterPackage`) dengan **kode paket** (`invoiceCode`, unik, `ASM` dicadangkan) untuk nomor invoice. **Belum ada** edit/hapus |
 
