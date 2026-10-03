@@ -69,6 +69,8 @@ export const ENDPOINTS = {
     proof: (id) => `/invoices/${id}/proof`,
     verify: (id) => `/invoices/${id}/verify`,
     void: (id) => `/invoices/${id}/void`,
+    convertPackage: (id) => `/invoices/${id}/convert-package`,
+    logs: (id) => `/invoices/${id}/logs`,
   },
   creditLedger: "/credit-ledger",
   dashboards: {

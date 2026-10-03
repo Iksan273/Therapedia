@@ -274,3 +274,138 @@ export function summarizeCreditRecord(record) {
     leaveQuota: CANCEL_QUOTA,
   };
 }
+
+// ---- Konversi paket (Finance): sisa sesi paket lama → paket jenis lain ----
+// Keputusan klien: nilai sisa dihitung dari harga bayar paket asal; hasil sesi dibulatkan ke bawah (atau diisi manual,
+// tidak boleh melebihi nilai sisa → tidak ada kekurangan bayar); lebihan rupiah jadi SALDO client yang memotong invoice
+// paket berikutnya; kuota cancel ikut pindah; semua jadwal mendatang dihapus (admin schedule menjadwalkan ulang).
+
+export const CONVERSION_MODES = [
+  { value: "auto", label: "Otomatis" },
+  { value: "manual", label: "Manual" },
+];
+
+// Harga per sesi dari snapshot harga bayar. Tanpa harga/kredit → null.
+export const unitValueOf = (price, credits) => (Number(price) > 0 && Number(credits) > 0 ? Number(price) / Number(credits) : null);
+
+// Hitung konversi. `source` = { remainingCredit, totalCredit, price }, `target` = { credits, price } (master paket tujuan).
+// `sessions` kosong/null → otomatis (maks sesi); diisi → manual. Mengembalikan { ok, error?, mode, sessions, maxSessions,
+// remainingValue, targetUnit, leftover }. Rupiah dibulatkan utuh.
+export function computePackageConversion({ source, target, sessions = null }) {
+  const sourceUnit = unitValueOf(source?.price, source?.totalCredit);
+  const targetUnit = unitValueOf(target?.price, target?.credits);
+  const remaining = Number(source?.remainingCredit) || 0;
+  if (!sourceUnit || !targetUnit) return { ok: false, error: "Harga paket asal/tujuan belum lengkap." };
+  if (remaining <= 0) return { ok: false, error: "Paket asal tidak punya sisa sesi." };
+
+  const remainingValue = Math.round(remaining * sourceUnit);
+  const maxSessions = Math.floor((remainingValue + 1e-6) / targetUnit);
+  if (maxSessions < 1) return { ok: false, error: "Nilai sisa paket belum cukup untuk 1 sesi paket tujuan." };
+
+  const manual = sessions !== null && sessions !== undefined && sessions !== "";
+  const count = manual ? Number(sessions) : maxSessions;
+  if (!Number.isInteger(count) || count < 1) return { ok: false, error: "Jumlah sesi harus bilangan bulat minimal 1." };
+  if (count > maxSessions) return { ok: false, error: `Maksimal ${maxSessions} sesi (nilai sisa tidak boleh kurang).` };
+
+  return {
+    ok: true,
+    mode: manual ? "manual" : "auto",
+    sessions: count,
+    maxSessions,
+    remainingValue,
+    targetUnit: Math.round(targetUnit),
+    leftover: remainingValue - Math.round(count * targetUnit),
+  };
+}
+
+// Paket kredit yang terhubung ke invoice. Mengikuti rantai konversi (`convertedToId`) sampai paket yang masih hidup.
+// Invoice lama tanpa `invoiceId` di paket: cocokkan paket aktif dengan packageId + jumlah kredit snapshot invoice.
+export function resolveInvoicePackage(record, invoice) {
+  const packages = record?.packages || [];
+  if (!invoice || invoiceType(invoice) !== "package") return null;
+  let pkg =
+    packages.find((p) => p.invoiceId === invoice.id) ||
+    packages.find((p) => !p.invoiceId && !p.convertedFromId && p.packageId === invoice.packageId && p.totalCredit === invoice.credits && p.status !== "converted");
+  const seen = new Set();
+  while (pkg?.convertedToId && !seen.has(pkg.id)) {
+    seen.add(pkg.id);
+    pkg = packages.find((p) => p.id === pkg.convertedToId) || null;
+  }
+  return pkg;
+}
+
+// Invoice bisa dikonversi: paket lunas + paket hidup masih punya sisa sesi.
+export const isInvoiceConvertible = (record, invoice) => {
+  if (!invoice || invoice.status !== "paid") return false;
+  const pkg = resolveInvoicePackage(record, invoice);
+  return Boolean(pkg) && pkg.status === "active" && pkg.remainingCredit > 0;
+};
+
+// Terapkan konversi ke record client. Ledger append-only: `converted_out` (−sisa, paket lama jadi `converted`) dan
+// `converted_in` (+sesi, paket baru) berbagi `conversionId`. Kuota cancel paket lama pindah ke paket baru.
+// Saldo rupiah client (`balance`) bertambah sebesar lebihan.
+export function applyPackageConversion(record, { sourcePackageId, target, sessions, price, leftover = 0, conversionId, note, date }) {
+  const packages = record.packages || [];
+  const source = packages.find((p) => p.id === sourcePackageId);
+  if (!source || source.status === "converted" || source.remainingCredit <= 0) return record;
+
+  const newPkg = {
+    ...newClientPackage({ packageId: target.packageId, packageName: target.packageName, credits: sessions, price }),
+    cancelCount: source.cancelCount || 0,
+    convertedFromId: source.id,
+    conversionId,
+  };
+  const out = source.remainingCredit;
+  const nextPackages = packages
+    .map((p) => (p.id === source.id ? { ...p, remainingCredit: 0, status: "converted", convertedToId: newPkg.id, conversionId } : p))
+    .concat(newPkg);
+  return {
+    ...record,
+    packages: nextPackages,
+    balance: (record.balance || 0) + Math.max(0, leftover),
+    history: [
+      ...(record.history || []),
+      historyEntry({ date: date || todayStr(), packageId: source.id, packageName: source.packageName, action: "converted_out", creditChange: -out, conversionId, note }),
+      historyEntry({ date: date || todayStr(), packageId: newPkg.id, packageName: newPkg.packageName, action: "converted_in", creditChange: sessions, conversionId, note, cancelCountAfter: newPkg.cancelCount }),
+    ],
+  };
+}
+
+// ---- Saldo lebihan konversi → pengurang invoice paket berikutnya ----
+// Saldo hanya memotong sampai nominal invoice (tidak pernah membuat invoice negatif); sisanya tetap di saldo.
+export function applyBalanceToAmount(balance, gross) {
+  const available = Math.max(0, Number(balance) || 0);
+  const amount = Math.max(0, Number(gross) || 0);
+  const applied = Math.min(available, amount);
+  return { gross: amount, applied, net: amount - applied, balanceAfter: available - applied };
+}
+
+// ---- Log invoice (milik invoice sendiri, append-only; bukan dari audit log) ----
+export const INVOICE_LOG_ACTIONS = {
+  issued: { label: "Invoice diterbitkan", tone: "info" },
+  proof_uploaded: { label: "Bukti bayar diunggah", tone: "info" },
+  verified: { label: "Pembayaran diverifikasi", tone: "success" },
+  rejected: { label: "Pembayaran ditolak", tone: "danger" },
+  renewal_paid: { label: "Renewal langsung (lunas)", tone: "success" },
+  balance_applied: { label: "Saldo lebihan dipakai", tone: "warning" },
+  balance_restored: { label: "Saldo lebihan dikembalikan", tone: "neutral" },
+  converted: { label: "Paket dikonversi", tone: "warning" },
+  deleted: { label: "Invoice dihapus", tone: "danger" },
+};
+
+export const invoiceLogMeta = (action) => INVOICE_LOG_ACTIONS[action] || { label: action, tone: "neutral" };
+
+// Tambah satu baris log ke invoice (kembalikan invoice baru).
+export const appendInvoiceLog = (invoice, { action, by = null, note = "", data = null, at }) => ({
+  ...invoice,
+  logs: [...(invoice.logs || []), { id: uid(), at: at || new Date().toISOString(), by, action, note, data }],
+});
+
+// Log untuk tampilan. Invoice lama tanpa `logs` dibuatkan baris dasar dari createdAt / paidAt.
+export function invoiceLogsOf(invoice) {
+  if (!invoice) return [];
+  if (invoice.logs?.length) return invoice.logs;
+  const base = [{ id: `${invoice.id}-issued`, at: invoice.createdAt, by: null, action: "issued", note: "", data: null }];
+  if (invoice.paidAt) base.push({ id: `${invoice.id}-paid`, at: invoice.paidAt, by: null, action: "verified", note: "", data: null });
+  return base;
+}

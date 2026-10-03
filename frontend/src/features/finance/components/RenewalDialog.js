@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fmtCurrency } from "@/shared/lib/format";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
+import { BalanceHint } from "@/features/finance/components/BalanceHint";
 
 export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, renewForm, renewOpen, setRenewForm, setRenewOpen }) {
   return (
@@ -85,6 +86,7 @@ export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, rene
                 />
               </div>
             </div>
+            <BalanceHint clientId={renewForm.clientId} amount={renewForm.amount} />
 
             <DialogFooter className="mt-4 gap-2">
               <Button type="button" variant="outline" className="border-slate-200" onClick={() => setRenewOpen(false)}>

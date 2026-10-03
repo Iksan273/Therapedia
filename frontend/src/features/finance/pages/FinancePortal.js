@@ -89,9 +89,11 @@ export default function FinancePortal() {
   const historyPg = usePagination(allHistoryLogs, 10);
 
   // Handle Verify Payment Proof
+  const by = auth?.staffName || auth?.role || null;
+
   const handleApprovePayment = (invoice) => {
     if (invoice.type === "assessment") {
-      verifyPaymentProof({ invoiceId: invoice.id, status: "paid" });
+      verifyPaymentProof({ invoiceId: invoice.id, status: "paid", by });
       toast.success(`Pembayaran ${invoice.invoiceNumber} (Assessment) berhasil diverifikasi. Kuesioner ortu kini dapat dibuka.`);
       return;
     }
@@ -102,6 +104,7 @@ export default function FinancePortal() {
       invoiceId: invoice.id,
       status: "paid",
       creditsToAdd: credits,
+      by,
     });
     toast.success(`Pembayaran ${invoice.invoiceNumber} berhasil diverifikasi! (+${credits} kredit aktif)`);
   };
@@ -110,6 +113,7 @@ export default function FinancePortal() {
     verifyPaymentProof({
       invoiceId: invoice.id,
       status: "unpaid",
+      by,
     });
     toast.error(`Pembayaran ${invoice.invoiceNumber} ditandai belum valid.`);
   };
@@ -157,6 +161,7 @@ export default function FinancePortal() {
       packageName: isAssessment ? "Assessment" : pkg.name,
       credits: isAssessment ? 0 : pkg.credits,
       amount,
+      by,
     });
 
     toast.success(`Tagihan untuk ${c.clientName} berhasil diterbitkan.`);
@@ -182,6 +187,7 @@ export default function FinancePortal() {
       typeCode: packageInvoiceCode(pkg),
       credits: Number(renewForm.credits) || 10,
       amount: Number(renewForm.amount) || pkg.price || 2500000,
+      by,
     });
 
     toast.success(`Renewal kredit ${c.clientName} berhasil ditambahkan! (+${renewForm.credits} sesi)`);

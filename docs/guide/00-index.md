@@ -49,7 +49,7 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 ## Dokumen & aset lain
 | File | Status |
 |---|---|
-| `schema.md` | Desain database v2 (MySQL 8 + Laravel 11): 33 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, audit log (schedule & finance) |
+| `schema.md` | Desain database v2 (MySQL 8 + Laravel 11): 35 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, audit log (schedule & finance) |
 | `docs/adr/` | Architecture Decision Records (mulai `0001-feature-based-architecture.md`) |
 | `.claude/skills/` | Skill Claude Code: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal. Referensi scope, **jangan diedit** kecuali diminta |

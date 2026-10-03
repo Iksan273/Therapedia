@@ -7,6 +7,7 @@ import { fmtCurrency } from "@/shared/lib/format";
 import { INVOICE_TYPES } from "@/domain/credit";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
+import { BalanceHint } from "@/features/finance/components/BalanceHint";
 
 export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, issueOpen, masterPackages, setIssueForm, setIssueOpen }) {
   return (
@@ -102,6 +103,7 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
                 onChange={(e) => setIssueForm({ ...issueForm, amount: e.target.value })}
               />
             </div>
+            issueForm.type !== "assessment" && <BalanceHint clientId={issueForm.clientId} amount={issueForm.amount} />
 
             <DialogFooter className="mt-4 gap-2">
               <Button type="button" variant="outline" className="border-slate-200" onClick={() => setIssueOpen(false)}>

@@ -80,17 +80,22 @@ credits = {
   masterPackages: [{ id, invoiceCode /*kode di nomor invoice*/, name, credits, price, description }],
   records: [{
     id, clientId, branchId,
-    packages: [{ id /*cp-...*/, packageId /*pkg-...*/, packageName, price /*snapshot harga*/, totalCredit, remainingCredit, cancelCount /*kuota cancel PER PAKET*/, status /*active|depleted*/ }],
-    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, note }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal)
+    balance?: number,   // SALDO LEBIHAN (rupiah) hasil konversi paket; memotong invoice paket berikutnya (default 0)
+    packages: [{ id /*cp-...*/, packageId /*pkg-...*/, packageName, price /*snapshot harga*/, totalCredit, remainingCredit, cancelCount /*kuota cancel PER PAKET*/, status /*active|depleted|converted*/,
+                 invoiceId? /*invoice asal (verifikasi/renewal)*/, convertedFromId?, convertedToId?, conversionId? }],
+    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
   }],
+  conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
   invoices: [{ id, type /*package|assessment*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid*/,
-               proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt, deletedAt?, deletedBy? }],
+               proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt, deletedAt?, deletedBy?,
+               grossAmount? /*sebelum saldo lebihan*/, balanceApplied? /*saldo lebihan yang dipakai; amount = gross − balanceApplied*/,
+               logs: [{ id, at, by, action /*issued|proof_uploaded|verified|rejected|renewal_paid|balance_applied|balance_restored|converted|deleted*/, note, data }] /*LOG MILIK INVOICE (append-only), bukan dari audit; invoice lama = baris dasar dari createdAt/paidAt (invoiceLogsOf)*/ }],
   renewals: []   // belum dipakai
 }
 ```
-- `history.action`: `used` (−1), `cancel_excused` (0), `cancel_penalty` (−1), `renewed` (+N).
+- `history.action`: `used` (−1), `cancel_excused` (0), `cancel_penalty` (−1), `renewed` (+N), `converted_out` (−sisa paket lama), `converted_in` (+sesi paket baru).
 - Satu client punya **satu record** dan **banyak paket**. Sisa kredit total = jumlah `remainingCredit` semua paket (`summarizeCreditRecord` di `domain/credit.js`, dipakai `getRecordForClient`; juga memberi `cancelCount` / `cancelQuota` (= 3) dari paket yang sedang dipakai, `activePackageOf`).
-- Aturan mutasi (pure, ber-test): `applySessionCompleted`, `applySessionCancelled` (`deductCredit`), `applySessionReverted`, `findLiveSessionEntry`, `applyPackageAdded`, `newClientPackage`, `newCreditRecord`, `nextInvoiceNumber`, `invoiceType`, `packageInvoiceCode`, `validateProofFile`, `canUploadProof` di `domain/credit.js`.
+- Aturan mutasi (pure, ber-test): `applySessionCompleted`, `applySessionCancelled` (`deductCredit`), `applySessionReverted`, `findLiveSessionEntry`, `applyPackageAdded`, `newClientPackage`, `newCreditRecord`, `nextInvoiceNumber`, `invoiceType`, `packageInvoiceCode`, `validateProofFile`, `canUploadProof` di `domain/credit.js`. Konversi paket: `computePackageConversion`, `resolveInvoicePackage`, `isInvoiceConvertible`, `applyPackageConversion`; saldo lebihan: `applyBalanceToAmount`; log invoice: `appendInvoiceLog`, `invoiceLogsOf`, `invoiceLogMeta`.
 - **Frozen** = sisa kredit total 0. Ini status turunan (tidak disimpan), ditampilkan di kalender dan detail client.
 
 ## Audit log (`audit_logs[]`)
@@ -143,6 +148,10 @@ Tabel lengkap ada di `schema.md` bagian 08. Yang paling sering dipakai:
 | `schedules[].activitySection/noteSection/homeworkSection` | `session_reports` | |
 | `credits.records[].packages[]` | `client_packages` | |
 | `credits.records[].history[]` | `credit_ledger` (append-only) | |
+| `credits.records[].balance` | `clients.leftover_balance` (rupiah) | |
+| `credits.conversions[]` | `package_conversions` | |
+| `credits.invoices[].logs[]` | `invoice_logs` (append-only) | tidak dibaca dari `audit_logs` |
+| `credits.invoices[].grossAmount/balanceApplied` | `invoices.gross_amount/balance_applied` | |
 | `credits.records[].cancelCountTotal` (lama) → `packages[].cancelCount` | `client_packages.cancel_count` (kuota 3 per paket) | |
 | `therapists[]` + `staffUsers[]` | `users` | |
 | camelCase | snake_case | dikonversi otomatis oleh `services/http/httpClient.js` |

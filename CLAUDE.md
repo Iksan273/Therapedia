@@ -13,7 +13,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 | `frontend/` | Aplikasi React. **Baca `frontend/CLAUDE.md` untuk aturan teknis.** |
 | `docs/guide/` | Panduan developer: arsitektur, alur bisnis, data model, resep, integrasi API |
 | `docs/adr/` | Architecture Decision Records |
-| `schema.md` | Desain database v2: 33 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **audit log (schedule & finance)** |
+| `schema.md` | Desain database v2: 35 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **audit log (schedule & finance)** |
 | `.claude/skills/` | Skill project: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal: referensi scope fitur |
 | `backend/`, `tests/`, `.emergent/`, `memory/`, `test_reports/` | **Legacy** platform Emergent. Abaikan |

@@ -100,6 +100,7 @@ completeSession():  updateSchedule(...)  →  spendPackageCredit(...)  →  upda
 cancelSession():    updateSchedule(...)  →  handleScheduleCancellation({ deductCredit })
 bulkComplete():     applyCompletionEffects(per sesi)  →  updateSchedulesMany(ids, completed)
 ```
+`usePackageConversionActions` (finance, lihat 06) memakai pola yang sama: `convertPackage` (kredit) → `deleteSchedules` (semua jadwal terapi mendatang client) → audit `invoice.package_converted`.
 Saat migrasi API, setiap fungsi ini menjadi **satu request ke endpoint transaksional** (`ENDPOINTS.schedules.complete(id)` dst., lihat 10); komponen tidak berubah.
 
 ## File terkait

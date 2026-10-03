@@ -70,6 +70,7 @@ Daftar ini adalah dasar desain indeks. Setiap halaman prototype dipetakan ke que
 | Q18 | Awaiting questionnaire (+ search nama) | kode `issued` belum submit per cabang | `assessment_access_codes (status, issued_at)` + join client | < 30 ms |
 | Q19 | Monitoring: sesi completed belum ada report | `completed` per cabang rentang tanggal, `filled_sections = 0` | view `v_unreported_sessions` → `schedules idx_sch_calendar` + `session_reports (schedule_id)` | < 30 ms |
 | Q20 | Analitik client periode custom + jadwal rutin/aktif | sesi 1 client rentang tanggal bebas | `schedules (client_id, session_date)`, `schedule_series (client_id, starts_on)` | < 30 ms |
+| Q21 | Log satu invoice (tombol Log di tab Billing) | `invoice_logs` per invoice, terbaru dulu | `invoice_logs (invoice_id, created_at, id)` | < 20 ms |
 
 Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional < 150 ms · dashboard < 100 ms.
 
@@ -112,11 +113,13 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `payment_proofs` | Bukti transfer (riwayat upload) |
 | | `client_packages` | Paket kredit milik client |
 | | `credit_ledger` | Mutasi kredit append-only |
+| | `package_conversions` | Konversi sisa sesi paket ke paket lain (Finance) |
+| | `invoice_logs` | Log milik invoice sendiri (append-only; bukan dari `audit_logs`) |
 | **G. Audit & analitik** | `audit_logs` | Log aksi modul schedule & finance (partisi bulanan) |
 | | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue`, `v_unreported_sessions` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
 | **H. Laravel bawaan** | `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, session, cache & queue driver `database` (MySQL) |
 
-Total: 33 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 7 view + tabel bawaan Laravel.
+Total: 35 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 7 view + tabel bawaan Laravel.
 
 ---
 
@@ -164,6 +167,10 @@ erDiagram
   client_packages ||--o{ credit_ledger : ""
   schedules ||--o{ credit_ledger : ""
   credit_ledger ||--o| credit_ledger : "reversal"
+  invoices ||--o{ invoice_logs : "log"
+  invoices ||--o{ package_conversions : "konversi"
+  client_packages ||--o| client_packages : "converted_from"
+  package_conversions ||--o{ credit_ledger : "converted_out/in"
 ```
 `audit_logs` sengaja tanpa FK (partisi + data historis tetap ada walau entity dihapus).
 
@@ -402,6 +409,7 @@ Schema::create('clients', function (Blueprint $table) {
 
     // Denormalisasi kredit (sumber kebenaran: credit_ledger) — diperbarui di transaksi yang sama
     $table->integer('credit_balance')->default(0);    // Σ remaining_credit paket aktif; 0 = Frozen
+    $table->unsignedBigInteger('leftover_balance')->default(0);   // RUPIAH: saldo lebihan konversi paket, memotong invoice paket berikutnya (= Σ package_conversions.leftover_amount − Σ invoices.balance_applied yang tidak dibatalkan)
 
     // Portal ortu: login = client_code + date_of_birth (Q14)
     $table->timestamp('last_login_at')->nullable();
@@ -756,13 +764,15 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->foreignId('client_id')->constrained()->restrictOnDelete();
     $table->foreignId('branch_id')->constrained()->restrictOnDelete();
     $table->foreignId('master_package_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('invoice_type', ['package', 'assessment'])->default('package');   // Paket Sesi | Assessment (diterbitkan Finance). Tanpa diskon, DP, cicilan, refund, jatuh tempo
+    $table->enum('invoice_type', ['package', 'assessment'])->default('package');   // Paket Sesi | Assessment (diterbitkan Finance). Tanpa diskon manual, DP, cicilan, refund, jatuh tempo (satu-satunya pengurang = saldo lebihan konversi, `balance_applied`)
     $table->string('type_code', 10);                  // snapshot: `ASM` untuk assessment, master_packages.invoice_code untuk paket
 
     // Snapshot saat tagihan diterbitkan
     $table->string('package_name', 150);
     $table->unsignedSmallInteger('credits')->default(0);
-    $table->unsignedBigInteger('amount');             // rupiah
+    $table->unsignedBigInteger('amount');             // rupiah, NOMINAL BERSIH yang dibayar ortu (= gross_amount − balance_applied)
+    $table->unsignedBigInteger('gross_amount')->nullable();     // nominal sebelum saldo lebihan; null bila tak ada saldo dipakai
+    $table->unsignedBigInteger('balance_applied')->default(0); // saldo lebihan konversi yang dipotongkan saat terbit; hanya invoice `package`, maks sampai nominal invoice
 
     $table->enum('status', ['unpaid', 'pending_verification', 'paid', 'rejected', 'void'])->default('unpaid');
     $table->timestamp('issued_at')->useCurrent();
@@ -790,6 +800,49 @@ Status: `unpaid` → (ortu upload) `pending_verification` → Finance `paid` / `
 - **Jenis `assessment`**: diterbitkan Finance (nominal diisi saat terbit, `master_package_id` null, `credits = 0`, tidak membuat `client_packages`). Selama client punya invoice `assessment` yang belum `paid` (`unpaid` / `pending_verification` / `rejected`), semua kuesioner client itu tidak bisa dibuka ortu (§6.5b); dicek lewat `idx_inv_client`.
 - **Jenis `package`**: `amount`, `credits`, `package_name` adalah **snapshot** master paket saat terbit/renewal; mengubah harga master tidak memengaruhi invoice atau paket yang sudah ada. Renewal langsung Finance (tunai) = invoice `paid` dibuat sekaligus. `purchased` vs `renewed` di ledger ditentukan otomatis dari ada tidaknya paket sebelumnya.
 - Tanpa jatuh tempo: pengingat tagihan dilakukan admin manual lewat WhatsApp.
+- **Saldo lebihan**: saat invoice `package` terbit / renewal langsung, `balance_applied = min(clients.leftover_balance, gross)` mengurangi nominal dan saldo client; invoice **belum lunas** yang dihapus/void mengembalikan saldonya (log `balance_restored`). Paket yang dibuat dari invoice ini memakai **harga gross** sebagai `package_price` (nilai paket utuh).
+
+#### `invoice_logs`
+Log **milik invoice sendiri**, append-only (UPDATE/DELETE dilarang), ditulis di transaksi yang sama dengan perubahan invoice. Dipakai tombol **Log** di tab Billing (Q21); terpisah dari `audit_logs` (audit tetap mencatat aksi finance untuk pengawasan lintas modul, tetapi UI log invoice **tidak** membaca audit).
+```php
+Schema::create('invoice_logs', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('invoice_id')->constrained()->restrictOnDelete();
+    $table->enum('action', ['issued', 'proof_uploaded', 'verified', 'rejected', 'renewal_paid', 'balance_applied', 'balance_restored', 'converted', 'deleted']);   // tambah nilai baru di akhir
+    $table->string('actor_name', 120)->nullable();    // snapshot pelaku (staf / "Orang tua")
+    $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
+    $table->string('note', 500)->nullable();          // teks ringkas tampil di UI
+    $table->json('data')->nullable();                 // tidak difilter (mis. conversion_id, sisa, lebihan, nominal saldo)
+    $table->timestamp('created_at', 3)->useCurrent();
+
+    $table->index(['invoice_id', 'created_at', 'id'], 'idx_invlog_invoice');   // Q21: log 1 invoice, terbaru dulu (keyset)
+});
+```
+
+#### `package_conversions`
+Satu baris per konversi paket oleh Finance (`POST /invoices/{id}/convert-package`). Baris ledger `converted_out`/`converted_in` menunjuk baris ini lewat `credit_ledger.conversion_id`.
+```php
+Schema::create('package_conversions', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('client_id')->constrained()->restrictOnDelete();
+    $table->foreignId('invoice_id')->constrained()->restrictOnDelete();             // invoice yang ditekan tombol Konversi
+    $table->foreignId('from_package_id')->constrained('client_packages')->restrictOnDelete();
+    $table->foreignId('to_package_id')->constrained('client_packages')->restrictOnDelete();
+    $table->unsignedSmallInteger('from_remaining');   // sisa sesi paket asal yang dikonversi
+    $table->unsignedSmallInteger('to_sessions');      // sesi di paket baru (otomatis = floor(nilai sisa ÷ harga per sesi tujuan); manual ≤ itu)
+    $table->unsignedBigInteger('remaining_value');    // rupiah: from_remaining × (harga bayar ÷ total kredit asal)
+    $table->unsignedBigInteger('leftover_amount')->default(0);   // rupiah lebihan → clients.leftover_balance (tidak boleh negatif / kekurangan)
+    $table->enum('mode', ['auto', 'manual']);
+    $table->string('reason', 500)->nullable();        // wajib bila mode = manual
+    $table->unsignedSmallInteger('deleted_schedule_count')->default(0);   // jadwal terapi mendatang yang dihapus
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('created_at')->useCurrent();
+
+    $table->index(['client_id', 'created_at'], 'idx_conv_client');
+    $table->index(['invoice_id', 'created_at'], 'idx_conv_invoice');
+});
+```
+Tanpa UPDATE/DELETE dan tanpa fitur revert (jadwal yang dihapus tidak bisa dipulihkan otomatis; koreksi = `manual_adjust` / konversi ulang).
 
 #### `invoice_counters`
 Counter nomor invoice per kode jenis + tanggal WIB (increment reset harian). Dinaikkan atomik di transaksi terbit invoice: `INSERT … ON DUPLICATE KEY UPDATE last_number = LAST_INSERT_ID(last_number + 1)`. Nomor tampil 3 digit minimal (`001`; melebihi 999 otomatis 4 digit).
@@ -836,7 +889,9 @@ Schema::create('client_packages', function (Blueprint $table) {
     $table->unsignedSmallInteger('total_credit');
     $table->smallInteger('remaining_credit');         // denormalisasi dari ledger; CHECK >= 0
     $table->unsignedSmallInteger('cancel_count')->default(0);   // penghitung cancel PER PAKET (kuota 3 per paket; hanya penghitung, tidak otomatis memotong kredit)
-    $table->enum('status', ['active', 'depleted'])->default('active');   // paket tanpa masa berlaku
+    $table->enum('status', ['active', 'depleted', 'converted'])->default('active');   // paket tanpa masa berlaku; `converted` = sisa sesi sudah dikonversi ke paket lain (remaining_credit = 0)
+    $table->foreignId('converted_from_package_id')->nullable()->constrained('client_packages')->nullOnDelete();   // paket asal bila dibuat lewat konversi (invoice_id null; `cancel_count` disalin dari paket asal)
+    $table->foreignId('converted_to_package_id')->nullable()->constrained('client_packages')->nullOnDelete();     // paket tujuan bila status = converted
     $table->timestamp('activated_at')->useCurrent();
     $table->unsignedInteger('version')->default(1);
     $table->timestamps();
@@ -857,7 +912,8 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->foreignId('client_package_id')->nullable()->constrained()->restrictOnDelete();
     $table->foreignId('schedule_id')->nullable()->constrained()->nullOnDelete();
     $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust']);
+    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust', 'converted_out', 'converted_in']);   // converted_out = −sisa paket lama, converted_in = +sesi paket baru (berbagi conversion_id)
+    $table->foreignId('conversion_id')->nullable()->constrained('package_conversions')->restrictOnDelete();
     $table->smallInteger('credit_change');            // +N / -1 / 0
     $table->smallInteger('package_balance_after');    // saldo paket setelah mutasi (audit cepat)
     $table->integer('client_balance_after');          // saldo total client setelah mutasi
@@ -1069,7 +1125,7 @@ Hanya modul **schedule** dan **finance**. Entity lain tidak ditulis ke `audit_lo
 |---|---|
 | schedule | `schedule.created`, `schedule.series_created`, `schedule.updated`, `schedule.completed`, `schedule.completion_reverted`, `schedule.cancelled`, `schedule.cancellation_reverted`, `schedule.rescheduled`, `schedule.reschedule_reverted`, `schedule.marked_pending`, `schedule.pending_dropped`, `schedule.pending_reverted`, `schedule.report_saved`, `schedule.bulk_completed`, `schedule.bulk_cancelled`, `schedule.bulk_rescheduled`, `schedule.bulk_reverted`, `schedule.deleted` |
 | credit | `credit.package_activated`, `credit.manual_adjusted`, `credit.reconciled` (job) |
-| invoice | `invoice.issued`, `invoice.proof_uploaded` (actor `client`), `invoice.proof_viewed`, `invoice.verified`, `invoice.rejected`, `invoice.voided`, `invoice.renewal_created`, `invoice.deleted` |
+| invoice | `invoice.issued`, `invoice.proof_uploaded` (actor `client`), `invoice.proof_viewed`, `invoice.verified`, `invoice.rejected`, `invoice.voided`, `invoice.renewal_created`, `invoice.package_converted`, `invoice.deleted` |
 | system (job, `actor_type = system`) | `system.job_completed`, `system.job_failed` (hanya job yang menyentuh kredit/sesi) — lihat §11 |
 
 **Tidak ada baris audit `credit.used` / `credit.cancel_excused` / `credit.cancel_penalty` / `credit.reversed`**: `credit_ledger` sudah append-only (`reverses_ledger_id`, `batch_id`, `created_by`). Aksi `schedule.*` cukup menyimpan `meta.ledger_id` + `meta.credit_change`. `schedule.cancelled` juga menyimpan `meta.deduct_credit` (keputusan admin) dan `meta.cancel_count_after` (per paket); `invoice.proof_uploaded` menyimpan `meta.attempt` (1..4).
@@ -1197,6 +1253,13 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 
 **Renewal langsung Finance** (tunai/di tempat): satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; audit `invoice.renewal_created` + `credit.package_activated`. **Void** dan **koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
 
+**Konversi paket** (`POST /invoices/{id}/convert-package`, modul finance; body `target_package_id`, `sessions?`, `reason?`): satu transaksi.
+1. Lock invoice + paket hidup invoice itu (ikuti rantai `converted_to_package_id`); invoice harus `paid`, `invoice_type = package`, paket `active` dengan `remaining_credit > 0`.
+2. Hitung: `remaining_value = remaining × (harga bayar paket ÷ total_credit)`; `max = floor(remaining_value ÷ harga per sesi tujuan)`. `sessions` kosong → otomatis = `max`; diisi → manual (`reason` wajib), 1 ≤ sessions ≤ `max` (**tidak boleh ada kekurangan bayar**). `leftover = remaining_value − sessions × harga per sesi tujuan`. 422 bila `max < 1`.
+3. Paket lama → `converted` (`remaining_credit = 0`); paket baru (`converted_from_package_id`, `package_price = sessions × harga per sesi tujuan`, **`cancel_count` disalin dari paket lama**); ledger `converted_out` (−sisa) + `converted_in` (+sessions) dengan `conversion_id`; update `clients.credit_balance`; `clients.leftover_balance += leftover`.
+4. **Hapus (soft delete) semua jadwal terapi mendatang client** (`status ∈ scheduled, reschedule_pending`, `type = therapy`); admin schedule menjadwalkan ulang karena paket & terapis berubah. Sesi completed/cancelled/rescheduled & asesmen tidak disentuh. `deleted_schedule_count` dicatat.
+5. Tulis `package_conversions`, `invoice_logs (converted)`, audit `invoice.package_converted` + satu `schedule.deleted` per sesi (satu `batch_id`).
+
 ### 6.5b Buka & kirim kuesioner publik (`GET/POST /public/assessment/{code}`)
 1. Lookup kode (`UNIQUE code`); tidak ada → respons generik 404 (throttle per IP).
 2. `status = submitted` → 409 (kuesioner hanya boleh diisi **sekali**).
@@ -1301,9 +1364,9 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 2. `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays`
 3. `client_code_counters`, `clients`, `client_services`, `client_documents`, `client_status_histories`
 4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`
-5. `invoice_counters`, `invoices`, `payment_proofs`, `client_packages`
+5. `invoice_counters`, `invoices`, `payment_proofs`, `client_packages` (+ kolom `converted_*_package_id` setelah tabelnya ada)
 6. `schedule_series`, `schedules`, `session_reports`
-7. `credit_ledger`
+7. `package_conversions`, `credit_ledger` (+ FK `conversion_id`), `invoice_logs`
    - *(fase terakhir)* `google_calendar_integrations` + kolom `schedules.google_event_id`
 8. `audit_logs` (+ partisi + trigger)
 9. View dashboard (`CREATE OR REPLACE VIEW …` di migration terpisah, setelah semua tabel)

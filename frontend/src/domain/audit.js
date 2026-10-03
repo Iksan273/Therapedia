@@ -69,6 +69,7 @@ export const AUDIT_ACTIONS = {
   "invoice.rejected": { label: "Pembayaran ditolak", category: "finance", tone: "danger" },
   "invoice.renewal_created": { label: "Renewal paket", category: "finance", tone: "success" },
   "invoice.deleted": { label: "Invoice dihapus", category: "finance", tone: "danger" },
+  "invoice.package_converted": { label: "Paket dikonversi", category: "finance", tone: "warning" },
 
   "user.created": { label: "Akun staf dibuat", category: "access", tone: "info" },
   "user.deleted": { label: "Akun staf dihapus", category: "access", tone: "danger" },

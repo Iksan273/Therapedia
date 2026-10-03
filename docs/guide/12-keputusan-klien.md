@@ -34,6 +34,7 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 | F6 | Auth: password sementara, wajib ganti, lupa password OTP (simulasi di demo), reset oleh Master, Manager sesuai RBAC | ✅ | ✅ |
 | F7 | Landing page dua bahasa (EN/ID) | — | ✅ default Indonesia, pengalih ID/EN di header |
 | F8 | Integrasi Google Calendar — **paling akhir** | ✅ (fase akhir, migration ditunda) | ☐ belum dikerjakan (butuh OAuth + backend) |
+| F9 | Finance: konversi paket (Senior → Regular), otomatis/manual, lebihan jadi saldo pemotong invoice berikutnya, kuota cancel ikut pindah, jadwal mendatang dihapus, log invoice sendiri (ADR 0003) | ✅ (`package_conversions`, `invoice_logs`) | ✅ tab Billing: Konversi & Log |
 | — | Master asesmen: tipe soal selengkap Google Form termasuk `birth_date`; Finance menerbitkan invoice assessment | ✅ | ✅ |
 
 ## C. Tafsir tim teknis yang perlu konfirmasi klien
