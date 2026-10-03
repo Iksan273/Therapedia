@@ -30,6 +30,7 @@ export const AUDIT_ACTIONS = {
   "client.done_assessment": { label: "Ditandai Done Assessment", category: "client", tone: "success" },
   "client.discontinued": { label: "Client discontinued", category: "client", tone: "warning" },
   "client.discharged": { label: "Client di-discharge", category: "client", tone: "warning" },
+  "client.reactivated": { label: "Client diaktifkan kembali", category: "client", tone: "success" },
   "client.document_added": { label: "Dokumen/GDrive ditambahkan", category: "client", tone: "neutral" },
 
   "assessment_code.issued": { label: "Kode kuesioner diterbitkan", category: "assessment", tone: "info" },
@@ -47,6 +48,8 @@ export const AUDIT_ACTIONS = {
   "schedule.reschedule_reverted": { label: "Pemindahan jadwal dibatalkan", category: "schedule", tone: "revert" },
   "schedule.marked_pending": { label: "Reschedule menggantung", category: "schedule", tone: "warning" },
   "schedule.pending_dropped": { label: "Sesi menggantung dibatalkan", category: "schedule", tone: "warning" },
+  "schedule.pending_reverted": { label: "Reschedule menggantung dibatalkan (revert)", category: "schedule", tone: "revert" },
+  "schedule.deleted": { label: "Sesi dihapus", category: "schedule", tone: "danger" },
   "schedule.report_saved": { label: "Laporan sesi disimpan", category: "schedule", tone: "neutral" },
   "schedule.bulk_completed": { label: "Bulk complete", category: "schedule", tone: "success" },
   "schedule.bulk_cancelled": { label: "Bulk cancel", category: "schedule", tone: "warning" },
@@ -65,6 +68,7 @@ export const AUDIT_ACTIONS = {
   "invoice.verified": { label: "Pembayaran diverifikasi", category: "finance", tone: "success" },
   "invoice.rejected": { label: "Pembayaran ditolak", category: "finance", tone: "danger" },
   "invoice.renewal_created": { label: "Renewal paket", category: "finance", tone: "success" },
+  "invoice.deleted": { label: "Invoice dihapus", category: "finance", tone: "danger" },
 
   "user.created": { label: "Akun staf dibuat", category: "access", tone: "info" },
   "user.deleted": { label: "Akun staf dihapus", category: "access", tone: "danger" },

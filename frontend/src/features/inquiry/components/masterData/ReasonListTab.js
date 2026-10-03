@@ -1,3 +1,4 @@
+import { IfCanDelete } from "@/shared/components/DeleteControls";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -106,6 +107,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
                     <Button aria-label={`Edit ${noun}`} size="icon" variant="ghost" className="cursor-pointer" onClick={() => openEdit(r)} data-testid={`edit-${testId}-${r.value}`}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
+                    <IfCanDelete module="inquiry_pipeline">
                     <Button
                       aria-label={`Hapus ${noun}`}
                       size="icon"
@@ -116,6 +118,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
+                    </IfCanDelete>
                   </TableCell>
                 </TableRow>
               ))}

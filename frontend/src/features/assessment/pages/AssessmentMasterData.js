@@ -4,10 +4,11 @@ import { toast } from "sonner";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useClients } from "@/stores/clientsStore";
 import { useMasterData } from "@/stores/masterDataStore";
-import { uid, genCode } from "@/shared/lib/id";
-import { advanceStatus } from "@/domain/client";
+import { uid } from "@/shared/lib/id";
+import { CODE_VALIDITY_OPTIONS, isTypeCodeTaken, normalizeTypeCode } from "@/domain/assessment";
+import { useQuestionnaireCodeActions } from "@/features/inquiry";
 
-import { getQuadrantCounts } from "@/features/assessment/components/masterData/assessmentConfig";
+import { getQuadrantCounts, isOptionBasedType, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { AssessmentHero } from "@/features/assessment/components/masterData/AssessmentHero";
 import { AssessmentStats } from "@/features/assessment/components/masterData/AssessmentStats";
 import { CategorySwitcher } from "@/features/assessment/components/masterData/CategorySwitcher";
@@ -22,7 +23,8 @@ import { SectionDialog } from "@/features/assessment/components/masterData/Secti
 export default function AssessmentMasterData() {
   const { confirm, confirmDialog } = useConfirm();
   const { categories, addCategory, updateCategory, deleteCategory } = useAssessments();
-  const { clients, updateClient } = useClients();
+  const { clients } = useClients();
+  const codeActions = useQuestionnaireCodeActions();
   const { quadrants, quadrantMap } = useMasterData();
 
   // Active category selection tab
@@ -38,7 +40,7 @@ export default function AssessmentMasterData() {
   const [expandedSections, setExpandedSections] = useState({});
 
   // Dialog states
-  const [catDialog, setCatDialog] = useState({ open: false, editingId: null, name: "", domain: "" });
+  const [catDialog, setCatDialog] = useState({ open: false, editingId: null, name: "", domain: "", typeCode: "" });
   const [qDialog, setQDialog] = useState({
     open: false,
     categoryId: null,
@@ -68,6 +70,7 @@ export default function AssessmentMasterData() {
     selectedClientId: "",
     selectedCategoryId: "",
     generatedCode: "",
+    validity: "none",
   });
 
   // Calculate active category
@@ -121,7 +124,7 @@ export default function AssessmentMasterData() {
           if (!matchText && !matchItem) return false;
         }
         // Quadrant filter
-        if (selectedQuadrant !== "ALL" && (q.quadrant || "SN") !== selectedQuadrant) {
+        if (selectedQuadrant !== "ALL" && q.quadrant !== selectedQuadrant) {
           return false;
         }
         // Type filter
@@ -204,12 +207,14 @@ export default function AssessmentMasterData() {
 
   // Generate Questionnaire Code Modal
   const openGenModal = (preferredCatId = "") => {
-    const code = genCode("ASM");
+    const catId = preferredCatId || activeCategory?.id || categories[0]?.id || "cat-001";
+    const cat = categories.find((c) => c.id === catId);
     setGenDialog({
       open: true,
       selectedClientId: clients[0]?.id || "",
-      selectedCategoryId: preferredCatId || activeCategory?.id || categories[0]?.id || "cat-001",
-      generatedCode: code,
+      selectedCategoryId: catId,
+      generatedCode: codeActions.previewCode(cat),
+      validity: "none",
     });
   };
 
@@ -226,20 +231,11 @@ export default function AssessmentMasterData() {
       return;
     }
 
-    const newCodeEntry = {
+    const option = CODE_VALIDITY_OPTIONS.find((o) => o.value === genDialog.validity);
+    codeActions.issueCode(targetClient, targetCat, {
       code: genDialog.generatedCode,
-      categoryId: targetCat.id,
-      name: targetCat.categoryName,
-      status: "issued",
-      issuedAt: new Date().toISOString(),
-    };
-
-    const existingCodes = targetClient.assessmentCodes || [];
-    const updatedCodes = [...existingCodes, newCodeEntry];
-
-    updateClient(targetClient.id, {
-      assessmentCodes: updatedCodes,
-      status: advanceStatus(targetClient.status, "service_selected"),
+      validityDays: option?.days ?? null,
+      targetStatus: "service_selected",
     });
 
     toast.success(`Kode kuesioner ${genDialog.generatedCode} berhasil diterbitkan untuk ${targetClient.clientName}!`);
@@ -252,13 +248,23 @@ export default function AssessmentMasterData() {
       toast.error("Nama kategori asesmen wajib diisi.");
       return;
     }
+    const typeCode = normalizeTypeCode(catDialog.typeCode);
+    if (!typeCode) {
+      toast.error("Kode jenis asesmen wajib diisi (huruf/angka, mis. SP2).");
+      return;
+    }
+    if (isTypeCodeTaken(categories, typeCode, catDialog.editingId)) {
+      toast.error(`Kode jenis "${typeCode}" sudah dipakai template lain.`);
+      return;
+    }
     if (catDialog.editingId) {
-      updateCategory(catDialog.editingId, { categoryName: name, domain: catDialog.domain });
+      updateCategory(catDialog.editingId, { categoryName: name, domain: catDialog.domain, typeCode });
       toast.success("Kategori asesmen diperbarui.");
     } else {
       const newId = uid();
       addCategory({
         id: newId,
+        typeCode,
         categoryName: name,
         domain: catDialog.domain || "Clinical Assessment",
         questions: [],
@@ -274,7 +280,7 @@ export default function AssessmentMasterData() {
       setSelectedCatId(newId);
       toast.success("Kategori asesmen baru berhasil dibuat.");
     }
-    setCatDialog({ open: false, editingId: null, name: "", domain: "" });
+    setCatDialog({ open: false, editingId: null, name: "", domain: "", typeCode: "" });
   };
 
   const handleDeleteCategory = async (catId, catName) => {
@@ -301,7 +307,7 @@ export default function AssessmentMasterData() {
       sectionId: secId,
       editingId: null,
       text: "",
-      quadrant: "SN",
+      quadrant: "",
       type: "scale_0_5",
       options: ["Mandiri Penuh", "Mampu dengan Bantuan Minimal", "Membutuhkan Bantuan Bertahap", "Sangat Kesulitan / Menolak"],
       scaleMin: 1,
@@ -315,18 +321,7 @@ export default function AssessmentMasterData() {
   // Open Edit Question pre-populated with saved data
   const openEditQuestion = (catId, secId, q) => {
     const rawType = q.type || "scale_0_5";
-    const normalizedType =
-      rawType === "text"
-        ? "free_text"
-        : rawType === "multiple_choice"
-        ? "multiple_choice"
-        : rawType === "yes_no"
-        ? "yes_no"
-        : rawType === "range"
-        ? "range"
-        : rawType === "checkbox_multi"
-        ? "checkbox_multi"
-        : "scale_0_5";
+    const normalizedType = normalizeQuestionType(rawType);
 
     let parsedOpts = [];
     if (Array.isArray(q.options) && q.options.length > 0) {
@@ -343,7 +338,7 @@ export default function AssessmentMasterData() {
       sectionId: secId,
       editingId: q.id,
       text: q.question || "",
-      quadrant: q.quadrant || "SN",
+      quadrant: q.quadrant || "",
       type: normalizedType,
       options: parsedOpts,
       scaleMin: q.scaleMin !== undefined ? q.scaleMin : (normalizedType === "range" ? 1 : 0),
@@ -389,7 +384,7 @@ export default function AssessmentMasterData() {
     const category = categories.find((c) => c.id === qDialog.categoryId);
     if (!category) return;
 
-    const isOptionBased = qDialog.type === "multiple_choice" || qDialog.type === "checkbox_multi";
+    const isOptionBased = isOptionBasedType(qDialog.type);
     const cleanOptions = (qDialog.options || []).map((o) => o.trim()).filter(Boolean);
     if (isOptionBased && cleanOptions.length === 0) {
       toast.error("Mohon sediakan minimal 1 pilihan opsi jawaban.");
@@ -398,7 +393,7 @@ export default function AssessmentMasterData() {
 
     const payload = {
       question: text,
-      quadrant: qDialog.quadrant || "SN",
+      quadrant: qDialog.quadrant || null,
       type: qDialog.type || "scale_0_5",
       options: isOptionBased ? cleanOptions : [],
       scaleMin: qDialog.type === "range" ? (parseInt(qDialog.scaleMin, 10) || 1) : 0,
@@ -506,7 +501,7 @@ export default function AssessmentMasterData() {
     if (secDialog.editingSectionId) {
       sections = sections.map((s) =>
         s.sectionId === secDialog.editingSectionId
-          ? { ...s, title, leadText: secDialog.leadText.trim() || "Anakku ..." }
+          ? { ...s, title, leadText: secDialog.leadText.trim() }
           : s
       );
       toast.success(`Domain "${title}" diperbarui.`);
@@ -516,7 +511,7 @@ export default function AssessmentMasterData() {
         {
           sectionId: `sec-${uid()}`,
           title,
-          leadText: secDialog.leadText.trim() || "Anakku ...",
+          leadText: secDialog.leadText.trim(),
           questions: [],
         },
       ];
@@ -614,7 +609,7 @@ export default function AssessmentMasterData() {
       {/* ========================================================================= */}
       {/* MODAL: TERBITKAN KODE KUESIONER (MULTI-CODE ENGINE)                       */}
       {/* ========================================================================= */}
-      <GenerateCodeDialog categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} setGenDialog={setGenDialog} />
+      <GenerateCodeDialog categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} previewCode={codeActions.previewCode} setGenDialog={setGenDialog} />
 
       {/* ========================================================================= */}
       {/* MODAL: TAMBAH / EDIT KATEGORI                                             */}

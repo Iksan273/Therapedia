@@ -459,7 +459,7 @@ export default function DashboardSchedule() {
                   <SelectItem value="all">Semua Client ({clients.length})</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.clientName} ({c.clientAccessCode})
+                      {c.clientName} ({c.clientCode})
                     </SelectItem>
                   ))}
                 </SelectContent>

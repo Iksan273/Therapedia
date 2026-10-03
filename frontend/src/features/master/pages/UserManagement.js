@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
-import { UserCog, Plus, Trash2, Search } from "lucide-react";
+import { UserCog, Plus, KeyRound, UserX, UserCheck, Search } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -19,6 +19,7 @@ import {
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES } from "@/domain/branch";
+import { generateTempPassword, validateNewPassword, validateStaffBranch } from "@/domain/auth";
 
 const ROLE_OPTIONS = [
   { value: "manager", label: "Branch Manager" },
@@ -30,7 +31,7 @@ const ROLE_OPTIONS = [
 
 export default function UserManagement() {
   const { confirm, confirmDialog } = useConfirm();
-  const { staffUsers, addStaffUser, removeStaffUser, activeBranch, auth, rolesList } = useAuth();
+  const { staffUsers, addStaffUser, setStaffActive, resetStaffPassword, activeBranch, auth, rolesList } = useAuth();
   const isMaster = auth?.role === "master";
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
 
@@ -44,7 +45,7 @@ export default function UserManagement() {
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState(defaultBranch);
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({
+  const emptyForm = () => ({
     name: "",
     email: "",
     role: "admin_inquiry",
@@ -52,7 +53,11 @@ export default function UserManagement() {
     title: "",
     specialty: "",
     bio: "",
+    password: generateTempPassword(), // password sementara dari Master; wajib diganti saat login pertama
   });
+  const [form, setForm] = useState(emptyForm);
+  const [resetTarget, setResetTarget] = useState(null); // staf yang password-nya direset Master
+  const [resetPw, setResetPw] = useState("");
 
   const filteredStaff = (staffUsers || []).filter((u) => {
     if (branchFilter !== "all" && u.branchId !== branchFilter) return false;
@@ -73,25 +78,51 @@ export default function UserManagement() {
       return;
     }
 
-    addStaffUser(form);
-    toast.success(`Akun staff ${form.name} berhasil ditambahkan!`);
+    // Semua akun non-master terikat tepat 1 cabang; hanya Master yang boleh semua cabang (tanpa cabang)
+    const branchId = form.role === "master" ? null : form.branchId;
+    const branchError = validateStaffBranch(form.role, branchId);
+    if (branchError) {
+      toast.error(branchError);
+      return;
+    }
+    const pwError = validateNewPassword(form.password);
+    if (pwError) {
+      toast.error(`Password sementara: ${pwError}`);
+      return;
+    }
+
+    addStaffUser({ ...form, branchId });
+    toast.success(`Akun ${form.name} dibuat. Password sementara: ${form.password} (wajib diganti saat login pertama).`, { duration: 9000 });
     setAddOpen(false);
-    setForm({
-      name: "",
-      email: "",
-      role: "admin_inquiry",
-      branchId: "branch-sby-timur",
-      title: "",
-      specialty: "",
-      bio: "",
-    });
+    setForm(emptyForm());
   };
 
-  const handleRemove = async (id, name) => {
-    if (await confirm({ title: "Hapus akun staff?", description: `Akun staff ${name} akan dihapus.` })) {
-      removeStaffUser(id);
-      toast.info(`Akun staff ${name} telah dihapus.`);
+  // Master mengatur ulang password staf (lupa password / bantuan): password sementara baru + wajib ganti
+  const handleResetSubmit = (e) => {
+    e.preventDefault();
+    const pwError = validateNewPassword(resetPw);
+    if (pwError) {
+      toast.error(`Password sementara: ${pwError}`);
+      return;
     }
+    resetStaffPassword(resetTarget.id, resetPw);
+    toast.success(`Password ${resetTarget.name} diatur ulang: ${resetPw} (wajib diganti saat login berikutnya).`, { duration: 9000 });
+    setResetTarget(null);
+  };
+
+  // Staf yang berhenti dinonaktifkan (tidak dihapus): riwayat sesi dan data tetap utuh, akun tidak bisa login.
+  const handleToggleActive = async (user) => {
+    const active = user.isActive !== false;
+    if (active) {
+      const ok = await confirm({
+        title: "Nonaktifkan akun staff?",
+        description: `${user.name} tidak akan bisa login. Riwayat sesi dan data tetap tersimpan; akun bisa diaktifkan kembali.`,
+        confirmLabel: "Nonaktifkan",
+      });
+      if (!ok) return;
+    }
+    setStaffActive(user.id, !active);
+    toast.info(active ? `Akun ${user.name} dinonaktifkan.` : `Akun ${user.name} diaktifkan kembali.`);
   };
 
   return (
@@ -166,7 +197,7 @@ export default function UserManagement() {
                 <TableHead className="font-bold text-slate-700 text-xs min-w-[190px] whitespace-nowrap">Email Akun</TableHead>
                 <TableHead className="font-bold text-slate-700 text-xs min-w-[170px] whitespace-nowrap">Penugasan Cabang</TableHead>
                 <TableHead className="font-bold text-slate-700 text-xs min-w-[160px] whitespace-nowrap">Peran (Role)</TableHead>
-                <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[90px] whitespace-nowrap">Aksi</TableHead>
+                <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[110px] whitespace-nowrap">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -181,13 +212,19 @@ export default function UserManagement() {
                         <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-800 font-bold text-xs flex items-center justify-center shrink-0">
                           {u.name[0]}
                         </div>
-                        <p className="font-bold text-sm text-slate-900 whitespace-nowrap">{u.name}</p>
+                        <div>
+                          <p className="font-bold text-sm text-slate-900 whitespace-nowrap">{u.name}</p>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {u.isActive === false && <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded" data-testid={`staff-inactive-${u.id}`}>Nonaktif</span>}
+                            {u.mustChangePassword && <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" data-testid={`staff-must-change-${u.id}`}>Wajib ganti password</span>}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell data-label="Email Akun" className="text-xs font-mono text-slate-600 min-w-[190px] whitespace-nowrap">{u.email}</TableCell>
                     <TableCell data-label="Penugasan Cabang" className="text-xs min-w-[170px] whitespace-nowrap">
                       <span className="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
-                        {br ? br.name : "—"}
+                        {br ? br.name : u.role === "master" ? "Semua cabang" : "—"}
                       </span>
                     </TableCell>
                     <TableCell data-label="Peran (Role)" className="text-xs min-w-[160px] whitespace-nowrap">
@@ -196,14 +233,30 @@ export default function UserManagement() {
                       </span>
                     </TableCell>
                     <TableCell data-nolabel className="text-right pr-6 min-w-[90px] whitespace-nowrap">
-                      <Button aria-label="Hapus Staff"
+                      {isMaster && (
+                        <Button aria-label="Reset password"
+                          size="icon"
+                          variant="ghost"
+                          className="text-slate-400 hover:text-sky-700 hover:bg-sky-50 cursor-pointer"
+                          onClick={() => {
+                            setResetTarget(u);
+                            setResetPw(generateTempPassword());
+                          }}
+                          title="Reset password (password sementara)"
+                          data-testid={`reset-password-${u.id}`}
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <Button aria-label={u.isActive === false ? "Aktifkan staff" : "Nonaktifkan staff"}
                         size="icon"
                         variant="ghost"
-                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                        onClick={() => handleRemove(u.id, u.name)}
-                        title="Hapus Staff"
+                        className={u.isActive === false ? "text-emerald-600 hover:bg-emerald-50 cursor-pointer" : "text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"}
+                        onClick={() => handleToggleActive(u)}
+                        title={u.isActive === false ? "Aktifkan kembali" : "Nonaktifkan (tidak dihapus)"}
+                        data-testid={`toggle-active-${u.id}`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        {u.isActive === false ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -220,6 +273,30 @@ export default function UserManagement() {
           noun="staff"
         />
       </Card>
+
+      {/* Reset Password Dialog (Master) */}
+      <Dialog open={Boolean(resetTarget)} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="reset-password-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-sky-600" /> Reset Password Staf
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Atur password sementara untuk {resetTarget?.name}. Staf wajib menggantinya saat login berikutnya.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleResetSubmit} className="space-y-3.5 pt-1">
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Password sementara *</Label>
+              <Input className="border-slate-200 bg-slate-50 text-xs font-mono" value={resetPw} onChange={(e) => setResetPw(e.target.value)} data-testid="reset-password-input" />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setResetTarget(null)}>Batal</Button>
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="reset-password-submit">Atur Ulang Password</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Staff Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -268,8 +345,19 @@ export default function UserManagement() {
               </Select>
             </div>
             <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Password Sementara *</Label>
+              <Input
+                className="border-slate-200 bg-slate-50 text-xs font-mono"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                data-testid="staff-temp-password"
+              />
+              <p className="text-[11px] text-slate-500">Berikan ke staf; wajib diganti saat login pertama. Lupa password: OTP email atau reset oleh Master.</p>
+            </div>
+            <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Penugasan Cabang *</Label>
-              <Select value={form.branchId} onValueChange={(val) => setForm({ ...form, branchId: val })}>
+              {form.role === "master" && <p className="text-[11px] text-slate-500">Role Master berlaku untuk semua cabang. Role lain terikat tepat 1 cabang.</p>}
+              <Select value={form.branchId} disabled={form.role === "master"} onValueChange={(val) => setForm({ ...form, branchId: val })}>
                 <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>

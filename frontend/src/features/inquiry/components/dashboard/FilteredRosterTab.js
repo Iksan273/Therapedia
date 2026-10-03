@@ -54,7 +54,7 @@ export function FilteredRosterTab({ navigate, rosterPg, searchRoster, searchedRo
                           <TableCell data-nolabel className="py-3 pl-6">
                             <p className="font-bold text-slate-900">{c.clientName}</p>
                             <p className="font-mono text-[11px] text-slate-500">
-                              Kode: {c.clientAccessCode} • {c.parentName}
+                              Kode: {c.clientCode} • {c.parentName}
                             </p>
                           </TableCell>
                           <TableCell data-label="Cabang">

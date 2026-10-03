@@ -13,17 +13,24 @@ export function RevertSessionPanel({ schedule, preview, toSlotLabel, conflicts, 
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const isReschedule = schedule.status === "rescheduled";
-  const noun = { completed: "Completed", cancelled: "Cancel", rescheduled: "Reschedule" }[schedule.status];
+  const isPending = schedule.status === "reschedule_pending";
+  const noun = { completed: "Completed", cancelled: "Cancel", rescheduled: "Reschedule", reschedule_pending: "Reschedule Menggantung" }[schedule.status];
   const actionLabel = isReschedule ? "Batalkan Pemindahan Jadwal (Revert)" : `Batalkan Status ${noun} (Revert)`;
   const blocked = conflicts.length > 0;
 
+  const backToOrigin = preview.toStatus === "scheduled";
   const effects = isReschedule
-    ? [`Jadwal kembali ke slot asal: ${toSlotLabel}.`, "Jejak pemindahan dihapus; status sesi menjadi \"Scheduled\". Kredit tidak berubah."]
+    ? [
+        backToOrigin ? `Jadwal kembali ke jadwal asal: ${toSlotLabel}.` : `Jadwal kembali ke jadwal tersimpan terakhir: ${toSlotLabel} (sudah pernah dipindah 2x).`,
+        backToOrigin ? "Jejak pemindahan dihapus; status sesi menjadi \"Scheduled\". Kredit tidak berubah." : "Jadwal asal tetap tercatat. Kredit tidak berubah.",
+      ]
+    : isPending
+    ? [`Reschedule menggantung dibatalkan; status sesi kembali ke "${statusLabel(preview.toStatus)}" di jadwal asal.`, "Kredit tidak berubah."]
     : [`Status sesi kembali ke "${statusLabel(preview.toStatus)}".`];
   if (preview.creditChange > 0) effects.push(`+1 kredit dikembalikan ke ${preview.entry.packageName}.`);
-  if (preview.quotaChange < 0) effects.push("Kuota cancel client berkurang 1.");
+  if (preview.quotaChange < 0) effects.push("Kuota cancel paket berkurang 1.");
   if (preview.clientRestore) effects.push(`Tahap client kembali ke "${statusLabel(preview.clientRestore.to)}".`);
-  if (!isReschedule && preview.creditChange === 0 && preview.quotaChange === 0 && !preview.clientRestore) effects.push("Tidak ada perubahan kredit atau kuota cancel.");
+  if (!isReschedule && !isPending && preview.creditChange === 0 && preview.quotaChange === 0 && !preview.clientRestore) effects.push("Tidak ada perubahan kredit atau kuota cancel.");
 
   const close = () => {
     setOpen(false);
@@ -41,7 +48,7 @@ export function RevertSessionPanel({ schedule, preview, toSlotLabel, conflicts, 
         >
           <Undo2 className="w-4 h-4" /> {actionLabel}
         </Button>
-        <p className="text-[11px] text-slate-500 mt-1.5">Untuk koreksi salah klik. Tercatat di audit log dan bisa ditelusuri.</p>
+        <p className="text-[11px] text-slate-500 mt-1.5">Untuk koreksi salah klik. Hanya bisa 1x (satu langkah mundur); tercatat di audit log.</p>
       </div>
     );
   }

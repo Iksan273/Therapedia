@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarHeart, Wallet, Clock, HeartHandshake, CheckCircle2, Receipt, Upload, BookOpen, StickyNote, Home, ExternalLink, FileText, FileUp, Trash2, Loader2, RefreshCw, Eye, CreditCard } from "lucide-react";
+import { CalendarHeart, Wallet, Clock, HeartHandshake, CheckCircle2, Receipt, Upload, BookOpen, StickyNote, Home, ExternalLink, FileText, FileUp, Trash2, Loader2, RefreshCw, Eye, CreditCard, FileQuestion, Download, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import {
@@ -22,8 +23,12 @@ import { useCredits } from "@/stores/creditsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { fmtDate, fmtCurrency } from "@/shared/lib/format";
 import { BRANCHES } from "@/domain/branch";
-import { filterSessionsByDate } from "@/domain/schedule";
+import { filterSessionsByDate, isReportEmpty } from "@/domain/schedule";
+import { isQuestionnaireCodeFilled } from "@/domain/client";
+import { hasPendingAssessmentInvoice, isQuestionnaireCodeExpired } from "@/domain/assessment";
+import { canUploadProof, invoiceType, proofUploadsLeft, PROOF_ACCEPT } from "@/domain/credit";
 import { processProofFile, formatFileSize } from "@/shared/lib/fileUpload";
+import { buildSessionReportsHtml, printHtmlDocument } from "@/shared/lib/reportExport";
 import { cn } from "@/shared/lib/utils";
 
 export default function ClientDashboard() {
@@ -40,12 +45,19 @@ export default function ClientDashboard() {
   const [fileData, setFileData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [uploadInvoiceId, setUploadInvoiceId] = useState(null); // null = invoice paket terbaru
   const fileInputRef = React.useRef(null);
 
   const client = getClient(auth.clientId);
   const record = client ? getRecordForClient(client.id) : null;
   const invoices = client ? getInvoicesForClient(client.id) : [];
-  const latestInvoice = invoices.length > 0 ? invoices[0] : null;
+  // Banner tagihan = invoice Paket Sesi terbaru. Invoice Assessment tampil di kartu kuesioner karena menahan akses kuesioner.
+  const latestInvoice = invoices.find((i) => invoiceType(i) === "package") || null;
+  const assessmentInvoices = invoices.filter((i) => invoiceType(i) === "assessment");
+  const pendingAssessmentInvoices = assessmentInvoices.filter((i) => i.status !== "paid" && i.status !== "void");
+  const uploadTarget = invoices.find((i) => i.id === uploadInvoiceId) || latestInvoice;
+  const assessmentBlocked = hasPendingAssessmentInvoice(invoices);
+  const questionnaires = client ? (client.assessmentCodes || []).filter((q) => !isQuestionnaireCodeFilled(client, q)) : [];
 
   // RULE: Only COMPLETED sessions appear in parent history!
   const completedHistory = useMemo(() => {
@@ -71,6 +83,32 @@ export default function ClientDashboard() {
   const resetHistoryFilter = () => {
     setHistoryFrom("");
     setHistoryTo("");
+  };
+
+  // Export laporan sesi: dokumen cetak (simpan sebagai PDF lewat dialog cetak). Hanya sesi yang laporannya sudah terisi.
+  const exportSessions = (list) => {
+    const items = list
+      .filter((s) => !isReportEmpty(s))
+      .map((s) => ({
+        dateLabel: fmtDate(s.date),
+        timeLabel: `${s.startTime} – ${s.endTime}`,
+        therapistName: getTherapist(s.therapistId)?.name,
+        activity: s.activitySection,
+        note: s.noteSection || s.progressNote,
+        homework: s.homeworkSection,
+      }));
+    if (items.length === 0) {
+      toast.info("Belum ada laporan sesi yang terisi untuk diexport.");
+      return;
+    }
+    const branch = BRANCHES.find((b) => b.id === client?.branchId);
+    const html = buildSessionReportsHtml(items, {
+      clientName: client?.clientName,
+      clientCode: client?.clientCode,
+      branchName: branch ? `Therapedia ${branch.name}` : undefined,
+      generatedLabel: fmtDate(new Date().toISOString().slice(0, 10)),
+    });
+    if (!printHtmlDocument(html)) toast.error("Jendela cetak diblokir browser. Izinkan pop-up lalu coba lagi.");
   };
 
   if (!client) {
@@ -120,9 +158,13 @@ export default function ClientDashboard() {
       toast.error("Silakan pilih file foto atau dokumen PDF bukti transfer.");
       return;
     }
-    if (latestInvoice) {
+    if (uploadTarget && !canUploadProof(uploadTarget)) {
+      toast.error("Batas unggah bukti pembayaran untuk tagihan ini sudah tercapai. Hubungi admin klinik.");
+      return;
+    }
+    if (uploadTarget) {
       uploadPaymentProof({
-        invoiceId: latestInvoice.id,
+        invoiceId: uploadTarget.id,
         clientId: client.id,
         proofUrl: fileData.dataUrl,
         fileName: fileData.fileName,
@@ -133,6 +175,7 @@ export default function ClientDashboard() {
       toast.success("Bukti transfer pembayaran berhasil diupload! Tim Finance akan memverifikasinya.");
       setUploadOpen(false);
       setFileData(null);
+      setUploadInvoiceId(null);
     } else {
       toast.error("Belum ada tagihan invoice aktif dari klinik.");
     }
@@ -158,7 +201,7 @@ export default function ClientDashboard() {
           </div>
           <div className="shrink-0 bg-white/15 backdrop-blur-xs px-4 py-2.5 rounded-xl border border-white/25 text-right shadow-xs">
             <p className="text-[11px] uppercase font-bold tracking-wider text-cyan-200">Kode Unik Client</p>
-            <p className="font-mono text-base font-black text-white">{client.clientAccessCode}</p>
+            <p className="font-mono text-base font-black text-white">{client.clientCode}</p>
           </div>
         </div>
       </div>
@@ -236,6 +279,11 @@ export default function ClientDashboard() {
 
             {!isInvoicePaid && latestInvoice && hasUploadedProof && (
               <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {!canUploadProof(latestInvoice) && (
+                  <span className="text-[11px] font-semibold text-amber-900/80" data-testid="proof-upload-limit-note">
+                    Batas unggah ulang tercapai
+                  </span>
+                )}
                 <Button
                   variant="outline"
                   className="bg-white/90 hover:bg-white text-amber-900 border-amber-300 font-bold gap-1.5 shadow-xs cursor-pointer"
@@ -243,15 +291,18 @@ export default function ClientDashboard() {
                 >
                   <Eye className="w-4 h-4 text-amber-700" /> Lihat Bukti Terkirim
                 </Button>
+                {canUploadProof(latestInvoice) && (
                 <Button
                   className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5 shadow-sm shadow-amber-600/20 cursor-pointer"
                   onClick={() => {
                     setFileData(null);
                     setUploadOpen(true);
                   }}
+                  data-testid="reupload-proof-button"
                 >
-                  <RefreshCw className="w-4 h-4" /> Ganti / Unggah Ulang
+                  <RefreshCw className="w-4 h-4" /> Ganti / Unggah Ulang ({proofUploadsLeft(latestInvoice)}x tersisa)
                 </Button>
+                )}
               </div>
             )}
 
@@ -325,6 +376,82 @@ export default function ClientDashboard() {
         </Card>
       </div>
 
+      {/* KUESIONER ASESMEN: daftar kode yang belum diisi. Invoice assessment yang belum lunas menahan akses. */}
+      {(questionnaires.length > 0 || pendingAssessmentInvoices.length > 0) && (
+        <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden" data-testid="parent-questionnaires-card">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <FileQuestion className="w-4 h-4 text-sky-600" /> Kuesioner Asesmen Ananda ({questionnaires.length})
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Isi kuesioner perkembangan ananda satu kali per kode. Bila ada tagihan Assessment yang belum lunas, selesaikan pembayarannya lebih dulu.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 space-y-3">
+            {pendingAssessmentInvoices.map((inv) => (
+              <div key={inv.id} className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid={`assessment-invoice-${inv.id}`}>
+                <div className="text-xs text-rose-950 space-y-0.5">
+                  <p className="font-extrabold flex items-center gap-1.5"><Receipt className="w-4 h-4 text-rose-600" /> Tagihan Assessment {inv.invoiceNumber}</p>
+                  <p>{fmtCurrency(inv.amount)} •{" "}
+                    {inv.proofOfPaymentUrl || inv.proofUrl ? "bukti terkirim, menunggu verifikasi Finance" : "belum dibayar. Kuesioner terkunci sampai pembayaran terverifikasi."}
+                  </p>
+                </div>
+                {canUploadProof(inv) ? (
+                  <Button
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-1.5 shrink-0 cursor-pointer"
+                    onClick={() => {
+                      setUploadInvoiceId(inv.id);
+                      setFileData(null);
+                      setUploadOpen(true);
+                    }}
+                    data-testid={`upload-assessment-proof-${inv.id}`}
+                  >
+                    <Upload className="w-4 h-4" /> {proofUploadsLeft(inv) < 4 ? "Unggah Ulang Bukti" : "Upload Bukti Transfer"}
+                  </Button>
+                ) : (
+                  <span className="text-[11px] font-bold text-rose-900">Menunggu verifikasi Finance</span>
+                )}
+              </div>
+            ))}
+
+            {questionnaires.length === 0 ? (
+              <p className="text-xs text-slate-500">Belum ada kuesioner yang perlu diisi.</p>
+            ) : (
+              questionnaires.map((q) => {
+                const expired = isQuestionnaireCodeExpired(q);
+                const locked = assessmentBlocked || expired;
+                return (
+                  <div key={q.code} className="p-3.5 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3" data-testid={`parent-questionnaire-${q.code}`}>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-slate-900">{q.name || "Kuesioner Asesmen"}</p>
+                      <p className="font-mono text-xs text-slate-600">{q.code}</p>
+                      {q.expiresAt && (
+                        <p className={cn("text-[11px] font-semibold mt-0.5", expired ? "text-rose-600" : "text-slate-500")}>
+                          {expired ? "Kedaluwarsa" : "Berlaku s.d."} {fmtDate(q.expiresAt)}
+                        </p>
+                      )}
+                    </div>
+                    {locked ? (
+                      <Button disabled variant="outline" className="gap-1.5 shrink-0 font-bold" data-testid={`questionnaire-locked-${q.code}`}>
+                        <Lock className="w-4 h-4" /> {expired ? "Kode kedaluwarsa" : "Selesaikan pembayaran dulu"}
+                      </Button>
+                    ) : (
+                      <Link
+                        to={`/assessment?code=${encodeURIComponent(q.code)}`}
+                        className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold text-xs shrink-0"
+                        data-testid={`fill-questionnaire-${q.code}`}
+                      >
+                        <FileQuestion className="w-4 h-4" /> Isi Kuesioner
+                      </Link>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* RIWAYAT SESI HANYA YANG COMPLETED */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
         <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 space-y-3">
@@ -337,6 +464,21 @@ export default function ClientDashboard() {
               Daftar sesi terapi yang telah selesai. Klik &ldquo;View Report&rdquo; untuk melihat detail catatan klinis dan PR latihan.
             </CardDescription>
           </div>
+
+          {completedHistory.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="font-bold gap-1.5 cursor-pointer"
+                onClick={() => exportSessions(filteredHistory)}
+                data-testid="export-all-reports"
+              >
+                <Download className="w-3.5 h-3.5" /> Export Laporan{historyFrom || historyTo ? " (sesuai filter)" : ""}
+              </Button>
+            </div>
+          )}
 
           {/* Filter tanggal sesi */}
           {completedHistory.length > 0 && (
@@ -432,20 +574,39 @@ export default function ClientDashboard() {
                       </div>
                     </div>
 
-                    {/* Sisi Kanan: Tombol Aksi View Report */}
+                    {/* Sisi Kanan: View Report (nonaktif bila laporan belum diisi terapis) + export */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      {isReportEmpty(s) && (
+                        <span className="text-[11px] font-semibold text-slate-400" data-testid={`report-pending-${s.id}`}>Laporan belum tersedia</span>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
+                        disabled={isReportEmpty(s)}
+                        title={isReportEmpty(s) ? "Laporan belum diisi terapis" : "Lihat laporan sesi"}
                         onClick={() => {
                           setSelectedReportSession(s);
                           setIsReportOpen(true);
                         }}
-                        className="border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-sky-700 font-bold gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                        className="border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-sky-700 font-bold gap-1.5 shadow-2xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-testid={`view-report-${s.id}`}
                       >
                         <FileText className="w-3.5 h-3.5 text-sky-600" />
                         View Report
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isReportEmpty(s)}
+                        onClick={() => exportSessions([s])}
+                        className="font-bold gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Export laporan sesi (simpan sebagai PDF)"
+                        aria-label="Export laporan sesi"
+                        data-testid={`export-report-${s.id}`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -522,7 +683,7 @@ export default function ClientDashboard() {
                   Aktivitas Klinis Terapi (Activity Section)
                 </p>
                 <p className="text-xs text-sky-900 leading-relaxed whitespace-pre-wrap">
-                  {selectedReportSession.activitySection || "Aktivitas stimulasi sensori dan latihan okupasi telah dilaksanakan dengan baik."}
+                  {selectedReportSession.activitySection || <em className="text-sky-700/60">Belum diisi</em>}
                 </p>
               </div>
 
@@ -533,7 +694,7 @@ export default function ClientDashboard() {
                   Catatan Evaluasi & Observasi Terapis (Note Section)
                 </p>
                 <p className="text-xs text-amber-950 leading-relaxed whitespace-pre-wrap">
-                  {selectedReportSession.noteSection || selectedReportSession.progressNote || "Ananda menunjukkan kooperasi yang sangat baik selama sesi terapi berlangsung."}
+                  {selectedReportSession.noteSection || selectedReportSession.progressNote || <em className="text-amber-800/60">Belum diisi</em>}
                 </p>
               </div>
 
@@ -544,11 +705,20 @@ export default function ClientDashboard() {
                   PR & Latihan Mandiri di Rumah (Homework Section)
                 </p>
                 <p className="text-xs text-emerald-900 leading-relaxed whitespace-pre-wrap">
-                  {selectedReportSession.homeworkSection || "Lanjutkan stimulasi harian sesuai panduan terapis saat evaluasi."}
+                  {selectedReportSession.homeworkSection || <em className="text-emerald-800/60">Belum diisi</em>}
                 </p>
               </div>
 
-              <DialogFooter className="mt-5 pt-3 border-t border-slate-100 flex flex-row items-center justify-end">
+              <DialogFooter className="mt-5 pt-3 border-t border-slate-100 flex flex-row items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="font-semibold gap-1.5 cursor-pointer"
+                  onClick={() => exportSessions([selectedReportSession])}
+                  data-testid="report-modal-export"
+                >
+                  <Download className="w-4 h-4" /> Export
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -564,14 +734,14 @@ export default function ClientDashboard() {
       </Dialog>
 
       {/* Modal Upload Bukti Transfer */}
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+      <Dialog open={uploadOpen} onOpenChange={(o) => { setUploadOpen(o); if (!o) setUploadInvoiceId(null); }}>
         <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Upload className="w-5 h-5 text-sky-600" /> Upload Bukti Transfer Pembayaran
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Unggah foto slip transfer atau dokumen PDF transfer bank untuk verifikasi invoice ananda.
+              Unggah foto slip transfer (JPG/PNG) atau dokumen PDF untuk verifikasi invoice ananda. Unggah ulang dibatasi maksimal 3x.
             </DialogDescription>
           </DialogHeader>
 
@@ -579,8 +749,8 @@ export default function ClientDashboard() {
             {/* Info Rekening & Tagihan */}
             <div className="rounded-xl border border-sky-100 bg-sky-50/60 p-3 space-y-1.5 text-xs text-sky-950">
               <div className="flex items-center justify-between font-bold">
-                <span>{latestInvoice ? latestInvoice.invoiceNumber : "Invoice"} ({latestInvoice ? latestInvoice.packageName : "Paket"})</span>
-                <span className="text-sky-700">{latestInvoice ? fmtCurrency(latestInvoice.amount) : "—"}</span>
+                <span>{uploadTarget ? uploadTarget.invoiceNumber : "Invoice"} ({uploadTarget ? uploadTarget.packageName : "Paket"})</span>
+                <span className="text-sky-700">{uploadTarget ? fmtCurrency(uploadTarget.amount) : "—"}</span>
               </div>
               <div className="pt-1.5 border-t border-sky-200/60 flex items-center justify-between text-[11px] text-sky-800">
                 <span className="flex items-center gap-1 font-medium">
@@ -595,7 +765,7 @@ export default function ClientDashboard() {
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
+              accept={PROOF_ACCEPT}
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
                   handleFileSelect(e.target.files[0]);
@@ -630,7 +800,7 @@ export default function ClientDashboard() {
                     {isProcessing ? "Memproses File..." : "Klik untuk Pilih File atau Seret ke Sini"}
                   </p>
                   <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                    Mendukung <strong>Foto (JPG, PNG, WEBP)</strong> & <strong>Dokumen (PDF)</strong> maks. 8MB.
+                    Mendukung <strong>JPG, PNG</strong> & <strong>PDF</strong>, maks. 5 MB.
                   </p>
                 </div>
                 <Button

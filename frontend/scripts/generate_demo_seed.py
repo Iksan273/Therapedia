@@ -140,7 +140,7 @@ def make_new_client(idx, branch_key, child, parent, status):
         "parentName": parent,
         "parentContact": "08" + "".join(str(R.randint(0, 9)) for _ in range(10)),
         "parentEmail": f"{parent.split()[0].lower()}.{last}@gmail.com",
-        "clientAccessCode": f"TDC-{code_no}",
+        "clientCode": f"CODE-{code_no}",   # diganti kode grup di akhir skrip
         "branchId": bid,
         "status": status,
         "serviceType": "f_ota",
@@ -519,7 +519,7 @@ for cid in admitted_ids:
 
     cancel_total = cancels_prior + sum(1 for e in events if e[1].startswith("cancel"))
     records.append({"id": f"cr-g{cid[2:]}", "clientId": cid, "branchId": c["branchId"], "packages": [{k: v for k, v in p.items() if not k.startswith("_")} for p in packages],
-                    "cancelCountTotal": cancel_total, "history": history})
+                    "history": history})
 
 # invoice menunggu verifikasi / belum dibayar (antrean Finance)
 needs_renewal = [cid for cid in admitted_ids if cid in FROZEN_TARGET or cid in LOW_TARGET]
@@ -567,6 +567,17 @@ schedules.sort(key=lambda s: (s["_weekOffset"], s["_dayOfWeek"], s["startTime"])
 credits = load("credits.seed.json")
 credits["records"] = records
 credits["invoices"] = sorted(invoices, key=lambda i: -i["_issuedDaysAgo"])
+# Kode client: grup 2 huruf dari huruf pertama nama (A-E=AE, F-J=FJ, K-O=KO, P-T=PT, U-Z=UZ) + counter 5 digit per grup,
+# urut sesuai urutan klien (sama dengan domain/client.js `nextClientCode`).
+import unicodedata
+
+_GROUPS = ["AE", "FJ", "KO", "PT", "UZ"]
+_counter = {g: 0 for g in _GROUPS}
+for c in clients:
+    letters = [ch for ch in unicodedata.normalize("NFD", c["clientName"]).upper() if "A" <= ch <= "Z"]
+    g = _GROUPS[min((ord(letters[0] if letters else "A") - 65) // 5, 4)]
+    _counter[g] += 1
+    c["clientCode"] = f"{g}-{_counter[g]:05d}"
 save("clients.seed.json", clients)
 save("schedules.seed.json", schedules)
 save("credits.seed.json", credits)
@@ -580,5 +591,5 @@ print("invoice    :", len(invoices), dict(Counter(i["status"] for i in invoices)
 rem = [r for r in records]
 print("kredit     : frozen", sum(1 for r in rem if sum(p["remainingCredit"] for p in r["packages"]) == 0),
       "| menipis", sum(1 for r in rem if 0 < sum(p["remainingCredit"] for p in r["packages"]) <= 2),
-      "| lewat kuota cancel", sum(1 for r in rem if r["cancelCountTotal"] > 3))
+      "| lewat kuota cancel", sum(1 for r in rem if max((p["cancelCount"] for p in r["packages"]), default=0) > 3))
 print("terapis    :", dict(Counter(s["therapistId"] for s in schedules)))

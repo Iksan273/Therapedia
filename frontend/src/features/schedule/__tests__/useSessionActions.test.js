@@ -10,6 +10,7 @@ import { useCredits } from "@/stores/creditsStore";
 import { useClients } from "@/stores/clientsStore";
 import { useAudit } from "@/stores/auditStore";
 import { CANCEL_QUOTA } from "@/domain/credit";
+import { canRevertSession } from "@/domain/schedule";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -38,6 +39,12 @@ const pickSessions = (n) => {
   });
   const clientId = list[0].clientId;
   return list.filter((s) => s.clientId === clientId).slice(0, n);
+};
+
+// Paket yang dipakai sesi (sama dengan aturan hook: paket sesi, fallback paket pertama)
+const pkgOf = (s) => {
+  const rec = ctx.credits.getRecordForClient(s.clientId);
+  return rec.packages.find((p) => p.id === s.creditPackageId || p.packageId === s.creditPackageId) || rec.packages[0];
 };
 
 test("bulkComplete memotong 1 kredit per sesi therapy dan menandai completed", async () => {
@@ -130,20 +137,43 @@ describe("revertSession: batalkan completed / cancel", () => {
     expect(ctx.credits.getRecordForClient(s.clientId).history.filter((h) => h.scheduleId === s.id && h.action === "used")).toHaveLength(2);
   });
 
-  test("cancel → revert: status kembali, kuota cancel kembali", async () => {
+  test("cancel wajib memilih potong atau tidak (tanpa pilihan ditolak)", async () => {
     const [s] = pickSessions(1);
-    const quotaBefore = ctx.credits.getRecordForClient(s.clientId).cancelCountTotal;
+    expect(() => ctx.actions.cancelSession(s, { cancelReason: "sakit", note: "" })).toThrow(/wajib dipilih/);
+    expect(sched(s.id).status).toBe("scheduled");
+  });
+
+  test("cancel tanpa potong → revert: status kembali, kuota paket kembali, kredit utuh", async () => {
+    const [s] = pickSessions(1);
+    const quotaBefore = pkgOf(s).cancelCount || 0;
     const creditBefore = remaining(s.clientId);
 
-    await act(async () => ctx.actions.cancelSession(s, { cancelReason: "Anak ujian sekolah", note: "" }));
+    let result;
+    await act(async () => { result = ctx.actions.cancelSession(s, { cancelReason: "Anak ujian sekolah", note: "", deductCredit: false }); });
+    expect(result).toMatchObject({ deducted: false, cancelCount: quotaBefore + 1 });
     expect(sched(s.id)).toMatchObject({ status: "cancelled", cancelReason: "Anak ujian sekolah" });
-    expect(ctx.credits.getRecordForClient(s.clientId).cancelCountTotal).toBe(quotaBefore + 1);
+    expect(pkgOf(s).cancelCount).toBe(quotaBefore + 1);
+    expect(remaining(s.clientId)).toBe(creditBefore);
 
     await act(async () => ctx.actions.revertSession(sched(s.id), { reason: "Ortu ternyata hadir" }));
     expect(sched(s.id)).toMatchObject({ status: "scheduled", cancelReason: null });
-    expect(ctx.credits.getRecordForClient(s.clientId).cancelCountTotal).toBe(quotaBefore);
+    expect(pkgOf(s).cancelCount).toBe(quotaBefore);
     expect(remaining(s.clientId)).toBe(creditBefore);
     expect(ctx.audit.auditLogs.some((e) => e.action === "schedule.cancellation_reverted" && e.entityId === s.id)).toBe(true);
+  });
+
+  test("cancel dengan potong kredit (di dalam kuota) → -1 kredit; revert mengembalikan kredit", async () => {
+    const [s] = pickSessions(1);
+    const creditBefore = remaining(s.clientId);
+    let result;
+    await act(async () => { result = ctx.actions.cancelSession(s, { cancelReason: "sakit", note: "", deductCredit: true }); });
+    expect(result).toMatchObject({ deducted: true });
+    expect(remaining(s.clientId)).toBe(creditBefore - 1);
+    const log = ctx.audit.auditLogs.find((e) => e.action === "schedule.cancelled" && e.entityId === s.id);
+    expect(log.meta).toMatchObject({ deductCredit: true });
+
+    await act(async () => ctx.actions.revertSession(sched(s.id), { reason: "Salah pilih" }));
+    expect(remaining(s.clientId)).toBe(creditBefore);
   });
 
   test("reschedule → revert: kembali ke slot & terapis asal, jejak dihapus, kredit tidak berubah", async () => {
@@ -215,7 +245,7 @@ describe("bulkRevert", () => {
 
   test("slot yang sudah terisi sesi lain dilewati (tidak dibatalkan)", async () => {
     const [s] = pickSessions(1);
-    await act(async () => ctx.actions.cancelSession(s, { cancelReason: "sakit", note: "" }));
+    await act(async () => ctx.actions.cancelSession(s, { cancelReason: "sakit", note: "", deductCredit: false }));
     // Terapis yang sama menempati slot itu dengan sesi lain
     const other = ctx.schedules.schedules.find((x) => x.id !== s.id && x.clientId !== s.clientId && x.status === "scheduled");
     await act(async () => ctx.schedules.updateSchedule(other.id, { therapistId: s.therapistId, date: s.date, startTime: s.startTime, endTime: s.endTime }));
@@ -228,17 +258,102 @@ describe("bulkRevert", () => {
   });
 });
 
-test("bulkCancel mode leave menambah kuota cancel; mode other tidak", async () => {
+test("bulkCancel: admin memilih potong kredit; kuota paket hanya penghitung", async () => {
   const [a, b] = pickSessions(2);
   const clientId = a.clientId;
-  const beforeCount = ctx.credits.getRecordForClient(clientId).cancelCountTotal;
+  expect(() => ctx.actions.bulkCancel([a.id], { mode: "leave", note: "" })).toThrow(/wajib dipilih/);
 
-  await act(async () => ctx.actions.bulkCancel([a.id], { mode: "leave", note: "" }));
-  const afterLeave = ctx.credits.getRecordForClient(clientId).cancelCountTotal;
-  expect(afterLeave).toBe(beforeCount + 1);
+  const creditBefore = ctx.credits.getRecordForClient(clientId).remainingCredit;
+  const countBefore = pkgOf(a).cancelCount || 0;
 
-  await act(async () => ctx.actions.bulkCancel([b.id], { mode: "other", note: "x" }));
-  expect(ctx.credits.getRecordForClient(clientId).cancelCountTotal).toBe(afterLeave);
+  await act(async () => ctx.actions.bulkCancel([a.id], { mode: "leave", note: "", deductCredit: false }));
+  expect(pkgOf(a).cancelCount).toBe(countBefore + 1);
+  expect(ctx.credits.getRecordForClient(clientId).remainingCredit).toBe(creditBefore);
+  expect(ctx.schedules.schedules.find((s) => s.id === a.id)).toMatchObject({ status: "cancelled", cancelReason: "izin_keluarga" });
+
+  await act(async () => ctx.actions.bulkCancel([b.id], { mode: "other", note: "x", deductCredit: true }));
+  expect(ctx.credits.getRecordForClient(clientId).remainingCredit).toBe(creditBefore - 1);
   expect(ctx.schedules.schedules.find((s) => s.id === b.id)).toMatchObject({ status: "cancelled", cancelReason: "lainnya" });
   expect(CANCEL_QUOTA).toBe(3);
+});
+
+describe("drop pending: admin memilih potong kredit atau tidak", () => {
+  const sched = (id) => ctx.schedules.schedules.find((s) => s.id === id);
+
+  test("pending → drop tanpa potong; dengan potong mengurangi 1 kredit; keduanya tercatat di ledger", async () => {
+    const [a, b] = pickSessions(2);
+    await act(async () => ctx.actions.markPending(a, { reason: "sakit", note: "" }));
+    await act(async () => ctx.actions.markPending(b, { reason: "sakit", note: "" }));
+    expect(() => ctx.actions.dropPending(sched(a.id), { note: "" })).toThrow(/wajib dipilih/);
+
+    const creditBefore = ctx.credits.getRecordForClient(a.clientId).remainingCredit;
+    await act(async () => ctx.actions.dropPending(sched(a.id), { note: "", deductCredit: false }));
+    expect(ctx.credits.getRecordForClient(a.clientId).remainingCredit).toBe(creditBefore);
+    await act(async () => ctx.actions.dropPending(sched(b.id), { note: "", deductCredit: true }));
+    expect(ctx.credits.getRecordForClient(a.clientId).remainingCredit).toBe(creditBefore - 1);
+    const hist = ctx.credits.getRecordForClient(a.clientId).history.filter((h) => [a.id, b.id].includes(h.scheduleId));
+    expect(hist.map((h) => h.action).sort()).toEqual(["cancel_excused", "cancel_penalty"]);
+    expect(sched(a.id)).toMatchObject({ status: "cancelled", cancelReason: "reschedule_dibatalkan" });
+  });
+});
+
+describe("revert hanya 1x", () => {
+  const sched = (id) => ctx.schedules.schedules.find((s) => s.id === id);
+  const slot = (s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId });
+
+  test("revert kedua langsung ditolak; setelah aksi baru bisa di-revert lagi", async () => {
+    const [s] = pickSessions(1);
+    await act(async () => ctx.actions.completeSession(s, {}));
+    expect(canRevertSession(sched(s.id))).toBe(true);
+
+    await act(async () => ctx.actions.revertSession(sched(s.id), { reason: "Salah klik" }));
+    expect(sched(s.id).revertedAt).toBeTruthy();
+    expect(canRevertSession(sched(s.id))).toBe(false);
+
+    // Aksi baru (complete lagi) mengosongkan penanda sehingga bisa di-revert sekali lagi
+    await act(async () => ctx.actions.completeSession(sched(s.id), {}));
+    expect(sched(s.id).revertedAt).toBeNull();
+    expect(canRevertSession(sched(s.id))).toBe(true);
+  });
+
+  test("reschedule 2x → revert kembali ke jadwal tersimpan terakhir (bukan jadwal asal)", async () => {
+    const [s] = pickSessions(1);
+    const orig = slot(s);
+    await act(async () => ctx.actions.rescheduleSession(s, { date: "2031-03-03", startTime: "13:00", endTime: "14:00", therapistId: "t-002" }));
+    const first = slot(sched(s.id));
+    await act(async () => ctx.actions.rescheduleSession(sched(s.id), { date: "2031-04-07", startTime: "15:00", endTime: "16:00", therapistId: "t-002" }));
+    expect(sched(s.id).rescheduledFrom).toMatchObject(orig);
+    expect(sched(s.id).rescheduledPrev).toMatchObject(first);
+
+    let result;
+    await act(async () => { result = ctx.actions.revertSession(sched(s.id), { reason: "Salah geser" }); });
+    expect(result).toMatchObject({ kind: "reschedule", toStatus: "rescheduled" });
+    expect(sched(s.id)).toMatchObject({ status: "rescheduled", ...first });
+    expect(sched(s.id).rescheduledFrom).toMatchObject(orig); // jadwal asal tetap tercatat
+    expect(canRevertSession(sched(s.id))).toBe(false); // hanya 1x
+  });
+
+  test("reschedule 1x → revert kembali ke jadwal asal berstatus scheduled", async () => {
+    const [s] = pickSessions(1);
+    const orig = slot(s);
+    await act(async () => ctx.actions.rescheduleSession(s, { date: "2031-03-03", startTime: "13:00", endTime: "14:00", therapistId: "t-002" }));
+    await act(async () => ctx.actions.revertSession(sched(s.id), { reason: "Batal pindah" }));
+    expect(sched(s.id)).toMatchObject({ status: "scheduled", ...orig, rescheduledFrom: null });
+  });
+
+  test("reschedule pending → revert kembali ke jadwal asal (scheduled), tanpa efek kredit", async () => {
+    const [s] = pickSessions(1);
+    const creditBefore = ctx.credits.getRecordForClient(s.clientId).remainingCredit;
+    await act(async () => ctx.actions.markPending(s, { reason: "sakit", note: "" }));
+    expect(sched(s.id).status).toBe("reschedule_pending");
+    expect(canRevertSession(sched(s.id))).toBe(true);
+
+    let result;
+    await act(async () => { result = ctx.actions.revertSession(sched(s.id), { reason: "Salah tandai" }); });
+    expect(result).toMatchObject({ kind: "pending", toStatus: "scheduled", creditChange: 0 });
+    expect(sched(s.id)).toMatchObject({ status: "scheduled", pendingFrom: null, pendingReason: null });
+    expect(ctx.credits.getRecordForClient(s.clientId).remainingCredit).toBe(creditBefore);
+    expect(ctx.audit.auditLogs.some((e) => e.action === "schedule.pending_reverted" && e.entityId === s.id)).toBe(true);
+    expect(canRevertSession(sched(s.id))).toBe(false);
+  });
 });

@@ -28,7 +28,7 @@ export function SectionDialog({ saveSection, secDialog, setSecDialog }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Kalimat Pengantar (Lead Text)</Label>
+              <Label className="text-xs font-bold text-slate-700">Kalimat Pengantar (Lead Text) <span className="font-medium text-slate-400">(opsional)</span></Label>
               <Input
                 placeholder="misal: Anakku ... atau Di kelas, siswa ..."
                 value={secDialog.leadText}

@@ -1,4 +1,5 @@
 import React from "react";
+import { IfCanDelete } from "@/shared/components/DeleteControls";
 import { getCategoryIcon } from "@/features/assessment/components/masterData/assessmentConfig";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -67,6 +68,7 @@ export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestion
                       editingId: activeCategory.id,
                       name: activeCategory.categoryName,
                       domain: activeCategory.domain || "",
+                      typeCode: activeCategory.typeCode || "",
                     })
                   }
                   data-testid={`edit-category-button-${activeCategory.id}`}
@@ -74,6 +76,7 @@ export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestion
                   <Pencil className="w-3.5 h-3.5" /> Ubah Nama
                 </Button>
 
+                <IfCanDelete module="inquiry_pipeline">
                 <Button
                   size="sm"
                   variant="ghost"
@@ -82,6 +85,7 @@ export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestion
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Hapus
                 </Button>
+                </IfCanDelete>
               </div>
             </div>
 

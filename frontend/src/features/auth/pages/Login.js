@@ -27,6 +27,8 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { LOGIN } from "@/shared/constants/testIds/auth";
+import { ForcePasswordChangeDialog, ForgotPasswordDialog } from "@/features/auth/components/PasswordDialogs";
+import { DEMO_PASSWORD, checkStaffCredentials, findStaffByEmail } from "@/domain/auth";
 import { cn } from "@/shared/lib/utils";
 
 // Quick Preset Accounts for seamless evaluation
@@ -91,7 +93,7 @@ const PRESET_ACCOUNTS = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, setActiveBranch, staffUsers } = useAuth();
+  const { login, setActiveBranch, staffUsers, changeStaffPassword, requestPasswordOtp, resetPasswordWithOtp } = useAuth();
   const { clients } = useClients();
 
   // Mode: "staff" or "client"
@@ -99,73 +101,79 @@ export default function Login() {
 
   // Staff Form State
   const [email, setEmail] = useState("master@therapedia.id");
-  const [password, setPassword] = useState("••••••••");
+  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [pendingStaff, setPendingStaff] = useState(null); // akun dengan password sementara → wajib ganti
+  const [forgotOpen, setForgotOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [staffError, setStaffError] = useState("");
 
   // Client Form State
-  const [clientCode, setClientCode] = useState("TDC-1009");
+  const [clientCode, setClientCode] = useState("AE-00006");
   const [clientError, setClientError] = useState("");
 
-  // Handle Staff Login
+  const STAFF_HOME = {
+    master: "/master/revenue",
+    manager: "/manager/revenue",
+    admin_inquiry: "/admin-inquiry/pipeline",
+    admin_schedule: "/admin-schedule/calendar",
+    finance: "/finance",
+    therapist: "/therapist",
+  };
+
+  const completeStaffLogin = (staff) => {
+    login({
+      role: staff.role,
+      staffName: staff.name,
+      branchId: staff.branchId || null,
+      therapistId: staff.therapistId || null,
+    });
+    if (staff.branchId) setActiveBranch(staff.branchId);
+    toast.success(`Selamat datang kembali, ${staff.name}!`);
+    navigate(STAFF_HOME[staff.role] || "/");
+  };
+
+  // Handle Staff Login: email + password. Password sementara (diatur Master) wajib diganti; akun nonaktif ditolak.
   const handleStaffSubmit = (e) => {
     e.preventDefault();
     setStaffError("");
 
-    if (!email.trim()) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) {
       setStaffError("Silakan masukkan alamat email akun staf.");
       return;
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
-
-    // Match with staff users or preset
-    const matchedPreset = PRESET_ACCOUNTS.find((p) => p.email.toLowerCase() === trimmedEmail);
-    const matchedStaff = staffUsers?.find((u) => u.email.toLowerCase() === trimmedEmail);
-
-    if (matchedPreset) {
-      login({
-        role: matchedPreset.role,
-        staffName: matchedPreset.name,
-        branchId: matchedPreset.branchId || null,
-        therapistId: matchedPreset.therapistId || null,
-      });
-      if (matchedPreset.branchId) {
-        setActiveBranch(matchedPreset.branchId);
+    let staff = findStaffByEmail(staffUsers, trimmedEmail);
+    let isPreset = false;
+    if (!staff) {
+      // Akun demo yang belum ada di data tersimpan (browser lama): tetap bisa masuk dengan password demo
+      const preset = PRESET_ACCOUNTS.find((p) => p.email.toLowerCase() === trimmedEmail);
+      if (preset) {
+        isPreset = true;
+        staff = { id: `preset-${preset.role}`, name: preset.name, email: preset.email, role: preset.role, branchId: preset.branchId || null, therapistId: preset.therapistId || null };
       }
-      toast.success(`Selamat datang kembali, ${matchedPreset.name}!`);
-      navigate(matchedPreset.path);
-      return;
     }
 
-    if (matchedStaff) {
-      const redirectMap = {
-        master: "/master/revenue",
-        manager: "/manager/revenue",
-        admin_inquiry: "/admin-inquiry/pipeline",
-        admin_schedule: "/admin-schedule/calendar",
-        finance: "/finance",
-        therapist: "/therapist",
-      };
-      login({
-        role: matchedStaff.role,
-        staffName: matchedStaff.name,
-        branchId: matchedStaff.branchId,
-        therapistId: matchedStaff.therapistId || null,
-      });
-      if (matchedStaff.branchId) {
-        setActiveBranch(matchedStaff.branchId);
-      }
-      toast.success(`Login berhasil. Selamat bertugas, ${matchedStaff.name}!`);
-      navigate(redirectMap[matchedStaff.role] || "/");
+    const check = checkStaffCredentials(staff, password);
+    if (!check.ok) {
+      setStaffError(check.reason === "inactive" ? "Akun ini dinonaktifkan. Hubungi Master untuk mengaktifkannya kembali." : "Email atau kata sandi salah.");
       return;
     }
+    if (check.mustChangePassword && !isPreset) {
+      setPendingStaff(staff);
+      return;
+    }
+    completeStaffLogin(staff);
+  };
 
-    // Default fallback to master if not found
-    login({ role: "master", staffName: "Staff User" });
-    toast.success("Login staf berhasil!");
-    navigate("/master/revenue");
+  const handleForcedPasswordChange = (newPassword) => {
+    changeStaffPassword(pendingStaff.id, newPassword);
+    const staff = pendingStaff;
+    setPendingStaff(null);
+    setPassword(newPassword);
+    toast.success("Password berhasil diganti.");
+    completeStaffLogin(staff);
   };
 
   // Handle Client Login
@@ -180,11 +188,11 @@ export default function Login() {
     }
 
     const client = clients.find(
-      (c) => c.clientAccessCode && c.clientAccessCode.toUpperCase() === input
+      (c) => c.clientCode && c.clientCode.toUpperCase() === input
     );
 
     if (!client) {
-      setClientError("Kode client tidak terdaftar. Gunakan kode demo: TDC-1009");
+      setClientError("Kode client tidak terdaftar. Gunakan kode demo: AE-00006");
       return;
     }
 
@@ -195,7 +203,7 @@ export default function Login() {
 
   const selectPreset = (preset) => {
     setEmail(preset.email);
-    setPassword("Therapedia2026!");
+    setPassword(DEMO_PASSWORD);
     setStaffError("");
   };
 
@@ -351,7 +359,7 @@ export default function Login() {
                           </label>
                           <button
                             type="button"
-                            onClick={() => toast.info("Untuk keperluan prototype, gunakan kata sandi apapun atau klik akun demo di bawah.")}
+                            onClick={() => setForgotOpen(true)}
                             className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline"
                             data-testid={LOGIN.forgotPasswordLink}
                           >
@@ -467,12 +475,12 @@ export default function Login() {
                           <button
                             type="button"
                             onClick={() => {
-                              setClientCode("TDC-1009");
+                              setClientCode("AE-00006");
                               setClientError("");
                             }}
                             className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline"
                           >
-                            Isi Demo: TDC-1009
+                            Isi Demo: AE-00006
                           </button>
                         </div>
                         <div className="relative">
@@ -484,7 +492,7 @@ export default function Login() {
                               setClientCode(e.target.value);
                               setClientError("");
                             }}
-                            placeholder="Contoh: TDC-1009"
+                            placeholder="Contoh: AE-00006"
                             className="pl-10 bg-slate-50 border-slate-200 focus:bg-white font-mono uppercase text-xs font-bold tracking-wider"
                             data-testid="login-client-code-input"
                             required
@@ -540,6 +548,8 @@ export default function Login() {
           </Link>
         </div>
       </footer>
+      <ForcePasswordChangeDialog staff={pendingStaff} onSubmit={handleForcedPasswordChange} onCancel={() => setPendingStaff(null)} />
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} requestOtp={requestPasswordOtp} resetWithOtp={resetPasswordWithOtp} />
     </div>
   );
 }

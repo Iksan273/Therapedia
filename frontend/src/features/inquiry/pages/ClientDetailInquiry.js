@@ -12,7 +12,6 @@ import { useAssessments } from "@/stores/assessmentsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useMasterData } from "@/stores/masterDataStore";
 import { BRANCHES } from "@/domain/branch";
-import { genCode, todayStr } from "@/shared/lib/id";
 import { ClientDetailHeader } from "@/features/inquiry/components/clientDetail/ClientDetailHeader";
 import { IntakeDataCard } from "@/features/inquiry/components/clientDetail/IntakeDataCard";
 import { EditIntakeDialog } from "@/features/inquiry/components/clientDetail/EditIntakeDialog";
@@ -24,9 +23,14 @@ import { GDriveLinkCard } from "@/features/inquiry/components/clientDetail/GDriv
 import { InvoiceCard } from "@/features/inquiry/components/clientDetail/InvoiceCard";
 import { OutcomeCard } from "@/features/inquiry/components/clientDetail/OutcomeCard";
 import { DiscontinueDialog } from "@/features/inquiry/components/clientDetail/DiscontinueDialog";
+import { DischargeDialog } from "@/features/inquiry/components/clientDetail/DischargeDialog";
 import { advanceStatus } from "@/domain/client";
+import { STATUS_META } from "@/domain/status";
+import { CODE_VALIDITY_OPTIONS } from "@/domain/assessment";
 import { useClientOutcomeActions } from "@/features/inquiry/hooks/useClientOutcomeActions";
 import { useQuestionnaireCodeActions } from "@/features/inquiry/hooks/useQuestionnaireCodeActions";
+import { useClientDeleteActions } from "@/features/inquiry/hooks/useClientDeleteActions";
+import { DeleteButton } from "@/shared/components/DeleteControls";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 
 export default function ClientDetailInquiry() {
@@ -37,9 +41,10 @@ export default function ClientDetailInquiry() {
   const { getInvoicesForClient, getRecordForClient } = useCredits();
   const outcomeActions = useClientOutcomeActions();
   const codeActions = useQuestionnaireCodeActions();
+  const deleteActions = useClientDeleteActions();
   const { confirm, confirmDialog } = useConfirm();
   const { categories } = useAssessments();
-  const { services, getService } = useMasterData();
+  const { services, getService, activeDischargeReasons } = useMasterData();
   const { getTherapist } = useTherapists();
 
   const client = clients.find((c) => c.id === id);
@@ -48,7 +53,11 @@ export default function ClientDetailInquiry() {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [discontinueOpen, setDiscontinueOpen] = useState(false);
   const [discontinueReason, setDiscontinueReason] = useState("");
+  const [dischargeOpen, setDischargeOpen] = useState(false);
+  const [dischargeReason, setDischargeReason] = useState("");
+  const [dischargeNote, setDischargeNote] = useState("");
   const [newQuestionnaireCategory, setNewQuestionnaireCategory] = useState("cat-001");
+  const [newQuestionnaireValidity, setNewQuestionnaireValidity] = useState("none");
 
   // Invoices & Credits
   const invoices = client ? getInvoicesForClient(client.id) : [];
@@ -161,26 +170,10 @@ export default function ClientDetailInquiry() {
   // STEP 3: Generate Multi-Questionnaire Code
   const handleGenerateQuestionnaireCode = () => {
     const selectedCat = categories.find((c) => c.id === newQuestionnaireCategory) || categories[0];
-    const newCode = genCode("ASM");
-    const existingCodes = client.assessmentCodes || [];
+    const option = CODE_VALIDITY_OPTIONS.find((o) => o.value === newQuestionnaireValidity);
+    const item = codeActions.issueCode(client, selectedCat, { validityDays: option?.days ?? null });
 
-    const updatedCodes = [
-      ...existingCodes,
-      {
-        code: newCode,
-        categoryId: selectedCat.id,
-        name: selectedCat.categoryName,
-        status: "issued",
-        createdAt: todayStr(),
-      },
-    ];
-
-    updateClient(client.id, {
-      assessmentCodes: updatedCodes,
-      status: advanceStatus(client.status, "assessment_scheduled"),
-    });
-
-    toast.success(`Kode kuesioner baru '${newCode}' (${selectedCat.categoryName}) berhasil dibuat!`);
+    toast.success(`Kode kuesioner baru '${item.code}' (${selectedCat.categoryName}) berhasil dibuat${item.expiresAt ? ` — berlaku ${option.label}` : ""}!`);
   };
 
   // STEP 3b: Hapus kode kuesioner yang belum diisi ortu (hanya tercatat di audit log)
@@ -230,11 +223,58 @@ export default function ClientDetailInquiry() {
     toast.warning("Status client ditandai: Discontinued.");
   };
 
+  // Ubah status manual ke tahap mana pun. Discontinue / discharge membuka dialog alasan masing-masing.
+  const handleChangeStatus = async (toStatus) => {
+    if (toStatus === "discontinued") return setDiscontinueOpen(true);
+    if (toStatus === "discharged") return setDischargeOpen(true);
+    const ok = await confirm({
+      title: "Ubah status client?",
+      description: `${client.clientName}: ${STATUS_META[client.status]?.label || client.status} → ${STATUS_META[toStatus]?.label || toStatus}. Perubahan tercatat di riwayat client.`,
+      confirmLabel: "Ubah Status",
+    });
+    if (!ok) return;
+    outcomeActions.changeStatus(client, toStatus);
+    toast.success(`Status ${client.clientName} diubah ke ${STATUS_META[toStatus]?.label || toStatus}.`);
+  };
+
+  // Hapus client / inquiry (soft delete, hanya role canDelete). Sesi & invoice milik client ikut disembunyikan.
+  const handleDeleteClient = () => {
+    const { sessions, invoices: inv } = deleteActions.deleteClientCascade(client);
+    toast.success(`Client ${client.clientName} dihapus${sessions || inv ? ` (${sessions} sesi, ${inv} invoice ikut disembunyikan)` : ""}.`);
+    navigate("/admin-inquiry/pipeline");
+  };
+
+  const handleOutcomeDischarge = () => {
+    if (!dischargeReason.trim()) {
+      toast.error("Mohon pilih atau tulis alasan discharge.");
+      return;
+    }
+    outcomeActions.discharge(client, dischargeReason, dischargeNote);
+    setDischargeOpen(false);
+    setDischargeReason("");
+    setDischargeNote("");
+    toast.warning("Status client ditandai: Discharged.");
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto" data-testid="client-detail-inquiry-page">
       {confirmDialog}
       {/* Top Breadcrumb & Actions */}
-      <ClientDetailHeader br={br} client={client} navigate={navigate} />
+      <ClientDetailHeader
+        br={br}
+        client={client}
+        navigate={navigate}
+        extraActions={
+          <DeleteButton
+            module="inquiry_pipeline"
+            label="Hapus Client"
+            title={`Hapus ${client.clientName}?`}
+            description="Client (data intake/inquiry) beserta sesi dan invoice-nya akan disembunyikan dari semua daftar dan client tidak bisa login portal ortu. Penghapusan bersifat soft delete."
+            onConfirm={handleDeleteClient}
+            testId="delete-client-button"
+          />
+        }
+      />
 
       {/* 8 NON-SEQUENTIAL PIPELINE STEPS */}
       <div className="space-y-4">
@@ -248,7 +288,7 @@ export default function ClientDetailInquiry() {
         <ServiceSelectionCard getService={getService} handleToggleService={handleToggleService} selectedServices={selectedServices} services={services} />
 
         {/* STEP 3: QUESTIONNAIRE CODE GENERATOR (MULTI-CODE) */}
-        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
+        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
 
         {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
         <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={setScheduleModalOpen} />
@@ -263,11 +303,12 @@ export default function ClientDetailInquiry() {
         <InvoiceCard latestInvoice={latestInvoice} setProofModalOpen={setProofModalOpen} />
 
         {/* STEP 8: FINAL DECISION OUTCOMES */}
-        <OutcomeCard client={client} handleOutcomeAdmit={handleOutcomeAdmit} handleOutcomeDoneAssessment={handleOutcomeDoneAssessment} handleOutcomeDoneConsult={handleOutcomeDoneConsult} setDiscontinueOpen={setDiscontinueOpen} />
+        <OutcomeCard client={client} handleOutcomeAdmit={handleOutcomeAdmit} handleOutcomeDoneAssessment={handleOutcomeDoneAssessment} handleOutcomeDoneConsult={handleOutcomeDoneConsult} handleChangeStatus={handleChangeStatus} setDiscontinueOpen={setDiscontinueOpen} setDischargeOpen={setDischargeOpen} />
       </div>
 
       {/* Discontinue Modal */}
       <DiscontinueDialog discontinueOpen={discontinueOpen} discontinueReason={discontinueReason} handleOutcomeDiscontinue={handleOutcomeDiscontinue} setDiscontinueOpen={setDiscontinueOpen} setDiscontinueReason={setDiscontinueReason} />
+      <DischargeDialog open={dischargeOpen} onOpenChange={setDischargeOpen} reasons={activeDischargeReasons} reason={dischargeReason} setReason={setDischargeReason} note={dischargeNote} setNote={setDischargeNote} onConfirm={handleOutcomeDischarge} />
 
       {/* Schedule Modal for Assessment */}
       <AddScheduleModal

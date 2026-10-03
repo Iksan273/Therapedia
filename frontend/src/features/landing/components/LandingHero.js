@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
 import { CLINICAL_TEAM } from "@/features/landing/data/landingData";
+import { useLang, localizeItem } from "@/features/landing/i18n/LanguageContext";
+import { TEAM_ID } from "@/features/landing/data/landingDataId";
 import { useNavigate } from "react-router-dom";
 
 export default function LandingHero({ onSelectDoctor, onBookClick }) {
   const navigate = useNavigate();
+  const { L, lang } = useLang();
   const [currentDoctorIndex, setCurrentDoctorIndex] = useState(0);
   const [liveTime, setLiveTime] = useState("");
 
@@ -41,6 +44,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
   };
 
   const currentDoctor = heroDoctors[currentDoctorIndex];
+  const doctorView = localizeItem(currentDoctor, TEAM_ID, lang);
 
   return (
     <section
@@ -78,19 +82,21 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
             <div className="mb-6 max-w-[420px]">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-xs font-semibold mb-3">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span>Pediatric Occupational Therapy Center</span>
+                <span>{L("Pediatric Occupational Therapy Center", "Pusat Terapi Okupasi Pediatrik")}</span>
               </div>
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-                From early sensory integration to neurodevelopmental treatment, a comprehensive clinical approach
-                for every child's milestone and everyday independence.
+                {L(
+                  "From early sensory integration to neurodevelopmental treatment, a comprehensive clinical approach for every child's milestone and everyday independence.",
+                  "Dari sensory integration sejak dini hingga neurodevelopmental treatment, pendekatan klinis menyeluruh untuk setiap tonggak perkembangan dan kemandirian sehari-hari anak."
+                )}
               </p>
             </div>
 
             {/* Giant Editorial Headline */}
             <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black text-white tracking-tight leading-[1.06] mb-6 drop-shadow-sm">
-              Modern Care for Every{" "}
+              {L("Modern Care for Every", "Perawatan Modern untuk Setiap")}{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-[#38bdf8] to-[#007aff]">
-                Child's Milestone
+                {L("Child's Milestone", "Tonggak Perkembangan Anak")}
               </span>
             </h1>
 
@@ -101,7 +107,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
                 className="px-6 py-3.5 rounded-full bg-gradient-to-r from-[#007aff] to-[#0051a8] hover:from-[#1a87ff] hover:to-[#0062cc] text-white font-bold text-sm tracking-wide shadow-lg shadow-[#007aff]/35 border border-white/25 hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer group"
                 data-testid="hero-consultation-button"
               >
-                <span>Book Clinical Consultation</span>
+                <span>{L("Book Clinical Consultation", "Jadwalkan Konsultasi Klinis")}</span>
                 <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
               </button>
 
@@ -109,7 +115,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
                 href="#programs"
                 className="px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-bold text-sm tracking-wide border border-white/20 backdrop-blur-sm transition-all flex items-center gap-2 cursor-pointer"
               >
-                <span>Lihat Program</span>
+                <span>{L("View Programs", "Lihat Program")}</span>
                 <ChevronRight className="w-4 h-4 text-cyan-400" />
               </a>
             </div>
@@ -117,12 +123,12 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
             {/* Assessment Quick Callout for Parents */}
             <div className="mt-5 flex items-center gap-2 text-xs text-slate-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Orang tua dengan token skrining?</span>
+              <span>{L("Parent with a screening token?", "Orang tua dengan token skrining?")}</span>
               <button
                 onClick={() => navigate("/assessment")}
                 className="text-cyan-300 hover:text-white font-semibold underline underline-offset-4 transition-colors cursor-pointer"
               >
-                Isi Kuesioner Asesmen
+                {L("Fill the Assessment Questionnaire", "Isi Kuesioner Asesmen")}
               </button>
             </div>
           </motion.div>
@@ -169,7 +175,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
             <div className="flex items-center justify-between mb-3 text-xs font-semibold text-slate-300">
               <span className="uppercase tracking-wider text-[11px] text-cyan-300 font-bold flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                Clinical Specialists
+                {L("Clinical Specialists", "Spesialis Klinis")}
               </span>
               <div className="flex items-center gap-1.5">
                 <button
@@ -184,7 +190,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
                   className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center gap-1 text-[11px] text-slate-200 hover:text-white transition-all cursor-pointer"
                   aria-label="Next Specialist"
                 >
-                  <span>Next</span>
+                  <span>{L("Next", "Berikutnya")}</span>
                   <ChevronRight className="w-3.5 h-3.5 text-cyan-400" />
                 </button>
               </div>
@@ -214,7 +220,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#040e1e] via-transparent to-transparent opacity-60" />
                     <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-[#040e1e]/80 text-[10px] text-cyan-300 font-semibold backdrop-blur-xs border border-white/10">
-                      {currentDoctor.branch.replace(" Branch", "")}
+                      {(doctorView.branchLabel || currentDoctor.branch).replace(" Branch", "")}
                     </span>
                   </div>
 
@@ -224,14 +230,14 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
                       {currentDoctor.name}
                     </h4>
                     <p className="text-[11px] text-slate-300 line-clamp-1 mb-2 font-medium">
-                      {currentDoctor.role}
+                      {doctorView.role}
                     </p>
 
                     <button
                       onClick={() => onSelectDoctor && onSelectDoctor(currentDoctor)}
                       className="w-full py-2 rounded-xl bg-white/10 hover:bg-[#007aff]/30 border border-white/15 hover:border-cyan-400/50 text-white text-[11px] font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer group"
                     >
-                      <span>Lihat Profil Lengkap</span>
+                      <span>{L("View Full Profile", "Lihat Profil Lengkap")}</span>
                       <ArrowRight className="w-3 h-3 text-cyan-400 transition-transform group-hover:translate-x-1" />
                     </button>
                   </div>
@@ -263,7 +269,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full bg-[#007aff]" />
             <div>
-              <p className="font-bold text-white tracking-wide">Pusat Terapi Okupasi Pediatrik</p>
+              <p className="font-bold text-white tracking-wide">{L("Pediatric Occupational Therapy Center", "Pusat Terapi Okupasi Pediatrik")}</p>
               <p className="text-[11px] text-slate-400">Surabaya • Certified SI & NDT 2025</p>
             </div>
           </div>
@@ -278,7 +284,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
                   {liveTime ? `${liveTime} WIB (GMT+7)` : "14:30:00 WIB"}
                 </span>
               </p>
-              <p className="text-[11px] text-slate-400">Jam Layanan: 08.00 – 18.00 WIB</p>
+              <p className="text-[11px] text-slate-400">{L("Service Hours: 08.00 – 18.00 WIB", "Jam Layanan: 08.00 – 18.00 WIB")}</p>
             </div>
           </div>
 
@@ -286,7 +292,7 @@ export default function LandingHero({ onSelectDoctor, onBookClick }) {
           <div className="flex items-center gap-2.5 md:justify-end">
             <div className="w-2 h-2 rounded-full bg-cyan-400" />
             <div>
-              <p className="font-bold text-white tracking-wide">3 Cabang Terpadu Surabaya</p>
+              <p className="font-bold text-white tracking-wide">{L("3 Integrated Branches in Surabaya", "3 Cabang Terpadu Surabaya")}</p>
               <p className="text-[11px] text-slate-400">East • West • Citraland</p>
             </div>
           </div>

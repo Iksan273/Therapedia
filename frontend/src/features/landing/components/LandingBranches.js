@@ -2,12 +2,15 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Clock, Phone, ExternalLink, CheckCircle2, X } from "lucide-react";
 import { CLINICAL_BRANCHES } from "@/features/landing/data/landingData";
+import { useLang, localizeItem } from "@/features/landing/i18n/LanguageContext";
+import { BRANCHES_ID, hoursForLang } from "@/features/landing/data/landingDataId";
 
 export default function LandingBranches() {
+  const { L, lang } = useLang();
   const [selectedBranchId, setSelectedBranchId] = useState(CLINICAL_BRANCHES[0].id);
   const [lightboxImage, setLightboxImage] = useState(null);
 
-  const activeBranch = CLINICAL_BRANCHES.find((b) => b.id === selectedBranchId) || CLINICAL_BRANCHES[0];
+  const activeBranch = localizeItem(CLINICAL_BRANCHES.find((b) => b.id === selectedBranchId) || CLINICAL_BRANCHES[0], BRANCHES_ID, lang);
 
   return (
     <section id="branches" className="py-20 sm:py-28 bg-[#fafbfc] relative overflow-hidden">
@@ -16,19 +19,21 @@ export default function LandingBranches() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#007aff]/10 border border-[#007aff]/20 text-[#007aff] text-xs font-bold uppercase tracking-wider mb-4">
             <MapPin className="w-3.5 h-3.5" />
-            <span>Accessible Locations Across Surabaya</span>
+            <span>{L("Accessible Locations Across Surabaya", "Lokasi Mudah Dijangkau di Seluruh Surabaya")}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
-            Our 3 Integrated{" "}
+            {L("Our 3 Integrated", "3 Pusat Terapi")}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007aff] to-cyan-600">
-              Therapy Centers
+              {L("Therapy Centers", "Terpadu Kami")}
             </span>
           </h2>
 
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Therapedia has branches across Surabaya to make quality pediatric occupational therapy more
-            accessible and comfortable for families.
+            {L(
+              "Therapedia has branches across Surabaya to make quality pediatric occupational therapy more accessible and comfortable for families.",
+              "Therapedia memiliki cabang di seluruh Surabaya agar terapi okupasi pediatrik berkualitas lebih mudah dijangkau dan nyaman bagi keluarga."
+            )}
           </p>
         </div>
 
@@ -82,7 +87,7 @@ export default function LandingBranches() {
             <div className="lg:col-span-5 space-y-5">
               <div>
                 <span className="text-xs font-bold text-[#007aff] uppercase tracking-wider">
-                  Cabang Aktif
+                  {L("Active Branch", "Cabang Aktif")}
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1 mb-2">
                   {activeBranch.name}
@@ -96,18 +101,18 @@ export default function LandingBranches() {
               <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-4 space-y-2.5 text-xs text-slate-700">
                 <div className="flex items-center gap-2.5">
                   <Clock className="w-4 h-4 text-[#007aff]" />
-                  <span className="font-semibold">{activeBranch.hours}</span>
+                  <span className="font-semibold">{hoursForLang(activeBranch.hours, lang)}</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-emerald-600" />
-                  <span>Konsultasi Resepsionis Cabang: {activeBranch.phone}</span>
+                  <span>{L("Branch Reception Consultation", "Konsultasi Resepsionis Cabang")}: {activeBranch.phone}</span>
                 </div>
               </div>
 
               {/* Facility amenities */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                  Fasilitas & Ruang Klinis:
+                  {L("Facilities & Clinical Rooms:", "Fasilitas & Ruang Klinis:")}
                 </h4>
                 <div className="grid grid-cols-2 gap-2">
                   {activeBranch.facilities.map((f, i) => (
@@ -128,7 +133,7 @@ export default function LandingBranches() {
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#007aff] hover:bg-[#0051a8] text-white font-bold text-xs tracking-wide shadow-md shadow-[#007aff]/30 transition-all hover:scale-[1.02] cursor-pointer"
                 >
                   <MapPin className="w-4 h-4" />
-                  <span>Petunjuk Arah Google Maps</span>
+                  <span>{L("Google Maps Directions", "Petunjuk Arah Google Maps")}</span>
                   <ExternalLink className="w-3.5 h-3.5 ml-1" />
                 </a>
               </div>
@@ -149,7 +154,7 @@ export default function LandingBranches() {
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
                     />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
-                      <span>Perbesar Foto</span>
+                      <span>{L("Enlarge Photo", "Perbesar Foto")}</span>
                     </div>
                   </div>
                 ))}

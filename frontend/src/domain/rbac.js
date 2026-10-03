@@ -13,6 +13,8 @@ export const ACCESS_MODULES = [
   { key: "rbac", label: "RBAC", desc: "Konfigurasi hak akses role & modul sistem", category: "Administration" },
   { key: "audit_logs", label: "Audit Logs", desc: "Jejak seluruh aksi perubahan data per cabang", category: "Administration" },
   { key: "therapist_module", label: "Therapist Module", desc: "Sesi klinis, activity log & homework terapis", category: "Clinical" },
+  { key: "unreported_reports", label: "Monitoring Laporan Sesi", desc: "Daftar sesi completed yang laporannya belum diisi", category: "Scheduling" },
+  { key: "holidays", label: "Hari Libur", desc: "Pengaturan tanggal libur (dilewati jadwal berulang, tidak bisa dipilih di kalender)", category: "Scheduling" },
 ];
 
 export const DEFAULT_ROLES = [
@@ -73,6 +75,8 @@ export const DEFAULT_PERMISSIONS = {
     rbac: true,
     audit_logs: true,
     therapist_module: true,
+    unreported_reports: true,
+    holidays: true,
     inquiry: true,
     schedule: true,
     therapist: true,
@@ -89,6 +93,8 @@ export const DEFAULT_PERMISSIONS = {
     rbac: false,
     audit_logs: true,
     therapist_module: false,
+    unreported_reports: true,
+    holidays: false,
     inquiry: true,
     schedule: true,
     therapist: false,
@@ -105,6 +111,8 @@ export const DEFAULT_PERMISSIONS = {
     rbac: false,
     audit_logs: false,
     therapist_module: false,
+    unreported_reports: false,
+    holidays: false,
     inquiry: true,
     schedule: false,
     therapist: false,
@@ -121,6 +129,8 @@ export const DEFAULT_PERMISSIONS = {
     rbac: false,
     audit_logs: false,
     therapist_module: false,
+    unreported_reports: true,
+    holidays: true,
     inquiry: false,
     schedule: true,
     therapist: false,
@@ -137,6 +147,8 @@ export const DEFAULT_PERMISSIONS = {
     rbac: false,
     audit_logs: false,
     therapist_module: false,
+    unreported_reports: false,
+    holidays: false,
     inquiry: false,
     schedule: false,
     therapist: false,
@@ -153,6 +165,8 @@ export const DEFAULT_PERMISSIONS = {
     rbac: false,
     audit_logs: false,
     therapist_module: true,
+    unreported_reports: false,
+    holidays: false,
     inquiry: false,
     schedule: false,
     therapist: true,
@@ -186,3 +200,20 @@ export function withDefaultPermissions(permissions = {}) {
   const roleIds = new Set([...Object.keys(DEFAULT_PERMISSIONS), ...Object.keys(permissions || {})]);
   return Object.fromEntries([...roleIds].map((id) => [id, { ...(DEFAULT_PERMISSIONS[id] || {}), ...(permissions?.[id] || {}) }]));
 }
+
+// ---- Hapus data (keputusan klien) ----
+// Punya akses modul = boleh SEMUA aksi di modul itu KECUALI hapus. Tombol hapus hanya tampil untuk role dengan flag
+// `canDelete` (diatur Master di /master/rbac) DAN akses ke modul terkait. Master selalu boleh.
+export const DEFAULT_CAN_DELETE = { master: true };
+
+// Flag eksplisit di objek role menang; role tanpa flag memakai DEFAULT_CAN_DELETE (default: tidak boleh).
+export const roleCanDelete = (roleId, rolesList = []) => {
+  if (!roleId) return false;
+  if (roleId === "master") return true;
+  const role = (rolesList || []).find((x) => x.id === roleId);
+  if (role && typeof role.canDelete === "boolean") return role.canDelete;
+  return Boolean(DEFAULT_CAN_DELETE[roleId]);
+};
+
+export const canDeleteIn = ({ roleId, rolesList, permissions, moduleKey }) =>
+  roleCanDelete(roleId, rolesList) && roleHasPermission(roleId, permissions, moduleKey);

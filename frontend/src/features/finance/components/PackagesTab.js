@@ -4,6 +4,7 @@ import { Button } from "@/shared/ui/button";
 import { Plus } from "lucide-react";
 import { Card } from "@/shared/ui/card";
 import { fmtCurrency } from "@/shared/lib/format";
+import { packageInvoiceCode } from "@/domain/credit";
 
 export function PackagesTab({ masterPackages, setNewPkgOpen }) {
   return (
@@ -27,6 +28,7 @@ export function PackagesTab({ masterPackages, setNewPkgOpen }) {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="text-base font-extrabold text-slate-900">{pkg.name}</h3>
+                    <span className="inline-block mt-0.5 font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Kode: {packageInvoiceCode(pkg)}</span>
                     <p className="text-xs text-slate-500 mt-0.5">{pkg.description || "Paket sesi terapi resmi"}</p>
                   </div>
                   <span className="px-2.5 py-1 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold shrink-0">

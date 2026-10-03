@@ -1,3 +1,6 @@
+import { getClientServiceIds } from "@/domain/client";
+import { findHoliday, holidayDateSet, holidayMessage } from "@/domain/holiday";
+import { useHolidays } from "@/stores/holidaysStore";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info } from "lucide-react";
@@ -21,7 +24,6 @@ import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
-import { useMasterData } from "@/stores/masterDataStore";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { TIME_OPTIONS, WEEKDAY_OPTIONS, buildRecurringSchedules, checkConflicts, timeToMin } from "@/domain/schedule";
 import { todayStr, uid } from "@/shared/lib/id";
@@ -36,11 +38,11 @@ export const AddScheduleModal = ({
   onCreated,
 }) => {
   const { clients } = useClients();
-  const { activeServices } = useMasterData();
   const { therapists } = useTherapists();
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
   const sessionActions = useSessionActions();
+  const { holidays } = useHolidays();
 
   // Stable primitives extracted from defaults / props to prevent infinite re-render loops
   const defaultsClientId = defaults?.clientId || defaultClientId || "";
@@ -76,8 +78,6 @@ export const AddScheduleModal = ({
   const [isRecurring, setIsRecurring] = useState(true);
   const [recurringWeeks, setRecurringWeeks] = useState("12");
 
-  const [selectedService, setSelectedService] = useState("b_ota");
-
   const fallbackTherapistId = therapists[0]?.id || "";
 
   useEffect(() => {
@@ -112,8 +112,8 @@ export const AddScheduleModal = ({
     // Initialize default day config for Monday & Wednesday
     setSelectedDays(["Monday", "Wednesday"]);
     setDayConfigs({
-      Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh, type: "b_ota" },
-      Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh, type: "b_ota" },
+      Monday: { startTime: "14:00", endTime: "15:00", therapistId: initialTh },
+      Wednesday: { startTime: "16:00", endTime: "17:00", therapistId: initialTh },
     });
     setIsRecurring(Boolean(defaultsRecurring || true));
     setRecurringWeeks("12");
@@ -138,6 +138,9 @@ export const AddScheduleModal = ({
   const clientRecord = useMemo(() => (clientId ? getRecordForClient(clientId) : null), [clientId, getRecordForClient]);
   const clientPackages = useMemo(() => clientRecord?.packages || [], [clientRecord]);
 
+  // Service tidak dipilih di form jadwal: diturunkan dari layanan client (keputusan klien).
+  const derivedServiceType = getClientServiceIds(selectedClient)[0] || null;
+
   // Helper to update per-day config
   const updateDayConfig = (dayId, field, value) => {
     setDayConfigs((prev) => {
@@ -145,7 +148,6 @@ export const AddScheduleModal = ({
         startTime: defaultStartTime,
         endTime: defaultEndTime,
         therapistId: defaultTherapistId,
-        type: defaultType,
       };
       const updated = { ...cur, [field]: value };
       if (field === "startTime" && timeToMin(updated.endTime) <= timeToMin(value)) {
@@ -173,7 +175,6 @@ export const AddScheduleModal = ({
               startTime: defaultStartTime,
               endTime: defaultEndTime,
               therapistId: defaultTherapistId,
-              type: defaultType,
             },
           }));
         }
@@ -211,13 +212,18 @@ export const AddScheduleModal = ({
         toast.error("Please fill in date, therapist, and time.");
         return;
       }
+      const holiday = findHoliday(holidays, date, selectedClient?.branchId);
+      if (holiday) {
+        toast.error(holidayMessage(holiday));
+        return;
+      }
       const singleBase = {
         id: uid(),
         clientId,
         branchId: selectedClient?.branchId || "branch-sby-timur",
         creditPackageId: isAssessmentType ? null : (singleCreditPackageId || (clientPackages[0]?.id || null)),
         type: isAssessmentType ? "assessment" : "therapy",
-        serviceType: selectedService,
+        serviceType: derivedServiceType,
         therapistId: defaultTherapistId,
         date,
         startTime: defaultStartTime,
@@ -246,7 +252,7 @@ export const AddScheduleModal = ({
         branchId: selectedClient?.branchId || "branch-sby-timur",
         creditPackageId: clientPackages[0]?.id || null,
         type: "therapy",
-        serviceType: selectedService,
+        serviceType: derivedServiceType,
         therapistId: defaultTherapistId,
         date,
         startTime: defaultStartTime,
@@ -257,7 +263,15 @@ export const AddScheduleModal = ({
         homeworkSection: "",
       };
 
-      const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs);
+      // Jadwal berulang melewati tanggal libur (tidak dibuatkan sesi)
+      const holidayDates = holidayDateSet(holidays, selectedClient?.branchId);
+      const rawCount = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs).length;
+      const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs, holidayDates);
+      if (schedulesList.length === 0) {
+        toast.error("Semua tanggal pada pola ini jatuh di hari libur. Pilih tanggal atau hari lain.");
+        return;
+      }
+      if (rawCount > schedulesList.length) toast.info(`${rawCount - schedulesList.length} tanggal dilewati karena hari libur.`);
       sessionActions.createSessions(schedulesList);
       createdList.push(...schedulesList);
 
@@ -400,24 +414,6 @@ export const AddScheduleModal = ({
             <div className="space-y-3 p-4 rounded-2xl border border-slate-200 bg-slate-50/50">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700">
-                    {isAssessmentType ? "Layanan Asesmen Klinis" : "Layanan Klinis"}
-                  </Label>
-                  <Select value={selectedService} onValueChange={setSelectedService}>
-                    <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold">
-                      <SelectValue placeholder="Pilih layanan klinis..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200">
-                      {activeServices.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Assigned Therapist</Label>
                   <Select value={defaultTherapistId} onValueChange={setDefaultTherapistId}>
                     <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold">
@@ -478,6 +474,11 @@ export const AddScheduleModal = ({
                     value={date}
                     onChange={(e) => setDate(e?.target?.value ?? e)}
                   />
+                  {findHoliday(holidays, date, selectedClient?.branchId) && (
+                    <p className="text-[11px] font-semibold text-rose-600" data-testid="holiday-warning">
+                      Hari libur: {findHoliday(holidays, date, selectedClient?.branchId).name}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Start Time</Label>
@@ -559,7 +560,6 @@ export const AddScheduleModal = ({
                     startTime: defaultStartTime,
                     endTime: defaultEndTime,
                     therapistId: defaultTherapistId,
-                    type: defaultType,
                   };
 
                   return (
@@ -634,25 +634,6 @@ export const AddScheduleModal = ({
                               {therapists.map((t) => (
                                 <SelectItem key={t.id} value={t.id}>
                                   {t.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Service</Label>
-                          <Select
-                            value={cfg.type}
-                            onValueChange={(val) => updateDayConfig(dayId, "type", val)}
-                          >
-                            <SelectTrigger className="text-xs border-slate-200 font-semibold truncate">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-slate-200">
-                              {activeServices.map((t) => (
-                                <SelectItem key={t.value} value={t.value}>
-                                  {t.shortLabel || t.label}
                                 </SelectItem>
                               ))}
                             </SelectContent>

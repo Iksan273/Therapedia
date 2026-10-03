@@ -49,7 +49,7 @@ describe("Global Utilities & Date Formatting", () => {
     expect(age).toBeGreaterThanOrEqual(4);
   });
 
-  test("makeInquiryClient sets default status to inquiry and generates TDC access code", () => {
+  test("makeInquiryClient sets default status to inquiry and generates client code (grup huruf pertama)", () => {
     const client = makeInquiryClient({
       clientName: "Kenzo Danendra",
       parentName: "Liana Santoso",
@@ -61,7 +61,7 @@ describe("Global Utilities & Date Formatting", () => {
 
     expect(client.clientName).toBe("Kenzo Danendra");
     expect(client.status).toBe("inquiry");
-    expect(client.clientAccessCode).toMatch(/^TDC-[A-Z0-9]{4}$/);
+    expect(client.clientCode).toBe("KO-00001");
     expect(client.dob).toBe("2020-05-12");
   });
 });

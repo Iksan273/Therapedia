@@ -43,11 +43,11 @@ config/env.js data/ (seed demo)
 8b. Aksi yang mengubah data penting dicatat lewat `useAuditLogger().record()` di hook use-case (kode aksi di `AUDIT_ACTIONS`, `domain/audit.js`).
 9. Data turunan (saldo kredit, frozen, skor kuadran, KPI) **dihitung** (`useMemo`/domain), tidak disimpan.
 10. Field baru: default aman di factory (`makeInquiryClient`, …), baca dengan fallback, update `docs/guide/03` **dan padanan kolom di `schema.md`**. Seed berubah → naikkan `SEED_VERSION` (`data/seedRegistry.js`).
-11. Transisi status pipeline otomatis hanya lewat `advanceStatus` (`domain/client.js`). Hak ubah status sesi lewat `canManageSchedule(role)`.
+11. Transisi status pipeline otomatis hanya lewat `advanceStatus` (`domain/client.js`); perubahan manual ke tahap mana pun lewat `buildStatusChangePatch`. Hak aksi mengikuti **akses modul** (`useAuth().hasPermission`, mis. `canManageSchedule(hasPermission)`); aksi **hapus** hanya lewat `DeleteButton`/`IfCanDelete` (`shared/components/DeleteControls.js`) yang mengecek flag `canDelete` role + akses modul.
 
 ### Konstanta & format
 12. Enum/label dari `domain/*` (`STATUS_META` lewat `<StatusBadge/>`) atau `useMasterData()`. Jangan hardcode string enum/warna di halaman.
-13. Tanggal simpan `yyyy-MM-dd`/ISO, tampil `fmtDate`; uang `fmtCurrency` (`shared/lib/format.js`); ID `uid()`, kode akses `genCode()` (`shared/lib/id.js`); waktu `HH:mm`.
+13. Tanggal simpan `yyyy-MM-dd`/ISO, tampil `fmtDate`; uang `fmtCurrency` (`shared/lib/format.js`); ID `uid()` (`shared/lib/id.js`), kode client `nextClientCode()` (`domain/client.js`), kode kuesioner `buildQuestionnaireCode()` (`domain/assessment.js`); waktu `HH:mm`.
 14. Layanan client via `getClientServiceIds(client)`.
 
 ### Routing, role, cabang

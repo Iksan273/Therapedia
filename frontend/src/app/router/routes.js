@@ -16,6 +16,8 @@ const DashboardSchedule = lazy(() => import("@/features/schedule/pages/Dashboard
 const ActiveClients = lazy(() => import("@/features/schedule/pages/ActiveClients"));
 const ActiveClientDetail = lazy(() => import("@/features/schedule/pages/ActiveClientDetail"));
 const CalendarPage = lazy(() => import("@/features/schedule/pages/CalendarPage"));
+const UnreportedSessions = lazy(() => import("@/features/schedule/pages/UnreportedSessions"));
+const Holidays = lazy(() => import("@/features/schedule/pages/Holidays"));
 const MySchedule = lazy(() => import("@/features/therapist/pages/MySchedule"));
 const TherapistSummary = lazy(() => import("@/features/therapist/pages/TherapistSummary"));
 const TherapistClientDetail = lazy(() => import("@/features/therapist/pages/TherapistClientDetail"));
@@ -96,6 +98,8 @@ export const PROTECTED_GROUPS = [
       { path: "calendar", Component: CalendarPage, module: "weekly_calendar" },
       { path: "clients", Component: ActiveClients, module: "active_clients" },
       { path: "clients/:id", Component: ActiveClientDetail, module: "active_clients" },
+      { path: "unreported-reports", Component: UnreportedSessions, module: "unreported_reports" },
+      { path: "holidays", Component: Holidays, module: "holidays" },
     ],
   },
   {

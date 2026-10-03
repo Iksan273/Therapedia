@@ -147,7 +147,7 @@ export default function TherapistClientDetail() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Kode Akses: <strong className="font-mono text-slate-800">{client.clientAccessCode || "TDC-1009"}</strong> • Cabang: {br ? br.name : "—"}
+              Kode Akses: <strong className="font-mono text-slate-800">{client.clientCode || "AE-00006"}</strong> • Cabang: {br ? br.name : "—"}
             </p>
           </div>
         </div>

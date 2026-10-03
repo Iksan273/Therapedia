@@ -5,9 +5,9 @@ import { todayStr, uid } from "@/shared/lib/id";
 // dan menjadi acuan CreditService Laravel nanti (lihat docs/guide/05 & 10).
 
 export const DEFAULT_MASTER_PACKAGES = [
-  { id: "pkg-reguler", name: "Regular Therapist", credits: 10, price: 2500000, description: "10 Sesi Terapi bersama Regular Therapist (OT / Sensori / Wicara)" },
-  { id: "pkg-vip", name: "Senior Therapist", credits: 10, price: 3500000, description: "10 Sesi Terapi bersama Senior Therapist (1-on-1 Specialist)" },
-  { id: "pkg-consult", name: "Paket Konsultasi", credits: 1, price: 500000, description: "1 Sesi Konsultasi Klinis & Review" },
+  { id: "pkg-reguler", invoiceCode: "REG", name: "Regular Therapist", credits: 10, price: 2500000, description: "10 Sesi Terapi bersama Regular Therapist (OT / Sensori / Wicara)" },
+  { id: "pkg-vip", invoiceCode: "SNR", name: "Senior Therapist", credits: 10, price: 3500000, description: "10 Sesi Terapi bersama Senior Therapist (1-on-1 Specialist)" },
+  { id: "pkg-consult", invoiceCode: "KON", name: "Paket Konsultasi", credits: 1, price: 500000, description: "1 Sesi Konsultasi Klinis & Review" },
 ];
 
 export const formatPackageName = (name) => {
@@ -19,7 +19,8 @@ export const formatPackageName = (name) => {
     .replace(/\bVIP\b/gi, "Senior Therapist");
 };
 
-// Jumlah cancel wajar per client (sepanjang masa). Cancel berikutnya memotong 1 kredit.
+// Kuota cancel PER PAKET (keputusan klien): hanya penghitung. Potong kredit atau tidak ditentukan admin di tiap cancel;
+// setelah kuota lewat UI hanya memberi peringatan.
 export const CANCEL_QUOTA = 3;
 
 const historyEntry = (fields) => ({ id: uid(), date: todayStr(), scheduleId: null, ...fields });
@@ -38,14 +39,16 @@ const debitPackage = (pkg, extra = {}) => ({
 });
 
 export function newCreditRecord({ clientId, branchId, id }) {
-  return { id: id || `cr-${uid().slice(-6)}`, clientId, branchId, packages: [], cancelCountTotal: 0, history: [] };
+  return { id: id || `cr-${uid().slice(-6)}`, clientId, branchId, packages: [], history: [] };
 }
 
-export function newClientPackage({ packageId, packageName, credits }) {
+// `price` = snapshot harga saat paket dibuat/diperpanjang (tidak ikut berubah bila harga master diedit).
+export function newClientPackage({ packageId, packageName, credits, price = null }) {
   return {
     id: `cp-${uid().slice(-6)}`,
     packageId: packageId || "pkg-reguler",
     packageName: packageName || "Regular Therapist (10x)",
+    price,
     totalCredit: credits,
     remainingCredit: credits,
     cancelCount: 0,
@@ -92,51 +95,37 @@ export function applySessionCompleted(record, { packageId, scheduleId, date }) {
   };
 }
 
-// Sesi dibatalkan: cancel ke-1..CANCEL_QUOTA kredit utuh; selebihnya penalti −1 kredit.
-export function applySessionCancelled(record, { packageId, scheduleId, cancelReason, date }) {
-  const cancelCount = (record.cancelCountTotal || 0) + 1;
+// Sesi dibatalkan. Kuota cancel dihitung PER PAKET (`cancelCount`, hanya penghitung). Admin yang menentukan apakah
+// kredit dipotong (`deductCredit` true → ledger `cancel_penalty` −1) atau tidak (`cancel_excused`, kredit utuh).
+// Tanpa paket / saldo 0, pemotongan tidak mungkin → dicatat `cancel_excused`.
+export function applySessionCancelled(record, { packageId, scheduleId, cancelReason, date, deductCredit = false }) {
   const packages = record.packages || [];
   const idx = findPackageIndex(packages, packageId);
   const target = idx !== -1 ? packages[idx] : null;
   const reason = cancelReason || "lainnya";
-
-  if (cancelCount <= CANCEL_QUOTA || !target) {
-    return {
-      ...record,
-      cancelCountTotal: cancelCount,
-      history: [
-        ...(record.history || []),
-        historyEntry({
-          date: date || todayStr(),
-          scheduleId,
-          packageId: target ? target.id : null,
-          packageName: target ? target.packageName : "General",
-          action: "cancel_excused",
-          creditChange: 0,
-          cancelReason: reason,
-          note: `Cancel ke-${cancelCount} (${cancelReason || "Izin"}) — Kuota wajar (Kredit utuh)`,
-        }),
-      ],
-    };
-  }
+  const cancelCount = (target?.cancelCount || 0) + 1;
+  const deduct = Boolean(deductCredit) && Boolean(target) && target.remainingCredit > 0;
 
   const nextPackages = [...packages];
-  nextPackages[idx] = debitPackage(target, { cancelCount: (target.cancelCount || 0) + 1 });
+  if (target) nextPackages[idx] = deduct ? debitPackage(target, { cancelCount }) : { ...target, cancelCount };
+
   return {
     ...record,
-    cancelCountTotal: cancelCount,
     packages: nextPackages,
     history: [
       ...(record.history || []),
       historyEntry({
         date: date || todayStr(),
         scheduleId,
-        packageId: target.id,
-        packageName: target.packageName,
-        action: "cancel_penalty",
-        creditChange: -1,
+        packageId: target ? target.id : null,
+        packageName: target ? target.packageName : "General",
+        action: deduct ? "cancel_penalty" : "cancel_excused",
+        creditChange: deduct ? -1 : 0,
         cancelReason: reason,
-        note: `Cancel ke-${cancelCount} (>${CANCEL_QUOTA}x) — Penalti memotong 1 kredit ${target.packageName}`,
+        cancelCountAfter: target ? cancelCount : null,
+        note: deduct
+          ? `Cancel ke-${cancelCount} pada paket — admin memilih potong 1 kredit ${target.packageName}`
+          : `Cancel ke-${cancelCount} pada paket (${cancelReason || "Izin"}) — admin memilih tidak potong kredit`,
       }),
     ],
   };
@@ -145,8 +134,8 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
 // Batalkan efek kredit satu sesi (revert completed / cancel). Ledger append-only: baris lama tidak diubah,
 // koreksi = baris `reversal` yang menunjuk id baris asal (`reversesId`); satu baris hanya bisa dibalik sekali.
 //   used           → +1 kredit ke paket asal
-//   cancel_penalty → +1 kredit, kuota cancel −1
-//   cancel_excused → kuota cancel −1 (kredit tidak berubah)
+//   cancel_penalty → +1 kredit, kuota cancel paket −1
+//   cancel_excused → kuota cancel paket −1 (kredit tidak berubah)
 export function applySessionReverted(record, { scheduleId, date, reason }) {
   const entry = findLiveSessionEntry(record, scheduleId);
   if (!entry) return record;
@@ -154,23 +143,22 @@ export function applySessionReverted(record, { scheduleId, date, reason }) {
   const packages = record.packages || [];
   const idx = packages.findIndex((p) => p.id === entry.packageId);
   const refunds = entry.action !== "cancel_excused";
+  const isCancel = entry.action !== "used";
   let nextPackages = packages;
-  if (refunds && idx !== -1) {
+  if (idx !== -1 && (refunds || isCancel)) {
     const pkg = packages[idx];
-    const remaining = Math.min(pkg.totalCredit, pkg.remainingCredit + 1);
+    const remaining = refunds ? Math.min(pkg.totalCredit, pkg.remainingCredit + 1) : pkg.remainingCredit;
     nextPackages = [...packages];
     nextPackages[idx] = {
       ...pkg,
       remainingCredit: remaining,
       status: remaining > 0 ? "active" : pkg.status,
-      cancelCount: entry.action === "cancel_penalty" ? Math.max(0, (pkg.cancelCount || 0) - 1) : pkg.cancelCount,
+      cancelCount: isCancel ? Math.max(0, (pkg.cancelCount || 0) - 1) : pkg.cancelCount,
     };
   }
-  const countsQuota = entry.action !== "used";
   return {
     ...record,
     packages: nextPackages,
-    cancelCountTotal: countsQuota ? Math.max(0, (record.cancelCountTotal || 0) - 1) : record.cancelCountTotal,
     history: [
       ...(record.history || []),
       historyEntry({
@@ -199,28 +187,90 @@ export function applyPackageAdded(record, pkg, note) {
   };
 }
 
-// Nomor invoice unik: INV-<tahun>-<urut>, urut = max(nomor terbesar tahun itu, jumlah invoice) + 1
-export function nextInvoiceNumber(invoices = [], now = new Date()) {
-  const year = now.getFullYear();
-  const re = new RegExp(`^INV-${year}-(\\d+)$`);
+// ---- Invoice (keputusan klien): jenis Paket Sesi & Assessment ----
+export const INVOICE_TYPES = [
+  { value: "package", label: "Paket Sesi" },
+  { value: "assessment", label: "Assessment" },
+];
+export const ASSESSMENT_INVOICE_CODE = "ASM"; // kode jenis invoice assessment (dicadangkan; tidak boleh dipakai paket)
+
+// Invoice lama tanpa `type` = Paket Sesi.
+export const invoiceType = (inv) => (inv?.type === "assessment" ? "assessment" : "package");
+export const invoiceTypeLabel = (inv) => INVOICE_TYPES.find((t) => t.value === invoiceType(inv))?.label || "Paket Sesi";
+
+const normalizeInvoiceCode = (v) =>
+  String(v || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 10);
+
+// Kode jenis invoice paket: `invoiceCode` master paket; paket lama tanpa kode memakai 3 huruf pertama nama.
+export const packageInvoiceCode = (pkg) => {
+  const code = normalizeInvoiceCode(pkg?.invoiceCode) || normalizeInvoiceCode(pkg?.name).slice(0, 3) || "PKT";
+  return code === ASSESSMENT_INVOICE_CODE ? "PKT" : code;
+};
+
+export const invoiceTypeCode = (type, pkg) => (type === "assessment" ? ASSESSMENT_INVOICE_CODE : packageInvoiceCode(pkg));
+
+const ymd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+
+// Nomor invoice: INV-{KODE}-{YYYYMMDD}-{NNN}. Increment per kode + tanggal (reset harian), mis. INV-REG-20261003-001.
+export function nextInvoiceNumber(invoices = [], { typeCode = "PKT", now = new Date() } = {}) {
+  const prefix = `INV-${typeCode}-${ymd(now)}-`;
   const maxSeq = invoices.reduce((max, inv) => {
-    const m = re.exec(inv.invoiceNumber || "");
-    return m ? Math.max(max, Number(m[1])) : max;
+    const num = inv.invoiceNumber || "";
+    if (!num.startsWith(prefix)) return max;
+    const n = Number(num.slice(prefix.length));
+    return Number.isFinite(n) ? Math.max(max, n) : max;
   }, 0);
-  return `INV-${year}-${String(Math.max(maxSeq, invoices.length) + 1).padStart(3, "0")}`;
+  return `${prefix}${String(maxSeq + 1).padStart(3, "0")}`;
 }
 
-// Ringkasan record untuk UI: total sisa & total kredit semua paket
+// ---- Bukti pembayaran: JPG/PNG/PDF maks 5 MB; upload sekali + re-upload maks 3x (total 4) ----
+export const MAX_PROOF_UPLOADS = 4;
+export const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+export const PROOF_ACCEPT = "image/jpeg,image/png,application/pdf";
+
+// Jumlah upload yang sudah terpakai. Invoice lama dengan bukti tapi tanpa penghitung dianggap 1x.
+export const proofUploadsUsed = (inv) =>
+  inv?.proofUploadCount != null ? inv.proofUploadCount : inv?.proofUrl || inv?.proofOfPaymentUrl ? 1 : 0;
+
+export const proofUploadsLeft = (inv) => Math.max(0, MAX_PROOF_UPLOADS - proofUploadsUsed(inv));
+
+export const canUploadProof = (inv) => Boolean(inv) && inv.status !== "paid" && inv.status !== "void" && proofUploadsLeft(inv) > 0;
+
+// Validasi file bukti: kembalikan pesan error (string) atau null bila valid. `file` = { name, type, size }.
+export const validateProofFile = (file) => {
+  if (!file) return "File tidak ditemukan.";
+  const name = String(file.name || "").toLowerCase();
+  const isPdf = file.type === "application/pdf" || name.endsWith(".pdf");
+  const isJpg = file.type === "image/jpeg" || /\.jpe?g$/.test(name);
+  const isPng = file.type === "image/png" || name.endsWith(".png");
+  if (!isPdf && !isJpg && !isPng) return "Format file tidak didukung. Gunakan JPG, PNG, atau PDF.";
+  if (file.size > MAX_PROOF_BYTES) return "Ukuran file terlalu besar. Maksimal 5 MB.";
+  return null;
+};
+
+// Paket yang sedang dipakai: paket pertama yang masih punya sisa (FIFO); bila semua habis, paket terakhir.
+export const activePackageOf = (record) => {
+  const packages = record?.packages || [];
+  return packages.find((p) => p.remainingCredit > 0) || packages[packages.length - 1] || null;
+};
+
+// Ringkasan record untuk UI: total sisa & total kredit semua paket + kuota cancel paket yang sedang dipakai.
 export function summarizeCreditRecord(record) {
   if (!record) return null;
   const packages = record.packages || [];
+  const active = activePackageOf(record);
+  const cancelCount = active?.cancelCount || 0;
   return {
     ...record,
     remainingCredit: packages.reduce((acc, p) => acc + (p.remainingCredit || 0), 0),
     totalCredit: packages.reduce((acc, p) => acc + (p.totalCredit || 0), 0),
     packages,
-    cancelCountTotal: record.cancelCountTotal || 0,
-    leaveUsed: record.cancelCountTotal || 0,
+    cancelCount,
+    cancelQuota: CANCEL_QUOTA,
+    leaveUsed: cancelCount,
     leaveQuota: CANCEL_QUOTA,
   };
 }

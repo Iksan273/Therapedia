@@ -8,6 +8,7 @@ export const STAGE_COLUMNS = [
   { group: "outcome", status: "done_consult", label: "Done Consult", accent: "bg-amber-500", desc: "Konsultasi selesai" },
   { group: "outcome", status: "done_assessment", label: "Done Assessment", accent: "bg-indigo-500", desc: "Laporan selesai" },
   { group: "outcome", status: "discontinued", label: "Discontinued", accent: "bg-rose-500", desc: "Batal / tidak lanjut" },
+  { group: "outcome", status: "discharged", label: "Discharged", accent: "bg-slate-500", desc: "Selesai / keluar dari terapi" },
 ];
 
 export const COLUMN_PAGE = 30;

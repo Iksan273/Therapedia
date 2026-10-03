@@ -29,7 +29,7 @@ export function AssessmentHero({ openGenModal, setCatDialog }) {
           <Button size="lg"
             variant="outline"
             className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold rounded-2xl px-4 gap-2 shadow-2xs cursor-pointer"
-            onClick={() => setCatDialog({ open: true, editingId: null, name: "", domain: "" })}
+            onClick={() => setCatDialog({ open: true, editingId: null, name: "", domain: "", typeCode: "" })}
             data-testid="new-category-button"
           >
             <Plus className="w-4 h-4 text-slate-500 stroke-[2.2]" /> Tambah Kategori

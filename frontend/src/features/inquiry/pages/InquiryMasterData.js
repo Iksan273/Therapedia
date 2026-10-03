@@ -1,3 +1,4 @@
+import { IfCanDelete } from "@/shared/components/DeleteControls";
 import React, { useMemo, useState } from "react";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
@@ -323,6 +324,7 @@ export default function InquiryMasterData() {
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
+                          <IfCanDelete module="inquiry_pipeline">
                           <Button aria-label="Hapus layanan"
                             size="icon"
                             variant="ghost"
@@ -333,6 +335,7 @@ export default function InquiryMasterData() {
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
+                          </IfCanDelete>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -418,6 +421,7 @@ export default function InquiryMasterData() {
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
+                        <IfCanDelete module="inquiry_pipeline">
                         <Button aria-label="Hapus kuadran"
                           size="icon"
                           variant="ghost"
@@ -428,6 +432,7 @@ export default function InquiryMasterData() {
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
+                        </IfCanDelete>
                       </div>
                     </div>
                     <p className={cn("text-sm font-bold", color.text)}>{q.fullName || q.title}</p>

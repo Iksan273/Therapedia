@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, MessageCircle } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -7,22 +7,40 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { calcAgeDetailed } from "@/shared/lib/format";
+import { nowIso, todayStr } from "@/shared/lib/id";
+import { Checkbox } from "@/shared/ui/checkbox";
+import { isScoredQuestionType, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import { useClients } from "@/stores/clientsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
+import { useCredits } from "@/stores/creditsStore";
 import { cn } from "@/shared/lib/utils";
 import { advanceStatus } from "@/domain/client";
+import { checkQuestionnaireAccess } from "@/domain/assessment";
+
+// Pesan penolakan akses kuesioner (aturan klien: sekali isi, masa berlaku opsional dicek saat dibuka, invoice assessment lunas).
+const ACCESS_ERRORS = {
+  submitted: "Kuesioner dengan kode ini sudah diisi dan tidak dapat diisi ulang. Hubungi Admin Therapedia bila perlu bantuan.",
+  expired: "Kode kuesioner sudah kedaluwarsa. Hubungi Admin Therapedia untuk meminta kode baru.",
+  invoice_unpaid:
+    "Kuesioner belum dapat dibuka karena ada tagihan asesmen yang belum dibayar. Selesaikan pembayaran melalui Portal Orang Tua (masuk dengan kode client) atau hubungi Admin Therapedia.",
+};
 
 export default function AssessmentFill() {
   const { clients, updateClient } = useClients();
   const { getCategory } = useAssessments();
+  const { getInvoicesForClient } = useCredits();
 
   const [stage, setStage] = useState("code"); // code | form | done
-  const [codeInput, setCodeInput] = useState("");
+  const [searchParams] = useSearchParams();
+  const [codeInput, setCodeInput] = useState((searchParams.get("code") || "").toUpperCase()); // dari tautan portal ortu
   const [codeError, setCodeError] = useState("");
   const [client, setClient] = useState(null);
   const [answers, setAnswers] = useState({});
   const [formError, setFormError] = useState("");
+  const [consent, setConsent] = useState(false);
 
   const [category, setCategory] = useState(null);
 
@@ -31,25 +49,34 @@ export default function AssessmentFill() {
     const input = codeInput.trim().toUpperCase();
     let foundClient = null;
     let foundCat = null;
+    let foundItem = null;
 
     for (const c of clients) {
       if (c.assessmentCodes && Array.isArray(c.assessmentCodes)) {
         const matching = c.assessmentCodes.find((item) => item.code && item.code.toUpperCase() === input);
         if (matching) {
           foundClient = c;
+          foundItem = matching;
           foundCat = getCategory(matching.categoryId);
           break;
         }
       }
       if (c.assessmentAccessCode && c.assessmentAccessCode.toUpperCase() === input) {
         foundClient = c;
+        foundItem = { code: input, categoryId: c.assessmentCategoryId };
         foundCat = getCategory(c.assessmentCategoryId);
         break;
       }
     }
 
     if (!foundClient) {
-      setCodeError("Kode kuesioner tidak ditemukan. Silakan periksa kembali atau gunakan demo: ASM-2011 atau ASM-2012.");
+      setCodeError("Kode kuesioner tidak ditemukan. Silakan periksa kembali atau gunakan demo: ASM-2016 atau ASM-2017.");
+      return;
+    }
+
+    const access = checkQuestionnaireAccess({ client: foundClient, codeItem: foundItem, invoices: getInvoicesForClient(foundClient.id) });
+    if (!access.ok) {
+      setCodeError(ACCESS_ERRORS[access.reason]);
       return;
     }
     if (!foundCat) {
@@ -57,15 +84,8 @@ export default function AssessmentFill() {
       foundCat = getCategory("cat-001");
     }
 
-    const prefill = {};
-    const existingGroup = (foundClient.assessmentAnswers || []).find((a) => a.categoryId === foundCat.id);
-    if (existingGroup && existingGroup.answers) {
-      existingGroup.answers.forEach((ans) => {
-        prefill[ans.questionId] = ans.answer;
-      });
-    }
-
-    setAnswers(prefill);
+    setAnswers({});
+    setConsent(false);
     setCategory(foundCat);
     setClient(foundClient);
     setStage("form");
@@ -86,7 +106,7 @@ export default function AssessmentFill() {
     if (!category) return [];
 
     const mapQuestion = (q, idx, sec) => {
-      const qType = q.type || "scale_0_5";
+      const qType = normalizeQuestionType(q.type);
       let opts = [];
       if (Array.isArray(q.options) && q.options.length > 0) {
         opts = q.options;
@@ -114,7 +134,7 @@ export default function AssessmentFill() {
       return category.sections.map((sec, sIdx) => ({
         id: sec.sectionId || `sec-${sIdx}`,
         title: sec.title || `Bagian ${sIdx + 1}`,
-        leadText: sec.leadText || "Anakku ...",
+        leadText: sec.leadText || "",
         questions: (sec.questions || []).map((q, idx) => mapQuestion(q, idx, sec)),
       }));
     }
@@ -122,7 +142,7 @@ export default function AssessmentFill() {
       {
         id: "sec-default",
         title: "Daftar Pertanyaan Observasi",
-        leadText: "Anakku ...",
+        leadText: "",
         questions: (category.questions || []).map((q, idx) => mapQuestion(q, idx, null)),
       },
     ];
@@ -183,11 +203,16 @@ export default function AssessmentFill() {
       setFormError(`Mohon lengkapi seluruh pertanyaan (${unanswered.length} belum diisi).`);
       return;
     }
+    if (!consent) {
+      setFormError("Mohon centang persetujuan penggunaan data anak sebelum mengirim jawaban.");
+      return;
+    }
 
     const formattedAnswers = allCategoryQuestions.map((q) => {
       const val = answers[q.id];
       let score = null;
-      if (typeof val === "number") score = val;
+      if (!isScoredQuestionType(q.type)) score = null;
+      else if (typeof val === "number") score = val;
       else if (typeof val === "string" && /^\d+/.test(val)) {
         score = parseInt(val.match(/^\d+/)[0], 10);
       }
@@ -209,6 +234,8 @@ export default function AssessmentFill() {
       {
         categoryId: category.id,
         categoryName: category.categoryName,
+        submittedAt: nowIso(),
+        consentAt: nowIso(),
         answers: formattedAnswers,
       },
     ];
@@ -216,7 +243,7 @@ export default function AssessmentFill() {
     const usedCode = codeInput.trim().toUpperCase();
     updateClient(client.id, {
       assessmentCodes: (client.assessmentCodes || []).map((c) =>
-        c.code && c.code.toUpperCase() === usedCode ? { ...c, status: "submitted", submittedAt: new Date().toISOString() } : c
+        c.code && c.code.toUpperCase() === usedCode ? { ...c, status: "submitted", submittedAt: nowIso() } : c
       ),
       assessmentAnswers: updatedAnswers,
       status: advanceStatus(client.status, "assessment_done"),
@@ -259,7 +286,7 @@ export default function AssessmentFill() {
                 <FileQuestion className="w-5 h-5 text-[#007AFF]" /> Masukkan Kode Akses Asesmen
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Gunakan kode akses kuesioner yang diberikan klinik (misal: <strong>ASM-2011</strong>, <strong>ASM-2012</strong>, atau <strong>ASM-2014</strong>).
+                Gunakan kode akses kuesioner yang diberikan klinik (demo: <strong>ASM-2016</strong> atau <strong>ASM-2017</strong>). Kuesioner hanya dapat diisi satu kali.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
@@ -270,7 +297,7 @@ export default function AssessmentFill() {
                     <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
                       className="pl-10 uppercase border-slate-200 bg-slate-50 focus:bg-white font-mono text-sm font-bold"
-                      placeholder="e.g. ASM-2011"
+                      placeholder="e.g. SP2-K7M4QX"
                       value={codeInput}
                       onChange={(e) => {
                         setCodeInput(e.target.value);
@@ -412,9 +439,11 @@ export default function AssessmentFill() {
                           <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug break-words">
                             {sec.title}
                           </h3>
-                          <p className="text-xs text-slate-500 font-medium mt-1 italic leading-normal break-words">
-                            "{sec.leadText || "Anakku ..."}"
-                          </p>
+                          {sec.leadText && (
+                            <p className="text-xs text-slate-500 font-medium mt-1 italic leading-normal break-words">
+                              "{sec.leadText}"
+                            </p>
+                          )}
                         </div>
                       </div>
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-sky-100/80 text-sky-800 border border-sky-200 shrink-0 font-mono self-start sm:self-center">
@@ -612,6 +641,54 @@ export default function AssessmentFill() {
                               </div>
                             )}
 
+                            {/* 7. Jawaban singkat / angka / tanggal / tanggal lahir / waktu */}
+                            {["short_text", "number", "date", "birth_date", "time"].includes(q.type) && (
+                              <div className="space-y-1.5 pt-1">
+                                <Input
+                                  type={{ short_text: "text", number: "number", date: "date", birth_date: "date", time: "time" }[q.type]}
+                                  max={q.type === "birth_date" ? todayStr() : undefined}
+                                  className="rounded-xl border-slate-200 bg-white text-xs sm:max-w-xs"
+                                  value={answers[q.id] ?? ""}
+                                  onChange={(e) => {
+                                    setAnswers({ ...answers, [q.id]: e.target.value });
+                                    setFormError("");
+                                  }}
+                                  placeholder={q.type === "short_text" ? "Tulis jawaban singkat..." : q.type === "number" ? "Masukkan angka" : undefined}
+                                  data-testid={`assessment-answer-input-${q.id}`}
+                                />
+                                {q.type === "birth_date" && answers[q.id] && (
+                                  <p className="text-[11px] font-bold text-sky-800" data-testid={`assessment-age-${q.id}`}>
+                                    Usia: {(() => {
+                                      const age = calcAgeDetailed(answers[q.id]);
+                                      return `${age.years} tahun ${age.months} bulan`;
+                                    })()}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* 8. Dropdown */}
+                            {q.type === "dropdown" && (
+                              <Select
+                                value={answers[q.id] ?? ""}
+                                onValueChange={(v) => {
+                                  setAnswers({ ...answers, [q.id]: v });
+                                  setFormError("");
+                                }}
+                              >
+                                <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs sm:max-w-xs" data-testid={`assessment-answer-input-${q.id}`}>
+                                  <SelectValue placeholder="Pilih salah satu..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200">
+                                  {q.options.map((opt) => (
+                                    <SelectItem key={opt} value={opt} className="text-xs">
+                                      {opt}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+
                             {/* 6. Standard Multiple Choice (if not scale_0_5) */}
                             {q.type === "multiple_choice" && (
                               <RadioGroup
@@ -660,6 +737,22 @@ export default function AssessmentFill() {
                     </button>
                   </div>
                 )}
+
+                <label className="flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed cursor-pointer" data-testid="assessment-consent-label">
+                  <Checkbox
+                    checked={consent}
+                    onCheckedChange={(v) => {
+                      setConsent(v === true);
+                      setFormError("");
+                    }}
+                    className="mt-0.5"
+                    data-testid="assessment-consent-checkbox"
+                  />
+                  <span>
+                    Saya menyetujui data anak saya dikumpulkan dan digunakan oleh Therapedia untuk keperluan asesmen dan layanan terapi,
+                    sesuai ketentuan pelindungan data pribadi.
+                  </span>
+                </label>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs text-slate-600">
@@ -719,7 +812,7 @@ export default function AssessmentFill() {
               {client && (
                 <a
                   href={`https://wa.me/6281234567890?text=${encodeURIComponent(
-                    `Halo Admin Therapedia, saya orang tua dari ananda ${client.clientName} (Kode Klien: ${client.clientAccessCode || "TDC"}). Saya sudah selesai mengisi kuesioner asesmen. Mohon bantuan untuk konfirmasi dan proses selanjutnya ya. Terima kasih!`
+                    `Halo Admin Therapedia, saya orang tua dari ananda ${client.clientName} (Kode Klien: ${client.clientCode || "-"}). Saya sudah selesai mengisi kuesioner asesmen. Mohon bantuan untuk konfirmasi dan proses selanjutnya ya. Terima kasih!`
                   )}`}
                   target="_blank"
                   rel="noreferrer"

@@ -1,4 +1,6 @@
 import React from "react";
+import { invoiceTypeLabel } from "@/domain/credit";
+import { DeleteButton } from "@/shared/components/DeleteControls";
 import { TabsContent } from "@/shared/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
@@ -10,7 +12,7 @@ import { Eye, FileText } from "lucide-react";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { TablePagination } from "@/shared/components/TablePagination";
 
-export function BillingTab({ invoicesPg, setSelectedProofInvoice }) {
+export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoice }) {
   return (
     <TabsContent value="billing" className="space-y-4">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -45,7 +47,10 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice }) {
                           <p className="font-bold text-slate-900">{inv.clientName}</p>
                           <span className="text-[11px] text-slate-500 font-medium">{br ? br.name : "—"}</span>
                         </TableCell>
-                        <TableCell data-label="Paket Layanan" className="text-xs font-semibold text-slate-800 min-w-[180px] whitespace-nowrap">{inv.packageName}</TableCell>
+                        <TableCell data-label="Paket Layanan" className="text-xs font-semibold text-slate-800 min-w-[180px] whitespace-nowrap">
+                          {inv.packageName}
+                          <span className="ml-1.5 text-[10px] font-bold uppercase text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded" data-testid={`invoice-type-${inv.id}`}>{invoiceTypeLabel(inv)}</span>
+                        </TableCell>
                         <TableCell data-label="Nominal" className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">{fmtCurrency(inv.amount)}</TableCell>
                         <TableCell data-label="Tanggal" className="text-xs text-slate-500 tabular-nums min-w-[130px] whitespace-nowrap">{fmtDate(inv.createdAt)}</TableCell>
                         <TableCell data-label="Bukti Transfer" className="text-xs min-w-[140px] whitespace-nowrap">
@@ -73,7 +78,18 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice }) {
                           )}
                         </TableCell>
                         <TableCell data-label="Status" className="text-right pr-6 min-w-[130px] whitespace-nowrap">
-                          <StatusBadge status={inv.status} />
+                          <div className="flex items-center justify-end gap-1.5">
+                            <StatusBadge status={inv.status} />
+                            <DeleteButton
+                              module="finance"
+                              iconOnly
+                              label={`Hapus invoice ${inv.invoiceNumber}`}
+                              title={`Hapus invoice ${inv.invoiceNumber}?`}
+                              description="Invoice disembunyikan (soft delete) dan tercatat di audit. Invoice yang sudah lunas keluar dari omzet, tetapi paket dan kredit client tidak berubah (koreksi saldo lewat penyesuaian manual)."
+                              onConfirm={() => onDeleteInvoice?.(inv)}
+                              testId={`delete-invoice-${inv.id}`}
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

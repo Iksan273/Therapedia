@@ -1,6 +1,7 @@
 [
   {
     "id": "cat-001",
+    "typeCode": "SP2",
     "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
     "domain": "Sensory & Developmental Processing",
     "standardTitle": "Child Sensory Profile 2",
@@ -457,6 +458,7 @@
   },
   {
     "id": "cat-002",
+    "typeCode": "SCP",
     "categoryName": "School Companion Profile (School / Classroom Function)",
     "domain": "School Adaptation & Classroom Function",
     "standardTitle": "School Companion Profile",
@@ -895,6 +897,7 @@
   },
   {
     "id": "cat-003",
+    "typeCode": "FMV",
     "categoryName": "Fine Motor & Visual Motor Integration Profile",
     "domain": "Motor Planning & Coordination",
     "standardTitle": "Fine Motor & Handwriting Profile",
@@ -1338,6 +1341,7 @@
   },
   {
     "id": "cat-004",
+    "typeCode": "SLC",
     "categoryName": "Speech, Language & Social Communication Profile",
     "domain": "Speech, Language & Pragmatic Communication",
     "standardTitle": "Pediatric Communication & Pragmatic Language Profile",
@@ -1817,6 +1821,7 @@
   },
   {
     "id": "cat-005",
+    "typeCode": "ADL",
     "categoryName": "Activities of Daily Living (ADL) & Pediatric Independence Profile",
     "domain": "Occupational Therapy & Functional Independence (ADL)",
     "standardTitle": "Pediatric ADL & Self-Care Competency Inventory",

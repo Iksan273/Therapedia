@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { ArrowLeft, CalendarPlus, Receipt, User, CalendarDays, Calendar, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarPlus, RotateCcw, Receipt, User, CalendarDays, Calendar, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
 import { Label } from "@/shared/ui/label";
@@ -18,8 +17,11 @@ import {
 } from "@/shared/ui/dialog";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { EmptyState } from "@/shared/components/EmptyState";
+import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
+import { useClientOutcomeActions, useClientDeleteActions } from "@/features/inquiry";
+import { DeleteButton } from "@/shared/components/DeleteControls";
 import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
@@ -27,19 +29,24 @@ import { useTherapists } from "@/stores/therapistsStore";
 import { ReasonPicker } from "@/shared/components/ReasonPicker";
 import { useMasterData } from "@/stores/masterDataStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
-import { todayStr } from "@/shared/lib/id";
 import { BRANCHES } from "@/domain/branch";
 import { formatPackageName } from "@/domain/credit";
+import { isActiveClient, canReactivateClient, dischargeReasonLabel } from "@/domain/client";
+import { deriveRecurringRoutines, upcomingActiveSessions } from "@/domain/schedule";
+import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
 
 export default function ActiveClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { clients, updateClient } = useClients();
+  const { clients } = useClients();
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { getTherapist } = useTherapists();
   const { activeDischargeReasons } = useMasterData();
+  const { reactivate, discharge } = useClientOutcomeActions();
+  const { deleteClientCascade } = useClientDeleteActions();
+  const { confirm, confirmDialog } = useConfirm();
 
   const [addOpen, setAddOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -65,36 +72,19 @@ export default function ActiveClientDetail() {
     return clientSchedules.slice(start, start + historyPageSize);
   }, [clientSchedules, historyPage, historyPageSize]);
 
-  // Derive weekly recurring timetable pattern: "Jadwal setiap hari apa dan sama siapa therapist nya"
-  const weeklyRoutines = useMemo(() => {
-    if (!clientSchedules) return [];
-    const routinesMap = {};
+  // Jadwal rutin (recurring): pola hari + jam + terapis dari sesi aktif mendatang (seri berulang)
+  const today = todayStr();
+  const weeklyRoutines = useMemo(
+    () =>
+      deriveRecurringRoutines(clientSchedules, today).map((g) => {
+        const th = getTherapist(g.therapistId);
+        return { ...g, time: `${g.startTime} – ${g.endTime}`, therapistName: th ? th.name : "Terapis", specialty: th ? th.specialty : "Clinical OT" };
+      }),
+    [clientSchedules, getTherapist, today]
+  );
 
-    clientSchedules.forEach((s) => {
-      if (s.status !== "cancelled") {
-        let dayName = "";
-        try {
-          const d = new Date(s.date + "T00:00:00");
-          dayName = format(d, "EEEE");
-        } catch (e) {
-          dayName = "Sesi Rutin";
-        }
-        const key = `${dayName}_${s.startTime}_${s.therapistId}`;
-        if (!routinesMap[key]) {
-          const th = getTherapist(s.therapistId);
-          routinesMap[key] = {
-            day: dayName,
-            time: `${s.startTime} – ${s.endTime}`,
-            therapistName: th ? th.name : "Terapis",
-            specialty: th ? th.specialty : "Clinical OT",
-            creditPackageId: s.creditPackageId,
-          };
-        }
-      }
-    });
-
-    return Object.values(routinesMap);
-  }, [clientSchedules, getTherapist]);
+  // Jadwal yang sedang aktif di kalender (mendatang: scheduled / rescheduled / menunggu jadwal pengganti)
+  const activeSessions = useMemo(() => upcomingActiveSessions(clientSchedules, today), [clientSchedules, today]);
 
   if (!client) {
     return (
@@ -110,7 +100,8 @@ export default function ActiveClientDetail() {
   const br = BRANCHES.find((b) => b.id === client.branchId);
   const pkgs = record?.packages || [];
   const remCredit = record ? record.remainingCredit : 0;
-  const isFrozen = remCredit === 0;
+  const isActive = isActiveClient(client);
+  const isFrozen = isActive && remCredit === 0;
 
   // Discharge client handler
   const handleDischarge = () => {
@@ -119,19 +110,27 @@ export default function ActiveClientDetail() {
       toast.error("Mohon pilih atau tulis alasan discharge.");
       return;
     }
-    updateClient(client.id, {
-      status: "discharged",
-      dateOfDischarge: todayStr(),
-      dischargeReason: reason,
-      dischargeNote: dischargeNote.trim() || null,
-    });
+    discharge(client, reason, dischargeNote);
     setDischargeOpen(false);
     toast.success(`${client.clientName} resmi di-discharge.`);
     navigate("/admin-schedule/clients");
   };
 
+  // Aktifkan kembali client discharged / discontinued
+  const handleReactivate = async () => {
+    const ok = await confirm({
+      title: `Aktifkan kembali ${client.clientName}?`,
+      description: `Status ${client.status === "discharged" ? "Discharged" : "Discontinued"} akan diganti menjadi Active Client dan client bisa dijadwalkan sesi lagi. Saldo kredit & riwayat sesi tetap dipertahankan.`,
+      confirmLabel: "Aktifkan Kembali",
+    });
+    if (!ok) return;
+    reactivate(client);
+    toast.success(`${client.clientName} kembali menjadi Active Client.`);
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto" data-testid="active-client-detail-page">
+      {confirmDialog}
       {/* Header Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
@@ -154,7 +153,7 @@ export default function ActiveClientDetail() {
               )}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Kode Akses: <strong className="font-mono text-slate-800">{client.clientAccessCode}</strong> • Cabang: {br ? br.name : "—"}
+              Kode Akses: <strong className="font-mono text-slate-800">{client.clientCode}</strong> • Cabang: {br ? br.name : "—"}
             </p>
           </div>
         </div>
@@ -171,14 +170,46 @@ export default function ActiveClientDetail() {
             </a>
           )}
 
-          <Button
-            className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 gap-2 shadow-xs"
-            onClick={() => setAddOpen(true)}
-          >
-            <CalendarPlus className="w-4 h-4" /> Jadwalkan Sesi Baru
-          </Button>
+          {isActive && (
+            <Button
+              className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 gap-2 shadow-xs"
+              onClick={() => setAddOpen(true)}
+            >
+              <CalendarPlus className="w-4 h-4" /> Jadwalkan Sesi Baru
+            </Button>
+          )}
+          <DeleteButton
+            module="active_clients"
+            label="Hapus Client"
+            title={`Hapus ${client.clientName}?`}
+            description="Client beserta sesi dan invoice-nya akan disembunyikan dari semua daftar dan client tidak bisa login portal ortu. Penghapusan bersifat soft delete."
+            onConfirm={() => {
+              deleteClientCascade(client);
+              toast.success(`Client ${client.clientName} dihapus.`);
+              navigate("/admin-schedule/clients");
+            }}
+            testId="delete-active-client-button"
+          />
+          {canReactivateClient(client) && (
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 gap-2 shadow-xs"
+              onClick={handleReactivate}
+              data-testid="reactivate-client"
+            >
+              <RotateCcw className="w-4 h-4" /> Aktifkan Kembali
+            </Button>
+          )}
         </div>
       </div>
+
+      {canReactivateClient(client) && (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700" data-testid="client-inactive-banner">
+          <strong>{client.status === "discharged" ? "Discharged" : "Discontinued"}</strong>
+          {client.dateOfDischarge ? ` pada ${fmtDate(client.dateOfDischarge)}` : ""}
+          {client.dischargeReason ? ` · Alasan: ${dischargeReasonLabel(client.dischargeReason, activeDischargeReasons)}` : ""}
+          {client.dischargeNote ? ` · ${client.dischargeNote}` : ""}
+        </div>
+      )}
 
       {/* Overview Demographics Card */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -273,6 +304,7 @@ export default function ActiveClientDetail() {
         </Card>
       </div>
 
+      {/* JADWAL AKTIF DI KALENDER: tepat di bawah jadwal rutin (lihat blok berikutnya) */}
       {/* JADWAL RUTIN MINGGUAN (HARI APA SAJA & SAMA SIAPA TERAPISNYA) */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
         <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
@@ -315,6 +347,59 @@ export default function ActiveClientDetail() {
         </CardContent>
       </Card>
 
+      {/* JADWAL AKTIF DI KALENDER (mendatang) */}
+      <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden" data-testid="active-calendar-sessions">
+        <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
+          <CardTitle className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-emerald-600" />
+            Jadwal Aktif di Kalender ({activeSessions.length})
+          </CardTitle>
+          <CardDescription className="text-xs text-slate-500 mt-0.5">
+            Sesi mendatang yang masih aktif (terjadwal, dipindah, atau menunggu jadwal pengganti). Klik sesi untuk membuka detail.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          {activeSessions.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400">Belum ada jadwal aktif di kalender untuk client ini.</div>
+          ) : (
+            <Table stackOnMobile className="min-w-[520px] w-full">
+              <TableHeader>
+                <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
+                  <TableHead className="font-bold text-slate-700 text-xs py-3 pl-6 whitespace-nowrap">Tanggal & Jam</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Terapis</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Jenis</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 whitespace-nowrap">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeSessions.slice(0, 12).map((s) => (
+                  <TableRow
+                    key={s.id}
+                    className="border-b border-slate-100 hover:bg-emerald-50/30 cursor-pointer"
+                    onClick={() => {
+                      setSelectedSession(s);
+                      setSessionOpen(true);
+                    }}
+                    data-testid={`active-session-${s.id}`}
+                  >
+                    <TableCell data-label="Tanggal" className="pl-6 text-xs whitespace-nowrap">
+                      <span className="font-bold text-slate-900">{fmtDate(s.date)}</span>
+                      <span className="ml-2 font-mono text-slate-500">{s.startTime} – {s.endTime}</span>
+                    </TableCell>
+                    <TableCell data-label="Terapis" className="text-xs font-semibold text-slate-800">{getTherapist(s.therapistId)?.name || "—"}</TableCell>
+                    <TableCell data-label="Jenis" className="text-xs text-slate-600">{s.type === "assessment" ? "Asesmen" : "Terapi"}</TableCell>
+                    <TableCell data-label="Status" className="text-right pr-6"><StatusBadge status={s.status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          {activeSessions.length > 12 && (
+            <p className="px-6 py-3 text-[11px] text-slate-500 border-t border-slate-100">Menampilkan 12 dari {activeSessions.length} sesi. Lihat selengkapnya di Weekly Calendar.</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Sessions History & Cancellation Log */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
         <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -323,12 +408,12 @@ export default function ActiveClientDetail() {
               Riwayat Sesi Terapi & Log Pembatalan ({clientSchedules.length})
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
-              Total pembatalan: {record?.cancelCountTotal || 0}x (Maksimal 3x cancel wajar sebelum terkena penalti kredit)
+              Cancel pada paket aktif: {record?.cancelCount || 0}x dari kuota {record?.cancelQuota || 3}x (hanya penghitung; potong kredit atau tidak ditentukan admin tiap cancel)
             </CardDescription>
           </div>
-          {(record?.cancelCountTotal || 0) > 3 && (
+          {(record?.cancelCount || 0) > (record?.cancelQuota || 3) && (
             <span className="text-xs font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg">
-              Melebihi Kuota Cancel (&gt;3x)
+              Melebihi Kuota Cancel Paket (&gt;3x)
             </span>
           )}
         </CardHeader>
@@ -428,15 +513,17 @@ export default function ActiveClientDetail() {
       </Card>
 
       {/* Discharge Client Button (Footer) */}
-      <div className="pt-4 flex justify-end">
-        <Button
-          variant="outline"
-          className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold"
-          onClick={() => setDischargeOpen(true)}
-        >
-          Discharge Client
-        </Button>
-      </div>
+      {isActive && (
+        <div className="pt-4 flex justify-end">
+          <Button
+            variant="outline"
+            className="border-rose-200 text-rose-700 hover:bg-rose-50 font-bold"
+            onClick={() => setDischargeOpen(true)}
+          >
+            Discharge Client
+          </Button>
+        </div>
+      )}
 
       {/* Modals */}
       <AddScheduleModal

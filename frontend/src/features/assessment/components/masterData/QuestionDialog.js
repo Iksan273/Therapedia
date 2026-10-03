@@ -1,12 +1,23 @@
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
-import { AlignLeft, CheckCircle2, CheckSquare, ClipboardList, Plus, Sliders, Trash2 } from "lucide-react";
+import { AlignLeft, CalendarDays, CheckCircle2, CheckSquare, ClipboardList, Plus, Sliders, Trash2 } from "lucide-react";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { QUESTION_TYPES } from "@/features/assessment/components/masterData/assessmentConfig";
+import { QUESTION_TYPES, isOptionBasedType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { Textarea } from "@/shared/ui/textarea";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
+
+// Radix Select tidak menerima value kosong, jadi "tanpa kuadran" memakai sentinel ini
+const NO_QUADRANT = "none";
+
+const INPUT_TYPE_HINTS = {
+  short_text: { title: "Jawaban Singkat", desc: "Responden mengisi satu baris teks singkat." },
+  number: { title: "Angka", desc: "Responden hanya dapat mengisi angka." },
+  date: { title: "Tanggal", desc: "Responden memilih tanggal dari kalender." },
+  birth_date: { title: "Tanggal Lahir", desc: "Responden memilih tanggal lahir (tidak boleh di masa depan). Usia ditampilkan otomatis di bawah isian." },
+  time: { title: "Waktu", desc: "Responden memilih jam (format HH:mm)." },
+};
 
 export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, quadrants, removeOptionFromDialog, saveQuestion, setQDialog, updateOptionText }) {
   return (
@@ -18,7 +29,7 @@ export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, 
               {qDialog.editingId ? "Edit Butir Pertanyaan Klinis" : "Tambah Butir Pertanyaan Baru"}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 font-medium">
-              Konfigurasikan tipe respons (skala baku Winnie Dunn, range kustom 1–5 / 1–10, pilihan ganda, multi-centang, esai), kuadran sensori, serta opsi jawaban.
+              Konfigurasikan tipe respons (skala baku Winnie Dunn, range kustom, pilihan ganda, multi-centang, dropdown, jawaban singkat, esai, angka, tanggal, tanggal lahir, waktu), kuadran sensori (opsional), serta opsi jawaban.
             </DialogDescription>
           </DialogHeader>
 
@@ -45,15 +56,18 @@ export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, 
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Kuadran Sensorik</Label>
+                <Label className="text-xs font-bold text-slate-700">Kuadran Sensorik <span className="font-medium text-slate-400">(opsional)</span></Label>
                 <Select
-                  value={qDialog.quadrant}
-                  onValueChange={(val) => setQDialog((prev) => ({ ...prev, quadrant: val }))}
+                  value={qDialog.quadrant || NO_QUADRANT}
+                  onValueChange={(val) => setQDialog((prev) => ({ ...prev, quadrant: val === NO_QUADRANT ? "" : val }))}
                 >
-                  <SelectTrigger className="border-slate-200 text-xs font-semibold">
+                  <SelectTrigger className="border-slate-200 text-xs font-semibold" data-testid="question-quadrant">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value={NO_QUADRANT} className="text-xs font-bold">
+                      Tanpa kuadran
+                    </SelectItem>
                     {quadrants.map((q) => (
                       <SelectItem key={q.code} value={q.code} className="text-xs font-bold">
                         {q.code} - {q.fullName || q.title}
@@ -150,7 +164,7 @@ export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, 
             )}
 
             {/* TIPE 3: PILIHAN GANDA ATAU MULTI-CENTANG */}
-            {(qDialog.type === "multiple_choice" || qDialog.type === "checkbox_multi") && (
+            {isOptionBasedType(qDialog.type) && (
               <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50/60 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-purple-950">
@@ -246,6 +260,16 @@ export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, 
                 <p className="text-[11px] text-sky-700 leading-relaxed font-medium">
                   Responden akan diberikan kotak teks (textarea) terbuka untuk menuliskan uraian deskriptif atau catatan observasi kualitatif.
                 </p>
+              </div>
+            )}
+
+            {/* TIPE: JAWABAN SINGKAT / ANGKA / TANGGAL / TANGGAL LAHIR / WAKTU */}
+            {INPUT_TYPE_HINTS[qDialog.type] && (
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 text-xs text-slate-800 space-y-1" data-testid="question-type-hint">
+                <p className="font-bold flex items-center gap-1.5">
+                  <CalendarDays className="w-4 h-4 text-slate-600" /> Format {INPUT_TYPE_HINTS[qDialog.type].title}
+                </p>
+                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">{INPUT_TYPE_HINTS[qDialog.type].desc}</p>
               </div>
             )}
 

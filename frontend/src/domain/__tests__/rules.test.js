@@ -1,4 +1,4 @@
-import { advanceStatus, dischargeReasonLabel, isQuestionnaireCodeFilled } from "@/domain/client";
+import { advanceStatus, buildActivationPatch, canReactivateClient, dischargeReasonLabel, isActiveClient, isQuestionnaireCodeFilled, matchesRosterStatus, PIPELINE_STATUSES } from "@/domain/client";
 import { buildRecurringSchedules, canRevertSession, cancelReasonLabel, checkConflicts, restoreSlotOf, restoreStatusOf, filterSessionsByDate, findTherapistClashIds, getOriginSlot } from "@/domain/schedule";
 import { roleHasPermission } from "@/domain/rbac";
 import { keysToCamel, keysToSnake } from "@/shared/lib/caseConverter";
@@ -58,7 +58,7 @@ describe("label alasan (string: pilihan cepat atau teks custom)", () => {
     expect(cancelReasonLabel(null)).toBe("—");
   });
   test("alasan sistem reschedule_dibatalkan tetap berlabel walau tidak ada di daftar master", () => {
-    expect(cancelReasonLabel("reschedule_dibatalkan", list)).toContain("tanpa potong kredit");
+    expect(cancelReasonLabel("reschedule_dibatalkan", list)).toContain("tidak dilanjutkan");
   });
 });
 
@@ -167,5 +167,35 @@ describe("filterSessionsByDate (riwayat sesi portal ortu)", () => {
   });
   test("rentang terbalik menghasilkan kosong", () => {
     expect(filterSessionsByDate(sessions, "2026-10-01", "2026-09-01")).toHaveLength(0);
+  });
+});
+
+describe("Client Roster (active / discharged / discontinued)", () => {
+  const active = { status: "admitted" };
+  const discharged = { status: "discharged", dateOfDischarge: "2026-08-01" };
+  const discontinued = { status: "discontinued" };
+  const inquiry = { status: "inquiry" };
+
+  test("discharged termasuk status pipeline", () => {
+    expect(PIPELINE_STATUSES).toContain("discharged");
+  });
+  test("filter status roster", () => {
+    expect([active, discharged, discontinued, inquiry].filter((c) => matchesRosterStatus(c, "all"))).toHaveLength(3);
+    expect(matchesRosterStatus(active, "active")).toBe(true);
+    expect(matchesRosterStatus(discharged, "active")).toBe(false);
+    expect(matchesRosterStatus(discharged, "discharged")).toBe(true);
+    expect(matchesRosterStatus(discontinued, "discontinued")).toBe(true);
+  });
+  test("hanya discharged/discontinued yang bisa diaktifkan kembali", () => {
+    expect(canReactivateClient(discharged)).toBe(true);
+    expect(canReactivateClient(discontinued)).toBe(true);
+    expect(canReactivateClient(active)).toBe(false);
+    expect(isActiveClient(active)).toBe(true);
+    expect(isActiveClient(inquiry)).toBe(false);
+  });
+  test("buildActivationPatch: pertahankan tanggal join, kosongkan data discharge", () => {
+    const patch = buildActivationPatch({ ...discharged, dateOfJoin: "2026-01-10", dischargeReason: "moving" }, "2026-10-03");
+    expect(patch).toMatchObject({ status: "admitted", dateOfJoin: "2026-01-10", dateOfDischarge: null, dischargeReason: null, dischargeNote: null });
+    expect(buildActivationPatch(discontinued, "2026-10-03").dateOfJoin).toBe("2026-10-03");
   });
 });

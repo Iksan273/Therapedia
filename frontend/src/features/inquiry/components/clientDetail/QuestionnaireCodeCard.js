@@ -4,9 +4,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/shared/ui/button";
 import { Copy, Plus, Trash2 } from "lucide-react";
 import { isQuestionnaireCodeFilled } from "@/domain/client";
+import { CODE_VALIDITY_OPTIONS, isQuestionnaireCodeExpired } from "@/domain/assessment";
+import { fmtDate } from "@/shared/lib/format";
 import { Link } from "react-router-dom";
+import { IfCanDelete } from "@/shared/components/DeleteControls";
 
-export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory }) {
+export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory, newQuestionnaireValidity = "none", setNewQuestionnaireValidity }) {
   return (
     <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -39,6 +42,18 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={newQuestionnaireValidity} onValueChange={setNewQuestionnaireValidity}>
+                <SelectTrigger className="w-44 text-xs border-slate-200 bg-slate-50 font-semibold" data-testid="questionnaire-validity-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                  {CODE_VALIDITY_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 onClick={handleGenerateQuestionnaireCode}
                 className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-1.5 shadow-xs"
@@ -60,6 +75,11 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                         {item.name}
                       </span>
                       <p className="font-mono font-black text-sm text-slate-900 mt-0.5">{item.code}</p>
+                      {!isQuestionnaireCodeFilled(client, item) && item.expiresAt && (
+                        <p className={`text-[11px] font-semibold mt-0.5 ${isQuestionnaireCodeExpired(item) ? "text-rose-600" : "text-slate-500"}`} data-testid={`code-expiry-${item.code}`}>
+                          {isQuestionnaireCodeExpired(item) ? "Kedaluwarsa" : "Berlaku s.d."} {fmtDate(item.expiresAt)}
+                        </p>
+                      )}
                       {isQuestionnaireCodeFilled(client, item) ? (
                         <span className="inline-block mt-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md" data-testid={`code-status-${item.code}`}>
                           Sudah diisi
@@ -87,6 +107,7 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                         Buka Form
                       </Link>
                       {!isQuestionnaireCodeFilled(client, item) && (
+                        <IfCanDelete module="inquiry_pipeline">
                         <Button aria-label="Hapus Kode"
                           size="icon"
                           variant="ghost"
@@ -97,6 +118,7 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
+                        </IfCanDelete>
                       )}
                     </div>
                   </div>

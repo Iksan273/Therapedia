@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { Send, MapPin, Mail, Phone, MessageSquare, CheckCircle2, Building } from "lucide-react";
 import { CLINIC_INFO, CLINICAL_BRANCHES } from "@/features/landing/data/landingData";
+import { useLang, localizeItem } from "@/features/landing/i18n/LanguageContext";
+import { BRANCHES_ID } from "@/features/landing/data/landingDataId";
 import { toast } from "sonner";
 
 export default function LandingContact() {
+  const { L, lang } = useLang();
   const [formData, setFormData] = useState({
     parentName: "",
     whatsapp: "",
@@ -29,7 +32,7 @@ export default function LandingContact() {
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSubmitted(true);
-      toast.success("Permintaan konsultasi berhasil dikirim! Tim intake kami akan segera menghubungi Anda.");
+      toast.success(L("Consultation request sent! Our intake team will contact you shortly.", "Permintaan konsultasi berhasil dikirim! Tim intake kami akan segera menghubungi Anda."));
     }, 700);
   };
 
@@ -49,19 +52,21 @@ export default function LandingContact() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#007aff]/10 border border-[#007aff]/20 text-[#007aff] text-xs font-bold uppercase tracking-wider mb-4">
             <MessageSquare className="w-3.5 h-3.5" />
-            <span>Connect with Therapedia</span>
+            <span>{L("Connect with Therapedia", "Hubungi Therapedia")}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
-            Book a Consultation or{" "}
+            {L("Book a Consultation or", "Jadwalkan Konsultasi atau")}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007aff] to-cyan-600">
-              Get in Touch
+              {L("Get in Touch", "Hubungi Kami")}
             </span>
           </h2>
 
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Contact Therapedia easily through WhatsApp or visit our nearest branch for more information and
-            clinical consultation.
+            {L(
+              "Contact Therapedia easily through WhatsApp or visit our nearest branch for more information and clinical consultation.",
+              "Hubungi Therapedia dengan mudah lewat WhatsApp atau kunjungi cabang terdekat untuk informasi dan konsultasi klinis."
+            )}
           </p>
         </div>
 
@@ -71,14 +76,14 @@ export default function LandingContact() {
             <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-sm space-y-6">
               <h3 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <Building className="w-5 h-5 text-[#007aff]" />
-                <span>Pusat Layanan Terpadu Surabaya</span>
+                <span>{L("Integrated Service Centers in Surabaya", "Pusat Layanan Terpadu Surabaya")}</span>
               </h3>
 
               <div className="space-y-5 text-xs sm:text-sm text-slate-600">
                 {CLINICAL_BRANCHES.map((b) => (
                   <div key={b.id} className="pb-4 border-b border-slate-100 last:border-0 last:pb-0">
                     <p className="font-extrabold text-slate-900 tracking-wide text-xs uppercase text-[#007aff] mb-1">
-                      {b.name}
+                      {localizeItem(b, BRANCHES_ID, lang).name}
                     </p>
                     <p className="text-slate-600 leading-relaxed mb-2">{b.address}</p>
                     <a
@@ -88,7 +93,7 @@ export default function LandingContact() {
                       className="inline-flex items-center gap-1 text-[#007aff] font-bold text-xs hover:underline"
                     >
                       <MapPin className="w-3.5 h-3.5" />
-                      <span>Lihat Google Maps</span>
+                      <span>{L("View on Google Maps", "Lihat Google Maps")}</span>
                     </a>
                   </div>
                 ))}
@@ -108,12 +113,12 @@ export default function LandingContact() {
                 <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-700">
                   <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    WhatsApp Intake:{" "}
+                    {L("WhatsApp Intake", "WhatsApp Intake")}:{" "}
                     <button
                       onClick={handleOpenWhatsApp}
                       className="font-bold text-emerald-600 hover:underline cursor-pointer"
                     >
-                      Chat Admin (+62 812-3456-7890)
+                      {L("Chat Admin", "Chat Admin")} (+62 812-3456-7890)
                     </button>
                   </span>
                 </div>
@@ -126,13 +131,13 @@ export default function LandingContact() {
             <div className="rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-8 lg:p-10 shadow-xl">
               <div className="mb-6">
                 <span className="text-xs font-bold text-[#007aff] uppercase tracking-wider">
-                  Formulir Konsultasi
+                  {L("Consultation Form", "Formulir Konsultasi")}
                 </span>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-                  Jadwalkan Konsultasi Klinis Anak
+                  {L("Schedule a Child Clinical Consultation", "Jadwalkan Konsultasi Klinis Anak")}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  Isi informasi di bawah ini untuk mendiskusikan kebutuhan tumbuh kembang buah hati Anda dengan tim terapis kami.
+                  {L("Fill in the information below to discuss your child's developmental needs with our therapist team.", "Isi informasi di bawah ini untuk mendiskusikan kebutuhan tumbuh kembang buah hati Anda dengan tim terapis kami.")}
                 </p>
               </div>
 
@@ -141,23 +146,25 @@ export default function LandingContact() {
                   <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
-                  <h4 className="text-lg font-bold text-emerald-900">Permintaan Konsultasi Diterima!</h4>
+                  <h4 className="text-lg font-bold text-emerald-900">{L("Consultation Request Received!", "Permintaan Konsultasi Diterima!")}</h4>
                   <p className="text-xs sm:text-sm text-emerald-700 max-w-md mx-auto leading-relaxed">
-                    Terima kasih, Bapak/Ibu {formData.parentName}. Tim intake Therapedia cabang {formData.branch} akan
-                    menghubungi WhatsApp Anda dalam kurun waktu 1x24 jam kerja.
+                    {L(
+                      `Thank you, ${formData.parentName}. The Therapedia ${formData.branch} intake team will contact you on WhatsApp within 1x24 working hours.`,
+                      `Terima kasih, Bapak/Ibu ${formData.parentName}. Tim intake Therapedia cabang ${formData.branch} akan menghubungi WhatsApp Anda dalam kurun waktu 1x24 jam kerja.`
+                    )}
                   </p>
                   <div className="pt-2 flex justify-center gap-3">
                     <button
                       onClick={handleOpenWhatsApp}
                       className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md cursor-pointer"
                     >
-                      Hubungi Langsung via WhatsApp
+                      {L("Contact Directly via WhatsApp", "Hubungi Langsung via WhatsApp")}
                     </button>
                     <button
                       onClick={() => setIsSubmitted(false)}
                       className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 text-xs font-semibold border border-emerald-200 cursor-pointer"
                     >
-                      Kirim Lagi
+                      {L("Send Again", "Kirim Lagi")}
                     </button>
                   </div>
                 </div>
@@ -166,7 +173,7 @@ export default function LandingContact() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Nama Lengkap Orang Tua <span className="text-red-500">*</span>
+                        {L("Parent's Full Name", "Nama Lengkap Orang Tua")} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -174,7 +181,7 @@ export default function LandingContact() {
                         value={formData.parentName}
                         onChange={handleChange}
                         required
-                        placeholder="Contoh: Ibu Sarah"
+                        placeholder={L("e.g. Mrs. Sarah", "Contoh: Ibu Sarah")}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#007aff] focus:ring-2 focus:ring-[#007aff]/20 text-xs sm:text-sm outline-none transition-all"
                       />
                     </div>
@@ -197,33 +204,33 @@ export default function LandingContact() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Nama Panggilan Anak
+                        {L("Child's Nickname", "Nama Panggilan Anak")}
                       </label>
                       <input
                         type="text"
                         name="childName"
                         value={formData.childName}
                         onChange={handleChange}
-                        placeholder="Nama anak"
+                        placeholder={L("Child's name", "Nama anak")}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#007aff] focus:ring-2 focus:ring-[#007aff]/20 text-xs sm:text-sm outline-none transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Usia Anak Saat Ini
+                        {L("Child's Current Age", "Usia Anak Saat Ini")}
                       </label>
                       <input
                         type="text"
                         name="childAge"
                         value={formData.childAge}
                         onChange={handleChange}
-                        placeholder="Contoh: 3 tahun 6 bulan"
+                        placeholder={L("e.g. 3 years 6 months", "Contoh: 3 tahun 6 bulan")}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#007aff] focus:ring-2 focus:ring-[#007aff]/20 text-xs sm:text-sm outline-none transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Pilihan Cabang Terdekat <span className="text-red-500">*</span>
+                        {L("Nearest Branch", "Pilihan Cabang Terdekat")} <span className="text-red-500">*</span>
                       </label>
                       <select
                         name="branch"
@@ -242,7 +249,7 @@ export default function LandingContact() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Catatan / Keluhan Tumbuh Kembang yang Diamati <span className="text-red-500">*</span>
+                      {L("Developmental Concerns / Notes Observed", "Catatan / Keluhan Tumbuh Kembang yang Diamati")} <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       name="concern"
@@ -250,7 +257,7 @@ export default function LandingContact() {
                       value={formData.concern}
                       onChange={handleChange}
                       required
-                      placeholder="Ceritakan kendala anak (misal: belum bisa fokus, jalan jinjit, sensitif terhadap suara, terlambat bicara, dll.)"
+                      placeholder={L("Describe your child's challenges (e.g. difficulty focusing, toe walking, sound sensitivity, speech delay, etc.)", "Ceritakan kendala anak (misal: belum bisa fokus, jalan jinjit, sensitif terhadap suara, terlambat bicara, dll.)")}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#007aff] focus:ring-2 focus:ring-[#007aff]/20 text-xs sm:text-sm outline-none transition-all resize-none"
                     />
                   </div>
@@ -262,7 +269,7 @@ export default function LandingContact() {
                       className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#007aff] hover:bg-[#0051a8] text-white font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-[#007aff]/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       <Send className="w-4 h-4" />
-                      <span>{isSubmitting ? "Mengirim Permintaan..." : "Kirim Permintaan Konsultasi"}</span>
+                      <span>{isSubmitting ? L("Sending Request...", "Mengirim Permintaan...") : L("Send Consultation Request", "Kirim Permintaan Konsultasi")}</span>
                     </button>
 
                     <button
@@ -271,7 +278,7 @@ export default function LandingContact() {
                       className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm tracking-wide shadow-md shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <MessageSquare className="w-4 h-4" />
-                      <span>Chat WhatsApp Sekarang</span>
+                      <span>{L("Chat on WhatsApp Now", "Chat WhatsApp Sekarang")}</span>
                     </button>
                   </div>
                 </form>

@@ -22,7 +22,7 @@ export function AssessorSheetView({ displayedSections, quadStyle }) {
                         <th className="py-2 px-2 sm:px-3 text-center w-14 sm:w-16">Kuadran</th>
                         <th className="py-2 px-1 sm:px-3 text-center w-10 sm:w-12 border-l border-emerald-200">Item</th>
                         <th className="py-2 px-2 sm:px-4 border-l border-emerald-200 min-w-[220px] sm:min-w-0">
-                          <span>{sec.leadText || "Anakku ..."}</span>
+                          <span>{sec.leadText}</span>
                         </th>
                         <th className="py-2 px-2 sm:px-4 text-center w-24 sm:w-28 border-l border-emerald-200 bg-emerald-200/50 text-emerald-950 font-black">
                           Penilaian<br /><span className="text-[11px] font-normal">Skor (0 - 5)</span>
@@ -36,7 +36,7 @@ export function AssessorSheetView({ displayedSections, quadStyle }) {
                           <tr key={it.itemNo} className="hover:bg-slate-50/70 transition-colors print-avoid-break">
                             <td className="py-2 px-2 sm:px-3 text-center">
                               <span className={cn("inline-block px-1.5 sm:px-2 py-0.5 rounded text-[11px]", quad.badge)}>
-                                {it.quadrant}
+                                {it.quadrant || "—"}
                               </span>
                             </td>
                             <td className="py-2 px-1 sm:px-3 text-center font-bold text-slate-700 border-l border-slate-200">

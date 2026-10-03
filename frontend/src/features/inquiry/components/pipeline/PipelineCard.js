@@ -28,7 +28,7 @@ export const PipelineCard = memo(function PipelineCard({ client: c, getService, 
           </p>
         </div>
         <span className="text-[11px] font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-          {c.clientAccessCode}
+          {c.clientCode}
         </span>
       </div>
 

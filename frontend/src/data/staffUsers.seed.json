@@ -1,5 +1,12 @@
 [
   {
+    "id": "usr-000",
+    "name": "Master Administrator",
+    "email": "master@therapedia.id",
+    "role": "master",
+    "branchId": null
+  },
+  {
     "id": "usr-001",
     "name": "dr. Anita Wijaya, Sp.KFR",
     "email": "anita.wijaya@therapedia.id",

@@ -22,7 +22,7 @@ export function QuickInquiryView({ displayedSections, quadStyle }) {
                       <TableCell className="font-bold pl-4 text-slate-500">{it.itemNo}</TableCell>
                       <TableCell>
                         <span className={cn("px-2 py-0.5 rounded text-[11px]", quad.badge)}>
-                          {it.quadrant}
+                          {it.quadrant || "—"}
                         </span>
                       </TableCell>
                       <TableCell className="font-medium text-slate-800">{it.question}</TableCell>

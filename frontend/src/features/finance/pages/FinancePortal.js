@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerModal";
 import { useCredits } from "@/stores/creditsStore";
 import { useClients } from "@/stores/clientsStore";
+import { useAuth } from "@/stores/authStore";
+import { useAuditLogger } from "@/features/audit";
 import { VerificationTab } from "@/features/finance/components/VerificationTab";
 import { BillingTab } from "@/features/finance/components/BillingTab";
 import { HistoryTab } from "@/features/finance/components/HistoryTab";
@@ -14,6 +16,7 @@ import { PackagesTab } from "@/features/finance/components/PackagesTab";
 import { CreateInvoiceDialog } from "@/features/finance/components/CreateInvoiceDialog";
 import { RenewalDialog } from "@/features/finance/components/RenewalDialog";
 import { NewPackageDialog } from "@/features/finance/components/NewPackageDialog";
+import { ASSESSMENT_INVOICE_CODE, invoiceTypeCode, packageInvoiceCode } from "@/domain/credit";
 
 export default function FinancePortal() {
   const {
@@ -24,7 +27,10 @@ export default function FinancePortal() {
     renewClientCredit,
     addMasterPackage,
     getMasterPackages,
+    deleteInvoices,
   } = useCredits();
+  const { auth } = useAuth();
+  const { record } = useAuditLogger();
   const { clients } = useClients();
 
   const [activeTab, setActiveTab] = useState("verification"); // verification | billing | renewal | history | packages
@@ -34,6 +40,7 @@ export default function FinancePortal() {
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueForm, setIssueForm] = useState({
     clientId: "",
+    type: "package", // package | assessment
     packageId: "pkg-reguler",
     amount: 2500000,
   });
@@ -51,6 +58,7 @@ export default function FinancePortal() {
   const [newPkgOpen, setNewPkgOpen] = useState(false);
   const [newPkgForm, setNewPkgForm] = useState({
     name: "",
+    invoiceCode: "",
     credits: 10,
     price: 2500000,
     description: "",
@@ -82,13 +90,20 @@ export default function FinancePortal() {
 
   // Handle Verify Payment Proof
   const handleApprovePayment = (invoice) => {
+    if (invoice.type === "assessment") {
+      verifyPaymentProof({ invoiceId: invoice.id, status: "paid" });
+      toast.success(`Pembayaran ${invoice.invoiceNumber} (Assessment) berhasil diverifikasi. Kuesioner ortu kini dapat dibuka.`);
+      return;
+    }
+    // Kredit memakai snapshot invoice; master paket hanya cadangan untuk invoice lama tanpa snapshot.
     const pkg = masterPackages.find((p) => p.id === invoice.packageId) || { credits: 10 };
+    const credits = invoice.credits || pkg.credits || 10;
     verifyPaymentProof({
       invoiceId: invoice.id,
       status: "paid",
-      creditsToAdd: pkg.credits || 10,
+      creditsToAdd: credits,
     });
-    toast.success(`Pembayaran ${invoice.invoiceNumber} berhasil diverifikasi! (+${pkg.credits || 10} kredit aktif)`);
+    toast.success(`Pembayaran ${invoice.invoiceNumber} berhasil diverifikasi! (+${credits} kredit aktif)`);
   };
 
   const handleRejectPayment = (invoice) => {
@@ -99,6 +114,23 @@ export default function FinancePortal() {
     toast.error(`Pembayaran ${invoice.invoiceNumber} ditandai belum valid.`);
   };
 
+  // Hapus invoice (soft delete, hanya role canDelete): tercatat di audit modul finance
+  const handleDeleteInvoice = (invoice) => {
+    deleteInvoices([invoice.id], auth?.staffName || auth?.role || null);
+    record({
+      action: "invoice.deleted",
+      branchId: invoice.branchId,
+      entityType: "invoice",
+      entityId: invoice.id,
+      entityLabel: `Invoice ${invoice.invoiceNumber}`,
+      subjectType: "client",
+      subjectId: invoice.clientId,
+      subjectLabel: invoice.clientName,
+      oldValues: { status: invoice.status, amount: invoice.amount },
+    });
+    toast.success(`Invoice ${invoice.invoiceNumber} dihapus.`);
+  };
+
   // Submit Issue Invoice
   const handleIssueSubmit = (e) => {
     e.preventDefault();
@@ -107,15 +139,24 @@ export default function FinancePortal() {
       toast.error("Silakan pilih client terlebih dahulu.");
       return;
     }
-    const pkg = masterPackages.find((p) => p.id === issueForm.packageId) || { name: "Paket Terapi" };
+    const isAssessment = issueForm.type === "assessment";
+    const pkg = isAssessment ? null : masterPackages.find((p) => p.id === issueForm.packageId) || { name: "Paket Terapi" };
+    const amount = Number(issueForm.amount) || (isAssessment ? 0 : pkg.price || 2500000);
+    if (isAssessment && amount <= 0) {
+      toast.error("Nominal invoice assessment wajib diisi.");
+      return;
+    }
 
     issueInvoice({
       clientId: c.id,
       clientName: c.clientName,
       branchId: c.branchId,
-      packageId: issueForm.packageId,
-      packageName: pkg.name,
-      amount: Number(issueForm.amount) || pkg.price || 2500000,
+      type: issueForm.type,
+      typeCode: invoiceTypeCode(issueForm.type, pkg),
+      packageId: isAssessment ? null : issueForm.packageId,
+      packageName: isAssessment ? "Assessment" : pkg.name,
+      credits: isAssessment ? 0 : pkg.credits,
+      amount,
     });
 
     toast.success(`Tagihan untuk ${c.clientName} berhasil diterbitkan.`);
@@ -138,6 +179,7 @@ export default function FinancePortal() {
       branchId: c.branchId,
       packageId: renewForm.packageId,
       packageName: `${pkg.name} (${renewForm.credits}x)`,
+      typeCode: packageInvoiceCode(pkg),
       credits: Number(renewForm.credits) || 10,
       amount: Number(renewForm.amount) || pkg.price || 2500000,
     });
@@ -154,8 +196,19 @@ export default function FinancePortal() {
       return;
     }
 
+    const invoiceCode = newPkgForm.invoiceCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!invoiceCode) {
+      toast.error("Kode paket untuk nomor invoice wajib diisi (mis. REG).");
+      return;
+    }
+    if (invoiceCode === ASSESSMENT_INVOICE_CODE || masterPackages.some((m) => packageInvoiceCode(m) === invoiceCode)) {
+      toast.error(`Kode paket "${invoiceCode}" sudah dipakai. Pilih kode lain.`);
+      return;
+    }
+
     addMasterPackage({
       name: newPkgForm.name.trim(),
+      invoiceCode,
       credits: Number(newPkgForm.credits) || 10,
       price: Number(newPkgForm.price) || 2500000,
       description: newPkgForm.description.trim(),
@@ -163,7 +216,7 @@ export default function FinancePortal() {
 
     toast.success(`Paket baru '${newPkgForm.name}' berhasil ditambahkan ke Master Data!`);
     setNewPkgOpen(false);
-    setNewPkgForm({ name: "", credits: 10, price: 2500000, description: "" });
+    setNewPkgForm({ name: "", invoiceCode: "", credits: 10, price: 2500000, description: "" });
   };
 
   return (
@@ -229,7 +282,7 @@ export default function FinancePortal() {
         <VerificationTab handleApprovePayment={handleApprovePayment} handleRejectPayment={handleRejectPayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} setSelectedProofInvoice={setSelectedProofInvoice} />
 
         {/* TAB 2: SEMUA TAGIHAN */}
-        <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} />
+        <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} />
 
         {/* TAB 3: LOG BUKU BESAR KREDIT */}
         <HistoryTab allHistoryLogs={allHistoryLogs} historyPg={historyPg} />

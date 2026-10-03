@@ -1,14 +1,16 @@
 # 02 — Role, Routing & RBAC
 
+> Keputusan klien 3 Okt 2026 yang menyentuh dokumen ini sudah diimplementasi di frontend; register keputusan + status: [12-keputusan-klien.md](12-keputusan-klien.md).
+
 ## Login demo (tanpa password nyata)
-Auth saat ini **simulasi**. `login(payload)` di `stores/authStore.js` menyimpan `{ role, therapistId, clientId, staffName, branchId }` ke localStorage. Fase API: Sanctum (guard `staff` & `client`, lihat 10 dan `schema.md` §10).
+Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login dengan **email + password** (`domain/auth.js`: `checkStaffCredentials`; akun lama tanpa password memakai password demo), password sementara dari Master **wajib diganti** saat login pertama (`ForcePasswordChangeDialog`), **lupa password** lewat OTP email (`ForgotPasswordDialog`; email disimulasikan, OTP tampil di layar), Master dapat mereset password, dan staf **dinonaktifkan** (bukan dihapus). `login(payload)` di `stores/authStore.js` menyimpan `{ role, therapistId, clientId, staffName, branchId }` ke localStorage. Fase API: Sanctum (guard `staff` & `client`, lihat 10 dan `schema.md` §10).
 
 | Pintu masuk | Route | Cara |
 |---|---|---|
 | Welcome (pemilih portal) | `/` | `features/auth/pages/Welcome.js` |
-| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager pilih cabang; terapis pilih nama; ortu masukkan `clientAccessCode` |
-| Login form | `/login` | `features/auth/pages/Login.js`: preset email per role / email di `staffUsers`; ortu dengan kode akses |
-| Kuesioner ortu (publik) | `/assessment` | `features/assessment/pages/AssessmentFill.js`, kode `ASM-xxxx` |
+| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager pilih cabang; terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
+| Login form | `/login` | `features/auth/pages/Login.js`: email + password staf (preset demo memakai password demo `Therapedia2026!`); ortu dengan kode client |
+| Kuesioner ortu (publik) | `/assessment` | `features/assessment/pages/AssessmentFill.js`, kode kuesioner `{kode jenis asesmen}-{acak}` (mis. `SP2-K7M4QX`); `?code=` mengisi kolom kode |
 | Landing marketing | `/landing`, `/home` | `features/landing/pages/Home.js` |
 
 ## 7 role sistem
@@ -22,7 +24,7 @@ Auth saat ini **simulasi**. `login(payload)` di `stores/authStore.js` menyimpan 
 | `therapist` | Therapist | Data miliknya (`auth.therapistId`) | `/therapist` |
 | `client` | Orang tua | Data anaknya (`auth.clientId`) | `/client` |
 
-Role sistem = `SYSTEM_ROLE_IDS` di `domain/rbac.js`. Role lain = **role kustom** buatan Master di `/master/rbac`.
+Role sistem = `SYSTEM_ROLE_IDS` di `domain/rbac.js`. Role lain = **role kustom** buatan Master di `/master/rbac`. **Semua akun non-master terikat tepat 1 cabang** (terapis juga); hanya Master yang boleh semua cabang (`validateStaffBranch`).
 
 ## Konfigurasi route (`frontend/src/app/router/routes.js`)
 Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
@@ -39,14 +41,14 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | `/manager` | manager | `revenue`→revenue, `audit-logs`→audit_logs |
 | `/finance` | master, finance | index→finance |
 | `/admin-inquiry` | master, manager, admin_inquiry, therapist | index/`dashboard`→inquiry_dashboard; `pipeline`, `pipeline/:id`, `clients/:id`, `assessments`, `master-data`, `parent-assessment/:id`→inquiry_pipeline |
-| `/admin-schedule` | master, manager, admin_schedule, finance | index→schedule_dashboard, `calendar`→weekly_calendar, `clients`, `clients/:id`→active_clients |
+| `/admin-schedule` | master, manager, admin_schedule, finance | index→schedule_dashboard, `calendar`→weekly_calendar, `clients`, `clients/:id`→active_clients, `unreported-reports`→unreported_reports (monitoring laporan sesi), `holidays`→holidays |
 | `/therapist` | therapist | semua→therapist_module |
 | `/client` | client | index (tanpa modul) |
 
 ## Guard (`app/router/guards.js`)
 - **`RequireAccess({ roles, modules })`** — grup. Role sistem lolos bila ada di `roles`. Role kustom lolos bila punya permission **salah satu** `modules` grup (`groupModules(group)`). Gagal → redirect `/roles`.
 - **`RequireModule({ module })`** — per halaman. Role sistem selalu lolos (sudah dibatasi grup); role kustom wajib punya permission modul halaman.
-- Hak **aksi** (bukan halaman) dicek di domain, mis. `canManageSchedule(role)` (`domain/schedule.js`): hanya `master` & `admin_schedule` mengubah status sesi.
+- Hak **aksi** mengikuti **akses modul** (keputusan klien): punya akses modul = boleh semua aksi di modul itu kecuali hapus. Mis. `canManageSchedule(hasPermission)` (`domain/schedule.js`) = akses `weekly_calendar`, sehingga Manager yang diberi modul itu ikut boleh mengubah status sesi. Aksi **hapus** tambahan butuh flag `canDelete` pada role (`canDeleteIn` di `domain/rbac.js`).
 
 ## Navigasi (`app/layout/navConfig.js`)
 - `NAV_CONFIG[role]`: menu statis per role sistem (`to`, `label`, `icon`, `module`, `testid`). `module` boleh string atau array (salah satu cukup).
@@ -57,10 +59,12 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | Bagian | Lokasi |
 |---|---|
 | Modul (`ACCESS_MODULES`), role default (`DEFAULT_ROLES`), matriks default (`DEFAULT_PERMISSIONS`) | `domain/rbac.js` |
-| Cek permission pure: `roleHasPermission(role, permissions, module)` (master selalu boleh; key legacy `inquiry`/`schedule`/`therapist` dipetakan; key modul yang belum pernah disimpan memakai default role) | `domain/rbac.js` |
+| Cek permission pure: `roleHasPermission(role, permissions, module)` (master selalu boleh; key legacy `inquiry`/`schedule`/`therapist` dipetakan; key modul yang belum pernah disimpan memakai default role). **Hapus**: `roleCanDelete(roleId, rolesList)` + `canDeleteIn({ roleId, rolesList, permissions, moduleKey })` (flag `canDelete` eksplisit di role menang; default hanya master) | `domain/rbac.js` |
 | Matriks efektif `withDefaultPermissions(stored)` — modul baru otomatis memakai default tanpa Reset Demo Data | `domain/rbac.js`, dipakai `authStore` |
-| State: `rolesList`, `rbacPermissions`, CRUD role, `updateRolePermission`, `hasPermission(module)` | `stores/authStore.js` |
-| UI matriks & role kustom | `features/master/pages/RoleModuleAccess.js` |
+| State: `rolesList`, `rbacPermissions`, CRUD role, `updateRolePermission`, `hasPermission(module)`, `canDelete(module)`, `setRoleCanDelete`; akun: `addStaffUser`, `setStaffActive`, `changeStaffPassword`, `resetStaffPassword`, `requestPasswordOtp`, `resetPasswordWithOtp` | `stores/authStore.js` |
+| UI matriks & role kustom (termasuk baris "Boleh menghapus data") | `features/master/pages/RoleModuleAccess.js` |
+| Tombol hapus per role: `DeleteButton` / `IfCanDelete` (tersembunyi bila tidak boleh) | `shared/components/DeleteControls.js` |
+| Modul baru: `unreported_reports` (monitoring laporan sesi), `holidays` (hari libur) | `domain/rbac.js` (`ACCESS_MODULES`, `DEFAULT_PERMISSIONS`) |
 | Tabel backend | `roles`, `access_modules`, `role_permissions` (`schema.md` §04-A) |
 
 ## Scoping cabang

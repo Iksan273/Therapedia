@@ -22,7 +22,7 @@ import {
 import { useClients } from "@/stores/clientsStore";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, branchName } from "@/domain/branch";
-import { makeInquiryClient, getClientServiceIds } from "@/domain/client";
+import { makeInquiryClient, getClientServiceIds, matchesClientSearch } from "@/domain/client";
 import { useMasterData } from "@/stores/masterDataStore";
 import { PipelineBoard } from "@/features/inquiry/components/pipeline/PipelineBoard";
 import { STAGE_COLUMNS } from "@/features/inquiry/components/pipeline/pipelineConfig";
@@ -60,20 +60,12 @@ export default function InquiryPipeline() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
     return clients.filter((c) => {
       // Filter branch
       if (branchFilter !== "all" && c.branchId !== branchFilter) return false;
       if (serviceFilter !== "all" && !getClientServiceIds(c).includes(serviceFilter)) return false;
       // Filter search query
-      if (q) {
-        const nameMatch = c.clientName?.toLowerCase().includes(q);
-        const parentMatch = c.parentName?.toLowerCase().includes(q);
-        const codeMatch = c.clientAccessCode?.toLowerCase().includes(q);
-        const emailMatch = c.parentEmail?.toLowerCase().includes(q);
-        if (!nameMatch && !parentMatch && !codeMatch && !emailMatch) return false;
-      }
-      return true;
+      return matchesClientSearch(c, search);
     });
   }, [clients, search, branchFilter, serviceFilter]);
 
@@ -128,10 +120,13 @@ export default function InquiryPipeline() {
       return;
     }
 
-    const newClient = makeInquiryClient({
-      ...newForm,
-      status: "inquiry",
-    });
+    const newClient = makeInquiryClient(
+      {
+        ...newForm,
+        status: "inquiry",
+      },
+      clients.map((c) => c.clientCode)
+    );
 
     addClient(newClient);
     toast.success(`Data New Intake ${newClient.clientName} berhasil ditambahkan!`);

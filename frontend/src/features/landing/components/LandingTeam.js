@@ -2,8 +2,12 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, ChevronLeft, ChevronRight, Award, ArrowRight, X, CheckCircle2, LayoutGrid, SlidersHorizontal, GraduationCap } from "lucide-react";
 import { CLINICAL_TEAM } from "@/features/landing/data/landingData";
+import { useLang, localizeItem } from "@/features/landing/i18n/LanguageContext";
+import { TEAM_ID } from "@/features/landing/data/landingDataId";
 
 export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
+  const { L, lang } = useLang();
+  const viewOf = (m) => (m ? localizeItem(m, TEAM_ID, lang) : m);
   const [activeFilter, setActiveFilter] = useState("all");
   const [modalDoctor, setModalDoctor] = useState(selectedDoctorFromHero || null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,11 +42,11 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
   }, []);
 
   const filterTabs = [
-    { id: "all", label: "Semua Spesialis" },
-    { id: "leadership", label: "Leadership & Supervisors" },
-    { id: "east", label: "East Branch" },
-    { id: "west", label: "West Branch" },
-    { id: "citraland", label: "Citraland Branch" }
+    { id: "all", label: L("All Specialists", "Semua Spesialis") },
+    { id: "leadership", label: L("Leadership & Supervisors", "Pimpinan & Supervisor") },
+    { id: "east", label: L("East Branch", "Cabang East") },
+    { id: "west", label: L("West Branch", "Cabang West") },
+    { id: "citraland", label: L("Citraland Branch", "Cabang Citraland") }
   ];
 
   const filteredTeam = CLINICAL_TEAM.filter((member) => {
@@ -100,19 +104,21 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-4">
               <Users className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Our Dedicated Clinical Specialists</span>
+              <span>{L("Our Dedicated Clinical Specialists", "Spesialis Klinis Kami")}</span>
             </div>
 
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.08]">
-              Meet Our Certified{" "}
+              {L("Meet Our Certified", "Kenali Praktisi Pediatrik")}{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-[#38bdf8] to-[#007aff]">
-                Pediatric Practitioners
+                {L("Pediatric Practitioners", "Bersertifikat Kami")}
               </span>
             </h2>
 
             <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-              Clinical directors, licensed occupational therapists, and psychologists collaborating across Surabaya
-              with evidence-based Sensory Integration (SI) & Neurodevelopmental Treatment (NDT).
+              {L(
+                "Clinical directors, licensed occupational therapists, and psychologists collaborating across Surabaya with evidence-based Sensory Integration (SI) & Neurodevelopmental Treatment (NDT).",
+                "Direktur klinis, terapis okupasi berlisensi, dan psikolog berkolaborasi di seluruh Surabaya dengan Sensory Integration (SI) & Neurodevelopmental Treatment (NDT) berbasis bukti."
+              )}
             </p>
           </div>
 
@@ -259,7 +265,7 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
               </div>
 
               <div className="text-[11px] text-slate-400 font-medium hidden sm:block">
-                Geser atau klik Next untuk melihat profil terapis lainnya
+                {L("Swipe or click Next to see other therapist profiles", "Geser atau klik Berikutnya untuk melihat profil terapis lainnya")}
               </div>
             </div>
           </div>
@@ -308,16 +314,16 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
                 </div>
                 <div className="text-center sm:text-left">
                   <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-[11px] font-bold border border-cyan-400/30 inline-block mb-2">
-                    {modalDoctor.branch}
+                    {viewOf(modalDoctor).branchLabel || modalDoctor.branch}
                   </span>
                   <h3 className="text-xl font-bold text-white tracking-tight leading-snug">
                     {modalDoctor.name}
                   </h3>
                   <p className="text-xs text-slate-300 font-medium mt-1">
-                    {modalDoctor.role}
+                    {viewOf(modalDoctor).role}
                   </p>
                   <p className="text-[11px] text-cyan-400 font-semibold mt-0.5">
-                    {modalDoctor.department}
+                    {viewOf(modalDoctor).department}
                   </p>
                 </div>
               </div>
@@ -327,22 +333,22 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
                 <div>
                   <h4 className="font-bold text-white text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <GraduationCap className="w-4 h-4 text-cyan-400" />
-                    <span>Latar Belakang & Pendekatan Klinis</span>
+                    <span>{L("Background & Clinical Approach", "Latar Belakang & Pendekatan Klinis")}</span>
                   </h4>
                   <p className="bg-white/5 p-3.5 rounded-2xl border border-white/10 text-slate-200">
-                    {modalDoctor.bio}
+                    {viewOf(modalDoctor).bio}
                   </p>
                 </div>
 
                 {/* Specialties Tags */}
-                {modalDoctor.specialties && modalDoctor.specialties.length > 0 && (
+                {viewOf(modalDoctor).specialties && viewOf(modalDoctor).specialties.length > 0 && (
                   <div>
                     <h4 className="font-bold text-white text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Award className="w-4 h-4 text-cyan-400" />
-                      <span>Fokus Kompetensi & Layanan:</span>
+                      <span>{L("Focus Competencies & Services:", "Fokus Kompetensi & Layanan:")}</span>
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                      {modalDoctor.specialties.map((spec, idx) => (
+                      {viewOf(modalDoctor).specialties.map((spec, idx) => (
                         <span
                           key={idx}
                           className="px-3 py-1 rounded-xl bg-cyan-500/15 text-cyan-200 text-xs font-semibold border border-cyan-400/30 flex items-center gap-1.5"
@@ -371,7 +377,7 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
                   }}
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#007aff] to-[#0051a8] hover:from-[#1a87ff] hover:to-[#0062cc] text-white font-bold text-xs tracking-wide shadow-lg shadow-[#007aff]/35 transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  <span>Konsultasi dengan Terapis Ini</span>
+                  <span>{L("Consult with This Therapist", "Konsultasi dengan Terapis Ini")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -384,7 +390,9 @@ export default function LandingTeam({ selectedDoctorFromHero, onBookClick }) {
 }
 
 // Sub-Component: Specialist Card with Enhanced Hover and Tasteful Details
-function SpecialistCard({ member, onOpenModal }) {
+function SpecialistCard({ member: baseMember, onOpenModal }) {
+  const { L, lang } = useLang();
+  const member = localizeItem(baseMember, TEAM_ID, lang);
   const [cardHover, setCardHover] = useState(false);
 
   return (
@@ -417,7 +425,7 @@ function SpecialistCard({ member, onOpenModal }) {
           {/* Branch Pill Tag on Photo */}
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
             <span className="px-2.5 py-1 rounded-lg bg-[#040e1e]/85 backdrop-blur-md text-[10px] font-bold text-cyan-300 border border-white/15 shadow-sm">
-              {member.branch.replace(" Branch", "")}
+              {(member.branchLabel || baseMember.branch).replace(" Branch", "")}
             </span>
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
           </div>
@@ -463,7 +471,7 @@ function SpecialistCard({ member, onOpenModal }) {
         onClick={onOpenModal}
         className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-[#007aff] border border-white/15 hover:border-transparent text-white text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm group-hover:shadow-lg group-hover:shadow-[#007aff]/40 active:scale-[0.98] cursor-pointer"
       >
-        <span>Lihat Profil & Jadwal</span>
+        <span>{L("View Profile & Schedule", "Lihat Profil & Jadwal")}</span>
         <ArrowRight className="w-3.5 h-3.5 text-cyan-400 group-hover:text-white transition-transform group-hover:translate-x-1" />
       </button>
     </motion.div>

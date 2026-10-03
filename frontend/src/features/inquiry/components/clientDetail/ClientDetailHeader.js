@@ -3,7 +3,7 @@ import { Button } from "@/shared/ui/button";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 
-export function ClientDetailHeader({ br, client, navigate }) {
+export function ClientDetailHeader({ br, client, navigate, extraActions = null }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -21,7 +21,7 @@ export function ClientDetailHeader({ br, client, navigate }) {
               <StatusBadge status={client.status} />
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Kode Akses Portal: <strong className="font-mono text-slate-800">{client.clientAccessCode}</strong> • Cabang: {br ? br.name : "—"}
+              Kode Akses Portal: <strong className="font-mono text-slate-800">{client.clientCode}</strong> • Cabang: {br ? br.name : "—"}
             </p>
           </div>
         </div>
@@ -38,6 +38,7 @@ export function ClientDetailHeader({ br, client, navigate }) {
               <ExternalLink className="w-3.5 h-3.5" /> GDrive Client
             </a>
           )}
+          {extraActions}
 
           
         </div>

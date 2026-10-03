@@ -89,9 +89,9 @@ export default function RoleSelect() {
   const handleClientLogin = (e) => {
     e.preventDefault();
     const input = code.trim().toUpperCase();
-    const client = clients.find((c) => c.clientAccessCode && c.clientAccessCode.toUpperCase() === input);
+    const client = clients.find((c) => c.clientCode && c.clientCode.toUpperCase() === input);
     if (!client) {
-      setCodeError("Kode client tidak ditemukan. Silakan coba kode demo: TDC-1009");
+      setCodeError("Kode client tidak ditemukan. Silakan coba kode demo: AE-00006");
       return;
     }
     login({ role: "client", clientId: client.id });
@@ -100,7 +100,7 @@ export default function RoleSelect() {
   };
 
   const fillDemoCode = () => {
-    setCode("TDC-1009");
+    setCode("AE-00006");
     setCodeError("");
   };
 
@@ -305,7 +305,7 @@ export default function RoleSelect() {
                     onClick={fillDemoCode}
                     className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline"
                   >
-                    Gunakan Demo: TDC-1009
+                    Gunakan Demo: AE-00006
                   </button>
                 </div>
                 <div className="flex gap-2">
@@ -313,7 +313,7 @@ export default function RoleSelect() {
                     <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
                       className="pl-9 font-mono uppercase tracking-wider bg-slate-50 border-slate-200 focus:bg-white text-xs font-bold"
-                      placeholder="e.g. TDC-1009"
+                      placeholder="e.g. AE-00006"
                       value={code}
                       onChange={(e) => {
                         setCode(e.target.value);

@@ -28,6 +28,19 @@ export function NewPackageDialog({ handleAddMasterPackageSubmit, newPkgForm, new
               />
             </div>
 
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Kode Paket (untuk nomor invoice) *</Label>
+              <Input
+                className="border-slate-200 bg-slate-50 text-xs font-mono font-bold uppercase tracking-widest"
+                placeholder="e.g. REG"
+                maxLength={10}
+                value={newPkgForm.invoiceCode}
+                onChange={(e) => setNewPkgForm({ ...newPkgForm, invoiceCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })}
+                data-testid="new-package-invoice-code"
+              />
+              <p className="text-[11px] text-slate-500">Muncul di nomor invoice: INV-{newPkgForm.invoiceCode || "KODE"}-20261003-001. Kode ASM dicadangkan untuk invoice Assessment.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-700">Jumlah Kredit Sesi *</Label>

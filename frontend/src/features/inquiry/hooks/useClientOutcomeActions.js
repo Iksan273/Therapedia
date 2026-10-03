@@ -2,6 +2,7 @@ import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useAuditLogger } from "@/features/audit";
 import { newCreditRecord } from "@/domain/credit";
+import { buildActivationPatch, buildStatusChangePatch } from "@/domain/client";
 import { todayStr } from "@/shared/lib/id";
 
 // Use-case keputusan akhir pipeline inquiry (step 8 Client Detail).
@@ -27,13 +28,18 @@ export function useClientOutcomeActions() {
     });
 
   // Admit menjadi Active Client (boleh dengan 0 kredit) + pastikan record kredit ada
-  const admit = (client) => {
-    updateClient(client.id, { status: "admitted", finalOutcome: "admitted", dateOfJoin: todayStr() });
+  const activate = (client, action) => {
+    updateClient(client.id, buildActivationPatch(client, todayStr()));
     if (!getRecordForClient(client.id)) {
       addRecord(newCreditRecord({ id: `cr-${client.id}`, clientId: client.id, branchId: client.branchId }));
     }
-    audit(client, "client.admitted", "admitted");
+    audit(client, action, "admitted");
   };
+
+  const admit = (client) => activate(client, "client.admitted");
+
+  // Kembalikan client discharged/discontinued menjadi Active Client (Active Client Roster & detail client)
+  const reactivate = (client) => activate(client, "client.reactivated");
 
   const markDoneConsult = (client) => {
     updateClient(client.id, { status: "done_consult", finalOutcome: "done_consult" });
@@ -49,11 +55,36 @@ export function useClientOutcomeActions() {
     updateClient(client.id, {
       status: "discontinued",
       finalOutcome: "discontinued",
+      dateOfDischarge: null,
+      dateOfDiscontinue: todayStr(),
       dischargeReason: "other",
       dischargeNote: reason.trim(),
     });
     audit(client, "client.discontinued", "discontinued", reason.trim());
   };
 
-  return { admit, markDoneConsult, markDoneAssessment, discontinue };
+  // Discharge client (dari Final Decision Outcomes maupun detail Active Client). Alasan = string bebas / pilihan cepat.
+  const discharge = (client, reason, note = null) => {
+    updateClient(client.id, {
+      status: "discharged",
+      dateOfDischarge: todayStr(),
+      dischargeReason: reason.trim(),
+      dischargeNote: note?.trim() || null,
+    });
+    audit(client, "client.discharged", "discharged", reason.trim());
+  };
+
+  // Ubah status manual ke tahap pipeline mana pun (koreksi salah klik, kembali ke tahap awal, reaktivasi).
+  // Fase API: POST /clients/{id}/transition dengan `to_status` bebas (riwayat `client_status_histories`, trigger manual).
+  const changeStatus = (client, toStatus, { reason, note } = {}) => {
+    if (!toStatus || toStatus === client.status) return { changed: false };
+    updateClient(client.id, buildStatusChangePatch(client, toStatus, todayStr(), { reason, note }));
+    if (toStatus === "admitted" && !getRecordForClient(client.id)) {
+      addRecord(newCreditRecord({ id: `cr-${client.id}`, clientId: client.id, branchId: client.branchId }));
+    }
+    audit(client, "client.status_changed", toStatus, reason?.trim() || "Perubahan status manual");
+    return { changed: true, from: client.status, to: toStatus };
+  };
+
+  return { admit, reactivate, discharge, markDoneConsult, markDoneAssessment, discontinue, changeStatus };
 }

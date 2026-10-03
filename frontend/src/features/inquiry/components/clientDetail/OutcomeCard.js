@@ -1,10 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/utils";
-import { CheckCircle2, FileText, UserCheck, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, LogOut, UserCheck, XCircle } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { PIPELINE_STATUSES } from "@/domain/client";
+import { STATUS_META } from "@/domain/status";
+import { fmtDate } from "@/shared/lib/format";
 
-export function OutcomeCard({ client, handleOutcomeAdmit, handleOutcomeDoneAssessment, handleOutcomeDoneConsult, setDiscontinueOpen }) {
+export function OutcomeCard({ client, handleOutcomeAdmit, handleOutcomeDoneAssessment, handleOutcomeDoneConsult, handleChangeStatus, setDiscontinueOpen, setDischargeOpen }) {
+  const [targetStatus, setTargetStatus] = useState("");
   return (
     <Card className="rounded-2xl border-2 border-slate-300 bg-white shadow-sm overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/70 flex flex-row items-center justify-between">
@@ -26,7 +31,7 @@ export function OutcomeCard({ client, handleOutcomeAdmit, handleOutcomeDoneAsses
             )}
           </CardHeader>
           <CardContent className="p-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
               {/* Option 1: Admit to Active Client */}
               <div
                 className={cn(
@@ -122,6 +127,68 @@ export function OutcomeCard({ client, handleOutcomeAdmit, handleOutcomeDoneAsses
                   Discontinue
                 </Button>
               </div>
+
+              {/* Option 5: Discharge */}
+              <div
+                className={cn(
+                  "relative p-4 rounded-xl border-2 transition-all flex flex-col justify-between gap-3 text-left group",
+                  client.status === "discharged"
+                    ? "bg-slate-100 border-slate-500 ring-2 ring-slate-300/40"
+                    : "bg-white border-slate-200 hover:border-slate-400 hover:bg-slate-50"
+                )}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-extrabold text-sm text-slate-900">Discharge</p>
+                    <LogOut className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Client selesai / keluar dari terapi aktif. Sertakan alasan discharge. Bisa diaktifkan kembali dari Active Clients.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setDischargeOpen(true)} size="sm" variant="outline" data-testid="outcome-discharge" className="border-slate-300 text-slate-800 hover:bg-slate-100 font-bold w-full after:absolute after:inset-0 after:content-[''] after:rounded-xl">
+                  {client.status === "discharged" ? "✓ Discharged" : "Discharge"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Ubah status manual ke tahap mana pun (koreksi salah klik / kembali ke tahap lain) */}
+            <div className="pt-3 border-t border-slate-100 space-y-2" data-testid="manual-status-change">
+              <p className="text-xs font-bold text-slate-700">Ubah status ke tahap lain</p>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Salah klik atau perlu kembali ke tahap sebelumnya? Pilih status tujuan (tahap mana pun), lalu terapkan. Perpindahan tercatat di riwayat client.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <Select value={targetStatus} onValueChange={setTargetStatus}>
+                  <SelectTrigger className="sm:w-64 text-xs border-slate-200 bg-slate-50 font-semibold" data-testid="manual-status-select">
+                    <SelectValue placeholder="Pilih status tujuan..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    {PIPELINE_STATUSES.filter((s) => s !== client.status).map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {STATUS_META[s]?.label || s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!targetStatus}
+                  className="font-bold border-slate-300 cursor-pointer"
+                  onClick={() => {
+                    handleChangeStatus(targetStatus);
+                    setTargetStatus("");
+                  }}
+                  data-testid="manual-status-apply"
+                >
+                  Terapkan Status
+                </Button>
+              </div>
+              {client.dateOfDiscontinue && client.status === "discontinued" && (
+                <p className="text-[11px] font-semibold text-rose-700" data-testid="date-of-discontinue">Discontinue sejak {fmtDate(client.dateOfDiscontinue)}</p>
+              )}
             </div>
           </CardContent>
         </Card>

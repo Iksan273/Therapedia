@@ -31,7 +31,7 @@ export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, rene
                     .filter((c) => c.status === "admitted" || c.status === "active")
                     .map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.clientName} ({c.clientAccessCode})
+                        {c.clientName} ({c.clientCode})
                       </SelectItem>
                     ))}
                 </SelectContent>

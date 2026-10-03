@@ -1,9 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Instagram, Facebook, Globe, ArrowRight } from "lucide-react";
+import { useLang } from "@/features/landing/i18n/LanguageContext";
 import { CLINIC_INFO } from "@/features/landing/data/landingData";
 
 export default function LandingFooter() {
+  const { L } = useLang();
   const navigate = useNavigate();
 
   return (
@@ -24,7 +26,7 @@ export default function LandingFooter() {
             </div>
 
             <p className="text-slate-400 leading-relaxed max-w-md">
-              {CLINIC_INFO.heroSubtitle}
+              {L(CLINIC_INFO.heroSubtitle, "Therapedia adalah pusat terapi okupasi pediatrik di Surabaya yang berdedikasi mendukung anak dengan tantangan perkembangan. Kami menyediakan terapi personal berbasis bukti melalui pendekatan seperti Sensory Integration dan Neurodevelopmental Treatment, membantu anak tumbuh, berkembang, dan mencapai potensi terbaiknya.")}
             </p>
 
             <div className="pt-2">
@@ -63,41 +65,41 @@ export default function LandingFooter() {
 
           {/* Quick Menu (3 cols) */}
           <div className="md:col-span-3 space-y-3">
-            <h4 className="text-white font-bold text-xs uppercase tracking-wider">Halaman Utama</h4>
+            <h4 className="text-white font-bold text-xs uppercase tracking-wider">{L("Main Pages", "Halaman Utama")}</h4>
             <ul className="space-y-2.5">
               <li>
                 <a href="#home" className="hover:text-white transition-colors">
-                  Home (Top)
+                  {L("Home (Top)", "Beranda (Atas)")}
                 </a>
               </li>
               <li>
                 <a href="#about" className="hover:text-white transition-colors">
-                  Why Choose Us (Pilar Mutu)
+                  {L("Why Choose Us", "Mengapa Memilih Kami")}
                 </a>
               </li>
               <li>
                 <a href="#programs" className="hover:text-white transition-colors">
-                  Clinical Programs
+                  {L("Clinical Programs", "Program Klinis")}
                 </a>
               </li>
               <li>
                 <a href="#team" className="hover:text-white transition-colors">
-                  Our Teams (Spesialis)
+                  {L("Our Teams", "Tim Kami")}
                 </a>
               </li>
               <li>
                 <a href="#branches" className="hover:text-white transition-colors">
-                  3 Cabang Surabaya
+                  {L("3 Branches in Surabaya", "3 Cabang Surabaya")}
                 </a>
               </li>
               <li>
                 <a href="#knowledge" className="hover:text-white transition-colors">
-                  Knowledge Hub
+                  {L("Knowledge Hub", "Pusat Wawasan")}
                 </a>
               </li>
               <li>
                 <a href="#contact" className="hover:text-white transition-colors">
-                  Kontak & Booking
+                  {L("Contact & Booking", "Kontak & Booking")}
                 </a>
               </li>
             </ul>
@@ -107,10 +109,10 @@ export default function LandingFooter() {
           <div className="md:col-span-4 space-y-3">
             <h4 className="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Portal Aplikasi Internal</span>
+              <span>{L("Internal Application Portal", "Portal Aplikasi Internal")}</span>
             </h4>
             <p className="text-slate-400 leading-relaxed text-xs">
-              Akses modul operasional sistem manajemen klinik Therapedia (multi-role testing & live dashboards):
+              {L("Access the operational modules of the Therapedia clinic management system (multi-role testing & live dashboards):", "Akses modul operasional sistem manajemen klinik Therapedia (multi-role testing & live dashboards):")}
             </p>
 
             <div className="pt-1 flex flex-col gap-2">
@@ -118,7 +120,7 @@ export default function LandingFooter() {
                 onClick={() => navigate("/roles")}
                 className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-[#007aff]/30 border border-white/15 text-white font-bold text-xs transition-all flex items-center justify-between group cursor-pointer"
               >
-                <span>Role Switcher (Master, Manager, Therapist, Parent)</span>
+                <span>{L("Role Switcher (Master, Manager, Therapist, Parent)", "Role Switcher (Master, Manager, Terapis, Orang Tua)")}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-cyan-400 transition-transform group-hover:translate-x-1" />
               </button>
 
@@ -126,7 +128,7 @@ export default function LandingFooter() {
                 onClick={() => navigate("/login")}
                 className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer"
               >
-                <span>Halaman Login Staf</span>
+                <span>{L("Staff Login Page", "Halaman Login Staf")}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
@@ -134,7 +136,7 @@ export default function LandingFooter() {
                 onClick={() => navigate("/assessment")}
                 className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 text-xs font-semibold transition-all flex items-center justify-between cursor-pointer"
               >
-                <span>Portal Kuesioner Asesmen Orang Tua</span>
+                <span>{L("Parent Assessment Questionnaire Portal", "Portal Kuesioner Asesmen Orang Tua")}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
               </button>
 
@@ -142,7 +144,7 @@ export default function LandingFooter() {
                 onClick={() => navigate("/")}
                 className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition-all flex items-center justify-between cursor-pointer"
               >
-                <span>Welcome Gateway Screen</span>
+                <span>{L("Welcome Gateway Screen", "Layar Gerbang Selamat Datang")}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
             </div>
@@ -151,9 +153,9 @@ export default function LandingFooter() {
 
         {/* Sub-footer Copyright & Version */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500">
-          <p>© {CLINIC_INFO.copyrightYear} Therapedia Center. All Rights Reserved.</p>
+          <p>© {CLINIC_INFO.copyrightYear} Therapedia Center. {L("All Rights Reserved.", "Seluruh hak cipta dilindungi.")}</p>
           <div className="flex items-center gap-4">
-            <span className="text-slate-400 font-medium">Certified SI & NDT Practice</span>
+            <span className="text-slate-400 font-medium">{L("Certified SI & NDT Practice", "Praktik SI & NDT Bersertifikat")}</span>
             <span>•</span>
             <span className="font-mono text-slate-500">{CLINIC_INFO.version}</span>
           </div>

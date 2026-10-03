@@ -2,8 +2,12 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Calendar, ArrowRight, X } from "lucide-react";
 import { KNOWLEDGE_ARTICLES } from "@/features/landing/data/landingData";
+import { useLang, localizeItem } from "@/features/landing/i18n/LanguageContext";
+import { ARTICLES_ID } from "@/features/landing/data/landingDataId";
 
 export default function LandingKnowledge() {
+  const { L, lang } = useLang();
+  const articles = KNOWLEDGE_ARTICLES.map((a) => localizeItem(a, ARTICLES_ID, lang));
   const [selectedArticle, setSelectedArticle] = useState(null);
 
   return (
@@ -13,25 +17,27 @@ export default function LandingKnowledge() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#007aff]/10 border border-[#007aff]/20 text-[#007aff] text-xs font-bold uppercase tracking-wider mb-4">
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Parent Education & Insights</span>
+            <span>{L("Parent Education & Insights", "Edukasi & Wawasan Orang Tua")}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
-            Knowledge Hub for{" "}
+            {L("Knowledge Hub for", "Pusat Wawasan untuk")}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007aff] to-cyan-600">
-              Parents & Caregivers
+              {L("Parents & Caregivers", "Orang Tua & Pengasuh")}
             </span>
           </h2>
 
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Our Knowledge section offers insightful articles and practical information to help parents
-            better understand child development and support their child's growth at home.
+            {L(
+              "Our Knowledge section offers insightful articles and practical information to help parents better understand child development and support their child's growth at home.",
+              "Bagian Wawasan menyajikan artikel informatif dan informasi praktis agar orang tua lebih memahami perkembangan anak dan mendukung tumbuh kembangnya di rumah."
+            )}
           </p>
         </div>
 
         {/* Articles 4-Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {KNOWLEDGE_ARTICLES.map((art) => (
+          {articles.map((art) => (
             <motion.div
               key={art.id}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
@@ -73,7 +79,7 @@ export default function LandingKnowledge() {
               {/* Card Footer Action */}
               <div className="px-5 pb-5 pt-0">
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#007aff]">
-                  <span>Baca Selengkapnya</span>
+                  <span>{L("Read More", "Baca Selengkapnya")}</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
                 </div>
               </div>
@@ -131,7 +137,7 @@ export default function LandingKnowledge() {
                   onClick={() => setSelectedArticle(null)}
                   className="px-5 py-2.5 rounded-xl bg-[#007aff] hover:bg-[#0051a8] text-white font-bold text-xs cursor-pointer"
                 >
-                  Selesai Membaca
+                  {L("Done Reading", "Selesai Membaca")}
                 </button>
               </div>
             </motion.div>

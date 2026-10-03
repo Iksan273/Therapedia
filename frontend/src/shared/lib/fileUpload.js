@@ -1,7 +1,9 @@
 /**
- * Utility functions for handling file uploads (images & PDF documents)
+ * Utility functions for handling file uploads (JPG/PNG/PDF maks 5 MB, aturan klien; lihat validateProofFile di domain/credit.js)
  * with client-side compression, validation, and format detection.
  */
+
+import { validateProofFile } from "@/domain/credit";
 
 export function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return "0 B";
@@ -118,19 +120,15 @@ export async function compressImage(file, { maxWidth = 1600, maxHeight = 1600, q
 export async function processProofFile(file) {
   if (!file) throw new Error("File tidak ditemukan.");
 
-  const isImg = file.type.startsWith("image/") || /\.(jpe?g|png|webp|bmp)$/i.test(file.name);
-  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-
-  if (!isImg && !isPdf) {
-    throw new Error("Format file tidak didukung. Silakan pilih foto (JPG, PNG, WEBP) atau dokumen PDF.");
+  // Aturan klien: JPG/PNG/PDF, maks 5 MB (berlaku untuk foto maupun PDF).
+  const invalid = validateProofFile(file);
+  if (invalid) {
+    throw new Error(invalid.includes("Ukuran") ? `${invalid} File Anda ${formatFileSize(file.size)}.` : invalid);
   }
+  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
   // PDF handling
   if (isPdf) {
-    const MAX_PDF_SIZE = 8 * 1024 * 1024; // 8MB
-    if (file.size > MAX_PDF_SIZE) {
-      throw new Error(`Ukuran file PDF terlalu besar (${formatFileSize(file.size)}). Maksimal ukuran file adalah 8 MB.`);
-    }
     const res = await readFileAsDataUrl(file);
     return {
       dataUrl: res.dataUrl,
@@ -142,12 +140,7 @@ export async function processProofFile(file) {
     };
   }
 
-  // Image handling with smart compression
-  const MAX_IMAGE_RAW = 25 * 1024 * 1024; // 25MB raw camera limit
-  if (file.size > MAX_IMAGE_RAW) {
-    throw new Error(`Ukuran foto terlalu besar (${formatFileSize(file.size)}). Maksimal ukuran file adalah 25 MB.`);
-  }
-
+  // Image handling with smart compression (agar muat di localStorage demo)
   const compressed = await compressImage(file);
   return {
     dataUrl: compressed.dataUrl,

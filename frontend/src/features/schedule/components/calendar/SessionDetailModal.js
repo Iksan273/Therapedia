@@ -18,12 +18,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { ReasonPicker } from "@/shared/components/ReasonPicker";
 import { RevertSessionPanel } from "@/features/schedule/components/calendar/RevertSessionPanel";
+import { DeductCreditChoice } from "@/features/schedule/components/calendar/DeductCreditChoice";
+import { DeleteButton } from "@/shared/components/DeleteControls";
 import { STATUS_META } from "@/domain/status";
 import { useMasterData } from "@/stores/masterDataStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
+import { useHolidays } from "@/stores/holidaysStore";
+import { findHoliday, holidayMessage } from "@/domain/holiday";
 import { useAuth } from "@/stores/authStore";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import {
@@ -41,11 +45,12 @@ import { fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 
 export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBase, readOnly = false }) => {
-  const { auth } = useAuth();
+  const { auth, hasPermission } = useAuth();
   const { clients } = useClients();
   const { therapists, getTherapist } = useTherapists();
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
+  const { holidays } = useHolidays();
   const sessionActions = useSessionActions();
   const { activeCancelReasons, getCancelReasonLabel } = useMasterData();
 
@@ -56,6 +61,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const [dropNote, setDropNote] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cancelNote, setCancelNote] = useState("");
+  const [deductChoice, setDeductChoice] = useState(""); // "" | "deduct" | "keep" (wajib dipilih admin)
 
   // Report sections (Activity, Note & Homework)
   const [activitySection, setActivitySection] = useState("");
@@ -75,6 +81,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       setPendingReason(schedule.pendingReason || "");
       setPendingNote(schedule.pendingNote || "");
       setDropNote("");
+      setDeductChoice("");
       setCancelReason(schedule.cancelReason || "");
       setCancelNote(schedule.notes || "");
       setActivitySection(schedule.activitySection || "");
@@ -89,7 +96,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
 
   const rescheduleConflicts = useMemo(() => {
     if (!schedule || mode !== "reschedule") return [];
-    return checkConflicts({
+    const issues = checkConflicts({
       therapistId: newTherapist,
       date: newDate,
       startTime: newStart,
@@ -98,7 +105,11 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       therapists,
       excludeId: schedule.id,
     });
-  }, [schedule, mode, newTherapist, newDate, newStart, newEnd, schedules, therapists]);
+    // Tanggal libur tidak bisa dipilih (jadwal pengganti)
+    const holiday = findHoliday(holidays, newDate, schedule.branchId);
+    if (holiday && newDate !== schedule.date) issues.push(holidayMessage(holiday));
+    return issues;
+  }, [schedule, mode, newTherapist, newDate, newStart, newEnd, schedules, therapists, holidays]);
 
   if (!schedule) return null;
 
@@ -112,8 +123,8 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const slotText = (slot) => `${fmtDate(slot.date)} • ${slot.startTime}–${slot.endTime}`;
   const originTherapist = originSlot ? getTherapist(originSlot.therapistId) : null;
 
-  // Role permissions: hanya Admin Schedule & Master yang mengubah status sesi
-  const canManage = canManageSchedule(auth.role);
+  // Hak aksi: akses modul weekly_calendar = boleh mengubah status sesi (Manager ikut, sesuai RBAC)
+  const canManage = canManageSchedule(hasPermission);
 
   // Revert (completed / cancelled → status sebelumnya). Slot harus masih kosong bila sesi kembali aktif.
   const revertPreview = canRevertSession(schedule) ? sessionActions.previewRevert(schedule) : null;
@@ -139,9 +150,11 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     const parts =
       result.kind === "reschedule"
         ? [`Jadwal dikembalikan ke ${fmtDate(result.toSlot.date)} ${result.toSlot.startTime}–${result.toSlot.endTime}.`]
+        : result.kind === "pending"
+        ? ["Reschedule menggantung dibatalkan, sesi kembali ke jadwal asal."]
         : [`Status sesi dikembalikan ke "${STATUS_META[result.toStatus]?.label || result.toStatus}".`];
     if (result.creditChange > 0) parts.push("+1 kredit dikembalikan.");
-    if (result.quotaChange < 0) parts.push("Kuota cancel −1.");
+    if (result.quotaChange < 0) parts.push("Kuota cancel paket −1.");
     toast.success(parts.join(" "));
     onOpenChange(false);
   };
@@ -196,13 +209,34 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       return;
     }
 
-    const { cancelCount, penalized } = sessionActions.cancelSession(schedule, { cancelReason: reason, note: cancelNote });
-    if (!penalized) {
-      toast.info(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). Kuota cancel wajar (${cancelCount}/${CANCEL_QUOTA}) — Kredit sesi tetap utuh.`);
-    } else {
-      toast.warning(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). Cancel ke-${cancelCount} (>${CANCEL_QUOTA}x cancel) — Penalti memotong 1 kredit dari paket sesi.`);
+    if (!deductChoice) {
+      toast.error("Pilih dulu: potong 1 kredit atau jangan potong kredit.");
+      return;
     }
 
+    const { cancelCount, deducted, quotaExceeded } = sessionActions.cancelSession(schedule, {
+      cancelReason: reason,
+      note: cancelNote,
+      deductCredit: deductChoice === "deduct",
+    });
+    const quotaText = `Cancel ke-${cancelCount} pada paket (kuota ${CANCEL_QUOTA}x${quotaExceeded ? ", sudah lewat" : ""}).`;
+    if (deducted) {
+      toast.warning(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). ${quotaText} 1 kredit dipotong.`);
+    } else {
+      toast.info(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). ${quotaText} Kredit tidak dipotong.`);
+    }
+
+    onOpenChange(false);
+  };
+
+  // Hapus sesi (soft delete; tombol hanya untuk role canDelete). Sesi completed harus di-revert dulu.
+  const handleDeleteSession = () => {
+    const result = sessionActions.deleteSession(schedule);
+    if (!result.deleted) {
+      toast.error("Sesi completed tidak bisa dihapus. Batalkan status Completed (Revert) terlebih dahulu agar kredit konsisten.");
+      return;
+    }
+    toast.success("Sesi dihapus.");
     onOpenChange(false);
   };
 
@@ -255,8 +289,12 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       toast.error("Hanya Admin Schedule yang berhak membatalkan sesi.");
       return;
     }
-    sessionActions.dropPending(schedule, { note: dropNote });
-    toast.success("Sesi dibatalkan tanpa memotong kredit dan tidak dihitung ke kuota cancel.");
+    if (!deductChoice) {
+      toast.error("Pilih dulu: potong 1 kredit atau jangan potong kredit.");
+      return;
+    }
+    const { deducted } = sessionActions.dropPending(schedule, { note: dropNote, deductCredit: deductChoice === "deduct" });
+    toast.success(deducted ? "Sesi dibatalkan dan 1 kredit dipotong." : "Sesi dibatalkan, kredit tidak dipotong.");
     onOpenChange(false);
   };
 
@@ -331,7 +369,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                 {schedule.pendingAt && <> Ditandai {fmtDate(schedule.pendingAt.slice(0, 10))}.</>}
               </p>
               {schedule.pendingNote && <p className="text-orange-900/80 italic">"{schedule.pendingNote}"</p>}
-              <p className="text-[11px] text-orange-800/80">Kredit tidak berubah dan tidak dihitung sebagai cancel.</p>
+              <p className="text-[11px] text-orange-800/80">Menandai pending tidak mengubah kredit. Bila akhirnya dibatalkan, admin memilih potong kredit atau tidak.</p>
             </div>
           )}
           {!isPending && schedule.status === "rescheduled" && schedule.rescheduledFrom && (
@@ -351,7 +389,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               <p className="font-extrabold text-slate-900 flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-slate-500" /> Dibatalkan dari reschedule yang menggantung
               </p>
-              <p className="text-slate-600 leading-relaxed">Kredit tidak dipotong dan sesi ini tidak dihitung ke kuota cancel client.</p>
+              <p className="text-slate-600 leading-relaxed">Pemotongan kredit mengikuti pilihan admin saat pembatalan (lihat riwayat kredit client).</p>
             </div>
           )}
 
@@ -616,18 +654,20 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
 
                   <div className="p-3.5 rounded-xl bg-white border border-rose-200 text-xs text-rose-900 space-y-1.5 leading-relaxed">
                     <p className="font-bold text-slate-900">Ketentuan Kuota Pembatalan:</p>
-                    <p>• Cancel ke-1, 2, dan 3: Kuota izin wajar, <strong>kredit sesi tetap utuh</strong>.</p>
-                    <p>• Cancel ke-4 dst (&gt;3x): Sistem mengenakan penalti dan <strong>langsung memotong 1 kredit dari paket sesi ini</strong> ({targetPackage?.packageName || "Paket Sesi"}).</p>
+                    <p>• Kuota cancel <strong>{CANCEL_QUOTA}x per paket</strong> hanya sebagai penghitung; tidak otomatis memotong kredit.</p>
+                    <p>• <strong>Admin yang menentukan</strong>: potong 1 kredit dari paket ({targetPackage?.packageName || "Paket Sesi"}) atau biarkan utuh.</p>
                     <p className="font-bold text-slate-900 pt-1">
-                      Status Saat Ini: Client telah membatalkan {record?.cancelCountTotal || 0} kali sebelumnya.
+                      Status Saat Ini: paket ini sudah dibatalkan {targetPackage?.cancelCount || 0} kali sebelumnya.
                     </p>
                   </div>
+
+                  <DeductCreditChoice value={deductChoice} onChange={setDeductChoice} pkg={targetPackage} testId="cancel-deduct" />
 
                   <div className="flex items-center gap-2.5 pt-1">
                     <Button variant="outline" className="font-bold flex-1" onClick={() => setMode("view")}>
                       Batal
                     </Button>
-                    <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold flex-1" onClick={handleCancel}>
+                    <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold flex-1" onClick={handleCancel} disabled={!deductChoice} data-testid="session-confirm-cancel-button">
                       Konfirmasi Pembatalan
                     </Button>
                   </div>
@@ -772,11 +812,11 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                 </div>
               )}
 
-              {/* DROP MODE: batalkan sesi yang menggantung tanpa potong kredit */}
+              {/* DROP MODE: batalkan sesi yang menggantung (admin memilih potong kredit atau tidak) */}
               {mode === "drop" && (
                 <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-300 space-y-3.5">
                   <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-slate-600" /> Batalkan Tanpa Potong Kredit
+                    <XCircle className="w-4 h-4 text-slate-600" /> Batalkan Sesi yang Menggantung
                   </h4>
                   <div className="space-y-1.5">
                     <Label className="font-bold text-slate-700 text-xs">Catatan (opsional)</Label>
@@ -788,15 +828,15 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     />
                   </div>
                   <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 space-y-1 leading-relaxed">
-                    <p>• <strong>Kredit tidak dipotong</strong> dan sesi tidak dihitung ke <strong>kuota cancel</strong> client.</p>
-                    <p>• Berbeda dengan pembatalan biasa (cancel ke-4 dst. dikenai penalti 1 kredit).</p>
                     <p>• Sesi tercatat sebagai dibatalkan dengan alasan <strong>{getCancelReasonLabel(RESCHEDULE_DROPPED)}</strong>.</p>
+                    <p>• Seperti pembatalan biasa, <strong>admin memilih</strong> potong kredit atau tidak; kuota cancel paket (3x) hanya penghitung.</p>
                   </div>
+                  <DeductCreditChoice value={deductChoice} onChange={setDeductChoice} pkg={targetPackage} testId="drop-deduct" />
                   <div className="flex items-center gap-2.5 pt-1">
                     <Button variant="outline" className="font-bold flex-1" onClick={() => setMode("view")}>
                       Kembali
                     </Button>
-                    <Button className="bg-slate-800 hover:bg-slate-900 text-white font-bold flex-1" onClick={handleDropPending} data-testid="session-confirm-drop-button">
+                    <Button className="bg-slate-800 hover:bg-slate-900 text-white font-bold flex-1" onClick={handleDropPending} disabled={!deductChoice} data-testid="session-confirm-drop-button">
                       Konfirmasi Pembatalan
                     </Button>
                   </div>
@@ -804,6 +844,20 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               )}
             </div>
           ) : null}
+
+          {/* HAPUS SESI: hanya role canDelete */}
+          {!readOnly && (
+            <div className="pt-4 border-t border-slate-200 flex justify-end" data-testid="session-delete-section">
+              <DeleteButton
+                module="weekly_calendar"
+                label="Hapus Sesi"
+                title="Hapus sesi ini?"
+                description="Sesi disembunyikan dari kalender (soft delete) dan tercatat di audit. Sesi Completed harus di-revert dulu."
+                onConfirm={handleDeleteSession}
+                testId="session-delete-button"
+              />
+            </div>
+          )}
 
           {/* REVERT: batalkan completed / cancel (hanya master & admin_schedule) */}
           {!readOnly && canManage && canRevertSession(schedule) && (

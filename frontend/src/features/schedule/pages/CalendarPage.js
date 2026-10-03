@@ -31,10 +31,13 @@ import { DayAgenda } from "@/features/schedule/components/calendar/DayAgenda";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
 import { BulkRevertDialog } from "@/features/schedule/components/calendar/BulkRevertDialog";
+import { DeductCreditChoice } from "@/features/schedule/components/calendar/DeductCreditChoice";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useCredits } from "@/stores/creditsStore";
+import { useHolidays } from "@/stores/holidaysStore";
+import { findHoliday } from "@/domain/holiday";
 import { useMasterData } from "@/stores/masterDataStore";
 import { CLEAR_PENDING_PATCH, getOriginSlot, scheduleSlot } from "@/domain/schedule";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
@@ -44,6 +47,7 @@ import { cn } from "@/shared/lib/utils";
 export default function CalendarPage() {
   const { schedules } = useSchedules();
   const sessionActions = useSessionActions();
+  const { holidays } = useHolidays();
   const { clients } = useClients();
   const { therapists } = useTherapists();
   const { getRecordForClient } = useCredits();
@@ -75,6 +79,7 @@ export default function CalendarPage() {
   // Bulk Cancel form states
   const [bulkCancelReason, setBulkCancelReason] = useState("leave");
   const [bulkCancelNote, setBulkCancelNote] = useState("");
+  const [bulkDeductChoice, setBulkDeductChoice] = useState(""); // "" | "deduct" | "keep" (wajib dipilih)
 
   // Modals
   const [addModal, setAddModal] = useState({ open: false, defaults: {} });
@@ -97,7 +102,7 @@ export default function CalendarPage() {
       const t = therapistById.get(s.therapistId);
       index.set(
         s.id,
-        [c?.clientName, c?.parentName, c?.clientAccessCode, t?.name, s.notes, s.cancelReason]
+        [c?.clientName, c?.parentName, c?.clientCode, t?.name, s.notes, s.cancelReason]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -185,6 +190,7 @@ export default function CalendarPage() {
     const offsetDays = parseInt(bulkDayOffset, 10) || 0;
     const itemsMap = {};
 
+    const blocked = [];
     selectedSchedules.forEach((s) => {
       let finalDate = s.date;
       if (bulkTargetDate) {
@@ -193,19 +199,28 @@ export default function CalendarPage() {
         finalDate = format(addDays(parseISO(s.date), offsetDays), "yyyy-MM-dd");
       }
 
+      if (finalDate !== s.date && findHoliday(holidays, finalDate, s.branchId)) {
+        blocked.push(finalDate);
+        return;
+      }
+
       itemsMap[s.id] = {
         date: finalDate,
         status: "rescheduled",
         therapistId: bulkTargetTherapist !== "keep" ? bulkTargetTherapist : s.therapistId,
         // Jejak jadwal asal agar sesi yang dipindah massal tetap bertanda
         rescheduledFrom: getOriginSlot(s) || scheduleSlot(s),
+        rescheduledPrev: scheduleSlot(s),
+        revertedAt: null,
         rescheduledAt: new Date().toISOString(),
         ...CLEAR_PENDING_PATCH,
       };
     });
 
+    if (blocked.length > 0) toast.warning(`${blocked.length} sesi dilewati karena tanggal tujuan adalah hari libur.`);
+    if (Object.keys(itemsMap).length === 0) return;
     sessionActions.bulkReschedule(itemsMap);
-    toast.success(`Bulk operation complete: ${selectedSessionIds.length} session(s) rescheduled.`);
+    toast.success(`Bulk operation complete: ${Object.keys(itemsMap).length} session(s) rescheduled.`);
     setBulkRescheduleOpen(false);
     clearSelection();
   };
@@ -227,9 +242,14 @@ export default function CalendarPage() {
   // Bulk Action: Cancel Confirm. "leave" = masuk kuota cancel client; "other" = tanpa perubahan kredit.
   const handleBulkCancelConfirm = () => {
     if (selectedSessionIds.length === 0) return;
-    sessionActions.bulkCancel(selectedSessionIds, { mode: bulkCancelReason, note: bulkCancelNote });
+    if (!bulkDeductChoice) {
+      toast.error("Pilih dulu: potong 1 kredit atau jangan potong kredit.");
+      return;
+    }
+    sessionActions.bulkCancel(selectedSessionIds, { mode: bulkCancelReason, note: bulkCancelNote, deductCredit: bulkDeductChoice === "deduct" });
     toast.success(`Bulk operation complete: ${selectedSessionIds.length} session(s) cancelled.`);
     setBulkCancelOpen(false);
+    setBulkDeductChoice("");
     clearSelection();
   };
 
@@ -673,11 +693,13 @@ export default function CalendarPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="leave">Leave — Count toward leave quota, preserve session credit</SelectItem>
-                  <SelectItem value="other">Other Reason — No leave or credit alteration</SelectItem>
+                  <SelectItem value="leave">Leave — izin / keperluan keluarga</SelectItem>
+                  <SelectItem value="other">Other Reason — alasan lainnya</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            <DeductCreditChoice value={bulkDeductChoice} onChange={setBulkDeductChoice} bulk testId="bulk-cancel-deduct" />
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Cancellation Note (Optional)</Label>
@@ -694,7 +716,7 @@ export default function CalendarPage() {
             <Button variant="outline" className="border-slate-200" onClick={() => setBulkCancelOpen(false)}>
               Cancel
             </Button>
-            <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold" onClick={handleBulkCancelConfirm} data-testid="bulk-cancel-confirm-button">
+            <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold" onClick={handleBulkCancelConfirm} disabled={!bulkDeductChoice} data-testid="bulk-cancel-confirm-button">
               Confirm Cancel All
             </Button>
           </DialogFooter>

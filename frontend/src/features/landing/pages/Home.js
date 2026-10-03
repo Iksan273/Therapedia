@@ -8,8 +8,9 @@ import LandingBranches from "@/features/landing/components/LandingBranches";
 import LandingKnowledge from "@/features/landing/components/LandingKnowledge";
 import LandingContact from "@/features/landing/components/LandingContact";
 import LandingFooter from "@/features/landing/components/LandingFooter";
+import { LanguageProvider } from "@/features/landing/i18n/LanguageContext";
 
-export default function Home() {
+function HomeContent() {
   const [selectedDoctorFromHero, setSelectedDoctorFromHero] = useState(null);
 
   const handleScrollToContact = () => {
@@ -62,5 +63,14 @@ export default function Home() {
       {/* 9. Comprehensive Footer with Prototype Portal Access */}
       <LandingFooter />
     </div>
+  );
+}
+
+// Landing page dua bahasa (Indonesia / Inggris); pilihan bahasa disimpan di browser.
+export default function Home() {
+  return (
+    <LanguageProvider>
+      <HomeContent />
+    </LanguageProvider>
   );
 }

@@ -16,7 +16,7 @@ import { useAssessments } from "@/stores/assessmentsStore";
 import { useAuth } from "@/stores/authStore";
 import { useMasterData } from "@/stores/masterDataStore";
 import { branchName } from "@/domain/branch";
-import { getClientServiceIds } from "@/domain/client";
+import { getClientServiceIds, matchesClientSearch } from "@/domain/client";
 import { todayStr } from "@/shared/lib/id";
 import { KpiCards } from "@/features/inquiry/components/dashboard/KpiCards";
 import { FunnelServiceCharts } from "@/features/inquiry/components/dashboard/FunnelServiceCharts";
@@ -35,6 +35,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: "done_consult", label: "Done Consult" },
   { value: "done_assessment", label: "Done Assessment" },
   { value: "discontinued", label: "Discontinued (Batal)" },
+  { value: "discharged", label: "Discharged" },
 ];
 
 const CHART_COLORS = ["#0284c7", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#64748b"];
@@ -67,6 +68,8 @@ export default function DashboardInquiry() {
   const serviceFilter = filters.service;
   const statusFilter = filters.status;
   const [searchRoster, setSearchRoster] = useState("");
+  const [searchAwaiting, setSearchAwaiting] = useState("");
+  const [searchDiscontinued, setSearchDiscontinued] = useState("");
 
   const filteredClients = useMemo(() => {
     const inPeriod = makePeriodMatcher(periodPreset, customStart, customEnd);
@@ -186,14 +189,8 @@ export default function DashboardInquiry() {
   // Roster filtered by search input
   const searchedRoster = useMemo(() => {
     if (!searchRoster.trim()) return filteredClients;
-    const q = searchRoster.toLowerCase();
-    return filteredClients.filter(
-      (c) =>
-        c.clientName.toLowerCase().includes(q) ||
-        (c.parentName && c.parentName.toLowerCase().includes(q)) ||
-        (c.parentContact && c.parentContact.includes(q)) ||
-        (c.clientAccessCode && c.clientAccessCode.toLowerCase().includes(q))
-    );
+    const q = searchRoster.trim();
+    return filteredClients.filter((c) => matchesClientSearch(c, q) || (c.parentContact && c.parentContact.includes(q)));
   }, [filteredClients, searchRoster]);
 
   const discontinuedList = useMemo(
@@ -201,10 +198,18 @@ export default function DashboardInquiry() {
     [filteredClients]
   );
 
+  // Pencarian di tab "Menunggu Kuesioner Ortu" dan log drop-off (awal nama anak / ortu / kode client / telepon)
+  const matchSearch = (c, term) => {
+    const q = term.trim();
+    return !q || matchesClientSearch(c, q) || Boolean(c.parentContact && c.parentContact.includes(q));
+  };
+  const awaitingShown = useMemo(() => awaitingQuestionnaires.filter((c) => matchSearch(c, searchAwaiting)), [awaitingQuestionnaires, searchAwaiting]);
+  const discontinuedShown = useMemo(() => discontinuedList.filter((c) => matchSearch(c, searchDiscontinued)), [discontinuedList, searchDiscontinued]);
+
   const filterKey = `${branchFilter}|${periodPreset}|${customStart}|${customEnd}|${serviceFilter}|${statusFilter}`;
-  const awaitPg = usePagination(awaitingQuestionnaires, 10, filterKey);
+  const awaitPg = usePagination(awaitingShown, 10, `${filterKey}|${searchAwaiting}`);
   const rosterPg = usePagination(searchedRoster, 10, `${filterKey}|${searchRoster}`);
-  const discPg = usePagination(discontinuedList, 10, filterKey);
+  const discPg = usePagination(discontinuedShown, 10, `${filterKey}|${searchDiscontinued}`);
 
   const resetFilters = () => {
     resetUrlFilters();
@@ -353,13 +358,13 @@ export default function DashboardInquiry() {
         </TabsList>
 
         {/* TAB 1: AWAITING QUESTIONNAIRE */}
-        <AwaitingQuestionnaireTab awaitPg={awaitPg} awaitingQuestionnaires={awaitingQuestionnaires} navigate={navigate} />
+        <AwaitingQuestionnaireTab awaitPg={awaitPg} awaitingQuestionnaires={awaitingShown} totalAwaiting={awaitingQuestionnaires.length} search={searchAwaiting} setSearch={setSearchAwaiting} navigate={navigate} />
 
         {/* TAB 2: FILTERED ROSTER */}
         <FilteredRosterTab navigate={navigate} rosterPg={rosterPg} searchRoster={searchRoster} searchedRoster={searchedRoster} setSearchRoster={setSearchRoster} />
 
         {/* TAB 3: DISCONTINUED LOG */}
-        <DiscontinuedTab discPg={discPg} discontinuedList={discontinuedList} navigate={navigate} />
+        <DiscontinuedTab discPg={discPg} discontinuedList={discontinuedShown} totalDiscontinued={discontinuedList.length} search={searchDiscontinued} setSearch={setSearchDiscontinued} navigate={navigate} />
       </Tabs>
     </div>
   );

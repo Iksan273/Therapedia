@@ -319,6 +319,20 @@ export function buildAuditSeed({ clients, schedules, credits, therapists, staff,
         });
       }
     }
+    if (c.status === "discontinued" && c.dateOfDischarge) {
+      const t = at(c.dateOfDischarge, "14:20");
+      if (inWindow(t)) {
+        push({
+          ...base,
+          actor: inquiryAdmin,
+          occurredAt: t,
+          action: "client.discontinued",
+          oldValues: { status: "admitted" },
+          newValues: { status: "discontinued" },
+          reason: c.dischargeNote || null,
+        });
+      }
+    }
     (c.assessmentAnswers || []).forEach((a) => {
       const t = a.submittedAt ? new Date(a.submittedAt) : null;
       if (!inWindow(t)) return;

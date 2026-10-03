@@ -120,7 +120,7 @@ export default function PrintClientReport() {
               <InfoItem label="Email" value={client.parentEmail} />
               <InfoItem label="Date of Enrollment" value={client.dateOfJoin ? fmtDate(client.dateOfJoin) : "\u2014"} />
               <InfoItem label="Clinical Service Type" value={client.serviceType ? <StatusBadge status={client.serviceType} /> : "\u2014"} />
-              <InfoItem label="Portal Access Code" value={<span className="font-mono font-bold text-sky-800">#{client.clientAccessCode}</span>} />
+              <InfoItem label="Portal Access Code" value={<span className="font-mono font-bold text-sky-800">#{client.clientCode}</span>} />
             </div>
             {client.intakeNote && (
               <div className="rounded-xl print:rounded-none bg-amber-50/70 print:bg-white print:border print:border-slate-200 border border-amber-200/80 p-3.5 mt-2">

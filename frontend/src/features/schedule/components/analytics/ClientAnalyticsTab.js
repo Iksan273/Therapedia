@@ -1,3 +1,4 @@
+import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addWeeks, format, parseISO, startOfWeek } from "date-fns";
@@ -48,7 +49,7 @@ import { PERIOD_OPTIONS, makePeriodMatcher, periodLabel } from "@/shared/lib/per
 import { branchName } from "@/domain/branch";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { isCreditNeutralCancel } from "@/domain/schedule";
-import { getClientServiceIds } from "@/domain/client";
+import { getClientServiceIds, matchesClientSearch } from "@/domain/client";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
 
@@ -63,7 +64,7 @@ const COLOR = {
 const REASON_COLORS = ["#f43f5e", "#f59e0b", "#8b5cf6", "#0ea5e9", "#64748b"];
 const TOOLTIP_STYLE = { backgroundColor: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "12px" };
 const AXIS_TICK = { fontSize: 11, fill: "#64748b" };
-const PERIODS = PERIOD_OPTIONS.filter((p) => p.value !== "custom");
+const PERIODS = PERIOD_OPTIONS; // termasuk "Rentang Kustom" (pilih tanggal awal & akhir)
 const SORTS = [
   { value: "attendance_asc", label: "Kehadiran terendah" },
   { value: "credit_asc", label: "Kredit tersedikit" },
@@ -123,6 +124,8 @@ export default function ClientAnalyticsTab({ activeList }) {
   const [branch, setBranch] = useState(defaultBranch);
   const [therapistId, setTherapistId] = useState("all");
   const [period, setPeriod] = useState("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [sort, setSort] = useState("attendance_asc");
 
   const therapistOptions = useMemo(
@@ -135,17 +138,15 @@ export default function ClientAnalyticsTab({ activeList }) {
 
   // ---- Data dasar sesuai filter ----
   const scopeClients = useMemo(() => {
-    const q = search.trim().toLowerCase();
     return activeList.filter((c) => {
       if (branch !== "all" && c.branchId !== branch) return false;
-      if (q && !c.clientName.toLowerCase().includes(q) && !c.clientAccessCode?.toLowerCase().includes(q)) return false;
-      return true;
+      return matchesClientSearch(c, search);
     });
   }, [activeList, branch, search]);
 
   const scopeSchedules = useMemo(() => {
     const ids = new Set(scopeClients.map((c) => c.id));
-    const inPeriod = makePeriodMatcher(period);
+    const inPeriod = makePeriodMatcher(period, customStart, customEnd);
     return schedules.filter(
       (s) =>
         ids.has(s.clientId) &&
@@ -153,7 +154,7 @@ export default function ClientAnalyticsTab({ activeList }) {
         (effectiveTherapist === "all" || s.therapistId === effectiveTherapist) &&
         inPeriod(s.date || "")
     );
-  }, [schedules, scopeClients, effectiveTherapist, period]);
+  }, [schedules, scopeClients, effectiveTherapist, period, customStart, customEnd]);
 
   const today = todayStr();
 
@@ -197,7 +198,7 @@ export default function ClientAnalyticsTab({ activeList }) {
         nextSession: next || null,
         remaining,
         total: rec ? rec.totalCredit : 0,
-        cancelTotal: rec ? rec.cancelCountTotal : cancelled,
+        cancelTotal: rec ? rec.cancelCount : cancelled,
         regular: familyRemaining(/reguler|regular/),
         senior: familyRemaining(/vip|senior/),
         creditStatus: remaining === 0 ? "zero" : remaining <= 2 ? "low" : "healthy",
@@ -340,17 +341,17 @@ export default function ClientAnalyticsTab({ activeList }) {
     return list;
   }, [rows, sort]);
 
-  const tablePg = usePagination(sortedRows, 10, `${branch}|${search}|${effectiveTherapist}|${period}|${sort}`);
+  const tablePg = usePagination(sortedRows, 10, `${branch}|${search}|${effectiveTherapist}|${period}|${customStart}|${customEnd}|${sort}`);
 
   const renewal = useMemo(() => rows.filter((r) => r.remaining <= 2).sort((a, b) => a.remaining - b.remaining), [rows]);
-  const renewalPg = usePagination(renewal, 6, `${branch}|${search}|${effectiveTherapist}|${period}`);
+  const renewalPg = usePagination(renewal, 6, `${branch}|${search}|${effectiveTherapist}|${period}|${customStart}|${customEnd}`);
 
   const exportCsv = () => {
     const header = ["Nama", "Kode", "Cabang", "Kehadiran (%)", "Selesai", "Batal", "Sesi Berikutnya", "Sisa Regular", "Sisa Senior", "Sisa Total", "Status Kuota"];
     const lines = sortedRows.map((r) =>
       [
         r.client.clientName,
-        r.client.clientAccessCode,
+        r.client.clientCode,
         branchName(r.client.branchId),
         r.attendanceRate ?? "",
         r.completed,
@@ -386,13 +387,18 @@ export default function ClientAnalyticsTab({ activeList }) {
   if (effectiveTherapist !== "all") {
     chips.push({ key: "th", label: `Terapis: ${therapistName(effectiveTherapist)}`, onRemove: () => setTherapistId("all") });
   }
-  if (period !== "all") chips.push({ key: "period", label: `Periode: ${periodLabel(period)}`, onRemove: () => setPeriod("all") });
+  if (period !== "all") {
+    const customText = period === "custom" ? `: ${customStart ? fmtDate(customStart) : "…"} – ${customEnd ? fmtDate(customEnd) : "…"}` : `: ${periodLabel(period)}`;
+    chips.push({ key: "period", label: `Periode${customText}`, onRemove: () => setPeriod("all") });
+  }
 
   const resetAll = () => {
     setSearch("");
     setBranch(defaultBranch);
     setTherapistId("all");
     setPeriod("all");
+    setCustomStart("");
+    setCustomEnd("");
   };
 
   const insights = [
@@ -462,6 +468,15 @@ export default function ClientAnalyticsTab({ activeList }) {
               ))}
             </SelectContent>
           </Select>
+          {period === "custom" && (
+            <div className="grid grid-cols-2 gap-2 pt-2" data-testid="analytics-custom-period">
+              <DateFilterPicker placeholder="Dari" className="w-full bg-white" value={customStart} onChange={(e) => setCustomStart(e?.target?.value ?? e ?? "")} data-testid="analytics-custom-start" />
+              <DateFilterPicker placeholder="Sampai" className="w-full bg-white" value={customEnd} onChange={(e) => setCustomEnd(e?.target?.value ?? e ?? "")} data-testid="analytics-custom-end" />
+              {customStart && customEnd && customStart > customEnd && (
+                <p className="col-span-2 text-[11px] font-semibold text-rose-600">Tanggal awal melewati tanggal akhir.</p>
+              )}
+            </div>
+          )}
         </FilterField>
       </FilterBar>
 
@@ -812,7 +827,7 @@ export default function ClientAnalyticsTab({ activeList }) {
                         {r.client.clientName}
                       </button>
                       <p className="font-mono text-[11px] text-slate-500">
-                        {r.client.clientAccessCode}
+                        {r.client.clientCode}
                         {r.cancelTotal > 3 && (
                           <span className="ml-2 font-sans font-bold text-rose-700">• Cancel {r.cancelTotal}x (lewat kuota)</span>
                         )}

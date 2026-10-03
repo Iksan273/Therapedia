@@ -13,20 +13,24 @@ function clientsReducer(state, action) {
       return state.map((c) =>
         c.id === action.id ? { ...c, ...action.patch, updatedAt: nowIso() } : c
       );
+    case "DELETE": // soft delete: baris tetap ada (deletedAt/deletedBy), tidak muncul di daftar mana pun
+      return state.map((c) => (c.id === action.id ? { ...c, deletedAt: nowIso(), deletedBy: action.by || null } : c));
     default:
       return state;
   }
 }
 
 export const ClientsProvider = ({ children }) => {
-  const [clients, dispatch] = usePersistentReducer("clients", clientsReducer, () => getSeedLoader().loadClientsSeed());
+  const [allClients, dispatch] = usePersistentReducer("clients", clientsReducer, () => getSeedLoader().loadClientsSeed());
+  const clients = React.useMemo(() => allClients.filter((c) => !c.deletedAt), [allClients]);
 
   const addClient = (client) => dispatch({ type: "ADD", client });
   const updateClient = (id, patch) => dispatch({ type: "UPDATE", id, patch });
+  const deleteClient = (id, by) => dispatch({ type: "DELETE", id, by });
   const getClient = (id) => clients.find((c) => c.id === id);
 
   return (
-    <ClientsContext.Provider value={{ clients, addClient, updateClient, getClient }}>
+    <ClientsContext.Provider value={{ clients, addClient, updateClient, deleteClient, getClient }}>
       {children}
     </ClientsContext.Provider>
   );

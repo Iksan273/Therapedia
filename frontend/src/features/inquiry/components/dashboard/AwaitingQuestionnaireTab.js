@@ -8,12 +8,13 @@ import { BranchTag } from "@/shared/components/BranchTag";
 import { ServiceChips } from "@/shared/components/ServiceChips";
 import { Button } from "@/shared/ui/button";
 import { TablePagination } from "@/shared/components/TablePagination";
+import { SearchInput } from "@/shared/components/FilterBar";
 
-export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, navigate }) {
+export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, totalAwaiting, search = "", setSearch, navigate }) {
   return (
     <TabsContent value="awaiting">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-sm font-bold text-slate-900">
                   Client yang Belum Mengisi Kuesioner Asesmen
@@ -22,16 +23,27 @@ export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, navi
                   Kode kuesioner sudah diterbitkan, menunggu orang tua menyelesaikan form online
                 </CardDescription>
               </div>
-              <span className="text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-lg">
-                {awaitingQuestionnaires.length} Menunggu Follow-up
-              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                {setSearch && (
+                  <SearchInput
+                    className="w-full sm:w-64 flex-none"
+                    placeholder="Cari nama, ortu, kode client..."
+                    value={search}
+                    onChange={setSearch}
+                    data-testid="awaiting-search"
+                  />
+                )}
+                <span className="text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-lg whitespace-nowrap">
+                  {search ? `${awaitingQuestionnaires.length} dari ${totalAwaiting ?? awaitingQuestionnaires.length}` : `${awaitingQuestionnaires.length} Menunggu Follow-up`}
+                </span>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               {awaitingQuestionnaires.length === 0 ? (
                 <EmptyState
                   icon={CheckCircle2}
-                  title="Semua kuesioner telah terisi!"
-                  subtitle="Tidak ada kuesioner yang tertunda pengisiannya oleh orang tua saat ini."
+                  title={search ? "Tidak ada hasil" : "Semua kuesioner telah terisi!"}
+                  subtitle={search ? "Tidak ada client menunggu kuesioner yang cocok dengan pencarian ini." : "Tidak ada kuesioner yang tertunda pengisiannya oleh orang tua saat ini."}
                 />
               ) : (
                 <Table stackOnMobile>

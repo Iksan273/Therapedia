@@ -2,6 +2,7 @@
   "masterPackages": [
     {
       "id": "pkg-reguler",
+      "invoiceCode": "REG",
       "name": "Regular Therapist",
       "credits": 10,
       "price": 2500000,
@@ -9,6 +10,7 @@
     },
     {
       "id": "pkg-vip",
+      "invoiceCode": "SNR",
       "name": "Senior Therapist",
       "credits": 10,
       "price": 3500000,
@@ -16,6 +18,7 @@
     },
     {
       "id": "pkg-consult",
+      "invoiceCode": "KON",
       "name": "Paket Konsultasi",
       "credits": 1,
       "price": 500000,
@@ -23,6 +26,7 @@
     },
     {
       "id": "pkg-sensory-intensive",
+      "invoiceCode": "SEN",
       "name": "Paket Sensori Intensif",
       "credits": 15,
       "price": 4200000,
@@ -45,7 +49,6 @@
           "status": "active"
         }
       ],
-      "cancelCountTotal": 0,
       "history": [
         {
           "id": "hist-g0001",
@@ -106,11 +109,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 2,
-          "cancelCount": 0,
+          "cancelCount": 2,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 2,
       "history": [
         {
           "id": "hist-g0005",
@@ -226,11 +228,10 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "totalCredit": 15,
           "remainingCredit": 5,
-          "cancelCount": 0,
+          "cancelCount": 2,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 2,
       "history": [
         {
           "id": "hist-g0016",
@@ -345,11 +346,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 0,
-          "cancelCount": 3,
+          "cancelCount": 4,
           "status": "completed"
         }
       ],
-      "cancelCountTotal": 4,
       "history": [
         {
           "id": "hist-g0027",
@@ -462,7 +462,6 @@
           "status": "active"
         }
       ],
-      "cancelCountTotal": 1,
       "history": [
         {
           "id": "hist-g0037",
@@ -524,11 +523,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 1,
-          "cancelCount": 2,
+          "cancelCount": 3,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 3,
       "history": [
         {
           "id": "hist-g0041",
@@ -749,7 +747,6 @@
           "status": "active"
         }
       ],
-      "cancelCountTotal": 2,
       "history": [
         {
           "id": "hist-g0063",
@@ -830,11 +827,10 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "totalCredit": 15,
           "remainingCredit": 7,
-          "cancelCount": 0,
+          "cancelCount": 3,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 3,
       "history": [
         {
           "id": "hist-g0069",
@@ -1051,11 +1047,10 @@
           "packageName": "Senior Therapist (5x)",
           "totalCredit": 5,
           "remainingCredit": 5,
-          "cancelCount": 0,
+          "cancelCount": 2,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 2,
       "history": [
         {
           "id": "hist-g0090",
@@ -1185,7 +1180,6 @@
           "status": "active"
         }
       ],
-      "cancelCountTotal": 0,
       "history": [
         {
           "id": "hist-g0101",
@@ -1301,11 +1295,10 @@
           "packageName": "Senior Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 0,
-          "cancelCount": 2,
+          "cancelCount": 3,
           "status": "completed"
         }
       ],
-      "cancelCountTotal": 3,
       "history": [
         {
           "id": "hist-g0112",
@@ -1435,7 +1428,6 @@
           "status": "active"
         }
       ],
-      "cancelCountTotal": 0,
       "history": [
         {
           "id": "hist-g0123",
@@ -1542,11 +1534,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 8,
-          "cancelCount": 1,
+          "cancelCount": 4,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 4,
       "history": [
         {
           "id": "hist-g0132",
@@ -1688,7 +1679,6 @@
           "status": "active"
         }
       ],
-      "cancelCountTotal": 0,
       "history": [
         {
           "id": "hist-g0144",
@@ -1822,11 +1812,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 6,
-          "cancelCount": 1,
+          "cancelCount": 5,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 5,
       "history": [
         {
           "id": "hist-g0156",
@@ -2053,11 +2042,10 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "totalCredit": 15,
           "remainingCredit": 4,
-          "cancelCount": 0,
+          "cancelCount": 1,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 1,
       "history": [
         {
           "id": "hist-g0178",
@@ -2273,11 +2261,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 4,
-          "cancelCount": 1,
+          "cancelCount": 2,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 2,
       "history": [
         {
           "id": "hist-g0199",
@@ -2404,11 +2391,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 2,
-          "cancelCount": 0,
+          "cancelCount": 3,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 3,
       "history": [
         {
           "id": "hist-g0210",
@@ -2610,7 +2596,6 @@
           "status": "active"
         }
       ],
-      "cancelCountTotal": 2,
       "history": [
         {
           "id": "hist-g0230",
@@ -2673,11 +2658,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 0,
-          "cancelCount": 1,
+          "cancelCount": 3,
           "status": "completed"
         }
       ],
-      "cancelCountTotal": 3,
       "history": [
         {
           "id": "hist-g0234",
@@ -2903,11 +2887,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 0,
-          "cancelCount": 1,
+          "cancelCount": 5,
           "status": "completed"
         }
       ],
-      "cancelCountTotal": 5,
       "history": [
         {
           "id": "hist-g0256",
@@ -3134,11 +3117,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 8,
-          "cancelCount": 0,
+          "cancelCount": 2,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 2,
       "history": [
         {
           "id": "hist-g0278",
@@ -3328,11 +3310,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 3,
-          "cancelCount": 0,
+          "cancelCount": 1,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 1,
       "history": [
         {
           "id": "hist-g0296",
@@ -3458,11 +3439,10 @@
           "packageName": "Regular Therapist (10x)",
           "totalCredit": 10,
           "remainingCredit": 1,
-          "cancelCount": 1,
+          "cancelCount": 3,
           "status": "active"
         }
       ],
-      "cancelCountTotal": 3,
       "history": [
         {
           "id": "hist-g0308",

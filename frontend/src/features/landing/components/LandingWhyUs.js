@@ -2,11 +2,40 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { UserCheck, TrendingUp, HeartHandshake, FileCheck2, Brain, CheckCircle2, ArrowRight } from "lucide-react";
 import { CLINICAL_PILLARS } from "@/features/landing/data/landingData";
+import { useLang, localizeItem } from "@/features/landing/i18n/LanguageContext";
+import { PILLARS_ID } from "@/features/landing/data/landingDataId";
+
+// Detail pendekatan versi Inggris (versi Indonesia ada di dalam komponen)
+const APPROACH_EN = {
+  si: {
+    title: "Sensory Integration (SI) Approach",
+    tagline: "Ayres Sensory Integration® Framework",
+    desc: "A neurobiology-based clinical therapy method that helps a child's nervous system process, organize, and respond adaptively to sensory stimuli (vestibular, proprioceptive, tactile).",
+    highlights: [
+      "Optimizing emotional regulation, focus, and attention span",
+      "Addressing sensitivity to sounds, food textures, or touch",
+      "Clinical suspended swing equipment, therapy balls, and tactile obstacles",
+      "Supporting children with Sensory Processing Disorder, ADHD, & Autism Spectrum"
+    ]
+  },
+  ndt: {
+    title: "Neurodevelopmental Treatment (NDT) Approach",
+    tagline: "Bobath Concept & Functional Movement",
+    desc: "A hands-on therapeutic approach that facilitates symmetrical posture, normal movement patterns, and gross motor transitions in children with neuromotor challenges.",
+    highlights: [
+      "Facilitating muscle tone and core trunk postural stability",
+      "Correcting gait patterns, gross motor coordination, and dynamic balance",
+      "Integrating functional movement for independent daily activities (ADL)",
+      "Designed especially for Cerebral Palsy, hypotonia, & motor delays"
+    ]
+  }
+};
 
 export default function LandingWhyUs({ onBookClick }) {
+  const { L, lang } = useLang();
   const [selectedApproach, setSelectedApproach] = useState("si");
 
-  const approachDetails = {
+  const approachDetails = lang === "en" ? APPROACH_EN : {
     si: {
       title: "Sensory Integration (SI) Approach",
       tagline: "Ayres Sensory Integration® Framework",
@@ -48,25 +77,28 @@ export default function LandingWhyUs({ onBookClick }) {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#007aff]/10 border border-[#007aff]/20 text-[#007aff] text-xs font-bold uppercase tracking-wider mb-4">
 
-            <span>Why Choose Therapedia</span>
+            <span>{L("Why Choose Therapedia", "Mengapa Memilih Therapedia")}</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
-            Holistic, Personalized &{" "}
+            {L("Holistic, Personalized &", "Holistik, Personal &")}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#007aff] to-cyan-600">
-              Evidence-Based
+              {L("Evidence-Based", "Berbasis Bukti")}
             </span>
           </h2>
 
           <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-            Therapedia offers expert, personalized pediatric occupational therapy with a holistic approach,
-            helping children grow confidently in everyday life and reach their full potential.
+            {L(
+              "Therapedia offers expert, personalized pediatric occupational therapy with a holistic approach, helping children grow confidently in everyday life and reach their full potential.",
+              "Therapedia menawarkan terapi okupasi pediatrik yang ahli dan personal dengan pendekatan holistik, membantu anak tumbuh percaya diri dalam kehidupan sehari-hari dan mencapai potensi terbaiknya."
+            )}
           </p>
         </div>
 
         {/* 4 Pillars Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {CLINICAL_PILLARS.map((pillar, idx) => {
+          {CLINICAL_PILLARS.map((basePillar, idx) => {
+            const pillar = localizeItem(basePillar, PILLARS_ID, lang);
             const Icon = icons[pillar.id] || UserCheck;
             return (
               <motion.div
@@ -96,7 +128,7 @@ export default function LandingWhyUs({ onBookClick }) {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-1.5 text-xs font-semibold text-[#007aff]">
-                  <span>Pilar Mutu Klinis</span>
+                  <span>{L("Clinical Quality Pillar", "Pilar Mutu Klinis")}</span>
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                 </div>
               </motion.div>
@@ -114,16 +146,18 @@ export default function LandingWhyUs({ onBookClick }) {
             <div className="lg:col-span-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-cyan-300 text-xs font-semibold mb-4 border border-white/10">
                 <Brain className="w-3.5 h-3.5" />
-                <span>Clinical Methodologies</span>
+                <span>{L("Clinical Methodologies", "Metodologi Klinis")}</span>
               </div>
 
               <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-4">
-                Dua Pendekatan Terapi Utama di Therapedia
+                {L("Two Core Therapy Approaches at Therapedia", "Dua Pendekatan Terapi Utama di Therapedia")}
               </h3>
 
               <p className="text-sm text-slate-300 leading-relaxed mb-6">
-                Kami menggabungkan stimulasi sensori terstruktur dengan fasilitasi gerak fisiologis untuk
-                menjawab kebutuhan tumbuh kembang spesifik buah hati Anda.
+                {L(
+                  "We combine structured sensory stimulation with physiological movement facilitation to meet your child's specific developmental needs.",
+                  "Kami menggabungkan stimulasi sensori terstruktur dengan fasilitasi gerak fisiologis untuk menjawab kebutuhan tumbuh kembang spesifik buah hati Anda."
+                )}
               </p>
 
               {/* Approach Toggle Buttons */}
@@ -153,7 +187,7 @@ export default function LandingWhyUs({ onBookClick }) {
                 onClick={onBookClick}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#040e1e] hover:bg-cyan-50 font-bold text-xs tracking-wide transition-all shadow-md cursor-pointer"
               >
-                <span>Konsultasi Kebutuhan Anak</span>
+                <span>{L("Consult Your Child's Needs", "Konsultasi Kebutuhan Anak")}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

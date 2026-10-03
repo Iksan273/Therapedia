@@ -29,6 +29,11 @@ export function loadClientsSeed() {
     if (_dischargeMonthsAgo != null) {
       client.dateOfDischarge = format(subMonths(now, _dischargeMonthsAgo), "yyyy-MM-dd");
     }
+    // Client discontinued punya tanggal discontinue sendiri (±3 hari setelah dibuat, tidak melewati hari ini)
+    if (client.status === "discontinued" && !client.dateOfDiscontinue) {
+      const when = addDays(created, 3);
+      client.dateOfDiscontinue = format(when > now ? now : when, "yyyy-MM-dd");
+    }
     return client;
   });
 }

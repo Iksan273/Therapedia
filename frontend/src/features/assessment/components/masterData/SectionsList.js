@@ -1,9 +1,19 @@
+import { IfCanDelete } from "@/shared/components/DeleteControls";
 import React from "react";
 import { ChevronDown, ChevronUp, Copy, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { getQuadrantColor } from "@/stores/masterDataStore";
-import { getQuestionTypeInfo } from "@/features/assessment/components/masterData/assessmentConfig";
+import { getQuestionTypeInfo, isOptionBasedType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { cn } from "@/shared/lib/utils";
+
+// Pratinjau singkat tipe isian bebas di daftar soal master data
+const PLACEHOLDER_PREVIEW = {
+  short_text: "[Jawaban singkat satu baris]",
+  number: "[Isian angka]",
+  date: "[Pilih tanggal]",
+  birth_date: "[Pilih tanggal lahir — usia dihitung otomatis]",
+  time: "[Pilih waktu / jam]",
+};
 
 export function SectionsList({ activeCategory, duplicateQuestion, expandedSections, filteredSections, openAddQuestion, openEditQuestion, quadrantMap, removeQuestion, removeSection, searchQuery, selectedQuadrant, selectedType, setSearchQuery, setSecDialog, setSelectedQuadrant, setSelectedType, toggleSectionCollapse }) {
   return (
@@ -41,9 +51,11 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                           <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug break-words">
                             {sec.title}
                           </h3>
-                          <p className="text-xs text-slate-500 font-medium italic mt-1 leading-normal break-words">
-                            "{sec.leadText || "Anakku ..."}"
-                          </p>
+                          {sec.leadText && (
+                            <p className="text-xs text-slate-500 font-medium italic mt-1 leading-normal break-words">
+                              "{sec.leadText}"
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -88,6 +100,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
 
+                          <IfCanDelete module="inquiry_pipeline">
                           <Button aria-label="Hapus domain ini"
                             size="icon"
                             variant="ghost"
@@ -97,6 +110,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
+                          </IfCanDelete>
                         </div>
                       )}
                     </div>
@@ -129,8 +143,8 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                         </div>
                       ) : (
                         visibleQuestions.map((q, qIdx) => {
-                          const quad = q.quadrant || "SN";
-                          const qMaster = quadrantMap[quad];
+                          const quad = q.quadrant || null;
+                          const qMaster = quad ? quadrantMap[quad] : null;
                           const qConfig = {
                             badge: getQuadrantColor(qMaster?.color).badge,
                             title: qMaster?.title || quad,
@@ -152,12 +166,14 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
 
                                   <div className="space-y-1.5 flex-1 min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
-                                      <span
-                                        className={cn("px-2 py-0.5 rounded-md text-[11px] border shadow-2xs", qConfig.badge)}
-                                        title={qConfig.desc}
-                                      >
-                                        {quad} • {qConfig.title}
-                                      </span>
+                                      {quad && (
+                                        <span
+                                          className={cn("px-2 py-0.5 rounded-md text-[11px] border shadow-2xs", qConfig.badge)}
+                                          title={qConfig.desc}
+                                        >
+                                          {quad} • {qConfig.title}
+                                        </span>
+                                      )}
                                       <span
                                         className={cn("px-2 py-0.5 rounded-md text-[11px] border", typeInfo.badge)}
                                         title={typeInfo.desc}
@@ -195,6 +211,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                     <Copy className="w-3.5 h-3.5" />
                                   </Button>
 
+                                  <IfCanDelete module="inquiry_pipeline">
                                   <Button aria-label="Hapus butir pertanyaan"
                                     size="icon"
                                     variant="ghost"
@@ -204,6 +221,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </Button>
+                                  </IfCanDelete>
                                 </div>
                               </div>
 
@@ -234,7 +252,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                 </div>
                               )}
 
-                              {(q.type === "multiple_choice" || q.type === "checkbox_multi") && (q.options || []).length > 0 && (
+                              {isOptionBasedType(q.type) && (q.options || []).length > 0 && (
                                 <div className="pl-0 sm:pl-11 pt-1 flex items-center gap-1.5 flex-wrap">
                                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 shrink-0">
                                     Opsi Pilihan ({q.options.length}):
@@ -268,6 +286,12 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                   <span className="px-3 py-0.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 text-xs font-bold">
                                     ✕ Tidak
                                   </span>
+                                </div>
+                              )}
+
+                              {PLACEHOLDER_PREVIEW[q.type] && (
+                                <div className="pl-0 sm:pl-11 pt-1">
+                                  <span className="text-xs text-slate-500 italic">{PLACEHOLDER_PREVIEW[q.type]}</span>
                                 </div>
                               )}
 

@@ -1,7 +1,8 @@
 import React, { Suspense, lazy, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Users, Cake, BarChart3, CalendarPlus, MessageCircle, Snowflake } from "lucide-react";
+import { toast } from "sonner";
+import { Users, Cake, BarChart3, CalendarPlus, MessageCircle, Snowflake, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
@@ -11,10 +12,13 @@ import { EmptyState } from "@/shared/components/EmptyState";
 import { FilterBar, FilterField, SearchInput } from "@/shared/components/FilterBar";
 import { BranchFilter } from "@/shared/components/BranchFilter";
 import { BranchTag } from "@/shared/components/BranchTag";
+import { StatusBadge } from "@/shared/components/StatusBadge";
+import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { useUrlFilters } from "@/shared/hooks/useUrlFilters";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
+import { useClientOutcomeActions } from "@/features/inquiry";
 
 // Tab analitik (beserta pustaka grafik) baru diunduh saat tab dibuka
 const ClientAnalyticsTab = lazy(() => import("@/features/schedule/components/analytics/ClientAnalyticsTab"));
@@ -24,6 +28,7 @@ import { useAuth } from "@/stores/authStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { branchName } from "@/domain/branch";
 import { formatPackageName } from "@/domain/credit";
+import { isActiveClient, isRosterClient, canReactivateClient, matchesRosterStatus, matchesClientSearch, ROSTER_STATUS_FILTERS } from "@/domain/client";
 import { cn } from "@/shared/lib/utils";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({
@@ -36,6 +41,8 @@ export default function ActiveClients() {
   const { clients } = useClients();
   const { getRecordForClient } = useCredits();
   const { activeBranch, auth } = useAuth();
+  const { reactivate } = useClientOutcomeActions();
+  const { confirm, confirmDialog } = useConfirm();
   const isMaster = auth?.role === "master";
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
 
@@ -45,10 +52,12 @@ export default function ActiveClients() {
     q: "",
     branch: defaultBranch,
     credit: "all", // all | healthy | low | zero
+    status: "all", // all | active | discharged | discontinued
   });
   const searchTerm = rosterFilters.q;
   const branchFilter = rosterFilters.branch;
   const creditFilter = rosterFilters.credit;
+  const statusFilter = rosterFilters.status;
   const [birthdayMonth, setBirthdayMonth] = useState(format(new Date(), "MM"));
 
   // Quick schedule modal
@@ -56,24 +65,17 @@ export default function ActiveClients() {
   const [selectedClientId, setSelectedClientId] = useState(null);
 
 
-  // Active clients list
-  const activeList = useMemo(
-    () => clients.filter((c) => (c.status === "admitted" || c.status === "active") && !c.dateOfDischarge),
-    [clients]
-  );
+  // Active clients (birthday & analytics) dan roster penuh (active + discharged + discontinued)
+  const activeList = useMemo(() => clients.filter(isActiveClient), [clients]);
+  const rosterList = useMemo(() => clients.filter(isRosterClient), [clients]);
 
   // Filtered Roster
   const filteredActive = useMemo(() => {
-    return activeList.filter((c) => {
+    return rosterList.filter((c) => {
       if (branchFilter !== "all" && c.branchId !== branchFilter) return false;
+      if (!matchesRosterStatus(c, statusFilter)) return false;
 
-      const q = searchTerm.toLowerCase().trim();
-      if (q) {
-        const matchName = c.clientName.toLowerCase().includes(q);
-        const matchParent = c.parentName?.toLowerCase().includes(q);
-        const matchCode = c.clientAccessCode?.toLowerCase().includes(q);
-        if (!matchName && !matchParent && !matchCode) return false;
-      }
+      if (!matchesClientSearch(c, searchTerm)) return false;
 
       if (creditFilter !== "all") {
         const rec = getRecordForClient(c.id);
@@ -85,9 +87,9 @@ export default function ActiveClients() {
 
       return true;
     });
-  }, [activeList, branchFilter, searchTerm, creditFilter, getRecordForClient]);
+  }, [rosterList, branchFilter, searchTerm, creditFilter, statusFilter, getRecordForClient]);
 
-  const rosterPg = usePagination(filteredActive, 10, `${searchTerm}|${branchFilter}|${creditFilter}`);
+  const rosterPg = usePagination(filteredActive, 10, `${searchTerm}|${branchFilter}|${creditFilter}|${statusFilter}`);
 
   // Birthday list for selected month
   const birthdayClients = useMemo(() => {
@@ -98,7 +100,25 @@ export default function ActiveClients() {
     });
   }, [activeList, birthdayMonth]);
 
+  const handleReactivate = async (c) => {
+    const ok = await confirm({
+      title: `Aktifkan kembali ${c.clientName}?`,
+      description: `Status ${c.status === "discharged" ? "Discharged" : "Discontinued"} akan diganti menjadi Active Client dan client bisa dijadwalkan sesi lagi. Saldo kredit & riwayat sesi tetap dipertahankan.`,
+      confirmLabel: "Aktifkan Kembali",
+    });
+    if (!ok) return;
+    reactivate(c);
+    toast.success(`${c.clientName} kembali menjadi Active Client.`);
+  };
+
   const rosterChips = [];
+  if (statusFilter !== "all") {
+    rosterChips.push({
+      key: "status",
+      label: `Status: ${ROSTER_STATUS_FILTERS.find((o) => o.value === statusFilter)?.label || statusFilter}`,
+      onRemove: () => setRosterFilter("status", "all"),
+    });
+  }
   if (searchTerm.trim()) {
     rosterChips.push({ key: "q", label: `Cari: "${searchTerm.trim()}"`, onRemove: () => setRosterFilter("q", "") });
   }
@@ -120,6 +140,7 @@ export default function ActiveClients() {
 
   return (
     <div className="space-y-6" data-testid="active-clients-page">
+      {confirmDialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -131,7 +152,7 @@ export default function ActiveClients() {
             Active Clients
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Daftar client terapi aktif, monitoring saldo multi-paket, radar ulang tahun, dan analitik caseload skala besar.
+            Daftar client aktif, discharged, dan discontinued (bisa diaktifkan kembali), monitoring saldo multi-paket, radar ulang tahun, dan analitik caseload skala besar.
           </p>
         </div>
 
@@ -141,7 +162,7 @@ export default function ActiveClients() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-slate-100/90 border border-slate-200/80 p-1.5 rounded-2xl shadow-2xs gap-1.5 flex flex-wrap h-auto">
           <TabsTrigger value="roster" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
-            <Users className="w-4 h-4 text-sky-600" /> Active Roster ({filteredActive.length})
+            <Users className="w-4 h-4 text-sky-600" /> Client Roster ({filteredActive.length})
           </TabsTrigger>
           <TabsTrigger value="birthday" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <Cake className="w-4 h-4 text-pink-600" /> Birthday Hub ({birthdayClients.length})
@@ -158,7 +179,7 @@ export default function ActiveClients() {
             chips={rosterChips}
             onReset={resetRosterFilters}
             resultText={`${filteredActive.length} client`}
-            gridClassName="lg:grid-cols-[2fr_1fr_1fr]"
+            gridClassName="lg:grid-cols-[2fr_1fr_1fr_1fr]"
           >
             <FilterField label="Pencarian">
               <SearchInput
@@ -167,6 +188,20 @@ export default function ActiveClients() {
                 value={searchTerm}
                 onChange={(v) => setRosterFilter("q", v)}
               />
+            </FilterField>
+            <FilterField label="Status Client">
+              <Select value={statusFilter} onValueChange={(v) => setRosterFilter("status", v)}>
+                <SelectTrigger className="text-xs border-slate-200 bg-slate-50 font-semibold" aria-label="Status client" data-testid="roster-status-filter">
+                  <SelectValue placeholder="Status Client" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                  {ROSTER_STATUS_FILTERS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FilterField>
             <FilterField label="Cabang">
               <BranchFilter value={branchFilter} onChange={(v) => setRosterFilter("branch", v)} isMaster={isMaster} />
@@ -193,7 +228,7 @@ export default function ActiveClients() {
                 <EmptyState
                   icon={Users}
                   title="Tidak ada client"
-                  subtitle="Tidak ada client aktif pada filter ini."
+                  subtitle="Tidak ada client pada filter ini."
                   action={
                     rosterChips.length > 0 ? (
                       <Button variant="outline" size="sm" className="font-bold" onClick={resetRosterFilters}>
@@ -211,7 +246,7 @@ export default function ActiveClients() {
                       <TableHead className="font-bold text-slate-700 text-xs min-w-[170px] whitespace-nowrap hidden md:table-cell">Cabang</TableHead>
                       <TableHead className="font-bold text-slate-700 text-xs min-w-[240px] whitespace-nowrap">Paket Kredit Aktif</TableHead>
                       <TableHead className="font-bold text-slate-700 text-xs min-w-[180px] whitespace-nowrap hidden lg:table-cell">Riwayat Cancel</TableHead>
-                      <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[170px] whitespace-nowrap">Tindakan</TableHead>
+                      <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[240px] whitespace-nowrap">Tindakan</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -219,16 +254,17 @@ export default function ActiveClients() {
                       const rec = getRecordForClient(c.id);
                       const rem = rec ? rec.remainingCredit : 0;
                       const pkgs = rec?.packages || [];
-                      const isFrozen = rem === 0;
+                      const isActive = isActiveClient(c);
+                      const isFrozen = isActive && rem === 0;
 
                       return (
-                        <TableRow key={c.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
+                        <TableRow key={c.id} data-testid={`roster-row-${c.id}`} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
                           <TableCell data-nolabel className="py-4 pl-6 min-w-[260px]">
                             <div className="flex items-center gap-3">
                               <div
                                 className={cn(
                                   "w-10 h-10 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
-                                  isFrozen ? "bg-cyan-100 text-cyan-900 ring-1 ring-cyan-300" : "bg-sky-100 text-sky-800"
+                                  isFrozen ? "bg-cyan-100 text-cyan-900 ring-1 ring-cyan-300" : isActive ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-600"
                                 )}
                               >
                                 {isFrozen ? <Snowflake className="w-5 h-5" aria-label="Frozen" /> : c.clientName[0]}
@@ -236,6 +272,7 @@ export default function ActiveClients() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <p className="font-bold text-sm text-slate-900 whitespace-nowrap">{c.clientName}</p>
+                                  {!isActive && <StatusBadge status={c.status} />}
                                   {isFrozen && (
                                     <span className="text-[11px] font-extrabold text-cyan-900 bg-cyan-100 border border-cyan-300 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
                                       Frozen
@@ -243,7 +280,7 @@ export default function ActiveClients() {
                                   )}
                                 </div>
                                 <p className="text-xs text-slate-500 font-medium mt-0.5 whitespace-nowrap">
-                                  {calcAge(c.dob)} th • Kode: <strong className="font-mono text-slate-700">{c.clientAccessCode}</strong>
+                                  {calcAge(c.dob)} th • Kode: <strong className="font-mono text-slate-700">{c.clientCode}</strong>
                                 </p>
                               </div>
                             </div>
@@ -289,28 +326,41 @@ export default function ActiveClients() {
                             <span
                               className={cn(
                                 "px-2.5 py-1 rounded-lg font-bold text-xs border inline-flex items-center whitespace-nowrap",
-                                (rec?.cancelCountTotal || 0) <= 3
+                                (rec?.cancelCount || 0) <= 3
                                   ? "bg-slate-100 text-slate-700 border-slate-200"
                                   : "bg-rose-100 text-rose-800 border-rose-300 font-extrabold"
                               )}
                             >
-                              {rec?.cancelCountTotal || 0}x Cancel
-                              {(rec?.cancelCountTotal || 0) > 3 && " (Kena Penalti)"}
+                              {rec?.cancelCount || 0}x Cancel
+                              {(rec?.cancelCount || 0) > 3 && " (Lewat Kuota)"}
                             </span>
                           </TableCell>
-                          <TableCell data-nolabel className="text-right pr-6 py-4 min-w-[170px]">
+                          <TableCell data-nolabel className="text-right pr-6 py-4 min-w-[240px]">
                             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="px-3 gap-1.5 font-bold border-slate-200 hover:bg-sky-50 hover:text-sky-700 shrink-0 whitespace-nowrap cursor-pointer"
-                                onClick={() => {
-                                  setSelectedClientId(c.id);
-                                  setScheduleModalOpen(true);
-                                }}
-                              >
-                                <CalendarPlus className="w-3.5 h-3.5 text-sky-600" /> Sesi
-                              </Button>
+                              {isActive && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="px-3 gap-1.5 font-bold border-slate-200 hover:bg-sky-50 hover:text-sky-700 shrink-0 whitespace-nowrap cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedClientId(c.id);
+                                    setScheduleModalOpen(true);
+                                  }}
+                                >
+                                  <CalendarPlus className="w-3.5 h-3.5 text-sky-600" /> Sesi
+                                </Button>
+                              )}
+                              {canReactivateClient(c) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="px-3 gap-1.5 font-bold border-emerald-300 text-emerald-800 hover:bg-emerald-50 shrink-0 whitespace-nowrap cursor-pointer"
+                                  onClick={() => handleReactivate(c)}
+                                  data-testid={`reactivate-${c.id}`}
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" /> Aktifkan
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 className="px-3.5 font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-2xs shrink-0 whitespace-nowrap cursor-pointer"

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Menu, X } from "lucide-react";
+import { useLang } from "@/features/landing/i18n/LanguageContext";
+import LanguageToggle from "@/features/landing/i18n/LanguageToggle";
 
 export default function LandingHeader({ onBookClick }) {
   const navigate = useNavigate();
+  const { L } = useLang();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
@@ -37,12 +40,12 @@ export default function LandingHeader({ onBookClick }) {
   }, []);
 
   const navItems = [
-    { label: "Why Us", href: "#about", id: "about" },
-    { label: "Programs", href: "#programs", id: "programs" },
-    { label: "Our Teams", href: "#team", id: "team" },
-    { label: "Branches", href: "#branches", id: "branches" },
-    { label: "Knowledge", href: "#knowledge", id: "knowledge" },
-    { label: "Contact", href: "#contact", id: "contact" }
+    { label: L("Why Us", "Mengapa Kami"), href: "#about", id: "about" },
+    { label: L("Programs", "Program"), href: "#programs", id: "programs" },
+    { label: L("Our Teams", "Tim Kami"), href: "#team", id: "team" },
+    { label: L("Branches", "Cabang"), href: "#branches", id: "branches" },
+    { label: L("Knowledge", "Wawasan"), href: "#knowledge", id: "knowledge" },
+    { label: L("Contact", "Kontak"), href: "#contact", id: "contact" }
   ];
 
   return (
@@ -71,7 +74,7 @@ export default function LandingHeader({ onBookClick }) {
               </span>
             </div>
             <span className="text-[10px] text-slate-400 font-medium tracking-wide hidden sm:block">
-              Pediatric Occupational Therapy
+              {L("Pediatric Occupational Therapy", "Terapi Okupasi Pediatrik")}
             </span>
           </div>
         </a>
@@ -100,6 +103,7 @@ export default function LandingHeader({ onBookClick }) {
 
         {/* Right CTA Actions (Open Apps / Consultation) */}
         <div className="hidden sm:flex items-center gap-3">
+          <LanguageToggle />
           {/* Internal Prototype / Portal Switcher */}
           <button
             onClick={() => navigate("/roles")}
@@ -108,7 +112,7 @@ export default function LandingHeader({ onBookClick }) {
             data-testid="header-open-apps-button"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Open Apps</span>
+            <span>{L("Open Apps", "Buka Aplikasi")}</span>
             <ArrowRight className="w-3.5 h-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-300" />
           </button>
 
@@ -118,7 +122,7 @@ export default function LandingHeader({ onBookClick }) {
             className="px-4 py-2 rounded-full bg-gradient-to-r from-[#007aff] to-[#0051a8] hover:from-[#1a87ff] hover:to-[#0062cc] text-white text-xs font-bold tracking-wide transition-all duration-200 border border-white/20 shadow-md shadow-[#007aff]/30 hover:scale-[1.02] cursor-pointer"
             data-testid="header-book-button"
           >
-            Konsultasi Klinis
+            {L("Clinical Consultation", "Konsultasi Klinis")}
           </button>
         </div>
 
@@ -154,6 +158,7 @@ export default function LandingHeader({ onBookClick }) {
           </div>
 
           <div className="pt-2 flex flex-col gap-2">
+            <LanguageToggle className="self-start" />
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
@@ -161,7 +166,7 @@ export default function LandingHeader({ onBookClick }) {
               }}
               className="w-full py-2.5 rounded-xl border border-white/20 bg-white/5 text-white text-xs font-bold flex items-center justify-center gap-2"
             >
-              <span>Open Apps (Internal Portal)</span>
+              <span>{L("Open Apps (Internal Portal)", "Buka Aplikasi (Portal Internal)")}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
@@ -171,7 +176,7 @@ export default function LandingHeader({ onBookClick }) {
               }}
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#007aff] to-[#0051a8] text-white text-xs font-bold text-center"
             >
-              Konsultasi Intake
+              {L("Intake Consultation", "Konsultasi Intake")}
             </button>
           </div>
         </div>

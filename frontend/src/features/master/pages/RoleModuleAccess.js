@@ -18,12 +18,12 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/stores/authStore";
-import { ACCESS_MODULES } from "@/domain/rbac";
+import { ACCESS_MODULES, roleCanDelete } from "@/domain/rbac";
 import { cn } from "@/shared/lib/utils";
 
 export default function RoleModuleAccess() {
   const { confirm, confirmDialog } = useConfirm();
-  const { rolesList, addRole, updateRole, deleteRole, rbacPermissions, updateRolePermission } = useAuth();
+  const { rolesList, addRole, updateRole, deleteRole, rbacPermissions, updateRolePermission, setRoleCanDelete } = useAuth();
   const [activeTab, setActiveTab] = useState("matrix"); // 'matrix' | 'roles'
   const [searchRole, setSearchRole] = useState("");
 
@@ -269,6 +269,43 @@ export default function RoleModuleAccess() {
                     })}
                   </TableRow>
                 ))}
+                {/* Hak hapus: akses modul = semua aksi kecuali hapus; tombol hapus hanya untuk role yang diizinkan di sini */}
+                <TableRow className="bg-rose-50/40 hover:bg-rose-50/40 border-b border-slate-100" data-testid="rbac-can-delete-row">
+                  <TableCell className="py-3.5 pl-6">
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 p-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 shrink-0">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-slate-900">Boleh menghapus data</p>
+                        <p className="text-[11px] text-slate-500">Tombol hapus (client, inquiry, invoice, sesi, master data) hanya tampil bila diaktifkan dan role punya akses modulnya.</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  {rolesList.map((r) => {
+                    const allowed = roleCanDelete(r.id, rolesList);
+                    return (
+                      <TableCell key={r.id} className="text-center">
+                        <div className="flex items-center justify-center">
+                          {r.id === "master" ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                              <Lock className="w-3 h-3" /> Full
+                            </span>
+                          ) : (
+                            <Switch
+                              checked={allowed}
+                              onCheckedChange={(v) => {
+                                setRoleCanDelete(r.id, v);
+                                toast.success(`Hak hapus untuk role '${r.id}' ${v ? "diaktifkan" : "dinonaktifkan"}.`);
+                              }}
+                              data-testid={`rbac-can-delete-${r.id}`}
+                            />
+                          )}
+                        </div>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
               </TableBody>
             </Table>
           </CardContent>

@@ -6,29 +6,44 @@ import { BranchTag } from "@/shared/components/BranchTag";
 import { ServiceChips } from "@/shared/components/ServiceChips";
 import { Button } from "@/shared/ui/button";
 import { TablePagination } from "@/shared/components/TablePagination";
+import { SearchInput } from "@/shared/components/FilterBar";
+import { fmtDate } from "@/shared/lib/format";
 
-export function DiscontinuedTab({ discPg, discontinuedList, navigate }) {
+export function DiscontinuedTab({ discPg, discontinuedList, totalDiscontinued, search = "", setSearch, navigate }) {
   return (
     <TabsContent value="discontinued">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
-            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-sm font-bold text-slate-900">
-                Catatan Inquiry yang Tidak Berlanjut (Discontinued)
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Penyebab dan catatan evaluasi client yang batal atau berhenti di tahap intake
-              </CardDescription>
+            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-sm font-bold text-slate-900">
+                  Catatan Inquiry yang Tidak Berlanjut (Discontinued)
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Penyebab dan catatan evaluasi client yang batal atau berhenti di tahap intake
+                  {search && ` • ${discontinuedList.length} dari ${totalDiscontinued ?? discontinuedList.length}`}
+                </CardDescription>
+              </div>
+              {setSearch && (
+                <SearchInput
+                  className="w-full sm:w-64 flex-none"
+                  placeholder="Cari nama, ortu, kode client..."
+                  value={search}
+                  onChange={setSearch}
+                  data-testid="discontinued-search"
+                />
+              )}
             </CardHeader>
             <CardContent className="p-0">
               {discontinuedList.length === 0 ? (
                 <div className="py-10 text-center text-xs text-slate-400">
-                  Tidak ada intake yang discontinue pada filter saat ini.
+                  {search ? "Tidak ada hasil yang cocok dengan pencarian ini." : "Tidak ada intake yang discontinue pada filter saat ini."}
                 </div>
               ) : (
                 <Table stackOnMobile>
                   <TableHeader>
                     <TableRow className="bg-slate-50/70 border-b border-slate-200 text-xs">
                       <TableHead className="py-3 pl-6">Client</TableHead>
+                      <TableHead>Tanggal Drop-off</TableHead>
                       <TableHead>Cabang</TableHead>
                       <TableHead>Layanan Terakhir</TableHead>
                       <TableHead>Alasan / Catatan</TableHead>
@@ -41,6 +56,7 @@ export function DiscontinuedTab({ discPg, discontinuedList, navigate }) {
                         return (
                           <TableRow key={c.id} className="border-b border-slate-100 text-xs">
                             <TableCell data-nolabel className="py-3 pl-6 font-bold text-slate-900">{c.clientName}</TableCell>
+                            <TableCell data-label="Tanggal Drop-off" className="whitespace-nowrap tabular-nums text-slate-600" data-testid={`discontinue-date-${c.id}`}>{c.dateOfDiscontinue ? fmtDate(c.dateOfDiscontinue) : "—"}</TableCell>
                             <TableCell data-label="Cabang"><BranchTag branchId={c.branchId} /></TableCell>
                             <TableCell data-label="Layanan Terakhir"><ServiceChips client={c} /></TableCell>
                             <TableCell data-label="Alasan / Catatan" className="text-rose-700 font-medium">

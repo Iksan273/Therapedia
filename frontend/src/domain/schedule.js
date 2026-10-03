@@ -17,7 +17,7 @@ export const DEFAULT_CANCEL_REASONS = [
 export const RESCHEDULE_DROPPED = "reschedule_dibatalkan";
 
 export const SYSTEM_CANCEL_REASONS = [
-  { value: RESCHEDULE_DROPPED, label: "Reschedule tidak dilanjutkan (tanpa potong kredit)" },
+  { value: RESCHEDULE_DROPPED, label: "Reschedule tidak dilanjutkan" },
 ];
 
 // Kode lama sebelum ada opsi "ketik sendiri"; tetap terbaca di data lama.
@@ -29,26 +29,43 @@ export const cancelReasonLabel = (val, list = DEFAULT_CANCEL_REASONS) => {
   return found ? found.label : LEGACY_CANCEL_LABELS[val] || val || "—";
 };
 
-// Sesi yang dibatalkan dari status "reschedule menggantung": tidak memotong kredit, tidak dihitung kuota cancel
+// Sesi yang dibatalkan dari status "reschedule menggantung" (alasan sistem). Potong kredit atau tidak tetap pilihan admin
+// seperti cancel biasa; penanda ini hanya dipakai statistik kehadiran (bukan kesalahan client).
 export const isCreditNeutralCancel = (s) => Boolean(s) && s.status === "cancelled" && s.cancelReason === RESCHEDULE_DROPPED;
 
-// Revert: sesi completed / cancelled kembali ke status sebelumnya; sesi rescheduled kembali ke slot asal.
-export const canRevertSession = (s) =>
-  Boolean(s) && (s.status === "completed" || s.status === "cancelled" || (s.status === "rescheduled" && Boolean(s.rescheduledFrom)));
+// Slot waktu sebuah sesi (dipakai untuk jejak jadwal asal reschedule)
+export const scheduleSlot = (s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId });
 
-// Status tujuan revert: reschedule → scheduled (di slot asal); lainnya `previousStatus` bila tersimpan,
-// data lama (seed) ditebak dari jejak reschedule.
+const sameSlot = (a, b) =>
+  Boolean(a) && Boolean(b) && a.date === b.date && a.startTime === b.startTime && a.endTime === b.endTime && a.therapistId === b.therapistId;
+
+// Slot TEPAT SEBELUM reschedule terakhir (`rescheduledPrev`); data lama hanya punya jadwal asal pertama (`rescheduledFrom`).
+export const getPrevSlot = (s) => s?.rescheduledPrev || s?.rescheduledFrom || null;
+
+// Revert HANYA 1x (keputusan klien): satu langkah mundur per aksi. Setelah revert, `revertedAt` terisi dan revert berikutnya
+// diblokir sampai ada transisi baru pada sesi itu (complete / cancel / reschedule / pending mengosongkan `revertedAt`).
+//   completed / cancelled → status sebelumnya; rescheduled → jadwal asal (1x reschedule) atau jadwal tersimpan terakhir
+//   (sudah 2x reschedule); reschedule_pending → status sebelumnya (jadwal asal, slot tidak berubah).
+export const canRevertSession = (s) =>
+  Boolean(s) &&
+  !s.revertedAt &&
+  (s.status === "completed" ||
+    s.status === "cancelled" ||
+    s.status === "reschedule_pending" ||
+    (s.status === "rescheduled" && Boolean(getPrevSlot(s))));
+
+// Status tujuan revert. Reschedule: `scheduled` bila kembali ke jadwal asal pertama, `rescheduled` bila kembali ke slot
+// perantara (sudah 2x reschedule). Pending: status sebelumnya (default `scheduled`). Lainnya: `previousStatus`; data lama
+// (seed) ditebak dari jejak reschedule.
 export const restoreStatusOf = (s) => {
-  if (s.status === "rescheduled") return "scheduled";
+  if (s.status === "rescheduled") return sameSlot(getPrevSlot(s), s.rescheduledFrom) ? "scheduled" : "rescheduled";
+  if (s.status === "reschedule_pending") return s.previousStatus && s.previousStatus !== s.status ? s.previousStatus : "scheduled";
   if (s.previousStatus && s.previousStatus !== s.status) return s.previousStatus;
   return s.rescheduledFrom ? "rescheduled" : "scheduled";
 };
 
-// Slot tujuan revert: reschedule → slot asal (`rescheduledFrom`); lainnya slot sesi saat ini.
-export const restoreSlotOf = (s) => (s.status === "rescheduled" && s.rescheduledFrom ? s.rescheduledFrom : scheduleSlot(s));
-
-// Slot waktu sebuah sesi (dipakai untuk jejak jadwal asal reschedule)
-export const scheduleSlot = (s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId });
+// Slot tujuan revert: reschedule → slot sebelum reschedule terakhir; lainnya slot sesi saat ini.
+export const restoreSlotOf = (s) => (s.status === "rescheduled" && getPrevSlot(s) ? getPrevSlot(s) : scheduleSlot(s));
 
 export const CALENDAR_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -125,7 +142,14 @@ export function findTherapistClashIds(schedules) {
   return ids;
 }
 
-export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayConfigs = {}) {
+// Jadwal berulang MELEWATI tanggal libur (`holidayDates` = Set yyyy-MM-dd; lihat domain/holiday.js): sesi pada tanggal itu
+// tidak dibuat dan tidak diganti.
+export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayConfigs = {}, holidayDates = null) {
+  const sessions = buildRecurringRaw(base, weeks, selectedDays, dayConfigs);
+  return holidayDates && holidayDates.size > 0 ? sessions.filter((s) => !holidayDates.has(s.date)) : sessions;
+}
+
+function buildRecurringRaw(base, weeks = 1, selectedDays = [], dayConfigs = {}) {
   const startAnchor = parseISO(base.date);
 
   if (!selectedDays || selectedDays.length === 0) {
@@ -183,9 +207,11 @@ export function buildRecurringSchedules(base, weeks = 1, selectedDays = [], dayC
   return results;
 }
 
-// Role yang boleh mengubah status sesi (complete / cancel / reschedule). Terapis hanya mengisi laporan.
-export const SCHEDULE_MANAGER_ROLES = ["master", "admin_schedule"];
-export const canManageSchedule = (role) => SCHEDULE_MANAGER_ROLES.includes(role);
+// Mengubah status sesi (complete / cancel / reschedule / revert) mengikuti AKSES MODUL (keputusan klien): role yang punya
+// akses modul `weekly_calendar` boleh semua aksi non-hapus, termasuk Manager. Terapis hanya mengisi laporan.
+// `hasPermission` = fungsi dari authStore (`roleHasPermission` di domain/rbac.js). Tanpa daftar role hardcode.
+export const SCHEDULE_ACTION_MODULE = "weekly_calendar";
+export const canManageSchedule = (hasPermission) => typeof hasPermission === "function" && Boolean(hasPermission(SCHEDULE_ACTION_MODULE));
 
 // Slot asal sesi: untuk sesi menggantung = slot saat ini; untuk sesi yang sudah dipindah = jejak tersimpan
 export const getOriginSlot = (schedule) =>
@@ -206,3 +232,43 @@ export const CLEAR_PENDING_PATCH = { pendingFrom: null, pendingAt: null, pending
 // Filter sesi berdasarkan rentang tanggal inklusif (yyyy-MM-dd). Batas kosong = tidak dibatasi.
 export const filterSessionsByDate = (sessions, from = "", to = "") =>
   sessions.filter((s) => (!from || s.date >= from) && (!to || s.date <= to));
+
+// Jumlah bagian laporan sesi yang terisi (0..3): Activity, Note, Homework.
+export const reportFilledCount = (s) => [s?.activitySection, s?.noteSection, s?.homeworkSection].filter((v) => String(v || "").trim()).length;
+
+// Laporan dianggap BELUM diisi bila ketiga bagiannya kosong (dasar View Report portal ortu & monitoring manager).
+export const isReportEmpty = (s) => reportFilledCount(s) === 0;
+
+// Sesi completed yang laporannya belum diisi (modul monitoring untuk manager; view `v_unreported_sessions`).
+export const isUnreportedSession = (s) => Boolean(s) && s.status === "completed" && isReportEmpty(s);
+
+// ---- Detail client: jadwal rutin (recurring) & jadwal aktif di kalender ----
+export const ACTIVE_SESSION_STATUSES = ["scheduled", "rescheduled", "reschedule_pending"];
+
+const WEEKDAY_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
+// Jadwal yang sedang aktif di kalender: sesi mendatang (hari ini atau setelahnya) berstatus scheduled / rescheduled /
+// reschedule_pending, urut terdekat dulu.
+export const upcomingActiveSessions = (sessions = [], today) =>
+  sessions
+    .filter((s) => ACTIVE_SESSION_STATUSES.includes(s.status) && s.date >= today)
+    .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
+
+// Jadwal rutin (recurring): pola hari + jam + terapis dari sesi aktif mendatang. Sesi bertanda recurring (seri berulang)
+// atau yang berulang >= 2x pada pola yang sama dianggap rutin. Sesi asesmen tidak dihitung.
+export function deriveRecurringRoutines(sessions = [], today) {
+  const groups = new Map();
+  upcomingActiveSessions(sessions, today)
+    .filter((s) => s.type !== "assessment" && s.status !== "reschedule_pending")
+    .forEach((s) => {
+      const weekday = new Date(`${s.date}T00:00:00`).getDay();
+      const key = `${weekday}|${s.startTime}|${s.endTime}|${s.therapistId}`;
+      const g = groups.get(key) || { weekday, day: WEEKDAY_ID[weekday], startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId, creditPackageId: s.creditPackageId, count: 0, nextDate: s.date, flagged: false };
+      g.count += 1;
+      g.flagged = g.flagged || Boolean(s.isRecurring) || String(s.recurrenceRule || "").startsWith("weekly");
+      groups.set(key, g);
+    });
+  return [...groups.values()]
+    .filter((g) => g.flagged || g.count >= 2)
+    .sort((a, b) => ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7) || a.startTime.localeCompare(b.startTime));
+}

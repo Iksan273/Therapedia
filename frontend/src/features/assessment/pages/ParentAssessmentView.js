@@ -12,6 +12,7 @@ import { BRANCHES } from "@/domain/branch";
 import { cn } from "@/shared/lib/utils";
 import { DocumentHeader } from "@/features/assessment/components/parentAssessment/DocumentHeader";
 import { ScoringLegend } from "@/features/assessment/components/parentAssessment/ScoringLegend";
+import { isScoredQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { QuadrantSummary } from "@/features/assessment/components/parentAssessment/QuadrantSummary";
 import { AssessorSheetView } from "@/features/assessment/components/parentAssessment/AssessorSheetView";
 import { ParentMatrixView } from "@/features/assessment/components/parentAssessment/ParentMatrixView";
@@ -209,14 +210,15 @@ export default function ParentAssessmentView() {
   const activeSections = useMemo(() => {
     // 1. If master data has structured sections for this category, prioritize them!
     if (masterCategory && masterCategory.sections && masterCategory.sections.length > 0) {
+      // Lembar skor hanya memuat soal bertipe skor; soal tanggal/teks/dll. tidak masuk matriks
       return masterCategory.sections.map((sec, sIdx) => ({
         id: sec.sectionId || `sec-${sIdx}`,
         domain: sec.title || sec.domain || `Domain ${sIdx + 1}`,
         title: sec.title || sec.domain || `Domain ${sIdx + 1}`,
-        leadText: sec.leadText || "Anakku ...",
-        items: (sec.questions || []).map((q, qIdx) => ({
+        leadText: sec.leadText || "",
+        items: (sec.questions || []).filter((q) => isScoredQuestionType(q.type)).map((q, qIdx) => ({
           itemNo: q.itemNo || qIdx + 1,
-          quadrant: q.quadrant || (qIdx % 4 === 0 ? "AV" : qIdx % 4 === 1 ? "SN" : qIdx % 4 === 2 ? "RG" : "SK"),
+          quadrant: q.quadrant || null,
           question: q.question,
           defaultScore: 3,
         })),
@@ -227,11 +229,12 @@ export default function ParentAssessmentView() {
     if (masterCategory && masterCategory.questions && masterCategory.questions.length > 0) {
       const groups = {};
       masterCategory.questions.forEach((q, qIdx) => {
+        if (!isScoredQuestionType(q.type)) return;
         const dom = q.domain || "Umum / Klinis";
         if (!groups[dom]) groups[dom] = [];
         groups[dom].push({
           itemNo: qIdx + 1,
-          quadrant: q.quadrant || (qIdx % 4 === 0 ? "AV" : qIdx % 4 === 1 ? "SN" : qIdx % 4 === 2 ? "RG" : "SK"),
+          quadrant: q.quadrant || null,
           question: q.question,
           defaultScore: 3,
         });
@@ -356,7 +359,7 @@ export default function ParentAssessmentView() {
             <ArrowLeft className="w-4 h-4" /> Kembali
           </Button>
           <Badge variant="outline" className="text-xs font-bold text-slate-700 bg-white border-slate-200">
-            {client.clientName} ({client.clientAccessCode})
+            {client.clientName} ({client.clientCode})
           </Badge>
         </div>
 

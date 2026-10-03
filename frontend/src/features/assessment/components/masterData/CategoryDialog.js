@@ -28,6 +28,18 @@ export function CategoryDialog({ catDialog, saveCategory, setCatDialog }) {
               />
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Kode Jenis Asesmen</Label>
+              <Input
+                placeholder="misal: SP2"
+                value={catDialog.typeCode || ""}
+                maxLength={10}
+                onChange={(e) => setCatDialog((prev) => ({ ...prev, typeCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") }))}
+                className="border-slate-200 font-mono text-xs font-bold uppercase tracking-widest"
+                data-testid="category-type-code-input"
+              />
+              <p className="text-[11px] text-slate-500">Awalan kode kuesioner (mis. SP2-K7M4QX). Huruf/angka, unik per template.</p>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Domain / Spesialisasi Klinis</Label>
               <Input
                 placeholder="misal: Sensory & Motor Functional Development"
@@ -42,7 +54,7 @@ export function CategoryDialog({ catDialog, saveCategory, setCatDialog }) {
             <Button
               variant="outline"
               className="border-slate-200 font-bold"
-              onClick={() => setCatDialog({ open: false, editingId: null, name: "", domain: "" })}
+              onClick={() => setCatDialog({ open: false, editingId: null, name: "", domain: "", typeCode: "" })}
             >
               Batal
             </Button>

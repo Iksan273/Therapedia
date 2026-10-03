@@ -5,9 +5,9 @@ import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
-import { genCode } from "@/shared/lib/id";
+import { CODE_VALIDITY_OPTIONS } from "@/domain/assessment";
 
-export function GenerateCodeDialog({ categories, clients, genDialog, handleConfirmGenerateCode, setGenDialog }) {
+export function GenerateCodeDialog({ categories, clients, genDialog, handleConfirmGenerateCode, previewCode, setGenDialog }) {
   return (
     <Dialog open={genDialog.open} onOpenChange={(open) => setGenDialog((prev) => ({ ...prev, open }))}>
         <DialogContent className="max-w-md rounded-3xl p-6 sm:p-7 border-slate-200 shadow-xl">
@@ -19,7 +19,7 @@ export function GenerateCodeDialog({ categories, clients, genDialog, handleConfi
               Terbitkan Kode Kuesioner Asesmen
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 leading-relaxed font-medium">
-              Terbitkan kode akses unik (format ASM-XXXX) agar orang tua atau pihak sekolah dapat mengisi kuesioner asesmen online tanpa perlu login.
+              Terbitkan kode akses unik (kode jenis asesmen + acak, mis. SP2-K7M4QX) agar orang tua atau pihak sekolah dapat mengisi kuesioner asesmen online tanpa perlu login.
             </DialogDescription>
           </DialogHeader>
 
@@ -36,7 +36,7 @@ export function GenerateCodeDialog({ categories, clients, genDialog, handleConfi
                 <SelectContent className="max-h-56 rounded-xl">
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                      {c.clientName} ({c.clientAccessCode}) • {c.branchId === "branch-citraland" ? "Citraland" : c.branchId === "branch-sby-barat" ? "West" : "East"}
+                      {c.clientName} ({c.clientCode}) • {c.branchId === "branch-citraland" ? "Citraland" : c.branchId === "branch-sby-barat" ? "West" : "East"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -47,7 +47,13 @@ export function GenerateCodeDialog({ categories, clients, genDialog, handleConfi
               <Label className="text-xs font-bold text-slate-700">Pilih Template Asesmen</Label>
               <Select
                 value={genDialog.selectedCategoryId}
-                onValueChange={(val) => setGenDialog((prev) => ({ ...prev, selectedCategoryId: val }))}
+                onValueChange={(val) =>
+                  setGenDialog((prev) => ({
+                    ...prev,
+                    selectedCategoryId: val,
+                    generatedCode: previewCode(categories.find((c) => c.id === val)),
+                  }))
+                }
               >
                 <SelectTrigger className="border-slate-200 text-xs font-semibold">
                   <SelectValue placeholder="Pilih Kategori..." />
@@ -63,18 +69,42 @@ export function GenerateCodeDialog({ categories, clients, genDialog, handleConfi
             </div>
 
             <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Masa Berlaku Kode</Label>
+              <Select
+                value={genDialog.validity || "none"}
+                onValueChange={(val) => setGenDialog((prev) => ({ ...prev, validity: val }))}
+              >
+                <SelectTrigger className="border-slate-200 text-xs font-semibold" data-testid="generate-code-validity">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {CODE_VALIDITY_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value} className="text-xs font-medium">
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Kode Akses Dihasilkan</Label>
               <div className="flex items-center gap-2">
                 <Input
                   value={genDialog.generatedCode}
-                  onChange={(e) => setGenDialog((prev) => ({ ...prev, generatedCode: e.target.value.toUpperCase() }))}
+                  readOnly
                   className="border-slate-200 font-mono font-black text-sm text-emerald-800 uppercase tracking-widest bg-emerald-50/50"
                 />
                 <Button
                   variant="outline"
                  
                   className="font-bold shrink-0 cursor-pointer"
-                  onClick={() => setGenDialog((prev) => ({ ...prev, generatedCode: genCode("ASM") }))}
+                  onClick={() =>
+                    setGenDialog((prev) => ({
+                      ...prev,
+                      generatedCode: previewCode(categories.find((c) => c.id === prev.selectedCategoryId)),
+                    }))
+                  }
                 >
                   Acak Ulang
                 </Button>
