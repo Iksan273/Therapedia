@@ -11,7 +11,7 @@
 | S1 | 5–9 Okt 2026 | Fondasi backend, auth, master data | Kickoff, finalisasi requirement, fondasi |
 | S2 | 12–16 Okt 2026 | Inquiry, pipeline, mesin asesmen | Login & master data, inquiry |
 | S3 | 19–23 Okt 2026 | Penjadwalan, kredit, finance | Asesmen, penjadwalan |
-| S4 | 26–30 Okt 2026 | Portal, dashboard, audit, job, deploy, **UAT-ready** | Kredit & finance |
+| S4 | 26–30 Okt 2026 | Portal, dashboard, job, deploy, **UAT-ready** | Kredit & finance |
 | S5 | 2–6 Nov 2026 | Buffer: perbaikan UAT, change request | Portal & dashboard, **UAT ronde 1** |
 | S6 | 9–13 Nov 2026 | Buffer: migrasi data, training, go-live | **UAT ronde 2**, migrasi data, training, **go-live** |
 
@@ -24,7 +24,7 @@ Dokumen ini masih level detail rencana (diperbarui 3 Okt 2026 setelah jawaban kl
 - **Yang sudah ada:** frontend prototype lengkap (React + Vite) dengan data demo di localStorage, lapisan HTTP siap API (`frontend/src/services/http`), daftar endpoint (`services/api/endpoints.js`), desain DB (`schema.md`, 34 tabel + 7 view; +1 tabel fase terakhir), dan alur per fitur (`technical_workflow.md`).
 - **Yang dikerjakan di 4 sprint:** backend Laravel 11 + MySQL 8 + Sanctum (tanpa Redis), integrasi frontend dari localStorage ke API, deploy, dan persiapan UAT.
 - **Kapasitas:** 1 developer, ±5 hari efektif per sprint (20 hari total). Estimasi kasar di bawah totalnya **±21,5 hari**, jadi target 4 sprint **ketat**; buffer S5–S6 yang menjaga komitmen ke klien.
-- **Jawaban klien (3 Okt 2026):** sudah masuk di `pertanyaan_klien.md` dan dirangkum di `docs/guide/12-keputusan-klien.md` (kode client `AE-00001`, kuesioner sekali isi, invoice paket/assessment, kuota cancel per paket, revert 1x, hapus per role, audit hanya schedule & finance, dan seterusnya). Kolom "Usulan teknis" hanya dipakai untuk butir yang belum dijawab (F1–F4, G2–G4).
+- **Jawaban klien (3 Okt 2026):** sudah masuk di `pertanyaan_klien.md` dan dirangkum di `docs/guide/12-keputusan-klien.md` (kode client `AE-00001`, kuesioner sekali isi, invoice paket/assessment, kuota cancel per paket, revert 1x, hapus per role, tanpa audit log (jejak = kolom pelaku + log khusus, ADR 0004), konversi paket Finance (ADR 0003), dan seterusnya). Kolom "Usulan teknis" hanya dipakai untuk butir yang belum dijawab (F1–F4, G2–G4).
 - **Aturan kerja yang berlaku:** `CLAUDE.md`, `frontend/CLAUDE.md`, `docs/guide/10-api-migration.md`. Setiap perubahan data diselaraskan `domain/` ↔ `schema.md` ↔ docs.
 
 ## 1. Pra-sprint (sebelum Senin 5 Okt)
@@ -48,14 +48,14 @@ Dokumen ini masih level detail rencana (diperbarui 3 Okt 2026 setelah jawaban kl
 | Area | Pekerjaan | Est. (hari) |
 |---|---|---|
 | Setup | Laravel 11, Sanctum, `.env` tanpa Redis (`CACHE/QUEUE/SESSION = database`), struktur Action per use-case, CI (lint + test), deploy otomatis ke staging | 0,5 |
-| Database | Semua migration sesuai `schema.md` §09 (34 tabel; `google_calendar_integrations` menyusul di fase terakhir), generated column WIB, CHECK constraint, 6 view dashboard, partisi + trigger append-only `audit_logs` | 1 |
+| Database | Semua migration sesuai `schema.md` §09 (34 tabel; `google_calendar_integrations` menyusul di fase terakhir), generated column WIB, CHECK constraint, 6 view dashboard, `invoice_logs`, `package_conversions` | 1 |
 | Seeder | Wajib: cabang, role, `access_modules`, `role_permissions` (dari `domain/rbac.js`), layanan, kuadran, alasan cancel/discharge, paket, akun master. Demo: konversi seed frontend | 0,5 |
-| Inti | `AuditLogger::batch()` (ULID batch), `BranchScope`, `PermissionService` + policy aksi, trait optimistic lock (`version` → 409), format error yang cocok dengan `ApiError` (422 `fieldErrors`, 409), Resource camel/snake | 1 |
+| Inti | pengisi `created_by`/`updated_by`/`deleted_by` (trait/observer sederhana), `BranchScope`, `PermissionService` + policy aksi, trait optimistic lock (`version` → 409), format error yang cocok dengan `ApiError` (422 `fieldErrors`, 409), Resource camel/snake | 1 |
 | Auth | Login staf (email + password, throttle), password sementara + wajib ganti, lupa password OTP email (queue mail), reset oleh Master; login ortu (`client_code` + tanggal lahir anak, throttle/lockout, pesan gagal generik), logout, `me` | 0,75 |
 | Master & akses | CRUD layanan, kuadran, alasan cancel/discharge, paket (+ `invoice_code`); user staf (nonaktif, 1 cabang); role & matriks RBAC + `can_delete`; hari libur | 1 |
 | Frontend | `tokenStore` + `setUnauthorizedHandler`; form login ortu tambah tanggal lahir; `masterDataStore`, `therapistsStore`, `authStore` (user/role) ke API via react-query | 0,75 |
 
-**Selesai bila:** login semua role di staging, master data CRUD tersimpan di MySQL, setiap perubahan tercatat di `audit_logs`, `npm test` + test backend hijau.
+**Selesai bila:** login semua role di staging, master data CRUD tersimpan di MySQL, kolom pelaku (`created_by`/`updated_by`) terisi, `npm test` + test backend hijau.
 
 ### Sprint 2 — Inquiry, pipeline, mesin asesmen (12–16 Okt)
 
@@ -70,7 +70,7 @@ Dokumen ini masih level detail rencana (diperbarui 3 Okt 2026 setelah jawaban kl
 | Frontend | `clientsStore`, `assessmentsStore`, `useClientOutcomeActions`, `useQuestionnaireCodeActions`, `AssessmentFill` (publik) ke API; tampilkan hasil revisi terbaru | 1,5 |
 | Test | Feature test alur pipeline (lompat tahap, tidak mundur), submit ulang kuesioner | 0,5 |
 
-**Selesai bila:** skenario "intake → jadwal asesmen → ortu isi → admit" lolos di staging, riwayat tahap dan audit tercatat.
+**Selesai bila:** skenario "intake → jadwal asesmen → ortu isi → admit" lolos di staging, riwayat tahap (`client_status_histories`) tercatat.
 
 ### Sprint 3 — Penjadwalan, kredit, finance (19–23 Okt) ⚠️ sprint terberat
 
@@ -80,16 +80,17 @@ Dokumen ini masih level detail rencana (diperbarui 3 Okt 2026 setelah jawaban kl
 |---|---|---|
 | Jadwal | CRUD sesi, seri berulang (`schedule_series`, lewati `holidays`), cek bentrok (lock, 409, `force`), sesi asesmen memajukan status client, query kalender per minggu per cabang (Q1–Q3) | 1 |
 | Aksi sesi | Complete (ledger `used`, idempotency key, FIFO paket), cancel (kuota 3 **per paket**, admin memilih potong kredit atau tidak), reschedule, tandai pending, drop pending, laporan sesi (`session_reports`) | 1,25 |
-| Revert & bulk | Revert **1x** completed/cancel/reschedule/pending (ledger `reversal`, `reverts_audit_id`, `reverted_at`, `prev_*`), bulk complete/cancel/reschedule/revert dalam satu batch | 0,75 |
+| Revert & bulk | Revert **1x** completed/cancel/reschedule/pending (ledger `reversal`, `reverted_at`, `prev_*`, `client_status_from/to`), bulk complete/cancel/reschedule/revert dalam satu batch | 0,75 |
 | Finance | Terbitkan invoice paket/assessment (nomor `INV-{KODE}-{YYYYMMDD}-{NNN}`, `invoice_counters`), upload bukti multipart (≤5 MB, JPG/PNG/PDF, re-upload ≤3x) ke storage privat, verifikasi approve/reject/void, renewal langsung (snapshot harga), aktivasi paket (`invoice_id` UNIQUE), riwayat ledger keyset (Q10) | 1 |
+| Konversi paket & log invoice | `POST invoices/{id}/convert-package` (otomatis/manual, sisa nilai ÷ harga per sesi tujuan, tanpa kekurangan; lebihan → `clients.leftover_balance` yang memotong invoice berikutnya; kuota cancel ikut pindah; hapus jadwal terapi mendatang; ledger `converted_out/in`), `package_conversions`, `invoice_logs` + `GET invoices/{id}/logs` | 1 |
 | Frontend | `schedulesStore`, `creditsStore`, `useSessionActions` (semua aksi) ke endpoint transaksional; upload bukti via `api.upload`; status invoice `pending_verification` / `rejected` / `void` di UI | 1,5 |
 | Test | Feature test kredit: complete → revert → complete lagi, penalti cancel ke-4, approve tidak dobel, konflik 409 | 0,5 |
 
-Total ±6 hari → **kelebihan ±1 hari**. Mitigasi berurutan: (1) pindahkan bulk revert dan renewal langsung ke awal S4, (2) pindahkan riwayat ledger keyset ke S4, (3) bila masih kurang, ambil dari buffer S5.
+Total ±7 hari → **kelebihan ±2 hari**. Mitigasi berurutan: (1) pindahkan konversi paket, bulk revert, dan renewal langsung ke awal S4 (S4 longgar ±0,5 hari setelah audit log dihapus), (2) pindahkan riwayat ledger keyset ke S4, (3) bila masih kurang, ambil dari buffer S5.
 
 **Selesai bila:** saldo kredit selalu cocok dengan Σ ledger pada semua skenario test; alur bayar ortu → approve Finance → kredit aktif berjalan di staging.
 
-### Sprint 4 — Portal, dashboard, audit, job, hardening, UAT-ready (26–30 Okt)
+### Sprint 4 — Portal, dashboard, job, hardening, UAT-ready (26–30 Okt)
 
 **Tujuan:** semua modul jalan di environment UAT, data UAT siap, build dibekukan Jumat.
 
@@ -97,8 +98,7 @@ Total ±6 hari → **kelebihan ±1 hari**. Mitigasi berurutan: (1) pindahkan bul
 |---|---|---|
 | Portal | Portal terapis (jadwal sendiri, summary via `v_therapist_sessions`, laporan), portal ortu (tagihan, kredit, riwayat sesi completed + laporan, kuesioner belum diisi + gating invoice assessment, export laporan harian), monitoring sesi tanpa report (`v_unreported_sessions`) | 1 |
 | Dashboard | Endpoint revenue, inquiry, schedule, branch performance, kredit dari view `v_daily_*` (filter cabang + rentang tanggal) | 0,75 |
-| Audit | List audit schedule & finance (filter, keyset), timeline per client/sesi/invoice, aksi baca sensitif (`invoice.proof_viewed`) | 0,5 |
-| Job | `credits:reconcile`, `audit:partitions`, housekeeping (+ `otp:prune`), backup harian + uji restore. Tanpa job kedaluwarsa kode/paket, pengingat invoice, atau digest sesi (keputusan klien) | 0,5 |
+| Job | `credits:reconcile`, housekeeping (+ `otp:prune`), backup harian + uji restore. Tanpa job kedaluwarsa kode/paket, pengingat invoice, atau digest sesi (keputusan klien) | 0,5 |
 | Migrasi data | Skrip konversi data lama klien ke bentuk DB kita (klien menyerahkan data menyusul; jawaban G1) | 0,5 |
 | Hardening | Rate limit, CORS, HTTPS, uji policy per role, `EXPLAIN ANALYZE` Q1–Q18 dengan ±50 ribu sesi dummy | 0,5 |
 | UAT prep | Environment UAT terpisah dari staging, akun per role, data UAT realistis, skenario uji per role (lihat §4), panduan singkat pengguna | 1 |
@@ -121,9 +121,9 @@ Total tambahan di luar Google Calendar ±5,5 hari → target 4 sprint internal *
 |---|---|---|---|
 | S1 | 5 | 5 | Pas |
 | S2 | 5 | 5 | Pas |
-| S3 | 6 | 5 | **Lebih 1 hari** |
-| S4 | 5,5 (5 tanpa migrasi data) | 5 | Ketat |
-| **Total** | **±21,5** | **20** | Buffer S5–S6 menutup selisih (sebelum tambahan di bawah) |
+| S3 | 7 | 5 | **Lebih 2 hari** |
+| S4 | 5 (4,5 tanpa migrasi data) | 5 | Ketat |
+| **Total** | **±22** | **20** | Buffer S5–S6 menutup selisih (sebelum tambahan di bawah) |
 
 ---
 
@@ -131,7 +131,7 @@ Total tambahan di luar Google Calendar ±5,5 hari → target 4 sprint internal *
 
 **Per task / fitur**
 - Endpoint sesuai `docs/guide/10-api-migration.md` dan `schema.md`; aksi lintas tabel dalam satu transaksi.
-- Setiap aksi yang mengubah data menulis `audit_logs` di transaksi yang sama.
+- Setiap aksi yang mengubah data mengisi kolom pelaku (`updated_by`/`deleted_by`); log khusus (`credit_ledger`, `invoice_logs`) ditulis di transaksi yang sama.
 - Feature test backend untuk aturan bisnis (kredit, transisi status, hak akses).
 - Frontend: interface store/hook tetap, `npm run lint` 0 error, `npm test` dan `npm run build` lolos.
 - Docs terkait diperbarui dalam perubahan yang sama.
@@ -155,7 +155,7 @@ Total tambahan di luar Google Calendar ±5,5 hari → target 4 sprint internal *
   - Admin Schedule: buat jadwal berulang → complete → cancel ke-4 (penalti) → revert → reschedule.
   - Finance: terbitkan invoice → ortu upload bukti → approve → kredit bertambah.
   - Terapis: isi laporan sesi; Ortu: lihat riwayat dan upload bukti dari HP.
-  - Master/Manager: dashboard, audit log, user & RBAC.
+  - Master/Manager: dashboard, user & RBAC.
 - **Pelaporan bug:** satu tempat (spreadsheet/issue tracker) dengan kolom role, langkah, hasil, screenshot, tingkat (Kritis / Mayor / Minor / Saran).
 - **Aturan perbaikan:** Kritis diperbaiki maksimal 1 hari kerja; Mayor di sprint yang sama; Minor dan Saran dikumpulkan, Saran fitur baru = change request.
 
@@ -167,7 +167,7 @@ Total tambahan di luar Google Calendar ±5,5 hari → target 4 sprint internal *
 | S2 (12–16 Okt) | Login asli + master data, modul inquiry | Demo + UAT bertahap: login & master data | Sprint internal 2 |
 | S3 (19–23 Okt) | Mesin asesmen + kuesioner ortu, penjadwalan | UAT bertahap: inquiry & kuesioner | Sprint internal 3 |
 | S4 (26–30 Okt) | Kredit & finance | UAT bertahap: jadwal & kredit | Sprint internal 4 (UAT-ready penuh) |
-| S5 (2–6 Nov) | Portal terapis & ortu, dashboard, audit | **UAT ronde 1 menyeluruh** semua role | Perbaikan UAT, change request kecil |
+| S5 (2–6 Nov) | Portal terapis & ortu, dashboard | **UAT ronde 1 menyeluruh** semua role | Perbaikan UAT, change request kecil |
 | S6 (9–13 Nov) | Migrasi data, training, go-live | **UAT ronde 2 (regresi)** + sign-off | Migrasi data produksi, training, go-live, hypercare |
 
 Fitur ditunjukkan ke klien selangkah di belakang progres internal, jadi tiap demo memakai fitur yang sudah stabil. Kalau internal molor, buffer ini yang dipakai tanpa mengubah janji ke klien.
@@ -202,7 +202,7 @@ Fitur ditunjukkan ke klien selangkah di belakang progres internal, jadi tiap dem
 | # | Risiko | Dampak | Mitigasi |
 |---|---|---|---|
 | R1 | Jawaban klien 🔴 terlambat | Migration berubah setelah ada kode | Pakai default `pertanyaan_klien.md` dan kunci Rabu 7 Okt; perubahan setelahnya = change request |
-| R2 | S3 kelebihan beban | S4 molor | Urutan pemindahan sudah ditetapkan (bulk revert, renewal, ledger keyset), buffer S5 |
+| R2 | S3 kelebihan beban | S4 molor | Urutan pemindahan sudah ditetapkan (konversi paket, bulk revert, renewal, ledger keyset), buffer S5 |
 | R3 | Bug kredit (saldo tidak cocok ledger) | Kepercayaan finansial | Test skenario kredit wajib, `credits:reconcile` harian, ledger append-only |
 | R4 | Server/hosting belum siap | Deploy tertunda | P3 sebelum sprint; fallback VPS sementara milik developer |
 | R5 | Penguji UAT tidak tersedia | UAT molor | PIC per role ditetapkan di P5, jadwal UAT dikirim di S3 |
@@ -230,7 +230,7 @@ Mengikuti jawaban klien (3 Okt 2026). Yang **masuk scope** sekarang (sebelumnya 
 
 | Dokumen | Isi |
 |---|---|
-| `schema.md` | Desain DB, transaksi kritis, audit, job |
+| `schema.md` | Desain DB, transaksi kritis, jejak perubahan, job |
 | `technical_workflow.md` | Alur data per fitur (F1–F25) |
 | `pertanyaan_klien.md` | Pertanyaan ke klien + jawaban + penyesuaian meeting |
 | `docs/guide/12-keputusan-klien.md` | Register keputusan klien + pelacak implementasi frontend |
