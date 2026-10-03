@@ -80,8 +80,4 @@ export const ENDPOINTS = {
     branchPerformance: "/dashboards/branch-performance",
     therapistSummary: "/dashboards/therapist-summary",
   },
-  auditLogs: {
-    list: "/audit-logs",
-    forEntity: (type, id) => `/audit-logs/${type}/${id}`,
-  },
 };

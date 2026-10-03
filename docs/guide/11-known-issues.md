@@ -25,7 +25,6 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 | N5 | Frontend lama di browser | `staffUsers`/`rolesList`/`rbacPermissions` tersimpan dan tidak ikut reset `SEED_VERSION`; akun master & flag `canDelete` memakai fallback (preset demo, default role) | Tombol Reset Demo Data / hapus localStorage bila perlu data bersih |
 | I1 | Status invoice | Prototype hanya `unpaid`/`paid`; bukti terunggah tetap `unpaid` | Diselaraskan saat integrasi (lihat 10) |
 | I2 | Bukti bayar | Disimpan dataURL di localStorage | Mudah melewati kuota ~5MB; fase API pakai upload multipart |
-| I4 | Audit | Mode demo mencatat aksi sesi (`useSessionActions`), outcome/ubah status client (`useClientOutcomeActions`), hapus invoice, dan kode kuesioner; intake, RBAC, user belum tercatat live (hanya dummy) | Backend hanya mencatat modul schedule & finance (`schema.md` §05). Frontend (`domain/audit.js`, `useClientOutcomeActions`, `useQuestionnaireCodeActions`, halaman `AuditLogs`) masih punya kategori/aksi client, asesmen, akses, master, auth: selaraskan (hapus/sembunyikan) saat integrasi API |
 
 ## Inkonsistensi data
 - `clients[].serviceType` (legacy) dan `serviceTypes[]` berdampingan → selalu `getClientServiceIds()`.

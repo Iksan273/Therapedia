@@ -41,22 +41,8 @@ Pola dashboard:
 | Route | Halaman | Aksi → `authStore` |
 |---|---|---|
 | `/master/users` | `UserManagement.js` | Tambah akun staf dengan **password sementara** (wajib ganti saat login pertama; non-master wajib 1 cabang), **reset password** oleh Master (`resetStaffPassword`), **nonaktifkan/aktifkan** staf (`setStaffActive`; tidak dihapus). Data `staffUsers` dipakai di `/login` (email + password, `domain/auth.js`). Lupa password: dialog OTP email di `/login` (`requestPasswordOtp`, `resetPasswordWithOtp`; di demo email disimulasikan, OTP tampil di layar) |
-| `/master/audit-logs`, `/manager/audit-logs` | `features/audit/pages/AuditLogs.js` | Lihat bagian F |
 | `/master/rbac` | `RoleModuleAccess.js` | Matriks role × modul (`updateRolePermission`) + baris **"Boleh menghapus data"** per role (`setRoleCanDelete`; tombol hapus di semua modul hanya tampil bila role punya flag + akses modul), tambah/ubah/hapus role kustom (`addRole`, `updateRole`, `deleteRole`). Role sistem (`isSystem`) tidak bisa dihapus |
 
-## F. Audit Logs (`/master/audit-logs`, `/manager/audit-logs`, modul RBAC `audit_logs`)
-Jejak seluruh aksi perubahan data. Default akses: **master & manager** (ubah di `/master/rbac`; role kustom bisa diberi modul ini).
-
-| Bagian | Isi |
-|---|---|
-| Data | `stores/auditStore.js` (key `audit_logs`, append-only, maks. 2000 entri). Dummy dibuat `data/auditSeed.js` dari seed lain: sesi completed/cancel/reschedule/pending, laporan sesi, invoice & verifikasi, intake/admit/discharge, kuesioner ortu, login, login gagal, aksi global Master, serta contoh **completed lalu dibatalkan** & **cancel yang ditarik kembali** per cabang (45 hari terakhir) |
-| Pencatatan aksi nyata (demo) | `useAuditLogger().record()` (`features/audit`) dipanggil `useSessionActions` (complete, cancel, reschedule, pending, drop, laporan, bulk, hapus sesi), `useClientOutcomeActions` (admit, done, discontinue, ubah status) dan penghapusan invoice. Backend hanya mencatat modul schedule & finance (`schema.md` §05). Satu aksi user = satu `batchId` |
-| Per cabang | Pola `defaultBranch`: manager terkunci ke cabangnya (log global tidak terlihat); master bisa pilih cabang / semua (termasuk log global tanpa cabang). `auditInBranch` di `domain/audit.js` |
-| Filter (di URL) | pencarian (pelaku/objek/alasan), cabang, periode (default 7 hari), kategori (`AUDIT_CATEGORIES`), role pelaku |
-| Tampilan | 4 StatCard (total, dibatalkan, berisiko, pelaku aktif), tabel (stack di mobile) dengan badge aksi per tone, penanda "Sudah dibatalkan"/"Membatalkan aksi"/"batch", ringkasan perubahan lama → baru |
-| Detail | `AuditDetailSheet`: pelaku, objek, client, alasan, tabel perubahan, meta, rantai pembatalan (lompat ke log asal/pembatal), entri lain dalam batch, IP & perangkat |
-| Katalog aksi | `AUDIT_ACTIONS` di `domain/audit.js` (selaras `schema.md` §05.4) |
-| Fase API | Store diganti `GET ENDPOINTS.auditLogs.list` (keyset); `useAuditLogger` tidak dipakai lagi karena backend menulis `audit_logs` di transaksi yang sama |
 
 ## E. Halaman publik / pendukung
 | Route | Halaman |

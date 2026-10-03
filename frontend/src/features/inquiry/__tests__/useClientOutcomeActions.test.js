@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Reaktivasi client discharged/discontinued: kembali Active, data discharge bersih, kredit tersedia, tercatat di audit.
+// Reaktivasi client discharged/discontinued: kembali Active, data discharge bersih, kredit tersedia.
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import AppProviders from "@/app/providers/AppProviders";
@@ -7,13 +7,12 @@ import { ensureSeedsIfNeeded } from "@/data/seedRegistry";
 import { useClientOutcomeActions } from "@/features/inquiry";
 import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
-import { useAudit } from "@/stores/auditStore";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let ctx;
 function Probe() {
-  ctx = { actions: useClientOutcomeActions(), clients: useClients(), credits: useCredits(), audit: useAudit() };
+  ctx = { actions: useClientOutcomeActions(), clients: useClients(), credits: useCredits() };
   return null;
 }
 
@@ -40,12 +39,11 @@ test.each(["discharged", "discontinued"])("reactivate client %s menjadi Active",
   expect(ctx.credits.getRecordForClient(client.id)).toBeTruthy();
 });
 
-test("discharge dari pipeline: status discharged, tanggal & alasan tersimpan, tercatat di audit", async () => {
+test("discharge dari pipeline: status discharged, tanggal & alasan tersimpan", async () => {
   const client = ctx.clients.clients.find((c) => c.status === "admitted");
   await act(async () => ctx.actions.discharge(client, " moving ", "  catatan "));
 
   const after = ctx.clients.getClient(client.id);
   expect(after).toMatchObject({ status: "discharged", dischargeReason: "moving", dischargeNote: "catatan" });
   expect(after.dateOfDischarge).toBeTruthy();
-  expect(ctx.audit.auditLogs.some((l) => l.action === "client.discharged" && l.entityId === client.id)).toBe(true);
 });

@@ -37,13 +37,13 @@ stateDiagram-v2
 - **Bulk action** (pilih banyak chip) lewat `useSessionActions`:
   - Complete → `bulkComplete(ids)`: aturan sama dengan complete tunggal (kredit therapy −1 per sesi, idempoten; asesmen memajukan pipeline).
   - Reschedule → `bulkReschedule(itemsMap)`: geser N hari / ke tanggal tertentu / ganti terapis; jejak `rescheduledFrom` memakai `getOriginSlot`.
-  - Revert → `bulkRevert(ids, { reason })` (tombol Bulk Revert + `BulkRevertDialog`): membatalkan completed / cancelled / rescheduled / pending sekaligus dengan satu alasan wajib; aturan sama dengan revert tunggal (hanya 1x per sesi). Sesi status lain, yang sudah di-revert, dan yang slot-nya sudah terisi dilewati dan dilaporkan; satu batch audit (`schedule.bulk_reverted`).
+  - Revert → `bulkRevert(ids, { reason })` (tombol Bulk Revert + `BulkRevertDialog`): membatalkan completed / cancelled / rescheduled / pending sekaligus dengan satu alasan wajib; aturan sama dengan revert tunggal (hanya 1x per sesi). Sesi status lain, yang sudah di-revert, dan yang slot-nya sudah terisi dilewati dan dilaporkan.
   - Cancel → `bulkCancel(ids, { mode, note, deductCredit })`: `mode` hanya menentukan alasan (`leave` = `izin_keluarga`, `other` = `lainnya`). Admin **wajib memilih** potong kredit atau tidak (berlaku untuk seluruh sesi terpilih; tanpa pilihan ditolak).
   - Bulk Reschedule melewati/menolak tanggal tujuan yang hari libur.
 
 ### Tambah jadwal: `features/schedule/components/calendar/AddScheduleModal.js`
 - **Tanpa pilih service**: `serviceType` diturunkan dari layanan client (`getClientServiceIds`), tidak ada dropdown layanan (juga tidak per hari).
-- Mode **single**: satu sesi. `type` = `assessment` (tanpa paket kredit) atau `therapy` (pakai `creditPackageId`). Pembuatan lewat `useSessionActions.createSessions`; sesi `assessment` otomatis memajukan client `inquiry/service_selected` → `assessment_scheduled` (audit `client.status_changed`). **Tanggal libur** ditolak (toast + peringatan di bawah pemilih tanggal).
+- Mode **single**: satu sesi. `type` = `assessment` (tanpa paket kredit) atau `therapy` (pakai `creditPackageId`). Pembuatan lewat `useSessionActions.createSessions`; sesi `assessment` otomatis memajukan client `inquiry/service_selected` → `assessment_scheduled`. **Tanggal libur** ditolak (toast + peringatan di bawah pemilih tanggal).
 - Mode **multi-day pattern** (therapy saja): pilih hari (Senin–Sabtu). Tiap hari bisa punya jam, terapis, dan paket sendiri (`dayConfigs`). Jika recurring, berlaku N minggu (default 12).
   → `buildRecurringSchedules(base, weeks, selectedDays, dayConfigs, holidayDates)` di `domain/schedule.js` **melewati tanggal libur** (`holidayDateSet`, `domain/holiday.js`) → `addSchedules(list)`.
 - **Conflict check**: `checkConflicts({...})` (`domain/schedule.js`). Tidak ada konsep jam kerja terapis: bentrok = terapis yang sama sudah handle client lain (overlap jam, tanggal sama; mengabaikan `cancelled` & `reschedule_pending`). Kalender mingguan menandai sesi bentrok (chip merah + ikon) lewat `findTherapistClashIds`. Pembuatan jadwal hanya **warning**; admin tetap bisa "Schedule Anyway".
@@ -59,8 +59,8 @@ Handler di komponen hanya validasi UI + toast; perubahan data lewat `useSessionA
 | Reschedule | akses `weekly_calendar` | `rescheduleSession` | wajib beda slot, **tidak boleh bentrok** dan **tidak boleh di tanggal libur** (diblokir komponen) → status `rescheduled`, `rescheduledFrom` (jadwal asal pertama), `rescheduledPrev` (slot tepat sebelum pemindahan ini), `revertedAt = null`. Netral kredit |
 | Tandai pending | akses `weekly_calendar` | `markPending` | status `reschedule_pending` + `pendingFrom/At/Reason/Note`, `previousStatus`. Netral kredit |
 | Drop pending | akses `weekly_calendar` | `dropPending(schedule, { note, deductCredit })` | = cancel sesi menggantung: status `cancelled`, `cancelReason = RESCHEDULE_DROPPED`; admin **wajib memilih** potong kredit atau tidak (dan masuk penghitung kuota paket) |
-| Revert (completed/cancel/reschedule/pending) | akses `weekly_calendar` | `revertSession` (+ `previewRevert`) | **Hanya 1x**: `RevertSessionPanel` memblokir/menyembunyikan tombol bila `revertedAt` terisi (`canRevertSession`); transisi baru mengosongkan `revertedAt`. Completed/cancel: status kembali ke `previousStatus`; diblokir bila slot sudah terisi. **Reschedule**: kembali ke `rescheduledPrev` (reschedule 1x = jadwal asal berstatus `scheduled`; sudah 2x = jadwal tersimpan terakhir, tetap `rescheduled`). **Pending**: kembali ke status sebelumnya di jadwal asal. Kredit: baris `reversal` di history (`applySessionReverted`), kuota paket dikoreksi; asesmen completed mengembalikan tahap client. Audit `schedule.completion_reverted` / `cancellation_reverted` / `reschedule_reverted` / `pending_reverted` (+ `credit.reversed`), `revertsAuditId` menunjuk log asal |
-| Hapus sesi | role `canDelete` + akses modul | `deleteSession` | soft delete (`deletedAt/deletedBy`); sesi `completed` harus di-revert dulu. Audit `schedule.deleted` |
+| Revert (completed/cancel/reschedule/pending) | akses `weekly_calendar` | `revertSession` (+ `previewRevert`) | **Hanya 1x**: `RevertSessionPanel` memblokir/menyembunyikan tombol bila `revertedAt` terisi (`canRevertSession`); transisi baru mengosongkan `revertedAt`. Completed/cancel: status kembali ke `previousStatus`; diblokir bila slot sudah terisi. **Reschedule**: kembali ke `rescheduledPrev` (reschedule 1x = jadwal asal berstatus `scheduled`; sudah 2x = jadwal tersimpan terakhir, tetap `rescheduled`). **Pending**: kembali ke status sebelumnya di jadwal asal. Kredit: baris `reversal` di history (`applySessionReverted`), kuota paket dikoreksi; asesmen completed mengembalikan tahap client. Kredit dibalik lewat baris `reversal` di ledger; status client otomatis dipulihkan dari `clientStatusFrom` pada sesi asesmen |
+| Hapus sesi | role `canDelete` + akses modul | `deleteSession` | soft delete (`deletedAt/deletedBy`); sesi `completed` harus di-revert dulu. Pelaku di `deletedBy` |
 
 ## Aturan kredit (`frontend/src/domain/credit.js`, dipakai reducer `stores/creditsStore.js`)
 | Fungsi domain (aksi reducer) | Kapan | Aturan |
@@ -72,7 +72,7 @@ Handler di komponen hanya validasi UI + toast; perubahan data lewat `useSessionA
 
 - Kuota cancel = **`CANCEL_QUOTA` = 3 per paket** (`packages[].cancelCount`). Ringkasan UI: `summarizeCreditRecord` → `cancelCount` / `cancelQuota` dari paket yang sedang dipakai (`activePackageOf`). **Hanya penghitung**: setelah kuota lewat UI memberi peringatan, potong kredit tetap keputusan admin di tiap cancel.
 - **Frozen**: total `remainingCredit` = 0. Sesi tetap bisa dibuat (tidak diblokir), tetapi ditandai di kalender dan detail client. Kredit ditambah lewat Finance (06).
-- Backend: `POST /schedules/{id}/revert`, reversal ledger + audit — lihat `schema.md` §06.2–§06.3.
+- Backend: `POST /schedules/{id}/revert`, reversal ledger — lihat `schema.md` §06.2–§06.3.
 - Semua aturan di atas ber-test: `frontend/src/domain/__tests__/credit.test.js`, regresi hook di `features/schedule/__tests__/useSessionActions.test.js`.
 
 ## Active Clients: `/admin-schedule/clients`
@@ -100,7 +100,7 @@ completeSession():  updateSchedule(...)  →  spendPackageCredit(...)  →  upda
 cancelSession():    updateSchedule(...)  →  handleScheduleCancellation({ deductCredit })
 bulkComplete():     applyCompletionEffects(per sesi)  →  updateSchedulesMany(ids, completed)
 ```
-`usePackageConversionActions` (finance, lihat 06) memakai pola yang sama: `convertPackage` (kredit) → `deleteSchedules` (semua jadwal terapi mendatang client) → audit `invoice.package_converted`.
+`usePackageConversionActions` (finance, lihat 06) memakai pola yang sama: `convertPackage` (kredit) → `deleteSchedules` (semua jadwal terapi mendatang client) (pelaku di `deletedBy`; konversi tercatat di log invoice).
 Saat migrasi API, setiap fungsi ini menjadi **satu request ke endpoint transaksional** (`ENDPOINTS.schedules.complete(id)` dst., lihat 10); komponen tidak berubah.
 
 ## File terkait

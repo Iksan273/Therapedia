@@ -1,6 +1,6 @@
 ---
 name: database-design
-description: Desain database MySQL 8 + Laravel 11 untuk Therapedia — penamaan, tipe data, indeks komposit berbasis query, ledger kredit append-only, optimistic locking, audit log, partisi, dan tabel ringkasan dashboard. Pakai saat menambah/mengubah tabel atau kolom, menulis migration, mendesain query/indeks, membahas performa DB, atau memperbarui schema.md.
+description: Desain database MySQL 8 + Laravel 11 untuk Therapedia — penamaan, tipe data, indeks komposit berbasis query, ledger kredit append-only, optimistic locking, jejak perubahan, partisi, dan tabel ringkasan dashboard. Pakai saat menambah/mengubah tabel atau kolom, menulis migration, mendesain query/indeks, membahas performa DB, atau memperbarui schema.md.
 ---
 
 # Database Design — Therapedia (MySQL 8 · Laravel 11)
@@ -14,7 +14,7 @@ Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolo
 3. **Normalisasi sampai 3NF**, lalu **denormalisasi terukur** hanya untuk hot path (saldo kredit, counter cancel) — selalu dengan sumber kebenaran (ledger) + job rekonsiliasi.
 4. **Desain indeks dari query** (bukan dari kolom). Kolom equality dulu, lalu range, lalu kolom sort; pertimbangkan covering index.
 5. **Tentukan aturan integritas**: FK, unique, check, idempotency key, `version`.
-6. **Tentukan audit**: kode aksi `entity.verb`, field yang dicatat, dan pasangan aksi pembatalan.
+6. **Tentukan jejak**: tidak ada audit log (ADR 0004). Pakai `created_by`/`updated_by`/`deleted_by`; bila aksi butuh riwayat sendiri, buat log khusus append-only (contoh `invoice_logs`, `credit_ledger`).
 7. **Tulis migration** sesuai urutan dependensi; update `schema.md`.
 
 ## 2. Konvensi
@@ -25,15 +25,15 @@ Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolo
 | Nama tabel | snake_case jamak (`client_packages`); pivot = dua nama tunggal urut alfabet (`client_service`) kecuali butuh kolom tambahan |
 | PK | `id BIGINT UNSIGNED AUTO_INCREMENT` (`$table->id()`); lookup table boleh PK `code VARCHAR` |
 | FK | `<entity>_id`, `constrained()`; `restrictOnDelete()` untuk data bisnis, `cascadeOnDelete()` hanya untuk anak murni (detail jawaban, section soal) |
-| Waktu | `DATETIME` UTC via `timestamps()`; tanggal kalender `DATE`; slot jam `TIME`; presisi audit `DATETIME(6)` |
+| Waktu | `DATETIME` UTC via `timestamps()`; tanggal kalender `DATE`; slot jam `TIME`; presisi log `DATETIME(3)` |
 | Uang | `BIGINT UNSIGNED` dalam **rupiah utuh** (tanpa desimal). Jangan `FLOAT`/`DOUBLE` |
 | Boolean | `TINYINT(1)` via `boolean()` dengan prefix `is_`/`has_` |
 | Status siklus hidup tetap | `ENUM` (hemat, cepat). Tambah nilai **di akhir** (ALTER instan MySQL 8) |
 | Daftar yang bisa diedit user (alasan, layanan, kuadran) | **Lookup table** dengan PK `code` |
-| Soft delete | Hanya entity bisnis yang bisa "dihapus" user (clients, users, master). **Tidak** untuk ledger & audit |
+| Soft delete | Hanya entity bisnis yang bisa "dihapus" user (clients, users, master). **Tidak** untuk ledger & log |
 | Optimistic lock | Kolom `version INT UNSIGNED DEFAULT 1` pada entity yang bisa diedit bersamaan (clients, schedules, invoices, client_packages). `UPDATE … WHERE id=? AND version=?` → 0 baris = HTTP 409 |
 | Jejak pelaku | `created_by`, `updated_by` (FK users, nullable) pada tabel transaksi |
-| JSON | Hanya untuk data yang tidak difilter (opsi soal, snapshot audit). Jika perlu difilter → generated column + indeks |
+| JSON | Hanya untuk data yang tidak difilter (opsi soal, snapshot log). Jika perlu difilter → generated column + indeks |
 | Snapshot | Simpan nama/harga saat transaksi (`package_name`, `amount`) agar histori tidak berubah saat master diedit |
 
 ## 3. Pola penting
@@ -44,12 +44,9 @@ Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolo
 - Idempotensi: `idempotency_key` UNIQUE (mis. `used:schedule:{id}:v{version}`) mencegah potong ganda.
 - Job harian rekonsiliasi: `SUM(credit_change)` per paket = `remaining_credit`.
 
-### Audit log
-- Satu tabel `audit_logs` append-only, ditulis **di transaksi yang sama** oleh service `AuditLogger` (bukan hanya model observer — observer tidak tahu konteks "alasan" & batch).
-- Kolom inti: `occurred_at`, `actor_*` (snapshot), `action` (`schedule.completed`), `entity_type/id`, `subject_type/id` (induk, mis. client), `old_values`/`new_values` (hanya field berubah), `reason`, `batch_id` (1 aksi user = 1 batch), `reverts_audit_id` (untuk undo), `request_id`, `ip`, `user_agent`.
-- Undo/pembatalan **tidak** mengedit log lama; buat log baru `*.reverted` yang menunjuk log asal.
-- Partisi `RANGE` bulanan pada `occurred_at` (PK `(id, occurred_at)`, tanpa FK) + arsip partisi lama.
-- Proteksi: user DB aplikasi hanya `INSERT, SELECT` pada `audit_logs` (atau trigger yang menolak UPDATE/DELETE).
+### Jejak perubahan (tanpa audit log)
+- Tidak ada tabel `audit_logs` (ADR 0004). Semua tabel transaksi/master: `created_by`, `updated_by` (editor terakhir), dan `deleted_by` bila ada soft delete.
+- Log khusus append-only hanya bila dibutuhkan logika/UI: `credit_ledger` (undo = baris `reversal`), `client_status_histories`, `invoice_logs`, `package_conversions`. Ditulis di transaksi yang sama dengan perubahan datanya.
 
 ### Konflik jadwal
 - Tidak bisa dijamin oleh UNIQUE (overlap rentang). Backend: transaksi + `SELECT … FOR UPDATE` pada sesi terapis di tanggal itu, cek overlap, lalu insert.
@@ -63,11 +60,11 @@ Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolo
 
 ### Job terjadwal
 - Daftar & tujuan job ada di `schema.md` §11 (Laravel Scheduler, satu cron `schedule:run`).
-- Job: idempoten, `withoutOverlapping()->onOneServer()`, `chunkById`, transaksi per batch, audit `actor_type = system`.
+- Job: idempoten, `withoutOverlapping()->onOneServer()`, `chunkById`, transaksi per batch; ringkasan run ke log aplikasi.
 - Jangan membuat job untuk data yang bisa dihitung live dengan indeks (frozen, birthday, dashboard).
 
 ### Pagination
-- List besar (audit, ledger, schedules history) memakai **keyset pagination** (`WHERE (occurred_at, id) < (?, ?) ORDER BY occurred_at DESC, id DESC LIMIT 50`), bukan OFFSET.
+- List besar (ledger, invoice_logs, schedules history) memakai **keyset pagination** (`WHERE (occurred_at, id) < (?, ?) ORDER BY occurred_at DESC, id DESC LIMIT 50`), bukan OFFSET.
 
 ## 4. Checklist indeks
 
@@ -111,6 +108,6 @@ Schema::create('schedules', function (Blueprint $table) {
 
 ## 7. Output yang diharapkan
 1. Tabel/kolom/indeks baru dengan alasan per indeks (query yang dilayani).
-2. Kode aksi audit untuk setiap perubahan data penting + pasangan undo.
+2. Kolom pelaku (`created_by`/`updated_by`/`deleted_by`) dan log khusus bila perlu.
 3. Update `schema.md` (spesifikasi, ERD mermaid, urutan migration) dan mapping frontend ↔ DB.
 4. Catatan risiko: lock, pertumbuhan data, kebutuhan job rekonsiliasi/arsip.

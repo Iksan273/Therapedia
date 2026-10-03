@@ -123,7 +123,7 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                               iconOnly
                               label={`Hapus invoice ${inv.invoiceNumber}`}
                               title={`Hapus invoice ${inv.invoiceNumber}?`}
-                              description="Invoice disembunyikan (soft delete) dan tercatat di audit. Invoice yang sudah lunas keluar dari omzet, tetapi paket dan kredit client tidak berubah (koreksi saldo lewat penyesuaian manual)."
+                              description="Invoice disembunyikan (soft delete) dan tercatat di log invoice. Invoice yang sudah lunas keluar dari omzet, tetapi paket dan kredit client tidak berubah (koreksi saldo lewat penyesuaian manual)."
                               onConfirm={() => onDeleteInvoice?.(inv)}
                               testId={`delete-invoice-${inv.id}`}
                             />

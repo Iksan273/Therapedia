@@ -27,7 +27,7 @@ Jalur pintas: **Renewal langsung** (`renewClientCredit`) membuat invoice `paid` 
 | Tab | Komponen | Isi / aksi |
 |---|---|---|
 | `verification` | `VerificationTab.js` | Antrean semua invoice yang belum `paid` (`pendingInvoices`, dengan atau tanpa bukti). Lihat bukti (`shared/components/PaymentProofViewerModal.js`, mendukung gambar/PDF), lalu Approve (`handleApprovePayment`) atau Reject (`handleRejectPayment`) |
-| `billing` | `BillingTab.js` + `CreateInvoiceDialog.js` + `RenewalDialog.js` | Daftar invoice (badge jenis). Terbitkan invoice: pilih **jenis** Paket Sesi (pilih paket) atau Assessment (nominal bebas, tanpa paket) → `issueInvoice`. Renewal langsung (`renewClientCredit`). Tombol hapus invoice (juga di antrean `verification`; hanya role `canDelete`, soft delete + audit `invoice.deleted`). Kolom **Aksi**: **Log** (`InvoiceLogDialog`, log milik invoice) dan **Konversi** (`ConvertPackageDialog`, hanya invoice paket lunas yang paketnya masih punya sisa sesi) |
+| `billing` | `BillingTab.js` + `CreateInvoiceDialog.js` + `RenewalDialog.js` | Daftar invoice (badge jenis). Terbitkan invoice: pilih **jenis** Paket Sesi (pilih paket) atau Assessment (nominal bebas, tanpa paket) → `issueInvoice`. Renewal langsung (`renewClientCredit`). Tombol hapus invoice (juga di antrean `verification`; hanya role `canDelete`, soft delete + log invoice `deleted`). Kolom **Aksi**: **Log** (`InvoiceLogDialog`, log milik invoice) dan **Konversi** (`ConvertPackageDialog`, hanya invoice paket lunas yang paketnya masih punya sisa sesi) |
 | `history` | `HistoryTab.js` | Gabungan semua `records[].history` dari semua client, diurutkan berdasarkan tanggal, dengan pagination 10 |
 | `packages` | `PackagesTab.js` + `NewPackageDialog.js` | Master paket (`masterPackages`). Tambah paket (`addMasterPackage`) dengan **kode paket** (`invoiceCode`, unik, `ASM` dicadangkan) untuk nomor invoice. **Belum ada** edit/hapus |
 
@@ -49,7 +49,7 @@ Jalur pintas: **Renewal langsung** (`renewClientCredit`) membuat invoice `paid` 
 - Metode bayar = teks bebas (renewal tunai oleh Finance). Void/renewal/koreksi saldo mengikuti akses modul `finance`.
 
 ## Konversi paket (Finance)
-Contoh: sisa sesi paket **Senior** dikonversi ke **Regular**. Dari tab `billing` → tombol **Konversi** pada invoice paket lunas. Hook use-case: `features/finance/hooks/usePackageConversionActions.js` (store kredit + jadwal + audit).
+Contoh: sisa sesi paket **Senior** dikonversi ke **Regular**. Dari tab `billing` → tombol **Konversi** pada invoice paket lunas. Hook use-case: `features/finance/hooks/usePackageConversionActions.js` (store kredit + jadwal).
 - **Yang dikonversi = paket kredit client**, bukan invoice. Nominal invoice asal tidak berubah; invoice hanya mendapat baris log `converted`.
 - **Otomatis (default)**: `nilai sisa = sisa sesi × (harga bayar paket asal ÷ total kredit)`; `sesi baru = floor(nilai sisa ÷ harga per sesi paket tujuan)`; `lebihan = nilai sisa − sesi baru × harga per sesi tujuan` (`computePackageConversion`).
 - **Manual**: Finance mengisi jumlah sesi, **alasan wajib**. Jumlah sesi **tidak boleh melebihi** hasil otomatis (tidak boleh ada kekurangan bayar); boleh lebih sedikit (lebihan membesar). Konversi ke paket yang nilainya tidak cukup untuk 1 sesi ditolak.
@@ -58,10 +58,10 @@ Contoh: sisa sesi paket **Senior** dikonversi ke **Regular**. Dari tab `billing`
 - **Semua jadwal terapi mendatang client dihapus** (`scheduled`/`reschedule_pending`, soft delete) agar admin schedule menjadwalkan ulang sesuai paket & terapis baru; sesi riwayat (completed/cancelled/rescheduled) dan asesmen tidak disentuh. Dialog menampilkan jumlah jadwal yang akan terhapus.
 - Ledger: `converted_out` (−sisa, paket lama berstatus `converted`) + `converted_in` (+sesi, paket baru) berbagi `conversionId` (tab Riwayat: "Konversi Keluar/Masuk"). Paket hasil konversi tidak punya `invoiceId` sendiri tetapi tetap bisa dikonversi lagi dari invoice asal (`resolveInvoicePackage` mengikuti rantai `convertedToId`).
 - **Tanpa revert** (jadwal yang dihapus tidak dipulihkan otomatis); koreksi lewat konversi ulang / penyesuaian manual.
-- Audit: `invoice.package_converted` (+ `schedule.deleted` per sesi). Akses: modul `finance` (bukan `canDelete`).
+- Jejak: log invoice `converted` + `package_conversions` + ledger; jadwal yang dihapus menyimpan `deletedBy`. Akses: modul `finance` (bukan `canDelete`).
 
 ## Log invoice
-Setiap invoice punya **log sendiri** (`invoice.logs`, append-only, `appendInvoiceLog`) — **bukan** diambil dari audit log. Diisi reducer `creditsStore` pada: terbit (`issued`), upload bukti (`proof_uploaded`), verifikasi (`verified`/`rejected`), renewal langsung (`renewal_paid`), pemakaian/pengembalian saldo, konversi (`converted`, memuat mode, alasan, sisa, sesi baru, lebihan), dan hapus (`deleted`). Tampil di tombol **Log** (terbaru di atas). Invoice dari seed lama tanpa log menampilkan baris dasar (terbit, lunas). Audit log tetap mencatat aksi finance untuk pengawasan lintas modul.
+Setiap invoice punya **log sendiri** (`invoice.logs`, append-only, `appendInvoiceLog`) — satu-satunya jejak per invoice (tidak ada audit log). Diisi reducer `creditsStore` pada: terbit (`issued`), upload bukti (`proof_uploaded`), verifikasi (`verified`/`rejected`), renewal langsung (`renewal_paid`), pemakaian/pengembalian saldo, konversi (`converted`, memuat mode, alasan, sisa, sesi baru, lebihan), dan hapus (`deleted`). Tampil di tombol **Log** (terbaru di atas). Invoice dari seed lama tanpa log menampilkan baris dasar (terbit, lunas).
 
 ## Revenue
 `features/master/pages/DashboardRevenue.js` (Master: `/master/revenue`, Manager: `/manager/revenue`) menghitung omzet dari `invoices` berstatus `paid` per cabang/periode (lihat 07).

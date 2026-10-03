@@ -19,7 +19,7 @@ src/
   shared/         ui/ (shadcn) · components/ · hooks/ · lib/ · constants/testIds/
   config/env.js   data/ (seed demo)
 ```
-Modul feature: `auth`, `landing`, `inquiry`, `assessment`, `schedule`, `finance`, `therapist`, `parent`, `master`, `audit`.
+Modul feature: `auth`, `landing`, `inquiry`, `assessment`, `schedule`, `finance`, `therapist`, `parent`, `master`.
 
 ## 2. Pola per lapisan
 
@@ -66,7 +66,7 @@ export function useSessionActions() {
 - Aturan: aksi yang menyentuh >1 store **wajib** lewat hook use-case. Aksi 1 store boleh langsung.
 - Hook mengembalikan hasil; **toast/navigate tetap di komponen**.
 - Contoh yang ada: `useSessionActions` (schedule), `useClientOutcomeActions` (inquiry).
-- Aksi penting dicatat ke audit: `const { record } = useAuditLogger()` (dari `@/features/audit`), satu `record([...])` per aksi user agar berbagi `batchId`.
+- Tidak ada audit log (ADR 0004). Invoice mencatat riwayat sendiri lewat `appendInvoiceLog` di reducer `creditsStore` (kirim `by` dari `auth`).
 
 ### Halaman & komponen
 - Halaman (`pages/`) = state UI + handler + memanggil hook/store. Sub-komponen (`components/`) = presentational via props.

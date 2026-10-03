@@ -380,7 +380,7 @@ export function applyBalanceToAmount(balance, gross) {
   return { gross: amount, applied, net: amount - applied, balanceAfter: available - applied };
 }
 
-// ---- Log invoice (milik invoice sendiri, append-only; bukan dari audit log) ----
+// ---- Log invoice (milik invoice sendiri, append-only) ----
 export const INVOICE_LOG_ACTIONS = {
   issued: { label: "Invoice diterbitkan", tone: "info" },
   proof_uploaded: { label: "Bukti bayar diunggah", tone: "info" },

@@ -21,7 +21,7 @@ Dokumen ini masih level detail rencana (diperbarui 3 Okt 2026 setelah jawaban kl
 
 ## 0. Konteks & asumsi
 
-- **Yang sudah ada:** frontend prototype lengkap (React + Vite) dengan data demo di localStorage, lapisan HTTP siap API (`frontend/src/services/http`), daftar endpoint (`services/api/endpoints.js`), desain DB (`schema.md`, 35 tabel + 7 view; +1 tabel fase terakhir), dan alur per fitur (`technical_workflow.md`).
+- **Yang sudah ada:** frontend prototype lengkap (React + Vite) dengan data demo di localStorage, lapisan HTTP siap API (`frontend/src/services/http`), daftar endpoint (`services/api/endpoints.js`), desain DB (`schema.md`, 34 tabel + 7 view; +1 tabel fase terakhir), dan alur per fitur (`technical_workflow.md`).
 - **Yang dikerjakan di 4 sprint:** backend Laravel 11 + MySQL 8 + Sanctum (tanpa Redis), integrasi frontend dari localStorage ke API, deploy, dan persiapan UAT.
 - **Kapasitas:** 1 developer, ±5 hari efektif per sprint (20 hari total). Estimasi kasar di bawah totalnya **±21,5 hari**, jadi target 4 sprint **ketat**; buffer S5–S6 yang menjaga komitmen ke klien.
 - **Jawaban klien (3 Okt 2026):** sudah masuk di `pertanyaan_klien.md` dan dirangkum di `docs/guide/12-keputusan-klien.md` (kode client `AE-00001`, kuesioner sekali isi, invoice paket/assessment, kuota cancel per paket, revert 1x, hapus per role, audit hanya schedule & finance, dan seterusnya). Kolom "Usulan teknis" hanya dipakai untuk butir yang belum dijawab (F1–F4, G2–G4).
@@ -48,7 +48,7 @@ Dokumen ini masih level detail rencana (diperbarui 3 Okt 2026 setelah jawaban kl
 | Area | Pekerjaan | Est. (hari) |
 |---|---|---|
 | Setup | Laravel 11, Sanctum, `.env` tanpa Redis (`CACHE/QUEUE/SESSION = database`), struktur Action per use-case, CI (lint + test), deploy otomatis ke staging | 0,5 |
-| Database | Semua migration sesuai `schema.md` §09 (35 tabel; `google_calendar_integrations` menyusul di fase terakhir), generated column WIB, CHECK constraint, 6 view dashboard, partisi + trigger append-only `audit_logs` | 1 |
+| Database | Semua migration sesuai `schema.md` §09 (34 tabel; `google_calendar_integrations` menyusul di fase terakhir), generated column WIB, CHECK constraint, 6 view dashboard, partisi + trigger append-only `audit_logs` | 1 |
 | Seeder | Wajib: cabang, role, `access_modules`, `role_permissions` (dari `domain/rbac.js`), layanan, kuadran, alasan cancel/discharge, paket, akun master. Demo: konversi seed frontend | 0,5 |
 | Inti | `AuditLogger::batch()` (ULID batch), `BranchScope`, `PermissionService` + policy aksi, trait optimistic lock (`version` → 409), format error yang cocok dengan `ApiError` (422 `fieldErrors`, 409), Resource camel/snake | 1 |
 | Auth | Login staf (email + password, throttle), password sementara + wajib ganti, lupa password OTP email (queue mail), reset oleh Master; login ortu (`client_code` + tanggal lahir anak, throttle/lockout, pesan gagal generik), logout, `me` | 0,75 |

@@ -8,13 +8,12 @@ import { usePackageConversionActions } from "@/features/finance/hooks/usePackage
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useAuth } from "@/stores/authStore";
-import { useAudit } from "@/stores/auditStore";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let ctx;
 function Probe() {
-  ctx = { conv: usePackageConversionActions(), credits: useCredits(), schedules: useSchedules(), auth: useAuth(), audit: useAudit() };
+  ctx = { conv: usePackageConversionActions(), credits: useCredits(), schedules: useSchedules(), auth: useAuth() };
   return null;
 }
 
@@ -66,7 +65,6 @@ test("konversi otomatis: paket lama converted, paket baru + saldo, log invoice, 
 
   const log = ctx.credits.getAllInvoices().find((i) => i.id === invoice.id).logs.at(-1);
   expect(log).toMatchObject({ action: "converted", by: "Finance Uji" });
-  expect(ctx.audit.auditLogs.some((a) => a.action === "invoice.package_converted" && a.entityId === invoice.id)).toBe(true);
 });
 
 test("konversi manual wajib alasan dan tidak boleh melebihi nilai sisa", async () => {

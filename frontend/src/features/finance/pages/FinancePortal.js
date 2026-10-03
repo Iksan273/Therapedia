@@ -8,7 +8,6 @@ import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerM
 import { useCredits } from "@/stores/creditsStore";
 import { useClients } from "@/stores/clientsStore";
 import { useAuth } from "@/stores/authStore";
-import { useAuditLogger } from "@/features/audit";
 import { VerificationTab } from "@/features/finance/components/VerificationTab";
 import { BillingTab } from "@/features/finance/components/BillingTab";
 import { HistoryTab } from "@/features/finance/components/HistoryTab";
@@ -30,7 +29,6 @@ export default function FinancePortal() {
     deleteInvoices,
   } = useCredits();
   const { auth } = useAuth();
-  const { record } = useAuditLogger();
   const { clients } = useClients();
 
   const [activeTab, setActiveTab] = useState("verification"); // verification | billing | renewal | history | packages
@@ -118,20 +116,9 @@ export default function FinancePortal() {
     toast.error(`Pembayaran ${invoice.invoiceNumber} ditandai belum valid.`);
   };
 
-  // Hapus invoice (soft delete, hanya role canDelete): tercatat di audit modul finance
+  // Hapus invoice (soft delete, hanya role canDelete): pelaku & waktu tercatat di `deletedBy`/`deletedAt` + log invoice
   const handleDeleteInvoice = (invoice) => {
     deleteInvoices([invoice.id], auth?.staffName || auth?.role || null);
-    record({
-      action: "invoice.deleted",
-      branchId: invoice.branchId,
-      entityType: "invoice",
-      entityId: invoice.id,
-      entityLabel: `Invoice ${invoice.invoiceNumber}`,
-      subjectType: "client",
-      subjectId: invoice.clientId,
-      subjectLabel: invoice.clientName,
-      oldValues: { status: invoice.status, amount: invoice.amount },
-    });
     toast.success(`Invoice ${invoice.invoiceNumber} dihapus.`);
   };
 
@@ -238,7 +225,7 @@ export default function FinancePortal() {
             Role Finance Portal
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Verifikasi transfer orang tua, penerbitan tagihan paket, penambahan kredit renewal, dan audit trail buku besar.
+            Verifikasi transfer orang tua, penerbitan tagihan paket, penambahan kredit renewal, dan buku besar kredit.
           </p>
         </div>
 

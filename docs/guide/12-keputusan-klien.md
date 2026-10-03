@@ -19,7 +19,7 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 | B8 | Pencarian client: awal nama, nama ortu, kode client | ✅ | ✅ `matchesClientSearch` |
 | B9 | Form jadwal asesmen/terapi **tanpa pilih service** (diturunkan dari client) | ✅ | ✅ |
 | — | Dokumen client = link Google Drive; tanpa kolom sumber client; form landing tetap ke WhatsApp; 1 client = 1 ortu | ✅ | ✅ |
-| — | Audit log hanya modul **schedule & finance**; modul lain `created_by`/`updated_by`/`deleted_by` | ✅ | ◐ demo masih mencatat kategori client/asesmen/akses/auth di `domain/audit.js` (lihat 11 I4) |
+| — | **Tanpa audit log** (diubah 3 Okt 2026, ADR 0004): semua modul memakai `created_by`/`updated_by`/`deleted_by`; hanya invoice punya log sendiri (`invoice_logs`) | ✅ | ✅ halaman & store audit dihapus; log invoice di tab Billing |
 | — | Non-master terikat 1 cabang; password sementara + wajib ganti login pertama; lupa password via email OTP; Master dapat reset; staf dinonaktifkan; role kustom dipertahankan; tanpa notifikasi otomatis | ✅ | ✅ (email OTP disimulasikan di demo) |
 
 ## B. Fitur baru / perubahan dari meeting
@@ -46,4 +46,4 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 - Gating kuesioner dihitung per **client**: selama ada invoice Assessment belum lunas, semua kuesioner client itu terkunci.
 - Kode demo `TDC-1009` kini `AE-00006`; kode kuesioner seed lama `ASM-xxxx` tetap valid (`SEED_VERSION` = `demo-2026-10-v8`).
 
-Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflow.md` (F1–F28), ADR `docs/adr/0002-hak-akses-modul-hapus-per-role-dan-audit-terbatas.md`.
+Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflow.md` (F1–F28), ADR `docs/adr/0002-hak-akses-modul-hapus-per-role-dan-audit-terbatas.md` (butir audit digantikan ADR 0004), `docs/adr/0003-…`, `docs/adr/0004-hapus-audit-log.md`.

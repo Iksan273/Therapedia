@@ -18,7 +18,7 @@ const fmtAt = (at) => {
   return Number.isNaN(d.getTime()) ? at : d.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: at.length > 10 ? "short" : undefined });
 };
 
-// Log milik invoice sendiri (invoice.logs), terbaru di atas. Terpisah dari audit log.
+// Log milik invoice sendiri (invoice.logs), terbaru di atas. Satu-satunya jejak per invoice.
 export function InvoiceLogDialog({ invoice, open, onOpenChange }) {
   const logs = [...invoiceLogsOf(invoice)].reverse();
   return (

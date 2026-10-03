@@ -14,9 +14,9 @@ Setiap resep diakhiri **Verifikasi**. Minimal (di `frontend/`): `npm run lint` (
 1. **Aturan** → fungsi pure di `domain/<entity>.js` + test di `domain/__tests__/`.
 2. **Store** → `case "NAMA_AKSI"` di reducer `stores/<x>Store.js` yang memanggil fungsi domain; expose `const doX = (args) => dispatch({ type: "NAMA_AKSI", ...args })`.
 3. **Lintas store?** → tambahkan ke hook use-case `features/<modul>/hooks/use<X>Actions.js` (buat bila belum ada). Hook mengembalikan hasil; toast di komponen.
-4. **Audit** → panggil `useAuditLogger().record({...})` di hook use-case (kode aksi baru didaftarkan di `AUDIT_ACTIONS`, `domain/audit.js`, dan `schema.md` §05.4).
+4. **Jejak** → tidak ada audit log (ADR 0004): pelaku cukup `updated_by`/`deleted_by` (backend); bila aksi perlu riwayat sendiri, pakai log khusus (`invoice.logs` untuk invoice, ledger untuk kredit).
 5. **API** → tambah URL di `services/api/endpoints.js` dan baris di tabel `docs/guide/10-api-migration.md`.
-6. **Verifikasi**: lakukan aksi, refresh (data persist), cek log di `/master/audit-logs`, test hook bila lintas store (contoh `features/schedule/__tests__/useSessionActions.test.js`).
+6. **Verifikasi**: lakukan aksi, refresh (data persist), cek hasilnya di layar terkait, test hook bila lintas store (contoh `features/schedule/__tests__/useSessionActions.test.js`).
 
 ## 3. Tambah / ubah field data atau seed
 1. Default aman di pembuat entity (mis. `makeInquiryClient` di `domain/client.js`).

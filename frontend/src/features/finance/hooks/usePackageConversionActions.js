@@ -1,23 +1,19 @@
 import { useAuth } from "@/stores/authStore";
-import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
-import { useAuditLogger } from "@/features/audit";
 import { computePackageConversion, isInvoiceConvertible, resolveInvoicePackage } from "@/domain/credit";
 
 // Sesi mendatang yang dihapus saat konversi: jadwal terapi belum berjalan. Sesi completed/cancelled/rescheduled
 // adalah riwayat (terikat ledger) dan asesmen tidak terkait paket, jadi tidak disentuh.
 const UPCOMING_STATUSES = ["scheduled", "reschedule_pending"];
 
-// Use-case Finance: konversi sisa sesi paket (mis. Senior → Regular). Merangkai 3 store: kredit (paket, ledger, saldo,
-// log invoice), jadwal (hapus sesi mendatang), audit. Toast tetap di komponen.
+// Use-case Finance: konversi sisa sesi paket (mis. Senior → Regular). Merangkai 2 store: kredit (paket, ledger, saldo,
+// log invoice) dan jadwal (hapus sesi mendatang; pelaku di `deletedBy`). Toast tetap di komponen.
 // Fase API: satu request transaksional `POST /invoices/{id}/convert-package` (docs/guide/10).
 export function usePackageConversionActions() {
   const { auth } = useAuth();
-  const { getClient } = useClients();
-  const { getRawRecord, convertPackage, getCreditBalance } = useCredits();
+  const { getRawRecord, convertPackage } = useCredits();
   const { schedules, deleteSchedules } = useSchedules();
-  const { record } = useAuditLogger();
   const by = auth?.staffName || auth?.role || null;
 
   const canConvert = (invoice) => isInvoiceConvertible(getRawRecord(invoice.clientId), invoice);
@@ -53,7 +49,6 @@ export function usePackageConversionActions() {
 
     const { pkg } = src;
     const upcoming = upcomingSchedules(invoice.clientId);
-    const client = getClient(invoice.clientId);
     const targetName = `${target.name} (${result.sessions}x)`;
 
     convertPackage({
@@ -71,30 +66,6 @@ export function usePackageConversionActions() {
       by,
     });
     if (upcoming.length) deleteSchedules(upcoming.map((s) => s.id), by);
-
-    const subject = { subjectType: "client", subjectId: invoice.clientId, subjectLabel: client?.clientName || invoice.clientName, branchId: invoice.branchId };
-    record([
-      {
-        ...subject,
-        action: "invoice.package_converted",
-        entityType: "invoice",
-        entityId: invoice.id,
-        entityLabel: `Invoice ${invoice.invoiceNumber}`,
-        oldValues: { package: pkg.packageName, remainingCredit: pkg.remainingCredit, cancelCount: pkg.cancelCount || 0 },
-        newValues: { package: targetName, credits: result.sessions, cancelCount: pkg.cancelCount || 0 },
-        reason: reason.trim() || null,
-        meta: { mode: result.mode, leftover: result.leftover, deletedSchedules: upcoming.length, balanceAfter: getCreditBalance(invoice.clientId) + result.leftover },
-      },
-      ...upcoming.map((s) => ({
-        ...subject,
-        action: "schedule.deleted",
-        entityType: "schedule",
-        entityId: s.id,
-        entityLabel: `Sesi ${client?.clientName || s.clientId} • ${s.date} ${s.startTime}`,
-        oldValues: { status: s.status, date: s.date, startTime: s.startTime },
-        reason: "Konversi paket: jadwal dijadwalkan ulang oleh admin schedule",
-      })),
-    ]);
 
     return { ok: true, result, deletedSchedules: upcoming.length };
   };

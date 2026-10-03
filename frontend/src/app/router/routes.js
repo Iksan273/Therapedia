@@ -28,7 +28,6 @@ const BranchPerformance = lazy(() => import("@/features/master/pages/BranchPerfo
 const UserManagement = lazy(() => import("@/features/master/pages/UserManagement"));
 const RoleModuleAccess = lazy(() => import("@/features/master/pages/RoleModuleAccess"));
 const FinancePortal = lazy(() => import("@/features/finance/pages/FinancePortal"));
-const AuditLogs = lazy(() => import("@/features/audit/pages/AuditLogs"));
 
 const STAFF_ROLES = ["master", "manager", "admin_inquiry", "admin_schedule", "finance", "therapist"];
 
@@ -59,7 +58,6 @@ export const PROTECTED_GROUPS = [
       { path: "branch-performance", Component: BranchPerformance, module: "revenue" },
       { path: "users", Component: UserManagement, module: "user_management" },
       { path: "rbac", Component: RoleModuleAccess, module: "rbac" },
-      { path: "audit-logs", Component: AuditLogs, module: "audit_logs" },
     ],
   },
   {
@@ -68,7 +66,6 @@ export const PROTECTED_GROUPS = [
     children: [
       { index: true, redirect: "/manager/revenue" },
       { path: "revenue", Component: DashboardRevenue, module: "revenue" },
-      { path: "audit-logs", Component: AuditLogs, module: "audit_logs" },
     ],
   },
   {

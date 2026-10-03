@@ -59,9 +59,8 @@ features/
                components: SessionReportModal, ClientReportHistoryDrawer, summary/
   parent/      pages: ClientDashboard
   master/      pages: DashboardRevenue, BranchPerformance, UserManagement, RoleModuleAccess
-  audit/       pages: AuditLogs · components: AuditDetailSheet, auditConfig · hooks: useAuditLogger · index.js
-stores/        authStore, clientsStore, schedulesStore, creditsStore, assessmentsStore, therapistsStore, masterDataStore, auditStore
-domain/        branch, status, client, schedule, credit, rbac, audit  (+ __tests__)
+stores/        authStore, clientsStore, schedulesStore, creditsStore, assessmentsStore, therapistsStore, masterDataStore
+domain/        branch, status, client, schedule, credit, rbac  (+ __tests__)
 services/
   storage/localStore.js       satu-satunya akses localStorage domain (+ resetDemoData)
   http/httpClient.js          axios: token Sanctum, camelCase↔snake_case, ApiError
@@ -98,7 +97,7 @@ Initializer reducer memanggil `getSeedLoader()`, yang **melempar error** jika `e
 ```
 QueryClientProvider
  └ AuthProvider → TherapistsProvider → ClientsProvider → SchedulesProvider
-   → CreditsProvider → AssessmentsProvider → MasterDataProvider → AuditProvider → {children}
+   → CreditsProvider → AssessmentsProvider → MasterDataProvider → HolidaysProvider → {children}
 ```
 Store **tidak saling memanggil**. Efek lintas store diorkestrasi oleh **hook use-case** di feature (contoh `useSessionActions`: complete sesi → potong kredit → majukan status client). Lihat 05.
 

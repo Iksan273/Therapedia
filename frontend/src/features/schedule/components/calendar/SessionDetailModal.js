@@ -852,7 +852,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                 module="weekly_calendar"
                 label="Hapus Sesi"
                 title="Hapus sesi ini?"
-                description="Sesi disembunyikan dari kalender (soft delete) dan tercatat di audit. Sesi Completed harus di-revert dulu."
+                description="Sesi disembunyikan dari kalender (soft delete; pelaku tercatat). Sesi Completed harus di-revert dulu."
                 onConfirm={handleDeleteSession}
                 testId="session-delete-button"
               />

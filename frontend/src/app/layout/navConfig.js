@@ -11,7 +11,6 @@ import {
   KanbanSquare,
   LayoutDashboard,
   Receipt,
-  ScrollText,
   ShieldCheck,
   TrendingUp,
   UserCog,
@@ -40,7 +39,6 @@ export const NAV_CONFIG = {
       { to: "/finance", label: "Finance & Invoices", icon: Receipt, module: "finance", testid: "nav-master-finance" },
       { to: "/master/users", label: "User Management", icon: UserCog, module: "user_management", testid: "nav-master-users" },
       { to: "/master/rbac", label: "RBAC Module Access", icon: ShieldCheck, module: "rbac", testid: "nav-master-rbac" },
-      { to: "/master/audit-logs", label: "Audit Logs", icon: ScrollText, module: "audit_logs", testid: "nav-master-audit-logs" },
     ],
     extras: [ASSESSMENT_FILL],
   },
@@ -55,7 +53,6 @@ export const NAV_CONFIG = {
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, module: "active_clients", testid: "nav-manager-clients" },
       { to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, module: "unreported_reports", testid: "nav-manager-unreported" },
       { to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, module: "holidays", testid: "nav-manager-holidays" },
-      { to: "/manager/audit-logs", label: "Audit Logs", icon: ScrollText, module: "audit_logs", testid: "nav-manager-audit-logs" },
     ],
     extras: [ASSESSMENT_FILL],
   },
@@ -122,7 +119,6 @@ const CUSTOM_ROLE_ITEMS = [
   { module: "therapist_module", to: "/therapist", label: "Therapist Module", icon: CalendarDays, testid: "nav-custom-therapist" },
   { module: "unreported_reports", to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, testid: "nav-custom-unreported" },
   { module: "holidays", to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, testid: "nav-custom-holidays" },
-  { module: "audit_logs", to: "/master/audit-logs", label: "Audit Logs", icon: ScrollText, testid: "nav-custom-audit-logs" },
 ];
 
 const itemAllowed = (item, hasPermission) => {
