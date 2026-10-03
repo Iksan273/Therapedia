@@ -37,8 +37,8 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 
 | Grup | `roles` (sistem) | Halaman → `module` RBAC |
 |---|---|---|
-| `/master` | master | `revenue`→revenue, `branch-performance`→revenue, `users`→user_management, `rbac`→rbac, `audit-logs`→audit_logs |
-| `/manager` | manager | `revenue`→revenue, `audit-logs`→audit_logs |
+| `/master` | master | `revenue`→revenue, `branch-performance`→revenue, `users`→user_management, `rbac`→rbac |
+| `/manager` | manager | `revenue`→revenue |
 | `/finance` | master, finance | index→finance |
 | `/admin-inquiry` | master, manager, admin_inquiry, therapist | index/`dashboard`→inquiry_dashboard; `pipeline`, `pipeline/:id`, `clients/:id`, `assessments`, `master-data`, `parent-assessment/:id`→inquiry_pipeline |
 | `/admin-schedule` | master, manager, admin_schedule, finance | index→schedule_dashboard, `calendar`→weekly_calendar, `clients`, `clients/:id`→active_clients, `unreported-reports`→unreported_reports (monitoring laporan sesi), `holidays`→holidays |

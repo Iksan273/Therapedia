@@ -682,7 +682,7 @@ export default function CalendarPage() {
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-slate-900">Bulk Cancel ({selectedSessionIds.length} Sessions)</DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Cancel all selected appointments with cancellation reasons recorded in audit logs.
+              Cancel all selected appointments; the cancellation reason is saved on each session.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 pt-2">

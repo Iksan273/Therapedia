@@ -1,5 +1,13 @@
 import {
   CANCEL_QUOTA,
+  appendInvoiceLog,
+  applyBalanceToAmount,
+  applyPackageConversion,
+  computePackageConversion,
+  invoiceLogMeta,
+  invoiceLogsOf,
+  isInvoiceConvertible,
+  resolveInvoicePackage,
   applyPackageAdded,
   applySessionCancelled,
   applySessionCompleted,
@@ -205,5 +213,97 @@ describe("bukti pembayaran: JPG/PNG/PDF maks 5 MB, upload sekali + re-upload mak
     expect(canUploadProof({ status: "unpaid", proofUploadCount: 4 })).toBe(false);
     expect(canUploadProof({ status: "paid", proofUploadCount: 1 })).toBe(false);
     expect(canUploadProof(null)).toBe(false);
+  });
+});
+
+describe("konversi paket", () => {
+  const senior = { remainingCredit: 6, totalCredit: 10, price: 3500000 };
+  const regular = { packageId: "pkg-reguler", packageName: "Regular Therapist", credits: 10, price: 2500000 };
+
+  test("otomatis: nilai sisa → sesi dibulatkan ke bawah + lebihan", () => {
+    const r = computePackageConversion({ source: senior, target: regular });
+    expect(r).toMatchObject({ ok: true, mode: "auto", sessions: 8, maxSessions: 8, remainingValue: 2100000, leftover: 100000 });
+  });
+
+  test("manual boleh lebih sedikit dari maksimal; lebihan ikut membesar", () => {
+    const r = computePackageConversion({ source: senior, target: regular, sessions: 6 });
+    expect(r).toMatchObject({ ok: true, mode: "manual", sessions: 6, leftover: 600000 });
+  });
+
+  test("manual tidak boleh melebihi nilai sisa (tanpa kekurangan)", () => {
+    expect(computePackageConversion({ source: senior, target: regular, sessions: 9 }).ok).toBe(false);
+    expect(computePackageConversion({ source: senior, target: regular, sessions: 0 }).ok).toBe(false);
+    expect(computePackageConversion({ source: senior, target: regular, sessions: 2.5 }).ok).toBe(false);
+  });
+
+  test("sisa kurang dari 1 sesi tujuan / tanpa sisa / tanpa harga ditolak", () => {
+    expect(computePackageConversion({ source: { ...senior, remainingCredit: 0 }, target: regular }).ok).toBe(false);
+    expect(computePackageConversion({ source: { remainingCredit: 1, totalCredit: 10, price: 100000 }, target: regular }).ok).toBe(false);
+    expect(computePackageConversion({ source: { ...senior, price: null }, target: regular }).ok).toBe(false);
+  });
+
+  const seniorRecord = () => ({
+    ...newCreditRecord({ clientId: "c-1", branchId: "b-1", id: "cr-1" }),
+    packages: [{ id: "cp-s", invoiceId: "inv-1", packageId: "pkg-vip", packageName: "Senior Therapist (10x)", price: 3500000, totalCredit: 10, remainingCredit: 6, cancelCount: 2, status: "active" }],
+  });
+
+  test("applyPackageConversion: ledger out/in, kuota cancel pindah, saldo bertambah", () => {
+    const next = applyPackageConversion(seniorRecord(), {
+      sourcePackageId: "cp-s",
+      target: { packageId: "pkg-reguler", packageName: "Regular Therapist (8x)" },
+      sessions: 8,
+      price: 2000000,
+      leftover: 100000,
+      conversionId: "cv-1",
+    });
+    const [oldPkg, newPkg] = next.packages;
+    expect(oldPkg).toMatchObject({ status: "converted", remainingCredit: 0, convertedToId: newPkg.id });
+    expect(newPkg).toMatchObject({ totalCredit: 8, remainingCredit: 8, cancelCount: 2, convertedFromId: "cp-s", status: "active" });
+    expect(next.balance).toBe(100000);
+    expect(next.history.map((h) => [h.action, h.creditChange, h.conversionId])).toEqual([
+      ["converted_out", -6, "cv-1"],
+      ["converted_in", 8, "cv-1"],
+    ]);
+  });
+
+  test("paket yang sudah dikonversi tidak bisa dikonversi lagi (record tak berubah)", () => {
+    const once = applyPackageConversion(seniorRecord(), { sourcePackageId: "cp-s", target: {}, sessions: 8, price: 2000000, conversionId: "cv-1" });
+    expect(applyPackageConversion(once, { sourcePackageId: "cp-s", target: {}, sessions: 8, price: 2000000, conversionId: "cv-2" })).toBe(once);
+  });
+
+  test("resolveInvoicePackage mengikuti rantai konversi; isInvoiceConvertible hanya invoice lunas + sisa > 0", () => {
+    const inv = { id: "inv-1", type: "package", status: "paid", packageId: "pkg-vip", credits: 10 };
+    const rec = seniorRecord();
+    expect(isInvoiceConvertible(rec, inv)).toBe(true);
+    expect(isInvoiceConvertible(rec, { ...inv, status: "unpaid" })).toBe(false);
+    const next = applyPackageConversion(rec, { sourcePackageId: "cp-s", target: { packageName: "Regular" }, sessions: 8, price: 2000000, conversionId: "cv-1" });
+    expect(resolveInvoicePackage(next, inv).convertedFromId).toBe("cp-s");
+    expect(isInvoiceConvertible(next, inv)).toBe(true);
+  });
+
+  test("invoice lama tanpa invoiceId dicocokkan lewat packageId + kredit", () => {
+    const rec = seniorRecord();
+    rec.packages[0].invoiceId = undefined;
+    expect(resolveInvoicePackage(rec, { id: "inv-x", type: "package", packageId: "pkg-vip", credits: 10 })?.id).toBe("cp-s");
+    expect(resolveInvoicePackage(rec, { id: "inv-y", type: "assessment" })).toBeNull();
+  });
+});
+
+describe("saldo lebihan → invoice", () => {
+  test("memotong sampai nominal invoice; sisa tetap di saldo", () => {
+    expect(applyBalanceToAmount(100000, 2500000)).toEqual({ gross: 2500000, applied: 100000, net: 2400000, balanceAfter: 0 });
+    expect(applyBalanceToAmount(3000000, 2500000)).toEqual({ gross: 2500000, applied: 2500000, net: 0, balanceAfter: 500000 });
+    expect(applyBalanceToAmount(0, 2500000).applied).toBe(0);
+  });
+});
+
+describe("log invoice", () => {
+  test("appendInvoiceLog append-only; invoiceLogsOf memberi baris dasar untuk invoice lama", () => {
+    const inv = { id: "inv-1", createdAt: "2026-10-01", paidAt: "2026-10-02" };
+    expect(invoiceLogsOf(inv).map((l) => l.action)).toEqual(["issued", "verified"]);
+    const next = appendInvoiceLog(inv, { action: "converted", by: "Finance", note: "x" });
+    expect(next.logs).toHaveLength(1);
+    expect(inv.logs).toBeUndefined();
+    expect(invoiceLogMeta("converted").label).toBe("Paket dikonversi");
   });
 });

@@ -48,7 +48,7 @@ export function RevertSessionPanel({ schedule, preview, toSlotLabel, conflicts, 
         >
           <Undo2 className="w-4 h-4" /> {actionLabel}
         </Button>
-        <p className="text-[11px] text-slate-500 mt-1.5">Untuk koreksi salah klik. Hanya bisa 1x (satu langkah mundur); tercatat di audit log.</p>
+        <p className="text-[11px] text-slate-500 mt-1.5">Untuk koreksi salah klik. Hanya bisa 1x (satu langkah mundur); kredit dibalik lewat baris reversal di ledger.</p>
       </div>
     );
   }

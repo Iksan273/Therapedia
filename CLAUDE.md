@@ -13,7 +13,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 | `frontend/` | Aplikasi React. **Baca `frontend/CLAUDE.md` untuk aturan teknis.** |
 | `docs/guide/` | Panduan developer: arsitektur, alur bisnis, data model, resep, integrasi API |
 | `docs/adr/` | Architecture Decision Records |
-| `schema.md` | Desain database v2: 33 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **audit log (schedule & finance)** |
+| `schema.md` | Desain database v2: 34 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **log invoice** (tanpa audit log) |
 | `.claude/skills/` | Skill project: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal: referensi scope fitur |
 | `backend/`, `tests/`, `.emergent/`, `memory/`, `test_reports/` | **Legacy** platform Emergent. Abaikan |
@@ -32,8 +32,8 @@ Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk por
 - **7 role**: `master`, `manager`, `admin_inquiry`, `admin_schedule`, `finance`, `therapist`, `client` (ortu) + role kustom (RBAC per modul).
 - **Pipeline client**: `inquiry → service_selected → assessment_scheduled → assessment_done → admitted | done_consult | done_assessment | discontinued`; `admitted → discharged`. Transisi otomatis hanya maju; perubahan manual boleh ke tahap mana pun. Kode client `AE-00001` (grup huruf pertama nama + 5 digit; juga kode login ortu).
 - **Sesi**: `scheduled → completed | cancelled | rescheduled | reschedule_pending`. Therapy completed −1 kredit. Cancel: admin memilih potong kredit atau tidak; kuota cancel 3 per **paket** (penghitung). Revert hanya 1x. Kredit 0 = **Frozen** (turunan, tidak disimpan).
-- **Finance**: invoice → ortu upload bukti → Finance verifikasi → paket kredit baru.
-- **Audit (backend)**: hanya modul **schedule & finance** yang tercatat di `audit_logs` (modul lain `created_by/updated_by/deleted_by`); pembatalan = aksi baru yang menunjuk aksi asal.
+- **Finance**: invoice → ortu upload bukti → Finance verifikasi → paket kredit baru. Konversi paket (Senior → Regular, otomatis/manual) → lebihan jadi saldo pemotong invoice berikutnya; log tiap invoice ada di invoice itu sendiri.
+- **Jejak perubahan**: **tidak ada audit log** (ADR 0004). Semua modul memakai `created_by/updated_by/deleted_by`; log khusus hanya `credit_ledger`, `client_status_histories`, **`invoice_logs`** (log milik invoice), `package_conversions`.
 - **Akses & hapus**: punya akses modul = boleh semua aksi kecuali hapus; tombol hapus hanya untuk role `can_delete`. Keputusan klien lengkap + status implementasi: `docs/guide/12-keputusan-klien.md`.
 
 ## Skill — gunakan saat
@@ -41,7 +41,7 @@ Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk por
 |---|---|
 | `design-architecture` | Merancang fitur/modul baru, aturan bisnis lintas modul, menentukan letak kode, menulis ADR |
 | `react-architecture` | Membuat/mengubah halaman, komponen, store, hook use-case, route; memindahkan store ke API |
-| `database-design` | Menambah/mengubah tabel, kolom, indeks, migration, audit, performa query, memperbarui `schema.md` |
+| `database-design` | Menambah/mengubah tabel, kolom, indeks, migration, jejak perubahan, performa query, memperbarui `schema.md` |
 
 ## Aturan inti
 1. Bahasa: UI, komentar kode, dan docs **bahasa Indonesia**; istilah teknis & operasional klinik boleh English.
@@ -66,6 +66,6 @@ Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk por
 | Membuat/mengubah UI | `docs/guide/08-ui-conventions.md` |
 | Perubahan umum (halaman, field, role, status) | `docs/guide/09-recipes.md` |
 | Integrasi backend / endpoint / nama field API | `docs/guide/10-api-migration.md` + `schema.md` |
-| Desain DB, indeks, audit log | `schema.md` + skill `database-design` |
+| Desain DB, indeks, jejak perubahan | `schema.md` + skill `database-design` |
 | Sebelum memperbaiki sesuatu yang "aneh" | `docs/guide/11-known-issues.md` |
 | Keputusan klien / meeting 3 Okt 2026 + status implementasi frontend | `docs/guide/12-keputusan-klien.md`, `pertanyaan_klien.md` |

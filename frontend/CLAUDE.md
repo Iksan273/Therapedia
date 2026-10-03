@@ -19,9 +19,9 @@ Siap untuk fase API: @tanstack/react-query (QueryClient terpasang), axios (`serv
 ```
 app/          App.js · providers/ · router/{routes,guards,AppRouter}.js · layout/{AppLayout,navConfig}.js
 features/<m>/ pages/ · components/<sub>/ · hooks/use<X>Actions.js · index.js (public API) · __tests__/
-              m = auth | landing | inquiry | assessment | schedule | finance | therapist | parent | master | audit
+              m = auth | landing | inquiry | assessment | schedule | finance | therapist | parent | master
 stores/       <entity>Store.js — Context + reducer tipis + persist
-domain/       branch · status · client · schedule · credit · rbac · audit — aturan bisnis PURE (+ __tests__)
+domain/       branch · status · client · schedule · credit · rbac — aturan bisnis PURE (+ __tests__)
 services/     storage/localStore.js · http/{httpClient,apiError,tokenStore}.js · api/endpoints.js
 shared/       ui/ (shadcn, generated) · components/ · hooks/ · lib/ · constants/testIds/
 config/env.js data/ (seed demo)
@@ -40,7 +40,7 @@ config/env.js data/ (seed demo)
 6. Aturan/kalkulasi baru → fungsi pure di `domain/<entity>.js` **+ test** di `domain/__tests__/`.
 7. Mutasi 1 store → panggil action store. Mutasi **>1 store** → hook use-case `features/<m>/hooks/use<X>Actions.js` (contoh `useSessionActions`, `useClientOutcomeActions`). Hook mengembalikan hasil; toast/navigate tetap di komponen.
 8. Reducer pure & immutable, memanggil fungsi domain; tanpa fetch/toast/navigate.
-8b. Aksi yang mengubah data penting dicatat lewat `useAuditLogger().record()` di hook use-case (kode aksi di `AUDIT_ACTIONS`, `domain/audit.js`).
+8b. Tidak ada audit log (ADR 0004). Invoice mencatat riwayatnya sendiri lewat `appendInvoiceLog` (`domain/credit.js`, reducer `creditsStore`); pelaku dikirim sebagai `by`.
 9. Data turunan (saldo kredit, frozen, skor kuadran, KPI) **dihitung** (`useMemo`/domain), tidak disimpan.
 10. Field baru: default aman di factory (`makeInquiryClient`, …), baca dengan fallback, update `docs/guide/03` **dan padanan kolom di `schema.md`**. Seed berubah → naikkan `SEED_VERSION` (`data/seedRegistry.js`).
 11. Transisi status pipeline otomatis hanya lewat `advanceStatus` (`domain/client.js`); perubahan manual ke tahap mana pun lewat `buildStatusChangePatch`. Hak aksi mengikuti **akses modul** (`useAuth().hasPermission`, mis. `canManageSchedule(hasPermission)`); aksi **hapus** hanya lewat `DeleteButton`/`IfCanDelete` (`shared/components/DeleteControls.js`) yang mengecek flag `canDelete` role + akses modul.

@@ -8,7 +8,6 @@ import { useSessionActions } from "@/features/schedule";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useClients } from "@/stores/clientsStore";
-import { useAudit } from "@/stores/auditStore";
 import { CANCEL_QUOTA } from "@/domain/credit";
 import { canRevertSession } from "@/domain/schedule";
 
@@ -16,7 +15,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let ctx;
 function Probe() {
-  ctx = { actions: useSessionActions(), schedules: useSchedules(), credits: useCredits(), audit: useAudit(), clients: useClients() };
+  ctx = { actions: useSessionActions(), schedules: useSchedules(), credits: useCredits(), clients: useClients() };
   return null;
 }
 
@@ -53,13 +52,7 @@ test("bulkComplete memotong 1 kredit per sesi therapy dan menandai completed", a
   const clientId = sessions[0].clientId;
   const before = ctx.credits.getRecordForClient(clientId).remainingCredit;
 
-  const auditBefore = ctx.audit.auditLogs.length;
   await act(async () => ctx.actions.bulkComplete(sessions.map((s) => s.id)));
-
-  // Audit: 1 ringkasan bulk + per sesi (completed + credit.used), satu batch
-  const added = ctx.audit.auditLogs.slice(0, ctx.audit.auditLogs.length - auditBefore);
-  expect(added.map((e) => e.action).sort()).toEqual(["credit.used", "credit.used", "schedule.bulk_completed", "schedule.completed", "schedule.completed"]);
-  expect(new Set(added.map((e) => e.batchId)).size).toBe(1);
 
   expect(ctx.credits.getRecordForClient(clientId).remainingCredit).toBe(before - 2);
   const updated = ctx.schedules.schedules.filter((s) => sessions.some((x) => x.id === s.id));
@@ -85,8 +78,6 @@ describe("createSessions: sesi asesmen memajukan status client", () => {
     expect(result.assessmentScheduled).toBe(true);
     expect(ctx.clients.getClient(client.id).status).toBe("assessment_scheduled");
     expect(ctx.schedules.schedules.some((s) => s.id === "new-assessment")).toBe(true);
-    const actions = ctx.audit.auditLogs.slice(0, 2).map((e) => e.action).sort();
-    expect(actions).toEqual(["client.status_changed", "schedule.created"]);
   });
 
   test("sesi terapi tidak mengubah status; status lanjut tidak mundur", async () => {
@@ -125,12 +116,6 @@ describe("revertSession: batalkan completed / cancel", () => {
     expect(history.map((h) => h.action)).toEqual(["used", "reversal"]);
     expect(history[1].reversesId).toBe(history[0].id);
 
-    // Audit: log pembatalan menunjuk log asal
-    const reverted = ctx.audit.auditLogs.find((e) => e.action === "schedule.completion_reverted" && e.entityId === s.id);
-    const origin = ctx.audit.auditLogs.find((e) => e.action === "schedule.completed" && e.entityId === s.id);
-    expect(reverted).toMatchObject({ reason: "Salah klik", revertsAuditId: origin.id });
-    expect(ctx.audit.auditLogs.some((e) => e.action === "credit.reversed" && e.entityId === `led-r-${s.id}`)).toBe(true);
-
     // Complete lagi: sah, baris 'used' baru
     await act(async () => ctx.actions.completeSession(sched(s.id), {}));
     expect(remaining(s.clientId)).toBe(before - 1);
@@ -159,7 +144,6 @@ describe("revertSession: batalkan completed / cancel", () => {
     expect(sched(s.id)).toMatchObject({ status: "scheduled", cancelReason: null });
     expect(pkgOf(s).cancelCount).toBe(quotaBefore);
     expect(remaining(s.clientId)).toBe(creditBefore);
-    expect(ctx.audit.auditLogs.some((e) => e.action === "schedule.cancellation_reverted" && e.entityId === s.id)).toBe(true);
   });
 
   test("cancel dengan potong kredit (di dalam kuota) → -1 kredit; revert mengembalikan kredit", async () => {
@@ -169,8 +153,7 @@ describe("revertSession: batalkan completed / cancel", () => {
     await act(async () => { result = ctx.actions.cancelSession(s, { cancelReason: "sakit", note: "", deductCredit: true }); });
     expect(result).toMatchObject({ deducted: true });
     expect(remaining(s.clientId)).toBe(creditBefore - 1);
-    const log = ctx.audit.auditLogs.find((e) => e.action === "schedule.cancelled" && e.entityId === s.id);
-    expect(log.meta).toMatchObject({ deductCredit: true });
+    expect(ctx.credits.getRecordForClient(s.clientId).history.some((h) => h.scheduleId === s.id && h.action === "cancel_penalty")).toBe(true);
 
     await act(async () => ctx.actions.revertSession(sched(s.id), { reason: "Salah pilih" }));
     expect(remaining(s.clientId)).toBe(creditBefore);
@@ -190,10 +173,6 @@ describe("revertSession: batalkan completed / cancel", () => {
     expect(result).toMatchObject({ kind: "reschedule", toStatus: "scheduled", creditChange: 0 });
     expect(sched(s.id)).toMatchObject({ status: "scheduled", ...orig, rescheduledFrom: null });
     expect(remaining(s.clientId)).toBe(creditBefore);
-
-    const reverted = ctx.audit.auditLogs.find((e) => e.action === "schedule.reschedule_reverted" && e.entityId === s.id);
-    const origin = ctx.audit.auditLogs.find((e) => e.action === "schedule.rescheduled" && e.entityId === s.id);
-    expect(reverted).toMatchObject({ reason: "Ortu batal pindah", revertsAuditId: origin.id });
   });
 
   test("asesmen completed → revert mengembalikan tahap client; tidak ada mutasi kredit", async () => {
@@ -218,7 +197,7 @@ describe("revertSession: batalkan completed / cancel", () => {
 describe("bulkRevert", () => {
   const sched = (id) => ctx.schedules.schedules.find((s) => s.id === id);
 
-  test("bulk complete lalu bulk revert: semua kredit kembali dalam satu batch audit; sesi tak eligible dilewati", async () => {
+  test("bulk complete lalu bulk revert: semua kredit kembali; sesi tak eligible dilewati", async () => {
     const sessions = pickSessions(2);
     const clientId = sessions[0].clientId;
     const before = ctx.credits.getRecordForClient(clientId).remainingCredit;
@@ -228,7 +207,6 @@ describe("bulkRevert", () => {
     // Sesi ke-3 masih scheduled (tidak eligible) ikut dipilih
     const stillScheduled = ctx.schedules.schedules.find((s) => s.status === "scheduled" && !sessions.some((x) => x.id === s.id));
     const ids = [...sessions.map((s) => s.id), stillScheduled.id];
-    const auditBefore = ctx.audit.auditLogs.length;
 
     let result;
     await act(async () => { result = ctx.actions.bulkRevert(ids, { reason: "Salah pilih sesi" }); });
@@ -236,11 +214,6 @@ describe("bulkRevert", () => {
     expect(result.skipped).toEqual([expect.objectContaining({ cause: "status" })]);
     expect(ctx.credits.getRecordForClient(clientId).remainingCredit).toBe(before);
     expect(sessions.every((s) => sched(s.id).status === "scheduled")).toBe(true);
-
-    const added = ctx.audit.auditLogs.slice(0, ctx.audit.auditLogs.length - auditBefore);
-    expect(added.filter((e) => e.action === "schedule.bulk_reverted")).toHaveLength(1);
-    expect(added.filter((e) => e.action === "schedule.completion_reverted")).toHaveLength(2);
-    expect(new Set(added.map((e) => e.batchId)).size).toBe(1);
   });
 
   test("slot yang sudah terisi sesi lain dilewati (tidak dibatalkan)", async () => {
@@ -353,7 +326,6 @@ describe("revert hanya 1x", () => {
     expect(result).toMatchObject({ kind: "pending", toStatus: "scheduled", creditChange: 0 });
     expect(sched(s.id)).toMatchObject({ status: "scheduled", pendingFrom: null, pendingReason: null });
     expect(ctx.credits.getRecordForClient(s.clientId).remainingCredit).toBe(creditBefore);
-    expect(ctx.audit.auditLogs.some((e) => e.action === "schedule.pending_reverted" && e.entityId === s.id)).toBe(true);
     expect(canRevertSession(sched(s.id))).toBe(false);
   });
 });

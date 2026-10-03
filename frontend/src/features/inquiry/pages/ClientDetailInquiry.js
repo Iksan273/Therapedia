@@ -176,11 +176,11 @@ export default function ClientDetailInquiry() {
     toast.success(`Kode kuesioner baru '${item.code}' (${selectedCat.categoryName}) berhasil dibuat${item.expiresAt ? ` — berlaku ${option.label}` : ""}!`);
   };
 
-  // STEP 3b: Hapus kode kuesioner yang belum diisi ortu (hanya tercatat di audit log)
+  // STEP 3b: Hapus kode kuesioner yang belum diisi ortu (tanpa revert)
   const handleDeleteQuestionnaireCode = async (item) => {
     const ok = await confirm({
       title: "Hapus kode kuesioner?",
-      description: `Kode ${item.code} (${item.name || "kuesioner"}) belum diisi ortu. Setelah dihapus, kode tidak bisa dipakai lagi. Penghapusan tercatat di audit log.`,
+      description: `Kode ${item.code} (${item.name || "kuesioner"}) belum diisi ortu. Setelah dihapus, kode tidak bisa dipakai lagi.`,
     });
     if (!ok) return;
     const result = codeActions.deleteCode(client, item);

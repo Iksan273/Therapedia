@@ -1,5 +1,5 @@
 # 0002 — Hak akses berbasis modul, hapus per role, status client manual bebas, audit terbatas
-- Status: Diterima (keputusan klien)
+- Status: Diterima (keputusan klien); **butir 4 (audit) digantikan oleh ADR 0004**
 - Tanggal: 2026-10-03
 
 ## Konteks

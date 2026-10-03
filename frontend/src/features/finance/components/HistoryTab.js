@@ -14,7 +14,7 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
     <TabsContent value="history" className="space-y-4">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
             <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-sm font-bold text-slate-900">Audit Trail Buku Besar Kredit</CardTitle>
+              <CardTitle className="text-sm font-bold text-slate-900">Riwayat Buku Besar Kredit</CardTitle>
               <CardDescription className="text-xs text-slate-500">
                 Log real-time pergerakan kredit (pemakaian sesi, penambahan renewal, kuota cancel wajar, dan penalti cancel &gt;3x)
               </CardDescription>
@@ -53,7 +53,8 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                                 log.action === "used" && "bg-sky-50 text-sky-800 border-sky-200",
                                 log.action === "cancel_excused" && "bg-slate-100 text-slate-700 border-slate-200",
                                 log.action === "cancel_penalty" && "bg-rose-50 text-rose-800 border-rose-200 font-extrabold",
-                                log.action === "reversal" && "bg-violet-50 text-violet-800 border-violet-200"
+                                log.action === "reversal" && "bg-violet-50 text-violet-800 border-violet-200",
+                                (log.action === "converted_out" || log.action === "converted_in") && "bg-amber-50 text-amber-800 border-amber-200"
                               )}
                             >
                               {log.action === "renewed" && "Top Up / Renewal"}
@@ -61,6 +62,8 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                               {log.action === "cancel_excused" && "Cancel (Kredit Utuh)"}
                               {log.action === "cancel_penalty" && "Penalti Cancel (>3x)"}
                               {log.action === "reversal" && "Dibatalkan (Reversal)"}
+                              {log.action === "converted_out" && "Konversi Keluar"}
+                              {log.action === "converted_in" && "Konversi Masuk"}
                             </span>
                           </TableCell>
                           <TableCell data-label="Perubahan Kredit" className="font-bold tabular-nums min-w-[140px] whitespace-nowrap">

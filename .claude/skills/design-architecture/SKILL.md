@@ -21,7 +21,6 @@ Skill ini dipakai untuk **keputusan desain**, bukan untuk mengetik kode. Hasil a
                           │ fase API: services/http + services/api/endpoints.js
                           ▼
           Laravel 11: Controller → FormRequest → Action/Service (transaksi) → Model
-                          │                         └→ AuditLogger (audit_logs)
                           ▼
           MySQL 8 (schema.md) — juga untuk cache, queue, session (driver database; tanpa Redis)
           Laravel Scheduler: job malam (schema.md §11)
@@ -45,8 +44,8 @@ Kerjakan berurutan; tulis jawabannya di rencana sebelum coding.
 4. **State** — store mana yang memegang data. Satu entity = satu store. Jangan buat store baru bila entity sudah punya store.
 5. **Orkestrasi** — jika satu aksi menyentuh >1 store → **hook use-case** di `features/<modul>/hooks/use<X>Actions.js`. Satu aksi = calon satu endpoint transaksional.
 6. **UI & akses** — route di `app/router/routes.js` (role + `module` RBAC), menu di `app/layout/navConfig.js`, halaman di `features/<modul>/pages/`.
-7. **API & DB** — endpoint di `services/api/endpoints.js`, kontrak di `docs/guide/10-api-migration.md`, tabel/indeks/audit di `schema.md`.
-8. **Audit** — setiap aksi yang mengubah data penting wajib punya kode aksi audit (`<entity>.<verb>`), termasuk aksi pembatalan/undo (lihat `schema.md` bagian Audit Log).
+7. **API & DB** — endpoint di `services/api/endpoints.js`, kontrak di `docs/guide/10-api-migration.md`, tabel/indeks/jejak di `schema.md`.
+8. **Jejak** — tidak ada audit log (ADR 0004): kolom `created_by`/`updated_by`/`deleted_by`; log khusus (`invoice_logs`, ledger) hanya bila dibutuhkan logika/UI, termasuk pasangan pembatalan.
 9. **Verifikasi** — test domain (Vitest), smoke route (`src/app/__tests__`), `npm run lint`, `npm run build`.
 
 ## 3. Heuristik penempatan kode
@@ -66,9 +65,9 @@ Kerjakan berurutan; tulis jawabannya di rencana sebelum coding.
 ## 4. Prinsip non-fungsional
 
 - **Siap API**: nama action = nama use-case; jangan simpan data turunan (saldo, frozen, skor kuadran) — hitung, atau biarkan backend yang menyimpan versi resminya.
-- **Transaksi**: efek lintas tabel (complete sesi → ledger kredit → status client → audit) = satu transaksi DB di backend.
+- **Transaksi**: efek lintas tabel (complete sesi → ledger kredit → status client) = satu transaksi DB di backend.
 - **Idempoten**: aksi yang bisa terkirim dua kali (complete, verify) harus aman diulang (kunci idempotensi).
-- **Reversible**: aksi penting punya pasangan pembatalan yang tercatat (reversal ledger + audit `*.reverted`), bukan hard delete/overwrite.
+- **Reversible**: aksi penting punya pasangan pembatalan yang tercatat (baris `reversal` di ledger / kolom `previous_*`), bukan hard delete/overwrite.
 - **Konkurensi**: data yang bisa diedit bersamaan memakai kolom `version` (optimistic lock → HTTP 409, sudah ditangani `ApiError.isConflict`).
 - **Performa**: query list selalu ber-filter cabang + periode dan didukung indeks komposit; dashboard membaca tabel ringkasan.
 
@@ -100,7 +99,7 @@ Lokasi: `docs/adr/NNNN-judul-singkat.md` (nomor urut 4 digit). Template:
 
 1. Ringkasan desain per lapisan (tabel: lapisan → file → perubahan).
 2. Daftar aturan bisnis + kasus tepi + test yang akan ditulis.
-3. Dampak ke `schema.md` / `docs/guide/10` (tabel, indeks, endpoint, kode audit).
+3. Dampak ke `schema.md` / `docs/guide/10` (tabel, indeks, endpoint, kolom pelaku/log khusus).
 4. ADR bila memenuhi kriteria di atas.
 5. Daftar dokumen `docs/guide/*` yang harus diperbarui.
 

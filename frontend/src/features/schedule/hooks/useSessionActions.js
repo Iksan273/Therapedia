@@ -1,12 +1,8 @@
-import { format } from "date-fns";
 import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useTherapists } from "@/stores/therapistsStore";
-import { useMasterData } from "@/stores/masterDataStore";
-import { useAudit } from "@/stores/auditStore";
 import { useAuth } from "@/stores/authStore";
-import { useAuditLogger } from "@/features/audit";
 import { advanceStatus } from "@/domain/client";
 import { CANCEL_QUOTA, findLiveSessionEntry } from "@/domain/credit";
 import { nowIso, todayStr } from "@/shared/lib/id";
@@ -23,57 +19,34 @@ import {
 } from "@/domain/schedule";
 
 // Use-case sesi terapi/asesmen. Satu-satunya tempat yang merangkai perubahan lintas store
-// (jadwal → kredit → status client → audit log). Komponen hanya memanggil fungsi ini + menampilkan toast.
+// (jadwal → kredit → status client). Komponen hanya memanggil fungsi ini + menampilkan toast.
 // Fase API: tiap fungsi diganti satu request ke endpoint transaksional (docs/guide/10):
 //   completeSession → POST /schedules/{id}/complete, cancelSession → POST /schedules/{id}/cancel, dst.
-// Audit log ditulis backend di transaksi yang sama; useAuditLogger hanya untuk mode demo.
+// Jejak perubahan: kolom `updated_by` + ledger kredit (tanpa audit log). Perubahan status client otomatis oleh sesi
+// asesmen disimpan di sesi (`clientStatusFrom`) agar revert bisa memulihkannya.
 export function useSessionActions() {
   const { schedules, addSchedule, addSchedules, updateSchedule, updateSchedulesMany, rescheduleSchedulesBulk, deleteSchedules } = useSchedules();
   const { auth } = useAuth();
   const { getClient, updateClient } = useClients();
   const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit } = useCredits();
-  const { record } = useAuditLogger();
-  const { auditLogs } = useAudit();
   const { therapists } = useTherapists();
-  const { getCancelReasonLabel } = useMasterData();
-
-  // Field audit standar untuk satu sesi (objek = sesi, induk = client)
-  const auditFields = (schedule) => {
-    const client = getClient(schedule.clientId);
-    const name = client?.clientName || schedule.clientId;
-    return {
-      branchId: schedule.branchId || client?.branchId || null,
-      entityType: "schedule",
-      entityId: schedule.id,
-      entityLabel: `Sesi ${name} • ${format(new Date(`${schedule.date}T00:00:00`), "dd/MM")} ${schedule.startTime}`,
-      subjectType: "client",
-      subjectId: schedule.clientId,
-      subjectLabel: name,
-    };
-  };
-  const creditFields = (schedule, suffix) => ({
-    ...auditFields(schedule),
-    entityType: "credit_ledger",
-    entityId: `led-${suffix}-${schedule.id}`,
-    entityLabel: `Kredit ${getClient(schedule.clientId)?.clientName || schedule.clientId}`,
-  });
 
   const findPackage = (record_, schedule) =>
     record_?.packages.find((p) => p.id === schedule.creditPackageId || p.packageId === schedule.creditPackageId) || record_?.packages[0];
 
-  // Efek kredit & pipeline saat satu sesi selesai (tanpa mengubah dokumen sesi). Mengembalikan entri audit.
+  // Efek kredit & pipeline saat satu sesi selesai (tanpa mengubah dokumen sesi).
+  // `clientStatusFrom` = status client sebelum dimajukan otomatis (null bila tidak berubah).
   const applyCompletionEffects = (schedule) => {
     const client = getClient(schedule.clientId);
     const creditRecord = client ? getRecordForClient(client.id) : null;
-    const audits = [];
     let creditSpent = false;
     let assessmentDone = false;
+    let clientStatusFrom = null;
 
     if (schedule.type === "therapy" && creditRecord) {
       const pkg = findPackage(creditRecord, schedule);
       spendPackageCredit({ clientId: client.id, packageId: schedule.creditPackageId || pkg?.id, scheduleId: schedule.id, date: schedule.date });
       creditSpent = true;
-      audits.push({ ...creditFields(schedule, "u"), action: "credit.used", meta: { creditChange: -1, scheduleId: schedule.id } });
     }
 
     if (schedule.type === "assessment" && client) {
@@ -81,18 +54,10 @@ export function useSessionActions() {
       if (next !== client.status) {
         updateClient(client.id, { status: next });
         assessmentDone = true;
-        audits.push({
-          ...auditFields(schedule),
-          action: "client.status_changed",
-          entityType: "client",
-          entityId: client.id,
-          entityLabel: client.clientName,
-          oldValues: { status: client.status },
-          newValues: { status: next },
-        });
+        clientStatusFrom = client.status;
       }
     }
-    return { client, creditSpent, assessmentDone, audits };
+    return { client, creditSpent, assessmentDone, clientStatusFrom, clientStatusTo: assessmentDone ? advanceStatus(client.status, "assessment_done") : null };
   };
 
   // Buat satu atau beberapa sesi (milik satu client). Sesi asesmen otomatis memajukan client ke
@@ -103,15 +68,6 @@ export function useSessionActions() {
     if (list.length === 1) addSchedule(first);
     else addSchedules(list);
 
-    const audits = [
-      {
-        ...auditFields(first),
-        action: list.length > 1 ? "schedule.series_created" : "schedule.created",
-        newValues: { type: first.type, count: list.length },
-        meta: { type: first.type, count: list.length },
-      },
-    ];
-
     let assessmentScheduled = false;
     const client = getClient(first.clientId);
     if (client && list.some((s) => s.type === "assessment")) {
@@ -119,40 +75,26 @@ export function useSessionActions() {
       if (next !== client.status) {
         updateClient(client.id, { status: next });
         assessmentScheduled = true;
-        audits.push({
-          ...auditFields(first),
-          action: "client.status_changed",
-          entityType: "client",
-          entityId: client.id,
-          entityLabel: client.clientName,
-          oldValues: { status: client.status },
-          newValues: { status: next },
-          meta: { trigger: "assessment_scheduled" },
-        });
       }
     }
-    record(audits);
     return { assessmentScheduled };
   };
 
-  const completedAudit = (schedule, creditSpent) => ({
-    ...auditFields(schedule),
-    action: "schedule.completed",
-    oldValues: { status: schedule.status },
-    newValues: { status: "completed" },
-    meta: { type: schedule.type, ...(creditSpent ? { creditChange: -1 } : {}) },
-  });
-
   const saveReport = (schedule, report) => {
     updateSchedule(schedule.id, buildReportPatch(report));
-    record({ ...auditFields(schedule), action: "schedule.report_saved", newValues: { activitySection: report.activitySection ? "terisi" : "kosong", noteSection: report.noteSection ? "terisi" : "kosong", homeworkSection: report.homeworkSection ? "terisi" : "kosong" } });
   };
 
   // Sesi selesai: simpan laporan, potong 1 kredit (therapy), majukan pipeline (assessment)
   const completeSession = (schedule, report) => {
-    updateSchedule(schedule.id, { status: "completed", previousStatus: schedule.status, revertedAt: null, ...buildReportPatch(report) });
     const result = applyCompletionEffects(schedule);
-    record([completedAudit(schedule, result.creditSpent), ...result.audits]);
+    updateSchedule(schedule.id, {
+      status: "completed",
+      previousStatus: schedule.status,
+      revertedAt: null,
+      clientStatusFrom: result.clientStatusFrom,
+      clientStatusTo: result.clientStatusTo,
+      ...buildReportPatch(report),
+    });
     return result;
   };
 
@@ -176,30 +118,14 @@ export function useSessionActions() {
       date: schedule.date,
       deductCredit,
     });
-    const creditAudit = creditRecord && {
-      ...creditFields(schedule, "c"),
-      action: deducted ? "credit.cancel_penalty" : "credit.cancel_excused",
-      meta: { creditChange: deducted ? -1 : 0, cancelCount, quota: CANCEL_QUOTA, deductCredit: deducted },
-    };
-    return { cancelCount, deducted, quotaExceeded: cancelCount > CANCEL_QUOTA, creditAudit };
+    return { cancelCount, deducted, quotaExceeded: cancelCount > CANCEL_QUOTA };
   };
 
   // Cancel: admin memilih potong kredit atau tidak. Kuota 3 per paket hanya penghitung (UI memberi peringatan bila lewat).
   const cancelSession = (schedule, { cancelReason, note, deductCredit }) => {
     requireDeductChoice(deductCredit);
     updateSchedule(schedule.id, { status: "cancelled", previousStatus: schedule.status, revertedAt: null, cancelReason, notes: note?.trim() || null });
-    const { cancelCount, deducted, quotaExceeded, creditAudit } = applyCancelCredit(schedule, cancelReason, deductCredit);
-    record([
-      {
-        ...auditFields(schedule),
-        action: "schedule.cancelled",
-        oldValues: { status: schedule.status },
-        newValues: { status: "cancelled", cancelReason },
-        reason: [getCancelReasonLabel(cancelReason), note?.trim()].filter(Boolean).join(" — "),
-        meta: { cancelCount, deductCredit: deducted, quotaExceeded },
-      },
-      creditAudit,
-    ].filter(Boolean));
+    const { cancelCount, deducted, quotaExceeded } = applyCancelCredit(schedule, cancelReason, deductCredit);
     return { cancelCount, deducted, penalized: deducted, quotaExceeded };
   };
 
@@ -217,12 +143,6 @@ export function useSessionActions() {
       revertedAt: null,
       ...CLEAR_PENDING_PATCH,
     });
-    record({
-      ...auditFields(schedule),
-      action: "schedule.rescheduled",
-      oldValues: { date: schedule.date, startTime: schedule.startTime, therapist: schedule.therapistId },
-      newValues: { date, startTime, therapist: therapistId },
-    });
   };
 
   // Reschedule menggantung: slot pengganti belum ada. Kredit & kuota cancel tidak berubah.
@@ -235,13 +155,6 @@ export function useSessionActions() {
       pendingAt: nowIso(),
       pendingReason: reason,
       pendingNote: note?.trim() || null,
-    });
-    record({
-      ...auditFields(schedule),
-      action: "schedule.marked_pending",
-      oldValues: { status: schedule.status },
-      newValues: { status: "reschedule_pending" },
-      reason: [getCancelReasonLabel(reason), note?.trim()].filter(Boolean).join(" — "),
     });
   };
 
@@ -256,28 +169,11 @@ export function useSessionActions() {
       notes: note?.trim() || null,
       ...CLEAR_PENDING_PATCH,
     });
-    const { cancelCount, deducted, quotaExceeded, creditAudit } = applyCancelCredit(schedule, RESCHEDULE_DROPPED, deductCredit);
-    record([
-      {
-        ...auditFields(schedule),
-        action: "schedule.pending_dropped",
-        oldValues: { status: schedule.status },
-        newValues: { status: "cancelled", cancelReason: RESCHEDULE_DROPPED },
-        reason: note?.trim() || getCancelReasonLabel(RESCHEDULE_DROPPED),
-        meta: { cancelCount, deductCredit: deducted, quotaExceeded },
-      },
-      creditAudit,
-    ].filter(Boolean));
+    const { cancelCount, deducted, quotaExceeded } = applyCancelCredit(schedule, RESCHEDULE_DROPPED, deductCredit);
     return { cancelCount, deducted, quotaExceeded };
   };
 
   // ---- Revert: batalkan completed / cancel (salah klik) ----
-  // Log asal terbaru untuk sesi ini yang belum pernah dibatalkan (auditLogs terurut terbaru dulu)
-  const findOriginAudit = (schedule, actions) => {
-    const reverted = new Set(auditLogs.filter((e) => e.revertsAuditId).map((e) => e.revertsAuditId));
-    return auditLogs.find((e) => e.entityType === "schedule" && e.entityId === schedule.id && actions.includes(e.action) && !reverted.has(e.id)) || null;
-  };
-
   // Efek revert yang akan terjadi (dipakai pratinjau di UI dan oleh revertSession itu sendiri)
   const previewRevert = (schedule) => {
     const kind = { completed: "completion", cancelled: "cancellation", rescheduled: "reschedule", reschedule_pending: "pending" }[schedule.status];
@@ -285,25 +181,17 @@ export function useSessionActions() {
     const creditRecord = client ? getRecordForClient(client.id) : null;
     // Reschedule dan tandai pending tidak punya efek kredit (netral), jadi tidak ada mutasi ledger yang dibalik
     const entry = kind === "reschedule" || kind === "pending" ? null : findLiveSessionEntry(creditRecord, schedule.id);
-    const originActions = {
-      completion: ["schedule.completed"],
-      cancellation: ["schedule.cancelled", "schedule.pending_dropped"],
-      reschedule: ["schedule.rescheduled"],
-      pending: ["schedule.marked_pending"],
-    }[kind];
-    const origin = findOriginAudit(schedule, originActions);
 
-    // Transisi status client yang terjadi otomatis di aksi asal (asesmen completed → assessment_done)
-    let clientRestore = null;
-    if (kind === "completion" && schedule.type === "assessment" && client && origin?.batchId) {
-      const change = auditLogs.find((e) => e.batchId === origin.batchId && e.action === "client.status_changed" && e.entityId === client.id);
-      if (change && client.status === change.newValues?.status && change.oldValues?.status) clientRestore = { audit: change, to: change.oldValues.status };
-    }
+    // Transisi status client yang terjadi otomatis di aksi asal (asesmen completed → assessment_done), disimpan di sesi.
+    // Hanya dipulihkan bila status client masih hasil transisi itu (belum diubah manual sesudahnya).
+    const clientRestore =
+      kind === "completion" && schedule.type === "assessment" && client && schedule.clientStatusFrom && client.status === schedule.clientStatusTo
+        ? { to: schedule.clientStatusFrom }
+        : null;
     return {
       kind,
       client,
       entry,
-      origin,
       clientRestore,
       toStatus: restoreStatusOf(schedule),
       toSlot: restoreSlotOf(schedule),
@@ -312,12 +200,12 @@ export function useSessionActions() {
     };
   };
 
-  // Terapkan revert satu sesi ke store dan kembalikan entri audit-nya (dicatat pemanggil: satu aksi atau satu batch bulk)
+  // Terapkan revert satu sesi ke store
   const applyRevert = (schedule, note) => {
-    const { kind, client, entry, origin, clientRestore, toStatus, toSlot, creditChange, quotaChange } = previewRevert(schedule);
+    const { kind, client, entry, clientRestore, toStatus, toSlot, creditChange, quotaChange } = previewRevert(schedule);
 
     // revertedAt: revert hanya 1x; diblokir sampai ada transisi baru pada sesi ini
-    const patch = { status: toStatus, previousStatus: schedule.status, revertedAt: nowIso() };
+    const patch = { status: toStatus, previousStatus: schedule.status, revertedAt: nowIso(), clientStatusFrom: null, clientStatusTo: null };
     if (kind === "cancellation") Object.assign(patch, { cancelReason: null, notes: null });
     if (kind === "pending") Object.assign(patch, CLEAR_PENDING_PATCH);
     if (kind === "reschedule") {
@@ -332,79 +220,28 @@ export function useSessionActions() {
     if (entry) revertSessionCredit({ clientId: schedule.clientId, scheduleId: schedule.id, date: todayStr(), reason: note });
     if (clientRestore) updateClient(client.id, { status: clientRestore.to });
 
-    const creditOrigin = entry
-      ? auditLogs.find((e) => origin?.batchId && e.batchId === origin.batchId && e.action.startsWith("credit.") && String(e.entityId).endsWith(schedule.id))
-      : null;
-    const audits = [
-        {
-          ...auditFields(schedule),
-          action: { completion: "schedule.completion_reverted", cancellation: "schedule.cancellation_reverted", reschedule: "schedule.reschedule_reverted", pending: "schedule.pending_reverted" }[kind],
-          oldValues: kind === "reschedule" ? { date: schedule.date, startTime: schedule.startTime, therapist: schedule.therapistId } : { status: schedule.status },
-          newValues: kind === "reschedule" ? { date: toSlot.date, startTime: toSlot.startTime, therapist: toSlot.therapistId } : { status: toStatus },
-          reason: note,
-          revertsAuditId: origin?.id || null,
-          meta: { creditChange, quotaChange },
-        },
-        entry && {
-          ...creditFields(schedule, "r"),
-          action: "credit.reversed",
-          reason: note,
-          revertsAuditId: creditOrigin?.id || null,
-          meta: { creditChange, reversesLedgerId: entry.id },
-        },
-        clientRestore && {
-          ...auditFields(schedule),
-          action: "client.status_changed",
-          entityType: "client",
-          entityId: client.id,
-          entityLabel: client.clientName,
-          oldValues: { status: client.status },
-          newValues: { status: clientRestore.to },
-          reason: note,
-          revertsAuditId: clientRestore.audit.id,
-        },
-      ].filter(Boolean);
-    return { audits, result: { kind, toStatus, toSlot, creditChange, quotaChange, clientStatusRestored: clientRestore?.to || null } };
+    return { result: { kind, toStatus, toSlot, creditChange, quotaChange, clientStatusRestored: clientRestore?.to || null } };
   };
 
-  const revertSession = (schedule, { reason }) => {
-    const { audits, result } = applyRevert(schedule, reason.trim());
-    record(audits);
-    return result;
-  };
+  const revertSession = (schedule, { reason }) => applyRevert(schedule, reason.trim()).result;
 
   // Hapus sesi (soft delete; tombol hanya untuk role `canDelete`). Sesi completed harus di-revert dulu agar kredit konsisten.
   const deleteSession = (schedule) => {
     if (schedule.status === "completed") return { deleted: false, reason: "completed" };
     deleteSchedules([schedule.id], auth?.staffName || auth?.role || null);
-    record({
-      ...auditFields(schedule),
-      action: "schedule.deleted",
-      oldValues: { status: schedule.status, date: schedule.date, startTime: schedule.startTime },
-    });
     return { deleted: true };
   };
 
   const pick = (ids) => schedules.filter((s) => ids.includes(s.id));
-  const bulkSummary = (action, list, extra = {}) => ({
-    action,
-    branchId: list[0]?.branchId || null,
-    entityType: "schedule",
-    entityId: null,
-    entityLabel: `${list.length} sesi`,
-    meta: { count: list.length, scheduleIds: list.map((s) => s.id) },
-    ...extra,
-  });
 
   // Bulk complete: aturan sama dengan complete tunggal (kredit idempoten per sesi)
   const bulkComplete = (ids) => {
     const list = pick(ids);
-    const audits = list.flatMap((s) => {
-      const { creditSpent, audits: effects } = applyCompletionEffects(s);
-      return [completedAudit(s, creditSpent), ...effects];
-    });
     updateSchedulesMany(ids, { status: "completed", revertedAt: null });
-    record([bulkSummary("schedule.bulk_completed", list), ...audits]);
+    list.forEach((s) => {
+      const { clientStatusFrom, clientStatusTo } = applyCompletionEffects(s);
+      if (clientStatusFrom) updateSchedule(s.id, { clientStatusFrom, clientStatusTo });
+    });
   };
 
   // Bulk cancel. `mode` hanya menentukan alasan ("leave" = izin keluarga, "other" = lainnya). Admin WAJIB memilih potong
@@ -414,44 +251,17 @@ export function useSessionActions() {
     const list = pick(ids);
     const notes = note ? ` | Bulk Cancel: ${note}` : " | Bulk Cancelled";
     const cancelReason = mode === "leave" ? "izin_keluarga" : "lainnya";
-    const creditAudits = [];
-    list.forEach((s) => {
-      const { creditAudit } = applyCancelCredit(s, cancelReason, deductCredit);
-      if (creditAudit) creditAudits.push(creditAudit);
-    });
+    list.forEach((s) => applyCancelCredit(s, cancelReason, deductCredit));
     updateSchedulesMany(ids, { status: "cancelled", cancelReason, notes, revertedAt: null });
-    record([
-      bulkSummary("schedule.bulk_cancelled", list, { reason: note || null, meta: { count: list.length, mode, deductCredit } }),
-      ...list.map((s) => ({
-        ...auditFields(s),
-        action: "schedule.cancelled",
-        oldValues: { status: s.status },
-        newValues: { status: "cancelled", cancelReason },
-        reason: note || getCancelReasonLabel(cancelReason),
-        meta: { bulk: true, deductCredit },
-      })),
-      ...creditAudits,
-    ]);
   };
 
   // Bulk reschedule: geser N hari / ke tanggal tertentu, opsional ganti terapis
   const bulkReschedule = (itemsMap) => {
-    const list = pick(Object.keys(itemsMap));
     rescheduleSchedulesBulk(itemsMap);
-    record([
-      bulkSummary("schedule.bulk_rescheduled", list),
-      ...list.map((s) => ({
-        ...auditFields(s),
-        action: "schedule.rescheduled",
-        oldValues: { date: s.date, therapist: s.therapistId },
-        newValues: { date: itemsMap[s.id].date, therapist: itemsMap[s.id].therapistId },
-        meta: { bulk: true },
-      })),
-    ]);
   };
 
   // Bulk revert (completed / cancelled / rescheduled). Sesi yang tidak bisa di-revert dilewati; sesi yang slot-nya
-  // sudah terisi (termasuk oleh sesi lain dalam batch yang sama) dilewati dan dilaporkan. Satu batch audit.
+  // sudah terisi (termasuk oleh sesi lain dalam batch yang sama) dilewati dan dilaporkan.
   const bulkRevert = (ids, { reason }) => {
     const note = reason.trim();
     const working = schedules.map((s) => ({ ...s }));
@@ -482,13 +292,6 @@ export function useSessionActions() {
       creditChange += r.result.creditChange;
       quotaChange += r.result.quotaChange;
     });
-    if (reverted.length > 0) {
-      const list = reverted.map((r) => r.schedule);
-      record([
-        bulkSummary("schedule.bulk_reverted", list, { reason: note, meta: { count: list.length, scheduleIds: list.map((x) => x.id), creditChange, quotaChange, skipped: skipped.length } }),
-        ...reverted.flatMap((r) => r.audits.map((a) => ({ ...a, meta: { ...(a.meta || {}), bulk: true } }))),
-      ]);
-    }
     return { reverted: reverted.length, skipped, creditChange, quotaChange };
   };
 

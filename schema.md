@@ -2,7 +2,7 @@
 
 **One Gate Integrated Clinic System** · MySQL 8.0.22+ (InnoDB) · Laravel 11 · Sanctum · **tanpa Redis** (cache, queue, session memakai MySQL)
 
-Dokumen ini adalah sumber kebenaran desain database backend. Skema mencakup **seluruh fitur prototype frontend** (`frontend/`): intake & pipeline, mesin asesmen, penjadwalan + kredit, finance, portal terapis, portal orang tua, dashboard, RBAC, dan **audit log untuk modul schedule & finance** (modul lain cukup `created_by`/`updated_by` + `client_status_histories`).
+Dokumen ini adalah sumber kebenaran desain database backend. Skema mencakup **seluruh fitur prototype frontend** (`frontend/`): intake & pipeline, mesin asesmen, penjadwalan + kredit, finance, portal terapis, portal orang tua, dashboard, RBAC, dan **jejak perubahan ringan**: kolom `created_by`/`updated_by`/`deleted_by` di semua modul, `client_status_histories` untuk pipeline, `credit_ledger` untuk kredit, dan **`invoice_logs` khusus invoice**. Tidak ada tabel audit log (ADR 0004).
 
 Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md`). Mapping field frontend ↔ kolom ada di bagian 08 dan `docs/guide/03-data-model.md`.
 
@@ -14,7 +14,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 - [02. Peta modul & tabel](#02-peta-modul--tabel)
 - [03. ERD](#03-erd)
 - [04. Spesifikasi tabel](#04-spesifikasi-tabel)
-- [05. Audit log](#05-audit-log)
+- [05. Jejak perubahan](#05-jejak-perubahan-tanpa-audit-log)
 - [06. Alur transaksi kritis](#06-alur-transaksi-kritis)
 - [07. Strategi performa](#07-strategi-performa)
 - [08. Mapping frontend ↔ database & keputusan enum](#08-mapping-frontend--database--keputusan-enum)
@@ -30,8 +30,8 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 |---|---|---|
 | 1 | **Indeks dari query, bukan dari kolom** | Setiap indeks komposit di bagian 04 menyebut query yang dilayani (lihat 01) |
 | 2 | **Ledger sebagai sumber kebenaran kredit** | `credit_ledger` append-only; saldo di `client_packages` & `clients` adalah denormalisasi yang diperbarui di transaksi yang sama |
-| 3 | **Aksi berisiko (sesi & uang) tidak hilang jejaknya** | `audit_logs` mencatat aksi modul schedule & finance + nilai lama/baru; modul lain (intake, asesmen, master, akses) cukup `created_by`/`updated_by`; pembatalan (undo) = aksi baru yang menunjuk aksi asal, bukan menghapus/menimpa |
-| 4 | **Reversible by design** | Kolom `previous_status`, `prev_*` (slot sebelum reschedule terakhir), `reverted_at`, `credit_effect`, `reverses_ledger_id`, `reverts_audit_id` memungkinkan "completed lalu dibatalkan" tanpa kehilangan jejak |
+| 3 | **Jejak ringan, tanpa audit log** | Semua modul: `created_by`/`updated_by`/`deleted_by`. Kredit = `credit_ledger` append-only (undo = baris `reversal`), pipeline = `client_status_histories`, invoice = `invoice_logs` (log milik invoice sendiri, termasuk konversi & pemakaian saldo) |
+| 4 | **Reversible by design** | Kolom `previous_status`, `prev_*` (slot sebelum reschedule terakhir), `reverted_at`, `credit_effect`, `reverses_ledger_id`, `client_status_from/to` memungkinkan "completed lalu dibatalkan" tanpa kehilangan jejak |
 | 5 | **Aman dari edit bersamaan** | Kolom `version` (optimistic lock) pada entity yang sering diubah → HTTP 409 |
 | 6 | **Idempoten** | `credit_ledger.idempotency_key` UNIQUE mencegah potong kredit ganda |
 | 7 | **Snapshot nilai transaksi** | Nama paket, harga, nama pelaku disalin saat transaksi agar histori tidak berubah ketika master diedit |
@@ -40,7 +40,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 | 10 | **ENUM untuk siklus hidup tetap** | Status client/sesi/invoice/paket |
 | 11 | **Hapus dikendalikan role, bukan hardcode** | Punya akses modul = boleh semua aksi non-hapus; hapus (soft delete + `deleted_by`) hanya bila `roles.can_delete` |
 
-Konvensi umum (detail di skill): InnoDB `utf8mb4_0900_ai_ci`; PK `BIGINT UNSIGNED`; waktu `DATETIME` UTC; tanggal kalender `DATE`; slot `TIME`; uang `BIGINT UNSIGNED` rupiah utuh; soft delete hanya untuk entity bisnis (tabel ber-`softDeletes` yang bisa dihapus lewat UI menyertakan `deleted_by`); ledger & audit tidak pernah di-UPDATE/DELETE.
+Konvensi umum (detail di skill): InnoDB `utf8mb4_0900_ai_ci`; PK `BIGINT UNSIGNED`; waktu `DATETIME` UTC; tanggal kalender `DATE`; slot `TIME`; uang `BIGINT UNSIGNED` rupiah utuh; soft delete hanya untuk entity bisnis (tabel ber-`softDeletes` yang bisa dihapus lewat UI menyertakan `deleted_by`); ledger kredit, `invoice_logs`, dan `package_conversions` tidak pernah di-UPDATE/DELETE.
 
 ---
 
@@ -64,12 +64,11 @@ Daftar ini adalah dasar desain indeks. Setiap halaman prototype dipetakan ke que
 | Q12 | Inquiry / Schedule / Branch dashboard | KPI per cabang per periode | view `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage` (indeks diawali `branch_id, tanggal`) | < 50 ms |
 | Q13 | Kode kuesioner publik | lookup kode, lalu cek `expires_at` & invoice assessment client yang belum lunas (`invoices idx_inv_client`) | UNIQUE `assessment_access_codes (code)` | < 5 ms |
 | Q14 | Login ortu | lookup `client_code` + cek `date_of_birth` | UNIQUE `clients (client_code)` | < 5 ms |
-| Q15 | Audit timeline 1 client / 1 sesi / 1 invoice (schedule & finance saja; pipeline = `client_status_histories`) | log per entity / per induk, terbaru | `audit_logs (subject_type, subject_id, occurred_at)` · `audit_logs (entity_type, entity_id, occurred_at)` | < 30 ms |
-| Q16 | Audit per user / per aksi | aktivitas staf X atau aksi Y per periode | `audit_logs (actor_id, occurred_at)` · `audit_logs (action, occurred_at)` | < 50 ms |
 | Q17 | Therapist summary | sesi `completed` terapis X per periode + status laporan | `schedules (therapist_id, session_date, start_time)` + `session_reports (schedule_id)` | < 30 ms |
 | Q18 | Awaiting questionnaire (+ search nama) | kode `issued` belum submit per cabang | `assessment_access_codes (status, issued_at)` + join client | < 30 ms |
 | Q19 | Monitoring: sesi completed belum ada report | `completed` per cabang rentang tanggal, `filled_sections = 0` | view `v_unreported_sessions` → `schedules idx_sch_calendar` + `session_reports (schedule_id)` | < 30 ms |
 | Q20 | Analitik client periode custom + jadwal rutin/aktif | sesi 1 client rentang tanggal bebas | `schedules (client_id, session_date)`, `schedule_series (client_id, starts_on)` | < 30 ms |
+| Q21 | Log satu invoice (tombol Log di tab Billing) | `invoice_logs` per invoice, terbaru dulu | `invoice_logs (invoice_id, created_at, id)` | < 20 ms |
 
 Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional < 150 ms · dashboard < 100 ms.
 
@@ -112,11 +111,12 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `payment_proofs` | Bukti transfer (riwayat upload) |
 | | `client_packages` | Paket kredit milik client |
 | | `credit_ledger` | Mutasi kredit append-only |
-| **G. Audit & analitik** | `audit_logs` | Log aksi modul schedule & finance (partisi bulanan) |
-| | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue`, `v_unreported_sessions` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
+| | `package_conversions` | Konversi sisa sesi paket ke paket lain (Finance) |
+| | `invoice_logs` | Log milik invoice sendiri (append-only) |
+| **G. Analitik** | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue`, `v_unreported_sessions` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
 | **H. Laravel bawaan** | `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, session, cache & queue driver `database` (MySQL) |
 
-Total: 33 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 7 view + tabel bawaan Laravel.
+Total: 34 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 7 view + tabel bawaan Laravel.
 
 ---
 
@@ -164,8 +164,11 @@ erDiagram
   client_packages ||--o{ credit_ledger : ""
   schedules ||--o{ credit_ledger : ""
   credit_ledger ||--o| credit_ledger : "reversal"
+  invoices ||--o{ invoice_logs : "log"
+  invoices ||--o{ package_conversions : "konversi"
+  client_packages ||--o| client_packages : "converted_from"
+  package_conversions ||--o{ credit_ledger : "converted_out/in"
 ```
-`audit_logs` sengaja tanpa FK (partisi + data historis tetap ada walau entity dihapus).
 
 ---
 
@@ -185,6 +188,8 @@ Schema::create('branches', function (Blueprint $table) {
     $table->text('address')->nullable();
     $table->string('phone', 30)->nullable();
     $table->boolean('is_active')->default(true);
+    $table->unsignedBigInteger('updated_by')->nullable();   // FK ke users ditambahkan di migration terpisah setelah `users` dibuat (tabel ini dibuat lebih awal)
+    $table->unsignedBigInteger('deleted_by')->nullable();   // FK ke users ditambahkan di migration terpisah setelah `users` dibuat (tabel ini dibuat lebih awal)
     $table->timestamps();
     $table->softDeletes();
 });
@@ -202,6 +207,7 @@ Schema::create('roles', function (Blueprint $table) {
     $table->boolean('is_system')->default(false);     // role sistem tidak bisa dihapus
     $table->boolean('can_delete')->default(false);    // true = tombol hapus tampil di semua modul yang diakses role ini (master selalu true)
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->unsignedBigInteger('deleted_by')->nullable();   // FK ke users ditambahkan di migration terpisah setelah `users` dibuat (tabel ini dibuat lebih awal)
     $table->timestamps();
     $table->softDeletes();
 });
@@ -254,6 +260,7 @@ Schema::create('users', function (Blueprint $table) {
     $table->rememberToken();
     $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->unsignedBigInteger('deleted_by')->nullable();
     $table->timestamps();                              // tanpa softDeletes: staf yang berhenti dinonaktifkan (`is_active = 0`), data & riwayat sesi tetap
 
     $table->index(['branch_id', 'role_id', 'is_active'], 'idx_users_branch_role');   // daftar staf/terapis per cabang
@@ -278,7 +285,7 @@ Schema::create('password_reset_otps', function (Blueprint $table) {
     $table->index(['user_id', 'created_at'], 'idx_otp_user');
 });
 ```
-Throttle permintaan OTP per email & per IP (RateLimiter). Baris kedaluwarsa dibersihkan housekeeping (§11). Tanpa audit (di luar modul schedule/finance).
+Throttle permintaan OTP per email & per IP (RateLimiter). Baris kedaluwarsa dibersihkan housekeeping (§11).
 
 ### B. Master data
 
@@ -294,6 +301,7 @@ Schema::create('services', function (Blueprint $table) {
     $table->text('description')->nullable();
     $table->boolean('is_active')->default(true);      // nonaktif = tidak bisa dipilih, label tetap tampil
     $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
 });
 ```
@@ -307,6 +315,7 @@ Schema::create('sensory_quadrants', function (Blueprint $table) {
     $table->text('description')->nullable();
     $table->string('color', 20)->default('slate');
     $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
 });
 ```
@@ -320,6 +329,7 @@ Schema::create('cancel_reasons', function (Blueprint $table) {
     $table->string('label', 120);
     $table->boolean('is_active')->default(true);      // nonaktif = tidak muncul di pilihan baru
     $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
 });
 
@@ -345,6 +355,7 @@ Schema::create('master_packages', function (Blueprint $table) {
     $table->text('description')->nullable();
     $table->boolean('is_active')->default(true);
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
 });
@@ -402,6 +413,7 @@ Schema::create('clients', function (Blueprint $table) {
 
     // Denormalisasi kredit (sumber kebenaran: credit_ledger) — diperbarui di transaksi yang sama
     $table->integer('credit_balance')->default(0);    // Σ remaining_credit paket aktif; 0 = Frozen
+    $table->unsignedBigInteger('leftover_balance')->default(0);   // RUPIAH: saldo lebihan konversi paket, memotong invoice paket berikutnya (= Σ package_conversions.leftover_amount − Σ invoices.balance_applied yang tidak dibatalkan)
 
     // Portal ortu: login = client_code + date_of_birth (Q14)
     $table->timestamp('last_login_at')->nullable();
@@ -460,6 +472,7 @@ Schema::create('client_documents', function (Blueprint $table) {
     $table->string('url', 500);
     $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
     $table->index(['client_id', 'type'], 'idx_client_docs_client');
@@ -467,7 +480,7 @@ Schema::create('client_documents', function (Blueprint $table) {
 ```
 
 #### `client_status_histories`
-Timeline bisnis pipeline (ditampilkan ke user). Tabel ini adalah satu-satunya riwayat pipeline (tidak ada baris `audit_logs` untuk client). Perubahan manual ke tahap mana pun (maju **maupun mundur**) dicatat di sini dengan `trigger = manual` / `outcome` / `discharge` / `revert`.
+Timeline bisnis pipeline (ditampilkan ke user). Tabel ini adalah satu-satunya riwayat pipeline . Perubahan manual ke tahap mana pun (maju **maupun mundur**) dicatat di sini dengan `trigger = manual` / `outcome` / `discharge` / `revert`.
 ```php
 Schema::create('client_status_histories', function (Blueprint $table) {
     $table->id();
@@ -501,6 +514,7 @@ Schema::create('assessment_categories', function (Blueprint $table) {
     $table->boolean('is_active')->default(true);
     $table->unsignedInteger('version')->default(1);
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
 });
@@ -514,6 +528,7 @@ Schema::create('assessment_sections', function (Blueprint $table) {
     $table->string('title', 150);                     // Pemrosesan AUDITORI
     $table->string('lead_text', 150)->nullable();     // "Anakku ..."
     $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->index(['category_id', 'sort_order'], 'idx_sections_category');
 });
@@ -537,6 +552,7 @@ Schema::create('assessment_questions', function (Blueprint $table) {
     $table->boolean('is_required')->default(true);
     $table->unsignedSmallInteger('sort_order')->default(0);
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
 
@@ -628,6 +644,7 @@ Schema::create('schedule_series', function (Blueprint $table) {
     $table->date('starts_on');
     $table->date('ends_on');
     $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->index(['client_id', 'starts_on'], 'idx_series_client');
 });
@@ -652,6 +669,8 @@ Schema::create('schedules', function (Blueprint $table) {
 
     $table->enum('status', ['scheduled', 'completed', 'cancelled', 'rescheduled', 'reschedule_pending'])->default('scheduled');
     $table->string('previous_status', 30)->nullable();   // status sebelum transisi terakhir — dipakai revert
+    $table->string('client_status_from', 30)->nullable(); // sesi asesmen completed yang memajukan client otomatis: tahap client sebelumnya (dipakai revert)
+    $table->string('client_status_to', 30)->nullable();   // tahap hasil transisi otomatis; revert hanya memulihkan bila `clients.status` masih sama
     $table->timestamp('reverted_at')->nullable();        // diisi saat revert; revert hanya 1x → diblokir bila terisi, dikosongkan oleh transisi berikutnya
     $table->enum('credit_effect', ['none', 'used', 'excused', 'penalty'])->default('none'); // efek kredit transisi terakhir; pada cancel = KEPUTUSAN ADMIN (wajib dipilih): `penalty` = kredit dipotong, `excused` = tidak dipotong
 
@@ -685,7 +704,7 @@ Schema::create('schedules', function (Blueprint $table) {
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
-    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();   // hapus hanya bila roles.can_delete (audit schedule.deleted)
+    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();   // hapus hanya bila roles.can_delete (`deleted_by`)
 
     $table->foreign('service_code')->references('code')->on('services');
 
@@ -756,13 +775,15 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->foreignId('client_id')->constrained()->restrictOnDelete();
     $table->foreignId('branch_id')->constrained()->restrictOnDelete();
     $table->foreignId('master_package_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('invoice_type', ['package', 'assessment'])->default('package');   // Paket Sesi | Assessment (diterbitkan Finance). Tanpa diskon, DP, cicilan, refund, jatuh tempo
+    $table->enum('invoice_type', ['package', 'assessment'])->default('package');   // Paket Sesi | Assessment (diterbitkan Finance). Tanpa diskon manual, DP, cicilan, refund, jatuh tempo (satu-satunya pengurang = saldo lebihan konversi, `balance_applied`)
     $table->string('type_code', 10);                  // snapshot: `ASM` untuk assessment, master_packages.invoice_code untuk paket
 
     // Snapshot saat tagihan diterbitkan
     $table->string('package_name', 150);
     $table->unsignedSmallInteger('credits')->default(0);
-    $table->unsignedBigInteger('amount');             // rupiah
+    $table->unsignedBigInteger('amount');             // rupiah, NOMINAL BERSIH yang dibayar ortu (= gross_amount − balance_applied)
+    $table->unsignedBigInteger('gross_amount')->nullable();     // nominal sebelum saldo lebihan; null bila tak ada saldo dipakai
+    $table->unsignedBigInteger('balance_applied')->default(0); // saldo lebihan konversi yang dipotongkan saat terbit; hanya invoice `package`, maks sampai nominal invoice
 
     $table->enum('status', ['unpaid', 'pending_verification', 'paid', 'rejected', 'void'])->default('unpaid');
     $table->timestamp('issued_at')->useCurrent();
@@ -776,20 +797,64 @@ Schema::create('invoices', function (Blueprint $table) {
 
     $table->unsignedInteger('version')->default(1);
     $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
     $table->softDeletes();
-    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();   // hapus hanya bila roles.can_delete + akses modul finance (audit invoice.deleted)
+    $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();   // hapus hanya bila roles.can_delete + akses modul finance (`deleted_by` + `invoice_logs` `deleted`)
 
     $table->index(['branch_id', 'status', 'issued_at'], 'idx_inv_queue');                // Q9
     $table->index(['client_id', 'issued_at'], 'idx_inv_client');                         // Q8, portal ortu
     $table->index(['status', 'branch_id', 'paid_date', 'amount', 'deleted_at'], 'idx_inv_paid_date'); // Q11 v_daily_revenue (covering)
 });
 ```
-Status: `unpaid` → (ortu upload) `pending_verification` → Finance `paid` / `rejected` (ortu bisa upload ulang → `pending_verification`, maks 3x re-upload). `void` = dibatalkan role dengan akses modul finance (wajib alasan, tercatat audit).
+Status: `unpaid` → (ortu upload) `pending_verification` → Finance `paid` / `rejected` (ortu bisa upload ulang → `pending_verification`, maks 3x re-upload). `void` = dibatalkan role dengan akses modul finance (wajib alasan, tercatat di `invoice_logs`).
 
 - **Jenis `assessment`**: diterbitkan Finance (nominal diisi saat terbit, `master_package_id` null, `credits = 0`, tidak membuat `client_packages`). Selama client punya invoice `assessment` yang belum `paid` (`unpaid` / `pending_verification` / `rejected`), semua kuesioner client itu tidak bisa dibuka ortu (§6.5b); dicek lewat `idx_inv_client`.
 - **Jenis `package`**: `amount`, `credits`, `package_name` adalah **snapshot** master paket saat terbit/renewal; mengubah harga master tidak memengaruhi invoice atau paket yang sudah ada. Renewal langsung Finance (tunai) = invoice `paid` dibuat sekaligus. `purchased` vs `renewed` di ledger ditentukan otomatis dari ada tidaknya paket sebelumnya.
 - Tanpa jatuh tempo: pengingat tagihan dilakukan admin manual lewat WhatsApp.
+- **Saldo lebihan**: saat invoice `package` terbit / renewal langsung, `balance_applied = min(clients.leftover_balance, gross)` mengurangi nominal dan saldo client; invoice **belum lunas** yang dihapus/void mengembalikan saldonya (log `balance_restored`). Paket yang dibuat dari invoice ini memakai **harga gross** sebagai `package_price` (nilai paket utuh).
+
+#### `invoice_logs`
+Log **milik invoice sendiri**, append-only (UPDATE/DELETE dilarang), ditulis di transaksi yang sama dengan perubahan invoice. Dipakai tombol **Log** di tab Billing (Q21). Satu-satunya jejak per invoice (tidak ada audit log).
+```php
+Schema::create('invoice_logs', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('invoice_id')->constrained()->restrictOnDelete();
+    $table->enum('action', ['issued', 'proof_uploaded', 'verified', 'rejected', 'renewal_paid', 'balance_applied', 'balance_restored', 'converted', 'deleted']);   // tambah nilai baru di akhir
+    $table->string('actor_name', 120)->nullable();    // snapshot pelaku (staf / "Orang tua")
+    $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
+    $table->string('note', 500)->nullable();          // teks ringkas tampil di UI
+    $table->json('data')->nullable();                 // tidak difilter (mis. conversion_id, sisa, lebihan, nominal saldo)
+    $table->timestamp('created_at', 3)->useCurrent();
+
+    $table->index(['invoice_id', 'created_at', 'id'], 'idx_invlog_invoice');   // Q21: log 1 invoice, terbaru dulu (keyset)
+});
+```
+
+#### `package_conversions`
+Satu baris per konversi paket oleh Finance (`POST /invoices/{id}/convert-package`). Baris ledger `converted_out`/`converted_in` menunjuk baris ini lewat `credit_ledger.conversion_id`.
+```php
+Schema::create('package_conversions', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('client_id')->constrained()->restrictOnDelete();
+    $table->foreignId('invoice_id')->constrained()->restrictOnDelete();             // invoice yang ditekan tombol Konversi
+    $table->foreignId('from_package_id')->constrained('client_packages')->restrictOnDelete();
+    $table->foreignId('to_package_id')->constrained('client_packages')->restrictOnDelete();
+    $table->unsignedSmallInteger('from_remaining');   // sisa sesi paket asal yang dikonversi
+    $table->unsignedSmallInteger('to_sessions');      // sesi di paket baru (otomatis = floor(nilai sisa ÷ harga per sesi tujuan); manual ≤ itu)
+    $table->unsignedBigInteger('remaining_value');    // rupiah: from_remaining × (harga bayar ÷ total kredit asal)
+    $table->unsignedBigInteger('leftover_amount')->default(0);   // rupiah lebihan → clients.leftover_balance (tidak boleh negatif / kekurangan)
+    $table->enum('mode', ['auto', 'manual']);
+    $table->string('reason', 500)->nullable();        // wajib bila mode = manual
+    $table->unsignedSmallInteger('deleted_schedule_count')->default(0);   // jadwal terapi mendatang yang dihapus
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('created_at')->useCurrent();
+
+    $table->index(['client_id', 'created_at'], 'idx_conv_client');
+    $table->index(['invoice_id', 'created_at'], 'idx_conv_invoice');
+});
+```
+Tanpa UPDATE/DELETE dan tanpa fitur revert (jadwal yang dihapus tidak bisa dipulihkan otomatis; koreksi = `manual_adjust` / konversi ulang).
 
 #### `invoice_counters`
 Counter nomor invoice per kode jenis + tanggal WIB (increment reset harian). Dinaikkan atomik di transaksi terbit invoice: `INSERT … ON DUPLICATE KEY UPDATE last_number = LAST_INSERT_ID(last_number + 1)`. Nomor tampil 3 digit minimal (`001`; melebihi 999 otomatis 4 digit).
@@ -836,9 +901,12 @@ Schema::create('client_packages', function (Blueprint $table) {
     $table->unsignedSmallInteger('total_credit');
     $table->smallInteger('remaining_credit');         // denormalisasi dari ledger; CHECK >= 0
     $table->unsignedSmallInteger('cancel_count')->default(0);   // penghitung cancel PER PAKET (kuota 3 per paket; hanya penghitung, tidak otomatis memotong kredit)
-    $table->enum('status', ['active', 'depleted'])->default('active');   // paket tanpa masa berlaku
+    $table->enum('status', ['active', 'depleted', 'converted'])->default('active');   // paket tanpa masa berlaku; `converted` = sisa sesi sudah dikonversi ke paket lain (remaining_credit = 0)
+    $table->foreignId('converted_from_package_id')->nullable()->constrained('client_packages')->nullOnDelete();   // paket asal bila dibuat lewat konversi (invoice_id null; `cancel_count` disalin dari paket asal)
+    $table->foreignId('converted_to_package_id')->nullable()->constrained('client_packages')->nullOnDelete();     // paket tujuan bila status = converted
     $table->timestamp('activated_at')->useCurrent();
     $table->unsignedInteger('version')->default(1);
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
 
     $table->index(['client_id', 'status', 'activated_at'], 'idx_pkg_client');            // pilih paket aktif tertua (FIFO)
@@ -857,7 +925,8 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->foreignId('client_package_id')->nullable()->constrained()->restrictOnDelete();
     $table->foreignId('schedule_id')->nullable()->constrained()->nullOnDelete();
     $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust']);
+    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust', 'converted_out', 'converted_in']);   // converted_out = −sisa paket lama, converted_in = +sesi paket baru (berbagi conversion_id)
+    $table->foreignId('conversion_id')->nullable()->constrained('package_conversions')->restrictOnDelete();
     $table->smallInteger('credit_change');            // +N / -1 / 0
     $table->smallInteger('package_balance_after');    // saldo paket setelah mutasi (audit cepat)
     $table->integer('client_balance_after');          // saldo total client setelah mutasi
@@ -867,7 +936,7 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->text('note')->nullable();
     $table->foreignId('reverses_ledger_id')->nullable()->unique()->constrained('credit_ledger')->restrictOnDelete(); // 1 baris hanya bisa di-reverse sekali
     $table->string('idempotency_key', 100)->nullable()->unique();   // used:schedule:{id}:v{version}
-    $table->char('batch_id', 26)->nullable();         // ULID — sama dengan audit_logs.batch_id
+    $table->char('batch_id', 26)->nullable();         // ULID: mengelompokkan baris ledger dari 1 aksi user (mis. bulk complete)
     $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamp('created_at', 3)->useCurrent();
 
@@ -879,10 +948,7 @@ Schema::create('credit_ledger', function (Blueprint $table) {
 });
 ```
 
-### G. Audit & analitik
-
-#### `audit_logs`
-Dijelaskan lengkap di bagian 05.
+### G. Analitik
 
 #### View dashboard (tanpa tabel ringkasan)
 Dashboard membaca **VIEW MySQL** di atas tabel transaksi. View tidak menyimpan data (bukan materialized) — kecepatannya sama dengan query di dalamnya, jadi setiap view dirancang agar:
@@ -981,166 +1047,80 @@ WHERE branch_id = 1 AND paid_date BETWEEN '2026-01-01' AND '2026-12-31';
 
 ---
 
-## 05. Audit log
+## 05. Jejak perubahan (tanpa audit log)
 
-### 5.1 Tujuan
-Mencatat **aksi yang mengubah data di modul schedule dan finance** (sesi, kredit, invoice) sehingga bisa dijawab: *siapa, melakukan apa, terhadap data apa, kapan, dari mana, nilai sebelum & sesudahnya, alasannya, dan apakah aksi itu kemudian dibatalkan*.
+Keputusan ADR 0004: **tidak ada tabel `audit_logs`**. Jejak perubahan memakai kolom pelaku di setiap tabel dan tiga log khusus yang memang dibutuhkan bisnis.
 
-**Di luar cakupan** (cukup `created_by`/`updated_by` + tabel histori): intake/pipeline client (riwayat ada di `client_status_histories`), asesmen, master data, akun & hak akses (hanya `master`), login/logout. Konsekuensi: `updated_by` hanya menyimpan editor terakhir, tanpa nilai lama.
+### 5.1 Kolom pelaku (semua modul)
+Setiap tabel transaksi/master punya `created_by` dan `updated_by` (FK `users`, nullable); tabel ber-`softDeletes` yang bisa dihapus lewat UI juga punya `deleted_by`. `updated_by` hanya menyimpan editor **terakhir** (tanpa nilai lama/baru) — keputusan klien.
 
-Contoh yang harus terlacak: Admin Schedule menandai sesi **completed** (kredit terpotong), lalu **membatalkan completed** itu (kredit kembali). Kedua aksi tercatat, saling terhubung, dan log pertama tidak berubah.
-
-### 5.2 Skema
-```php
-// Tabel dipartisi bulanan → tanpa FK, PK komposit memuat kolom partisi.
-Schema::create('audit_logs', function (Blueprint $table) {
-    $table->unsignedBigInteger('id', true);          // auto increment
-    $table->dateTime('occurred_at', 6);
-    $table->char('batch_id', 26)->nullable();        // ULID: semua log dari 1 aksi user (mis. complete → sesi + ledger + client)
-    $table->char('request_id', 26)->nullable();      // korelasi dengan log aplikasi
-
-    // Pelaku (snapshot — tetap terbaca walau user dihapus/diganti nama)
-    $table->enum('actor_type', ['user', 'client', 'system']);
-    $table->unsignedBigInteger('actor_id')->nullable();
-    $table->string('actor_name', 150)->nullable();
-    $table->string('actor_role', 50)->nullable();
-    $table->unsignedBigInteger('branch_id')->nullable();  // cakupan cabang data yang diubah
-
-    // Aksi & objek
-    $table->string('action', 64);                    // <entity>.<verb>, lihat katalog 5.4
-    $table->string('entity_type', 40);               // schedule, invoice, credit_ledger
-    $table->unsignedBigInteger('entity_id')->nullable();
-    $table->string('entity_label', 200)->nullable(); // snapshot: "Sesi Kenzo 2026-10-02 09:00"
-    $table->string('subject_type', 40)->nullable();  // induk untuk timeline (biasanya client)
-    $table->unsignedBigInteger('subject_id')->nullable();
-
-    // Perubahan
-    $table->json('old_values')->nullable();          // hanya field yang berubah
-    $table->json('new_values')->nullable();
-    $table->json('meta')->nullable();                // efek turunan: {credit_change:-1, ledger_id:…, bulk_count:12}
-    $table->text('reason')->nullable();              // wajib untuk cancel, revert, void, discharge, manual_adjust
-    $table->unsignedBigInteger('reverts_audit_id')->nullable(); // log asal yang dibatalkan oleh aksi ini
-
-    // Konteks teknis
-    $table->enum('source', ['web', 'api', 'system', 'import'])->default('web');
-    $table->string('ip_address', 45)->nullable();
-    $table->string('user_agent', 255)->nullable();
-
-    $table->primary(['id', 'occurred_at']);
-    $table->index(['entity_type', 'entity_id', 'occurred_at'], 'idx_audit_entity');      // Q15
-    $table->index(['subject_type', 'subject_id', 'occurred_at'], 'idx_audit_subject');   // Q15 timeline client
-    $table->index(['actor_id', 'occurred_at'], 'idx_audit_actor');                       // Q16
-    $table->index(['action', 'occurred_at'], 'idx_audit_action');                        // Q16
-    $table->index(['branch_id', 'occurred_at'], 'idx_audit_branch');
-    $table->index('batch_id', 'idx_audit_batch');
-    $table->index('reverts_audit_id', 'idx_audit_reverts');
-});
-
-// Partisi bulanan (dibuat via migration raw SQL; job bulanan menambah partisi berikutnya)
-DB::statement("
-  ALTER TABLE audit_logs PARTITION BY RANGE (TO_DAYS(occurred_at)) (
-    PARTITION p2026_10 VALUES LESS THAN (TO_DAYS('2026-11-01')),
-    PARTITION p2026_11 VALUES LESS THAN (TO_DAYS('2026-12-01')),
-    PARTITION pmax     VALUES LESS THAN MAXVALUE
-  )
-");
-```
-
-### 5.3 Aturan penulisan
-1. **Satu transaksi**: log ditulis di transaksi DB yang sama dengan perubahan data. Jika bisnis gagal/rollback, log ikut batal; tidak ada log "palsu" dan tidak ada perubahan tanpa log.
-2. **Append-only**: user DB aplikasi hanya punya `INSERT, SELECT` pada `audit_logs`. Tambahan proteksi:
-   ```sql
-   CREATE TRIGGER audit_logs_no_update BEFORE UPDATE ON audit_logs FOR EACH ROW
-     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'audit_logs bersifat append-only';
-   CREATE TRIGGER audit_logs_no_delete BEFORE DELETE ON audit_logs FOR EACH ROW
-     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'audit_logs bersifat append-only';
-   ```
-   Penghapusan data lama hanya lewat `DROP/EXCHANGE PARTITION` oleh DBA (arsip), bukan DELETE.
-3. **Hanya field yang berubah** di `old_values`/`new_values` (hemat storage, mudah dibaca). Field sensitif (password, PIN, token) **tidak pernah** dicatat; diganti `"[redacted]"`.
-4. **Snapshot pelaku & label** supaya log tetap bermakna walau data master berubah.
-5. **Undo = log baru**: aksi pembatalan menulis `action = <entity>.<verb>_reverted` (atau aksi kebalikannya) dengan `reverts_audit_id` = id log asal dan `reason` wajib.
-6. **Bulk**: satu log per entity yang berubah, semuanya berbagi `batch_id`, plus satu log ringkasan `schedule.bulk_completed` dengan `meta.count`.
-7. **Aksi baca sensitif** yang dicatat: hanya `invoice.proof_viewed` (lihat bukti bayar). Login/logout, export/print, dan akses hasil asesmen tidak masuk audit (login gagal cukup di log aplikasi Laravel).
-
-### 5.4 Katalog kode aksi
-Hanya modul **schedule** dan **finance**. Entity lain tidak ditulis ke `audit_logs`.
-
-| Entity | Aksi |
+### 5.2 Jejak khusus
+| Data | Jejak |
 |---|---|
-| schedule | `schedule.created`, `schedule.series_created`, `schedule.updated`, `schedule.completed`, `schedule.completion_reverted`, `schedule.cancelled`, `schedule.cancellation_reverted`, `schedule.rescheduled`, `schedule.reschedule_reverted`, `schedule.marked_pending`, `schedule.pending_dropped`, `schedule.pending_reverted`, `schedule.report_saved`, `schedule.bulk_completed`, `schedule.bulk_cancelled`, `schedule.bulk_rescheduled`, `schedule.bulk_reverted`, `schedule.deleted` |
-| credit | `credit.package_activated`, `credit.manual_adjusted`, `credit.reconciled` (job) |
-| invoice | `invoice.issued`, `invoice.proof_uploaded` (actor `client`), `invoice.proof_viewed`, `invoice.verified`, `invoice.rejected`, `invoice.voided`, `invoice.renewal_created`, `invoice.deleted` |
-| system (job, `actor_type = system`) | `system.job_completed`, `system.job_failed` (hanya job yang menyentuh kredit/sesi) — lihat §11 |
+| Kredit (sesi completed/cancel/revert, renewal, konversi, koreksi) | `credit_ledger` append-only: `created_by`, `reverses_ledger_id` (undo = baris `reversal` yang menunjuk baris asal, hanya 1x), `batch_id`, `conversion_id` |
+| Pipeline client (otomatis & manual, outcome, discharge, revert) | `client_status_histories` (from/to, `changed_by`, `trigger`, `note`) |
+| Invoice (terbit, upload bukti, verifikasi/tolak, renewal, pemakaian/pengembalian saldo, konversi, hapus) | `invoice_logs` (§F; pelaku, waktu, catatan, `data` JSON) |
+| Konversi paket | `package_conversions` (`created_by`, mode, alasan, sisa, sesi baru, lebihan, jumlah jadwal terhapus) |
+| Status client yang berubah otomatis oleh sesi asesmen | `schedules.client_status_from/to` (dipakai revert untuk memulihkan tahap client) |
+| Sesi (completed/cancel/reschedule/pending/revert) | `schedules.previous_status`, `prev_*`, `reverted_at`, `credit_effect`, `completed_by`, `updated_by` |
+| Hapus (soft delete) | `deleted_at` + `deleted_by` pada tabelnya (sesi, invoice, client, master, dll.) |
+| Asesmen (kode, jawaban, kategori, soal) | `assessment_access_codes.issued_by`, `assessment_responses`, `updated_by`. Kode `issued` yang dihapus = baris hilang tanpa jejak (diterima) |
+| Akun & hak akses | `created_by/updated_by` pada `users` & `roles`; OTP di `password_reset_otps`; hanya `master` yang mengelola |
 
-**Tidak ada baris audit `credit.used` / `credit.cancel_excused` / `credit.cancel_penalty` / `credit.reversed`**: `credit_ledger` sudah append-only (`reverses_ledger_id`, `batch_id`, `created_by`). Aksi `schedule.*` cukup menyimpan `meta.ledger_id` + `meta.credit_change`. `schedule.cancelled` juga menyimpan `meta.deduct_credit` (keputusan admin) dan `meta.cancel_count_after` (per paket); `invoice.proof_uploaded` menyimpan `meta.attempt` (1..4).
+Tidak dicatat sama sekali: lihat bukti bayar (`proof_viewed`), login/logout, export/print, akses hasil asesmen (login gagal cukup di log aplikasi Laravel).
 
-**Modul tanpa audit & jejaknya:**
+### 5.3 Skenario: completed lalu dibatalkan
 
-| Modul | Jejak |
-|---|---|
-| Client / intake / pipeline | `clients.created_by/updated_by`, `client_status_histories` (from/to, `changed_by`, `trigger`, `note`), `client_documents.created_by/updated_by`, `clients.deleted_by` |
-| Asesmen (kode, jawaban, kategori, soal) | `assessment_access_codes.issued_by`, `assessment_responses` (jawaban tersimpan), `updated_by` pada kategori/soal. Kode `issued` yang dihapus = baris hilang tanpa jejak (diterima) |
-| Master data (layanan, paket, kuadran, alasan) | `updated_by` pada `services`, `master_packages` |
-| Hari libur | `holidays.created_by/updated_by` |
-| Akun & hak akses | `created_by/updated_by` pada `users` & `roles`; OTP lupa password di `password_reset_otps`; hanya `master` yang mengelola |
-
-### 5.5 Skenario: completed lalu dibatalkan
-
-**Langkah 1** — Admin Fajar (id 5) menandai sesi #9012 (Kenzo, client #9) completed. Satu transaksi, `batch_id = 01J…A`.
+**Langkah 1** — Admin Fajar (id 5) menandai sesi #9012 (Kenzo, client #9) completed. Satu transaksi.
 
 | tabel | isi |
 |---|---|
-| `schedules` #9012 | `status: scheduled → completed`, `previous_status = scheduled`, `credit_effect = used`, `completed_by = 5`, `version 3 → 4` |
+| `schedules` #9012 | `status: scheduled → completed`, `previous_status = scheduled`, `credit_effect = used`, `completed_by = 5`, `updated_by = 5`, `version 3 → 4` |
 | `client_packages` #31 | `remaining_credit 6 → 5` |
 | `clients` #9 | `credit_balance 6 → 5` |
-| `credit_ledger` #7001 | `action=used, credit_change=-1, schedule_id=9012, idempotency_key=used:schedule:9012:v3` |
-| `audit_logs` #500 | `action=schedule.completed, entity=schedule#9012, subject=client#9, old={"status":"scheduled"}, new={"status":"completed"}, meta={"credit_change":-1,"ledger_id":7001}` |
+| `credit_ledger` #7001 | `action=used, credit_change=-1, schedule_id=9012, created_by=5, idempotency_key=used:schedule:9012:v3` |
 
-**Langkah 2** — Fajar sadar salah sesi dan membatalkan completed dengan alasan "Salah klik, sesi belum berlangsung". Transaksi baru, `batch_id = 01J…B`.
+**Langkah 2** — Fajar sadar salah sesi dan membatalkan completed dengan alasan "Salah klik, sesi belum berlangsung". Transaksi baru.
 
 | tabel | isi |
 |---|---|
-| `schedules` #9012 | `status: completed → scheduled` (dari `previous_status`), `credit_effect = none`, `completed_at/by = null`, `version 4 → 5` |
+| `schedules` #9012 | `status: completed → scheduled` (dari `previous_status`), `credit_effect = none`, `completed_at/by = null`, `reverted_at = now`, `updated_by = 5`, `version 4 → 5` |
 | `client_packages` #31 | `remaining_credit 5 → 6` |
 | `clients` #9 | `credit_balance 5 → 6` |
-| `credit_ledger` #7002 | `action=reversal, credit_change=+1, reverses_ledger_id=7001` (#7001 tetap ada) |
-| `audit_logs` #502 | `action=schedule.completion_reverted, reverts_audit_id=500, reason="Salah klik…", old={"status":"completed"}, new={"status":"scheduled"}, meta={"credit_change":1,"ledger_id":7002}` |
+| `credit_ledger` #7002 | `action=reversal, credit_change=+1, reverses_ledger_id=7001, note="Salah klik…"` (#7001 tetap ada) |
 
 Jika sesi itu kemudian di-complete lagi, `idempotency_key = used:schedule:9012:v5` (versi berbeda) sehingga pemotongan baru sah dan tidak bentrok dengan #7001.
 
-### 5.6 Query contoh
+### 5.4 Query contoh
 ```sql
--- Timeline sesi & finance satu client (sesi, invoice, kredit miliknya; riwayat pipeline ada di client_status_histories)
-SELECT occurred_at, actor_name, action, entity_type, entity_id, old_values, new_values, reason
-FROM audit_logs
-WHERE subject_type = 'client' AND subject_id = 9
-ORDER BY occurred_at DESC, id DESC
+-- Riwayat kredit satu client (keyset: tambahkan AND (created_at, id) < (:last_at, :last_id))
+SELECT created_at, action, credit_change, package_name, note, created_by
+FROM credit_ledger
+WHERE client_id = 9
+ORDER BY created_at DESC, id DESC
 LIMIT 50;
 
--- Semua aksi yang pernah dibatalkan beserta pembatalannya
-SELECT a.occurred_at AS done_at, a.actor_name AS done_by, a.action,
-       r.occurred_at AS reverted_at, r.actor_name AS reverted_by, r.reason
-FROM audit_logs r
-JOIN audit_logs a ON a.id = r.reverts_audit_id
-WHERE r.reverts_audit_id IS NOT NULL
-  AND r.occurred_at >= '2026-10-01';
+-- Log satu invoice, terbaru dulu (Q21)
+SELECT created_at, actor_name, action, note, data
+FROM invoice_logs
+WHERE invoice_id = 123
+ORDER BY created_at DESC, id DESC;
 
--- Aktivitas satu staf hari ini (keyset: tambahkan AND (occurred_at, id) < (:last_at, :last_id))
-SELECT * FROM audit_logs
-WHERE actor_id = 5 AND occurred_at >= CURDATE()
-ORDER BY occurred_at DESC, id DESC LIMIT 50;
+-- Semua baris ledger yang pernah dibalik beserta pembalikannya
+SELECT a.created_at AS done_at, a.action, r.created_at AS reverted_at, r.note
+FROM credit_ledger r
+JOIN credit_ledger a ON a.id = r.reverses_ledger_id
+WHERE r.created_at >= '2026-10-01';
 ```
 
-### 5.7 Retensi & volume
-- Estimasi (hanya schedule & finance): ±3 cabang × ±150 aksi/hari ≈ 450 baris/hari ≈ 165 ribu/tahun (±0,5 KB/baris → ±80 MB/tahun). Partisi bulanan menjaga indeks kecil.
-- Retensi online: **24 bulan**; partisi lebih lama di-`EXCHANGE` ke tabel arsip / di-export ke object storage (rekam medis & keuangan: simpan arsip ≥ 5 tahun sesuai kebijakan klinik).
-- Job bulanan `audit:partitions` menambah partisi bulan depan (`REORGANIZE PARTITION pmax`) dan mengarsip partisi > 24 bulan — lihat §11.
+### 5.5 Volume
+`credit_ledger` ≈ 1 baris per sesi selesai/cancel (±450/hari untuk 3 cabang ≈ 165 ribu/tahun) dan `invoice_logs` ≈ 3–5 baris per invoice; keduanya kecil, tanpa partisi. Retensi data keuangan/rekam medis: simpan ≥ 5 tahun sesuai kebijakan klinik.
 
 ---
 
 ## 06. Alur transaksi kritis
 
-Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `version` (optimistic lock), tulis audit (khusus schedule & finance) di transaksi yang sama. Respons error: 409 (versi berubah / bentrok jadwal), 422 (validasi).
+Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `version` (optimistic lock), isi kolom pelaku (`updated_by`, `created_by`) dan log khusus (`credit_ledger`, `invoice_logs`, `client_status_histories`) di transaksi yang sama. Respons error: 409 (versi berubah / bentrok jadwal), 422 (validasi).
 
 ### 6.1 Complete sesi (`POST /schedules/{id}/complete`)
 1. Lock `schedules` (id) → cek `version` & status ∈ {scheduled, rescheduled}.
@@ -1148,14 +1128,14 @@ Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `vers
 3. Insert `credit_ledger` (`used`, idempotency key) → update `clients.credit_balance`.
 4. Update sesi: `status=completed`, `previous_status`, `credit_effect=used`, `completed_*`, `version+1`; upsert `session_reports`.
 5. Jika `type = assessment` dan status client sebelum `assessment_done` → update `clients.status`, insert `client_status_histories` (`trigger=session_completed`).
-6. Audit: `schedule.completed` (`meta.ledger_id`, `meta.credit_change`). Perubahan status client tercatat di `client_status_histories`, bukan `audit_logs`. Dashboard otomatis ikut berubah karena membaca view (tidak ada ringkasan yang perlu di-update).
+6. Jejak: `schedules.updated_by/completed_by` + ledger `used`; perubahan status client tercatat di `client_status_histories`. Dashboard otomatis ikut berubah karena membaca view (tidak ada ringkasan yang perlu di-update).
 
 ### 6.2 Cancel sesi (`POST /schedules/{id}/cancel`) — keputusan kredit oleh admin
 Berlaku untuk sesi berstatus `scheduled`, `rescheduled`, dan `reschedule_pending` (termasuk "drop" reschedule yang menggantung), di **semua jenis kalender** (terapi, asesmen, konsultasi). Request wajib `reason` dan `deduct_credit` (boolean **tanpa default**: admin harus memilih potong kredit atau tidak).
 1. Lock sesi + client + paket target (`client_package_id` sesi; bila null → paket aktif tertua / FIFO). Alasan = string dari request (code pilihan cepat atau teks custom; wajib terisi, maks 150 karakter; tidak divalidasi ke tabel `cancel_reasons`).
 2. `client_packages.cancel_count += 1` pada paket target. Kuota **3 per paket** hanya **penghitung**: tidak otomatis memotong kredit. Respons memuat `cancel_count` dan `quota_exceeded = (cancel_count > 3)` agar UI memberi peringatan.
 3. `deduct_credit = true`: `remaining_credit -= 1` (CHECK ≥ 0, status `depleted` bila 0) → ledger `cancel_penalty`, `credit_effect=penalty`, update `clients.credit_balance`. `deduct_credit = false`: ledger `cancel_excused` (0), `credit_effect=excused`. Bila `deduct_credit = true` tetapi tidak ada paket aktif/saldo 0 → 422.
-4. Update sesi `cancelled` + alasan + `previous_status`; audit `schedule.cancelled` (`meta.deduct_credit`, `meta.cancel_count_after`, `meta.ledger_id` bila ada).
+4. Update sesi `cancelled` + alasan + `previous_status`; ledger `cancel_penalty`/`cancel_excused` menyimpan keputusan admin & `cancel_count_after`.
 
 Reschedule dan tandai pending **netral kredit** (tidak ada ledger, tidak menambah `cancel_count`).
 
@@ -1166,8 +1146,8 @@ Reschedule dan tandai pending **netral kredit** (tidak ada ledger, tidak menamba
 | `completed` | `previous_status` | Bila `credit_effect=used`: ledger `reversal` (+1) untuk ledger `used` sesi ini; kembalikan status client bila transisi otomatis terjadi di batch yang sama |
 | `cancelled` | `previous_status` (`scheduled` / `rescheduled` / `reschedule_pending`) | Bila `credit_effect=penalty`: reversal (+1). `client_packages.cancel_count -= 1` pada paket yang sama (`cancel_excused` direverse dengan `credit_change = 0`, hanya kuota −1) |
 | `rescheduled` | Slot `prev_*` (slot tepat sebelum reschedule terakhir): reschedule 1x → jadwal asal (`scheduled`); sudah reschedule 2x → jadwal yang tersimpan terakhir (tetap `rescheduled`, `origin_*` dipertahankan) | Cek bentrok slot target dulu (409 bila terisi); `prev_*` dikosongkan; `origin_*` & `rescheduled_at` dikosongkan hanya bila kembali ke slot asal pertama; tanpa efek kredit. Audit `schedule.reschedule_reverted` |
-| `reschedule_pending` | `previous_status` (jadwal asal; slot tidak pernah berubah) | `pending_*` dikosongkan; tanpa efek kredit. Audit `schedule.pending_reverted` |
-Audit `schedule.*_reverted` dengan `reverts_audit_id`. Hak akses revert: role dengan akses modul schedule (tanpa daftar role hardcode), opsional batas waktu (mis. ≤ 7 hari) via konfigurasi.
+| `reschedule_pending` | `previous_status` (jadwal asal; slot tidak pernah berubah) | `pending_*` dikosongkan; tanpa efek kredit. 
+Revert menulis `reverted_at` + baris `reversal` di ledger (bila ada efek kredit). Hak akses revert: role dengan akses modul schedule (tanpa daftar role hardcode), opsional batas waktu (mis. ≤ 7 hari) via konfigurasi.
 
 Aturan tambahan (diterapkan di frontend demo, `useSessionActions.revertSession`):
 - **Alasan wajib** (maks 300 karakter). Sesi yang kembali aktif (`scheduled`/`rescheduled`) harus lolos cek bentrok §6.4 (409 bila slot sudah terisi).
@@ -1182,7 +1162,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 1. `SELECT … FROM schedules WHERE therapist_id=? AND session_date=? AND status NOT IN ('cancelled','reschedule_pending') FOR UPDATE` (indeks `idx_sch_therapist`).
 2. Cek overlap jam dengan sesi aktif terapis itu (tidak ada konsep jam kerja; bentrok = terapis sudah handle client lain di jam yang sama). Bentrok → 409 dengan daftar sesi bentrok (kecuali `force=true` oleh role yang diizinkan; dicatat di audit `meta.forced=true`).
 3. Insert/update. Pindah slot (reschedule): isi `prev_*` dari slot sekarang (dan `origin_*` hanya bila masih kosong). Seri berulang: insert batch dalam satu transaksi (`schedule_series` + N `schedules`, tanggal libur dilewati).
-4. Saat **membuat** sesi `type = assessment` dan `clients.status` masih sebelum `assessment_scheduled` (`inquiry` / `service_selected`): update `clients.status = assessment_scheduled` + insert `client_status_histories` (`trigger=assessment_scheduled`) di transaksi yang sama (tanpa audit; riwayat = `client_status_histories`). Boleh melompat dari `inquiry` (tidak perlu `service_selected` / kode kuesioner dulu); transisi **otomatis** tidak pernah mundur (perubahan manual bebas, lihat §6.6). Pindah jadwal (reschedule) tidak memicu transisi.
+4. Saat **membuat** sesi `type = assessment` dan `clients.status` masih sebelum `assessment_scheduled` (`inquiry` / `service_selected`): update `clients.status = assessment_scheduled` + insert `client_status_histories` (`trigger=assessment_scheduled`) di transaksi yang sama (riwayat = `client_status_histories`). Boleh melompat dari `inquiry` (tidak perlu `service_selected` / kode kuesioner dulu); transisi **otomatis** tidak pernah mundur (perubahan manual bebas, lihat §6.6). Pindah jadwal (reschedule) tidak memicu transisi.
 
 ### 6.5 Terbit invoice & verifikasi pembayaran
 **Terbit** (`POST /invoices`, role dengan akses modul finance): `invoice_type` = `package` | `assessment`. Nomor `INV-{type_code}-{YYYYMMDD WIB}-{NNN}` dari `invoice_counters` (atomik di transaksi yang sama). Paket: salin snapshot (`package_name`, `credits`, `amount`, harga) dari `master_packages`; kode = `invoice_code`. Assessment: `type_code = ASM`, nominal diisi Finance, tanpa paket/kredit. Audit `invoice.issued`.
@@ -1193,9 +1173,16 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 1. Lock invoice (status harus `pending_verification`) + cek `version`.
 2. `approve`: invoice `paid`, `paid_at`, `verified_by`; `payment_proofs.review_status=accepted`. Bila `invoice_type = package`: insert `client_packages` (snapshot nama, harga, kredit; `invoice_id` UNIQUE mencegah aktivasi ganda), ledger `purchased`/`renewed` (+N; `renewed` bila client sudah punya paket sebelumnya), update `clients.credit_balance`. Bila `assessment`: tidak ada paket/ledger; kuesioner client otomatis terbuka bila tidak ada invoice assessment lain yang belum lunas (§6.5b).
 3. `reject`: invoice `rejected` + `rejection_reason`; proof `rejected` (ortu boleh upload ulang selama kuota re-upload belum habis).
-4. Audit `invoice.verified`/`invoice.rejected` + `credit.package_activated` (paket).
+4. Tulis `invoice_logs` (`verified` / `rejected`).
 
-**Renewal langsung Finance** (tunai/di tempat): satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; audit `invoice.renewal_created` + `credit.package_activated`. **Void** dan **koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
+**Renewal langsung Finance** (tunai/di tempat): satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; `invoice_logs` (`renewal_paid`). **Void** dan **koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
+
+**Konversi paket** (`POST /invoices/{id}/convert-package`, modul finance; body `target_package_id`, `sessions?`, `reason?`): satu transaksi.
+1. Lock invoice + paket hidup invoice itu (ikuti rantai `converted_to_package_id`); invoice harus `paid`, `invoice_type = package`, paket `active` dengan `remaining_credit > 0`.
+2. Hitung: `remaining_value = remaining × (harga bayar paket ÷ total_credit)`; `max = floor(remaining_value ÷ harga per sesi tujuan)`. `sessions` kosong → otomatis = `max`; diisi → manual (`reason` wajib), 1 ≤ sessions ≤ `max` (**tidak boleh ada kekurangan bayar**). `leftover = remaining_value − sessions × harga per sesi tujuan`. 422 bila `max < 1`.
+3. Paket lama → `converted` (`remaining_credit = 0`); paket baru (`converted_from_package_id`, `package_price = sessions × harga per sesi tujuan`, **`cancel_count` disalin dari paket lama**); ledger `converted_out` (−sisa) + `converted_in` (+sessions) dengan `conversion_id`; update `clients.credit_balance`; `clients.leftover_balance += leftover`.
+4. **Hapus (soft delete) semua jadwal terapi mendatang client** (`status ∈ scheduled, reschedule_pending`, `type = therapy`); admin schedule menjadwalkan ulang karena paket & terapis berubah. Sesi completed/cancelled/rescheduled & asesmen tidak disentuh. `deleted_schedule_count` dicatat.
+5. Tulis `package_conversions` dan `invoice_logs` (`converted`; juga `balance_applied` saat saldo dipakai invoice berikutnya). Jadwal yang dihapus menyimpan `deleted_by`.
 
 ### 6.5b Buka & kirim kuesioner publik (`GET/POST /public/assessment/{code}`)
 1. Lookup kode (`UNIQUE code`); tidak ada → respons generik 404 (throttle per IP).
@@ -1207,12 +1194,12 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 ### 6.6 Transisi status client (`POST /clients/{id}/transition`)
 - **Otomatis** (efek aksi lain: jadwal asesmen, kuesioner terisi, sesi asesmen completed) hanya **maju** (`advanceStatus` di `frontend/src/domain/client.js`).
 - **Manual**: admin boleh mengubah ke **tahap pipeline mana pun**, maju maupun mundur, termasuk koreksi outcome yang salah (cari client di pipeline lalu ubah status, mis. kembali ke `admitted`) dan reaktivasi `discharged` / `discontinued` → `admitted` (dari list maupun detail client).
-- Efek: set `status`, `status_changed_at`, `final_outcome` (sesuai outcome), `date_of_join` saat admit pertama, `date_of_discharge` saat discharged, `date_of_discontinue` saat discontinued, `updated_by`. Selalu insert `client_status_histories` (`trigger` = `manual` / `outcome` / `discharge` / `revert`); tanpa baris `audit_logs`. Admit tidak membuat paket (saldo 0 = frozen sampai Finance mengaktifkan paket).
+- Efek: set `status`, `status_changed_at`, `final_outcome` (sesuai outcome), `date_of_join` saat admit pertama, `date_of_discharge` saat discharged, `date_of_discontinue` saat discontinued, `updated_by`. Selalu insert `client_status_histories` (`trigger` = `manual` / `outcome` / `discharge` / `revert`). Admit tidak membuat paket (saldo 0 = frozen sampai Finance mengaktifkan paket).
 
 ### 6.7 Hapus data (soft delete, semua modul)
 1. Policy: `roles.can_delete = 1` **dan** role punya akses modul bersangkutan; selain itu tombol tidak tampil dan endpoint 403.
 2. Set `deleted_at` + `deleted_by`; baris terkait tidak dihapus (FK `restrict` tetap aman). Hapus **client** ikut men-soft-delete sesi dan invoice miliknya agar tidak menjadi data yatim (demo frontend melakukan hal yang sama); view yang join `clients` memfilter `c.deleted_at IS NULL`. Entity hilang dari list/view (view sudah memfilter `deleted_at IS NULL`).
-3. Audit hanya untuk modul schedule (`schedule.deleted`) dan finance (`invoice.deleted`); modul lain cukup `deleted_by`.
+3. Semua modul cukup `deleted_by` (+ `invoice_logs` `deleted` untuk invoice).
 4. Dampak (default tim teknis, **perlu konfirmasi klien**): client terhapus tidak bisa login ortu; sesi `completed` harus di-revert dulu (422) agar kredit konsisten; invoice `paid` yang dihapus keluar dari omzet (view) tetapi tidak membatalkan paket/kredit (koreksi saldo lewat `manual_adjust`). Staf tidak dihapus: dinonaktifkan (`is_active = 0`).
 
 ---
@@ -1223,16 +1210,16 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 |---|---|
 | **Indeks** | Komposit sesuai bagian 01; urutan kolom: equality (`branch_id`, `therapist_id`, `status`) → range (`session_date`, `issued_at`) → sort. Tidak ada indeks tunggal untuk kolom kardinalitas rendah |
 | **Baris ramping** | Teks panjang dipisah (`session_reports`); tabel hot (`schedules`, `clients`) hanya kolom yang difilter/ditampilkan di list |
-| **Denormalisasi terkendali** | `clients.credit_balance`, `client_packages.remaining_credit`, `client_packages.cancel_count`, `credit_ledger.branch_id`, `session_reports.client_id` — diperbarui di transaksi yang sama; job rekonsiliasi malam membandingkan dengan Σ ledger dan menulis audit `credit.reconciled` (`system`) bila ada selisih |
+| **Denormalisasi terkendali** | `clients.credit_balance`, `client_packages.remaining_credit`, `client_packages.cancel_count`, `credit_ledger.branch_id`, `session_reports.client_id` — diperbarui di transaksi yang sama; job rekonsiliasi malam membandingkan dengan Σ ledger dan mencatat selisih di log aplikasi Laravel + peringatan ke Master bila ada |
 | **Generated column** | `clients.birth_month`, `session_reports.filled_sections` → filter tanpa fungsi di WHERE (indeks tetap terpakai) |
 | **Dashboard via VIEW** | `v_daily_*` di atas indeks covering + generated column tanggal WIB; selalu difilter cabang + rentang tanggal (pushdown MySQL ≥ 8.0.22). Tabel ringkasan hanya jika view > 100 ms (§04-G) |
 | **Tanpa Redis** | Andalkan InnoDB buffer pool (data hot: kalender, client aktif, master data muat di RAM). Cache Laravel & queue memakai driver `database` (tabel `cache`, `jobs`). Permission dimemo per request. Hasil dashboard boleh di-cache driver `database` TTL 60 detik bila perlu |
-| **Pagination** | Keyset untuk `audit_logs`, `credit_ledger`, riwayat sesi; offset hanya untuk list kecil ber-filter |
+| **Pagination** | Keyset untuk `credit_ledger`, `invoice_logs`, riwayat sesi; offset hanya untuk list kecil ber-filter |
 | **N+1** | API Resource memakai `with()` eksplisit; aktifkan `Model::preventLazyLoading()` di non-produksi |
 | **Payload** | List mengembalikan kolom ringkas (Resource khusus list), detail lengkap di endpoint detail |
 | **Kalender** | Satu query per minggu per cabang (Q1) + daftar terapis/client ringkas (dimuat sekali di frontend); frontend tidak memanggil per sel |
 | **Lock singkat** | `lockForUpdate` hanya pada baris yang diubah; transaksi tidak memanggil I/O eksternal (email OTP, upload, Google Calendar) — itu dilakukan setelah commit via queue `database` |
-| **Partisi** | `audit_logs` per bulan. Tabel lain belum perlu (estimasi < 5 juta baris/5 tahun) |
+| **Partisi** | Belum perlu (estimasi < 5 juta baris/5 tahun) |
 | **Konfigurasi MySQL** | `innodb_buffer_pool_size` ≈ 60–70% RAM, `innodb_flush_log_at_trx_commit=1` (data finansial), slow query log ≥ 200 ms dipantau |
 | **Skala lanjut** | Read replica untuk dashboard & laporan bila beban baca naik; koneksi persistent via Octane/PHP-FPM tuning |
 
@@ -1254,7 +1241,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | kode client / kode login ortu (dulu `TDC-XXXX`) | `clients.client_code` (`AE-00001`) |
 | `clients[].dischargeReason / dischargeNote` | `clients.discharge_reason / discharge_note` |
 | `clients[].dateOfDiscontinue` (baru) | `clients.date_of_discontinue` |
-| perubahan status client | `client_status_histories` (tanpa `audit_logs`) |
+| perubahan status client | `client_status_histories` |
 | `schedules[].date / startTime / endTime / therapistId` | `schedules.session_date / start_time / end_time / therapist_id` |
 | `schedules[].creditPackageId` | `schedules.client_package_id` |
 | `schedules[].rescheduledFrom{…}` | `schedules.origin_date / origin_start_time / origin_end_time / origin_therapist_id` |
@@ -1301,13 +1288,12 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 2. `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays`
 3. `client_code_counters`, `clients`, `client_services`, `client_documents`, `client_status_histories`
 4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`
-5. `invoice_counters`, `invoices`, `payment_proofs`, `client_packages`
+5. `invoice_counters`, `invoices`, `payment_proofs`, `client_packages` (+ kolom `converted_*_package_id` setelah tabelnya ada)
 6. `schedule_series`, `schedules`, `session_reports`
-7. `credit_ledger`
+7. `package_conversions`, `credit_ledger` (+ FK `conversion_id`), `invoice_logs`
    - *(fase terakhir)* `google_calendar_integrations` + kolom `schedules.google_event_id`
-8. `audit_logs` (+ partisi + trigger)
-9. View dashboard (`CREATE OR REPLACE VIEW …` di migration terpisah, setelah semua tabel)
-10. Laravel bawaan: `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` (`php artisan cache:table`, `queue:table`, `session:table`)
+8. View dashboard (`CREATE OR REPLACE VIEW …` di migration terpisah, setelah semua tabel)
+9. Laravel bawaan: `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` (`php artisan cache:table`, `queue:table`, `session:table`)
 
 Seeder:
 - **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, cancel_reasons, discharge_reasons, master_packages (+ `invoice_code`), `client_code_counters` (5 grup: AE, FJ, KO, PT, UZ), `assessment_categories.type_code`, akun master awal (`roles.can_delete = 1` untuk master; modul akses baru `unreported_reports`, `holidays`).
@@ -1322,16 +1308,7 @@ Seeder:
 - **Policy**: berbasis `role_permissions` (akses modul): punya akses modul = boleh semua aksi non-hapus di modul itu (termasuk Manager; void/renewal/koreksi saldo = modul `finance`). Aksi **hapus** tambahan butuh `roles.can_delete`. Tidak ada daftar role hardcode per aksi (`canManageSchedule` frontend diganti cek akses modul).
 - **Scope cabang**: global scope `BranchScope` pada model ber-`branch_id` untuk user non-master.
 - **Action class per use-case** (`CompleteSessionAction`, `CancelSessionAction`, `RevertSessionAction`, `VerifyPaymentAction`, `TransitionClientAction`) — padanan hook use-case frontend; semua aturan kredit mengikuti `frontend/src/domain/credit.js` (acuan test).
-- **AuditLogger** service:
-  ```php
-  AuditLogger::batch(function () use ($schedule, $dto) {
-      $before = $schedule->only(['status']);
-      // … perubahan data …
-      AuditLogger::log('schedule.completed', $schedule, old: $before, new: $schedule->only(['status']),
-          subject: $schedule->client, meta: ['credit_change' => -1, 'ledger_id' => $ledger->id]);
-  });
-  ```
-  `batch()` membungkus `DB::transaction` + membuat `batch_id` (ULID). Trait `Auditable` (observer) **tidak dipakai**; `AuditLogger` dipanggil eksplisit hanya di action class schedule & finance agar `reason`, `subject`, dan `meta` lengkap.
+- **Jejak pelaku**: trait/observer sederhana mengisi `created_by`/`updated_by`/`deleted_by` dari user terautentikasi; tidak ada service audit. Log khusus (`credit_ledger`, `invoice_logs`, `client_status_histories`, `package_conversions`) ditulis eksplisit oleh action class di transaksi yang sama.
 - **Optimistic lock**: request mengirim `version`; `update … where version = ?` → 0 baris = `409 Conflict` (frontend: `ApiError.isConflict`).
 - **Queue** (driver `database`, worker `php artisan queue:work`): hanya untuk email OTP lupa password (+ sinkron Google Calendar di fase terakhir). **Tidak ada notifikasi otomatis** (WA tetap klik-kirim di frontend; email ortu hanya data). Tidak ada listener pengisi ringkasan.
 - **`.env` tanpa Redis**: `CACHE_STORE=database`, `QUEUE_CONNECTION=database`, `SESSION_DRIVER=database`.
@@ -1355,15 +1332,14 @@ Prinsip:
 - Jadwal memakai zona **Asia/Jakarta** dan jam sepi (00:30–04:30 WIB), agar tidak berebut lock dengan jam operasional klinik (07:00–18:00).
 - Setiap job `withoutOverlapping()` + `onOneServer()` (lock disimpan di tabel `cache_locks` MySQL).
 - Data diproses **per batch kecil** (`chunkById(500)`), satu transaksi per batch, supaya lock InnoDB singkat.
-- Job yang mengubah kredit/sesi (`credits:reconcile`) menulis ke `audit_logs` dengan `actor_type = system`, `source = system`, satu `batch_id` per run, ditutup log ringkasan `system.job_completed` (jumlah baris, durasi) atau `system.job_failed`.
+- Job yang mengubah kredit/sesi (`credits:reconcile`) mencatat ringkasan run (jumlah baris, durasi, gagal/berhasil) ke log aplikasi Laravel; perubahan ledger oleh job memakai `created_by = null`.
 - Job harus **idempoten**: dijalankan dua kali tidak menghasilkan efek ganda.
 
 ### 11.1 Daftar job
 
 | Jam (WIB) | Command | Untuk apa | Tabel / indeks | Wajib? |
 |---|---|---|---|---|
-| Setiap hari 02:00 | `credits:reconcile` | **Pengaman denormalisasi**: bandingkan Σ `credit_ledger.credit_change` per paket dengan `client_packages.remaining_credit`, serta Σ per client dengan `clients.credit_balance`, dan `client_packages.cancel_count` dengan jumlah baris ledger `cancel_*` yang belum di-reversal. Bila beda → perbaiki dari ledger (ledger = sumber kebenaran), catat `credit.reconciled`, dan kirim peringatan ke Master. Normalnya selisih 0; bila ada selisih, itu tanda bug yang harus diselidiki | `credit_ledger` (`idx_ledger_client`), `client_packages`, `clients` | **Ya** |
-| Tanggal 1 tiap bulan, 03:00 | `audit:partitions` | Tambah partisi `audit_logs` bulan depan (`REORGANIZE PARTITION pmax`); partisi > 24 bulan di-`EXCHANGE` ke `audit_logs_archive` lalu diekspor ke file (arsip ≥ 5 tahun) | `audit_logs` | **Ya** (tanpa ini log menumpuk di `pmax` dan partisi tidak efektif) |
+| Setiap hari 02:00 | `credits:reconcile` | **Pengaman denormalisasi**: bandingkan Σ `credit_ledger.credit_change` per paket dengan `client_packages.remaining_credit`, serta Σ per client dengan `clients.credit_balance`, dan `client_packages.cancel_count` dengan jumlah baris ledger `cancel_*` yang belum di-reversal. Bila beda → perbaiki dari ledger (ledger = sumber kebenaran), catat di log aplikasi, dan kirim peringatan ke Master. Normalnya selisih 0; bila ada selisih, itu tanda bug yang harus diselidiki | `credit_ledger` (`idx_ledger_client`), `client_packages`, `clients` | **Ya** |
 | Setiap hari 03:30 | backup DB (cron sistem, bukan Laravel) | `mysqldump --single-transaction --routines --triggers` (atau Percona XtraBackup) + binary log untuk point-in-time recovery; simpan 14 hari lokal + salinan off-server | seluruh DB | **Ya** |
 | Setiap hari 04:00 | housekeeping Laravel | `sanctum:prune-expired --hours=24`, `queue:prune-failed --hours=168`, `queue:prune-batches --hours=48`, `otp:prune` (hapus `password_reset_otps` kedaluwarsa/terpakai), dan hapus baris `cache` yang sudah lewat `expiration` (driver `database` tidak menghapusnya otomatis) | `personal_access_tokens`, `failed_jobs`, `job_batches`, `password_reset_otps`, `cache` | Ya |
 | Minggu 04:30 | `db:analyze` | `ANALYZE TABLE schedules, clients, invoices, credit_ledger, client_status_histories` — menyegarkan statistik indeks agar optimizer tetap memilih indeks yang tepat saat data bertambah | tabel transaksi utama | Disarankan |
@@ -1374,7 +1350,6 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('credits:reconcile')->dailyAt('02:00')->timezone('Asia/Jakarta')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => NotifyMaster::dispatch('credits:reconcile gagal'));
-Schedule::command('audit:partitions')->monthlyOn(1, '03:00')->timezone('Asia/Jakarta')->onOneServer();
 Schedule::command('sanctum:prune-expired --hours=24')->dailyAt('04:00')->timezone('Asia/Jakarta');
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:05')->timezone('Asia/Jakarta');
 Schedule::command('cache:purge-expired')->dailyAt('04:10')->timezone('Asia/Jakarta');   // custom: DELETE FROM cache WHERE expiration < UNIX_TIMESTAMP()

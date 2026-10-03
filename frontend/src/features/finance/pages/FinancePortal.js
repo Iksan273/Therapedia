@@ -8,7 +8,6 @@ import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerM
 import { useCredits } from "@/stores/creditsStore";
 import { useClients } from "@/stores/clientsStore";
 import { useAuth } from "@/stores/authStore";
-import { useAuditLogger } from "@/features/audit";
 import { VerificationTab } from "@/features/finance/components/VerificationTab";
 import { BillingTab } from "@/features/finance/components/BillingTab";
 import { HistoryTab } from "@/features/finance/components/HistoryTab";
@@ -30,7 +29,6 @@ export default function FinancePortal() {
     deleteInvoices,
   } = useCredits();
   const { auth } = useAuth();
-  const { record } = useAuditLogger();
   const { clients } = useClients();
 
   const [activeTab, setActiveTab] = useState("verification"); // verification | billing | renewal | history | packages
@@ -89,9 +87,11 @@ export default function FinancePortal() {
   const historyPg = usePagination(allHistoryLogs, 10);
 
   // Handle Verify Payment Proof
+  const by = auth?.staffName || auth?.role || null;
+
   const handleApprovePayment = (invoice) => {
     if (invoice.type === "assessment") {
-      verifyPaymentProof({ invoiceId: invoice.id, status: "paid" });
+      verifyPaymentProof({ invoiceId: invoice.id, status: "paid", by });
       toast.success(`Pembayaran ${invoice.invoiceNumber} (Assessment) berhasil diverifikasi. Kuesioner ortu kini dapat dibuka.`);
       return;
     }
@@ -102,6 +102,7 @@ export default function FinancePortal() {
       invoiceId: invoice.id,
       status: "paid",
       creditsToAdd: credits,
+      by,
     });
     toast.success(`Pembayaran ${invoice.invoiceNumber} berhasil diverifikasi! (+${credits} kredit aktif)`);
   };
@@ -110,24 +111,14 @@ export default function FinancePortal() {
     verifyPaymentProof({
       invoiceId: invoice.id,
       status: "unpaid",
+      by,
     });
     toast.error(`Pembayaran ${invoice.invoiceNumber} ditandai belum valid.`);
   };
 
-  // Hapus invoice (soft delete, hanya role canDelete): tercatat di audit modul finance
+  // Hapus invoice (soft delete, hanya role canDelete): pelaku & waktu tercatat di `deletedBy`/`deletedAt` + log invoice
   const handleDeleteInvoice = (invoice) => {
     deleteInvoices([invoice.id], auth?.staffName || auth?.role || null);
-    record({
-      action: "invoice.deleted",
-      branchId: invoice.branchId,
-      entityType: "invoice",
-      entityId: invoice.id,
-      entityLabel: `Invoice ${invoice.invoiceNumber}`,
-      subjectType: "client",
-      subjectId: invoice.clientId,
-      subjectLabel: invoice.clientName,
-      oldValues: { status: invoice.status, amount: invoice.amount },
-    });
     toast.success(`Invoice ${invoice.invoiceNumber} dihapus.`);
   };
 
@@ -157,6 +148,7 @@ export default function FinancePortal() {
       packageName: isAssessment ? "Assessment" : pkg.name,
       credits: isAssessment ? 0 : pkg.credits,
       amount,
+      by,
     });
 
     toast.success(`Tagihan untuk ${c.clientName} berhasil diterbitkan.`);
@@ -182,6 +174,7 @@ export default function FinancePortal() {
       typeCode: packageInvoiceCode(pkg),
       credits: Number(renewForm.credits) || 10,
       amount: Number(renewForm.amount) || pkg.price || 2500000,
+      by,
     });
 
     toast.success(`Renewal kredit ${c.clientName} berhasil ditambahkan! (+${renewForm.credits} sesi)`);
@@ -232,7 +225,7 @@ export default function FinancePortal() {
             Role Finance Portal
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Verifikasi transfer orang tua, penerbitan tagihan paket, penambahan kredit renewal, dan audit trail buku besar.
+            Verifikasi transfer orang tua, penerbitan tagihan paket, penambahan kredit renewal, dan buku besar kredit.
           </p>
         </div>
 

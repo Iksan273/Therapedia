@@ -54,8 +54,8 @@ Catatan: urutan langkah **tidak dikunci**. Layanan, kode kuesioner, dan jadwal a
 Outcome step 8 memakai hook use-case `useClientOutcomeActions()` (`features/inquiry/hooks/useClientOutcomeActions.js`): `admit`, `reactivate`, `markDoneConsult`, `markDoneAssessment`, `discontinue`, `discharge`, `changeStatus` (ke tahap mana pun). Fase API = satu endpoint `POST /clients/{id}/transition`. Kolom pipeline **Discharged** (grup `outcome`) menampilkan client yang sudah keluar dari terapi.
 
 **Admit** (`admit`): `status=admitted`, `finalOutcome=admitted`, `dateOfJoin=today`. Jika belum ada record kredit → `addRecord(newCreditRecord({ id: "cr-<clientId>", … }))`. Client boleh di-admit dengan **0 kredit** (frozen) sampai Finance menambah paket.
-**Reactivate** (`reactivate`, dari Active Clients Roster / detail): client `discharged`/`discontinued` → `admitted` lewat `buildActivationPatch` (`domain/client.js`): `dateOfJoin` asal dipertahankan, `dateOfDischarge`/`dischargeReason`/`dischargeNote` dikosongkan, record kredit dipastikan ada, audit `client.reactivated`. `admit` memakai patch yang sama.
-**Discharge** (`discharge`, kartu ke-5 `OutcomeCard` + `DischargeDialog`, juga dipakai detail Active Client): alasan wajib (pilihan cepat Master Data atau ketik sendiri), catatan opsional → `status=discharged`, `dateOfDischarge=today`, audit `client.discharged`; `finalOutcome` tidak diubah.
+**Reactivate** (`reactivate`, dari Active Clients Roster / detail): client `discharged`/`discontinued` → `admitted` lewat `buildActivationPatch` (`domain/client.js`): `dateOfJoin` asal dipertahankan, `dateOfDischarge`/`dischargeReason`/`dischargeNote` dikosongkan, record kredit dipastikan ada. `admit` memakai patch yang sama.
+**Discharge** (`discharge`, kartu ke-5 `OutcomeCard` + `DischargeDialog`, juga dipakai detail Active Client): alasan wajib (pilihan cepat Master Data atau ketik sendiri), catatan opsional → `status=discharged`, `dateOfDischarge=today`; `finalOutcome` tidak diubah.
 **Discontinue**: alasan wajib diisi → `status=discontinued`, `dateOfDiscontinue=today` (field sendiri), `dischargeReason="other"`, `dischargeNote=alasan`.
 **Ubah status manual** (`changeStatus`): ke tahap pipeline mana pun; tahap awal mengosongkan outcome & data keluar, `admitted` memakai aktivasi, discontinue/discharge membuka dialog alasan. **Hapus client / inquiry**: `DeleteButton` di header Client Detail (hanya role `canDelete`; soft delete, sesi & invoice milik client ikut disembunyikan; `useClientDeleteActions`).
 
@@ -88,7 +88,7 @@ Jika sesi `type=assessment` di-complete dari `SessionDetailModal`, status client
 - Satu client bisa punya **banyak layanan** dan **banyak kode kuesioner** (multi kategori).
 - Kuesioner **hanya diisi sekali** per kode (tanpa submit ulang/revisi). Hasil dapat dilihat semua staf internal; ortu tidak melihat hasil.
 - Kode kuesioner dibuat `buildQuestionnaireCode` (acak 6 karakter tanpa `0/O/1/I`, dicek unik terhadap semua kode yang ada); kode client berurutan per grup (`nextClientCode`).
-- Perubahan status tidak dicatat di `audit_logs` (hanya modul schedule & finance); backend mencatat riwayat di `client_status_histories`.
+- Perubahan status tidak ada audit log; backend mencatat riwayat di `client_status_histories` (+ `updated_by`).
 
 ## File terkait
 `frontend/src/features/inquiry/pages/`, `frontend/src/features/assessment/pages/AssessmentFill.js`, `frontend/src/stores/clientsStore.js`, `frontend/src/stores/assessmentsStore.js`, `frontend/src/stores/masterDataStore.js`, `frontend/src/domain/client.js` (`makeInquiryClient`, `advanceStatus`), `frontend/src/domain/status.js` (`STATUS_META`), `frontend/src/shared/lib/id.js` (`genCode`), `frontend/src/features/inquiry/hooks/useClientOutcomeActions.js`

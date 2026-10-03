@@ -20,7 +20,6 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `master_discharge_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `discharge_reasons` (tanpa FK) |
 | `auth`, `activeBranch`, `staffUsers`, `rolesList` (+ `canDelete`), `rbacPermissions`, `passwordResets` | `authStore` | lihat 02 |
 | `holidays` | `holidaysStore` | `{ id, date, name, branchId \| null }[]` | `holidays` | `users`, `roles`, `role_permissions`, `access_modules`, `branches` |
-| `audit_logs` | `auditStore` | `AuditEntry[]` (terbaru dulu, append-only) | `audit_logs` |
 | `therapedia_seed_version` (tanpa prefix) | `data/seedRegistry.js` | string | — |
 
 ## Client (`clients[]`)
@@ -71,6 +70,7 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `pendingFrom`, `pendingAt`, `pendingReason`, `pendingNote` | | hanya saat `reschedule_pending` |
 | `previousStatus` | string \| null | status sebelum transisi terakhir (complete/cancel/pending/drop); dipakai revert. Data lama tanpa field ini → `restoreStatusOf` |
 | `rescheduledPrev` `{date,startTime,endTime,therapistId}` | | slot tepat sebelum reschedule terakhir (target revert; `rescheduledFrom` = jadwal asal pertama) |
+| `clientStatusFrom` / `clientStatusTo` | string \| null | sesi **asesmen** completed yang memajukan client otomatis: tahap sebelum/sesudah. Dipakai revert untuk memulihkan tahap client (hanya bila status client masih = `clientStatusTo`); dikosongkan saat revert |
 | `revertedAt` | ISO \| null | terisi saat revert; **revert hanya 1x** (diblokir bila terisi, dikosongkan transisi berikutnya) |
 | `deletedAt`, `deletedBy` | | soft delete sesi |
 
@@ -80,21 +80,23 @@ credits = {
   masterPackages: [{ id, invoiceCode /*kode di nomor invoice*/, name, credits, price, description }],
   records: [{
     id, clientId, branchId,
-    packages: [{ id /*cp-...*/, packageId /*pkg-...*/, packageName, price /*snapshot harga*/, totalCredit, remainingCredit, cancelCount /*kuota cancel PER PAKET*/, status /*active|depleted*/ }],
-    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, note }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal)
+    balance?: number,   // SALDO LEBIHAN (rupiah) hasil konversi paket; memotong invoice paket berikutnya (default 0)
+    packages: [{ id /*cp-...*/, packageId /*pkg-...*/, packageName, price /*snapshot harga*/, totalCredit, remainingCredit, cancelCount /*kuota cancel PER PAKET*/, status /*active|depleted|converted*/,
+                 invoiceId? /*invoice asal (verifikasi/renewal)*/, convertedFromId?, convertedToId?, conversionId? }],
+    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
   }],
+  conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
   invoices: [{ id, type /*package|assessment*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid*/,
-               proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt, deletedAt?, deletedBy? }],
+               proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt, deletedAt?, deletedBy?,
+               grossAmount? /*sebelum saldo lebihan*/, balanceApplied? /*saldo lebihan yang dipakai; amount = gross − balanceApplied*/,
+               logs: [{ id, at, by, action /*issued|proof_uploaded|verified|rejected|renewal_paid|balance_applied|balance_restored|converted|deleted*/, note, data }] /*LOG MILIK INVOICE (append-only); invoice lama = baris dasar dari createdAt/paidAt (invoiceLogsOf)*/ }],
   renewals: []   // belum dipakai
 }
 ```
-- `history.action`: `used` (−1), `cancel_excused` (0), `cancel_penalty` (−1), `renewed` (+N).
+- `history.action`: `used` (−1), `cancel_excused` (0), `cancel_penalty` (−1), `renewed` (+N), `converted_out` (−sisa paket lama), `converted_in` (+sesi paket baru).
 - Satu client punya **satu record** dan **banyak paket**. Sisa kredit total = jumlah `remainingCredit` semua paket (`summarizeCreditRecord` di `domain/credit.js`, dipakai `getRecordForClient`; juga memberi `cancelCount` / `cancelQuota` (= 3) dari paket yang sedang dipakai, `activePackageOf`).
-- Aturan mutasi (pure, ber-test): `applySessionCompleted`, `applySessionCancelled` (`deductCredit`), `applySessionReverted`, `findLiveSessionEntry`, `applyPackageAdded`, `newClientPackage`, `newCreditRecord`, `nextInvoiceNumber`, `invoiceType`, `packageInvoiceCode`, `validateProofFile`, `canUploadProof` di `domain/credit.js`.
+- Aturan mutasi (pure, ber-test): `applySessionCompleted`, `applySessionCancelled` (`deductCredit`), `applySessionReverted`, `findLiveSessionEntry`, `applyPackageAdded`, `newClientPackage`, `newCreditRecord`, `nextInvoiceNumber`, `invoiceType`, `packageInvoiceCode`, `validateProofFile`, `canUploadProof` di `domain/credit.js`. Konversi paket: `computePackageConversion`, `resolveInvoicePackage`, `isInvoiceConvertible`, `applyPackageConversion`; saldo lebihan: `applyBalanceToAmount`; log invoice: `appendInvoiceLog`, `invoiceLogsOf`, `invoiceLogMeta`.
 - **Frozen** = sisa kredit total 0. Ini status turunan (tidak disimpan), ditampilkan di kalender dan detail client.
-
-## Audit log (`audit_logs[]`)
-`{ id, occurredAt, batchId, actorType /*user|client|public|system*/, actorId, actorName, actorRole, branchId /*null = global*/, action /*entity.verb*/, entityType, entityId, entityLabel, subjectType, subjectId, subjectLabel, oldValues, newValues, meta, reason, revertsAuditId, source, ipAddress, userAgent }` — sama dengan kolom `audit_logs` di `schema.md` §05 (camelCase). Backend hanya mencatat modul schedule & finance (`schema.md` §05.4); `actorType` `public` tidak dipakai di backend.
 
 ## Therapist (`therapists[]`)
 `{ id /*t-001*/, name, specialty, branchId }`
@@ -120,7 +122,6 @@ Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `Assessme
 | `domain/assessment.js` | `buildQuestionnaireCode`, `categoryTypeCode`, `normalizeTypeCode`, `isTypeCodeTaken`, `CODE_VALIDITY_OPTIONS`, `buildExpiresAt`, `isQuestionnaireCodeExpired`, `hasPendingAssessmentInvoice`, `checkQuestionnaireAccess` |
 | `domain/auth.js` | `DEMO_PASSWORD`, `validateNewPassword`, OTP (`generateOtp`, `makeOtpRequest`, `verifyOtp`), `checkStaffCredentials`, `validateStaffBranch` |
 | `domain/holiday.js` | `DEFAULT_HOLIDAYS`, `makeHoliday`, `findHoliday`, `isHoliday`, `holidayDateSet`, `validateHoliday` |
-| `domain/audit.js` | `AUDIT_CATEGORIES`, `AUDIT_ACTIONS`, `auditActionMeta`, `auditCategoryLabel`, `buildAuditEntry`, `auditChanges`, `indexReverts`, `auditInBranch`, `newAuditBatchId` |
 | `shared/lib/id.js` | `uid`, `nowIso`, `todayStr` |
 | `shared/lib/format.js` | `fmtDate`, `formatDdMmYyyy`, `parseDdMmYyyy`, `calcAge`, `calcAgeDetailed`, `fmtCurrency` |
 | `shared/lib/periods.js` | `PERIOD_OPTIONS`, `periodLabel`, `makePeriodMatcher` |
@@ -137,12 +138,16 @@ Tabel lengkap ada di `schema.md` bagian 08. Yang paling sering dipakai:
 | `clients[].serviceTypes[]` | `client_services` | |
 | `clients[].gdriveClientLink` | `client_documents` (`type=gdrive_folder`) | |
 | `clients[].assessmentAnswers[]` | `assessment_responses` (sekali isi, `consent_at`) + `assessment_answers` + `assessment_quadrant_scores` | skor kuadran dihitung server |
-| perubahan status client | `client_status_histories` (tanpa `audit_logs`) | frontend belum menyimpan histori; backend wajib |
+| perubahan status client | `client_status_histories` | frontend belum menyimpan histori; backend wajib |
 | `schedules[].date/startTime/endTime` | `schedules.session_date/start_time/end_time` | |
 | `schedules[].rescheduledFrom` | `schedules.origin_*` | |
 | `schedules[].activitySection/noteSection/homeworkSection` | `session_reports` | |
 | `credits.records[].packages[]` | `client_packages` | |
 | `credits.records[].history[]` | `credit_ledger` (append-only) | |
+| `credits.records[].balance` | `clients.leftover_balance` (rupiah) | |
+| `credits.conversions[]` | `package_conversions` | |
+| `credits.invoices[].logs[]` | `invoice_logs` (append-only) |  |
+| `credits.invoices[].grossAmount/balanceApplied` | `invoices.gross_amount/balance_applied` | |
 | `credits.records[].cancelCountTotal` (lama) → `packages[].cancelCount` | `client_packages.cancel_count` (kuota 3 per paket) | |
 | `therapists[]` + `staffUsers[]` | `users` | |
 | camelCase | snake_case | dikonversi otomatis oleh `services/http/httpClient.js` |

@@ -30,7 +30,7 @@ export function BulkRevertDialog({ open, onOpenChange, sessions, previewRevert, 
             <Undo2 className="w-5 h-5 text-violet-600" /> Bulk Revert ({sessions.length} Sessions)
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Batalkan status Completed, Cancel, atau pemindahan Reschedule pada semua sesi terpilih. Tercatat di audit log.
+            Batalkan status Completed, Cancel, atau pemindahan Reschedule pada semua sesi terpilih.
           </DialogDescription>
         </DialogHeader>
 

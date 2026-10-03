@@ -25,8 +25,8 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 | Portal terapis / ortu, dashboard, user & RBAC | 07 | `frontend/src/features/therapist/`, `parent/`, `master/` |
 | Styling, komponen, mobile, testId | 08 | `frontend/src/shared/components/`, `frontend/src/index.css` |
 | Integrasi Laravel API | 10 | `frontend/src/services/`, `frontend/src/config/env.js`, `schema.md` |
-| Desain tabel / indeks / audit log | `schema.md` | skill `database-design` |
-| Audit log (halaman, pencatatan aksi) | 07 §F, `schema.md` §05 | `frontend/src/features/audit/`, `frontend/src/domain/audit.js` |
+| Desain tabel / indeks / jejak perubahan | `schema.md` | skill `database-design` |
+| Log invoice & jejak perubahan | 06 §Log invoice, `schema.md` §05 | `frontend/src/domain/credit.js` (`appendInvoiceLog`), `features/finance/components/InvoiceLogDialog.js` |
 | Cek bug & tech debt | 11 | — |
 | Keputusan klien & status implementasinya | 12 | — |
 
@@ -42,14 +42,14 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 | 07 | [07-flow-portals-dashboards.md](07-flow-portals-dashboards.md) | Portal terapis, portal ortu, dashboard, user management, RBAC UI |
 | 08 | [08-ui-conventions.md](08-ui-conventions.md) | Design tokens, komponen, mobile, testId, microcopy |
 | 09 | [09-recipes.md](09-recipes.md) | Resep langkah demi langkah |
-| 10 | [10-api-migration.md](10-api-migration.md) | Lapisan HTTP, mapping use-case → endpoint → tabel → kode audit |
+| 10 | [10-api-migration.md](10-api-migration.md) | Lapisan HTTP, mapping use-case → endpoint → tabel → jejak |
 | 11 | [11-known-issues.md](11-known-issues.md) | Bug yang sudah/masih terbuka, tech debt |
 | 12 | [12-keputusan-klien.md](12-keputusan-klien.md) | Keputusan klien & hasil meeting (3 Okt 2026) + pelacak implementasi frontend |
 
 ## Dokumen & aset lain
 | File | Status |
 |---|---|
-| `schema.md` | Desain database v2 (MySQL 8 + Laravel 11): 33 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, audit log (schedule & finance) |
+| `schema.md` | Desain database v2 (MySQL 8 + Laravel 11): 34 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, log invoice (tanpa audit log) |
 | `docs/adr/` | Architecture Decision Records (mulai `0001-feature-based-architecture.md`) |
 | `.claude/skills/` | Skill Claude Code: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal. Referensi scope, **jangan diedit** kecuali diminta |
