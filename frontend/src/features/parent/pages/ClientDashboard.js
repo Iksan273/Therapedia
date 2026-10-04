@@ -108,6 +108,7 @@ export default function ClientDashboard() {
       clientCode: client?.clientCode,
       branchName: branch ? `Therapedia ${branch.name}` : undefined,
       generatedLabel: fmtDate(new Date().toISOString().slice(0, 10)),
+      logoUrl: `${window.location.origin}/images/therapedia_logo.png`,
     });
     if (!printHtmlDocument(html)) toast.error("Jendela cetak diblokir browser. Izinkan pop-up lalu coba lagi.");
   };

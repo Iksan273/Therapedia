@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { format, subMonths } from "date-fns";
 import {
   ResponsiveContainer,
   BarChart,
@@ -29,6 +28,8 @@ import { useClients } from "@/stores/clientsStore";
 import { useBranches } from "@/stores/branchesStore";
 import { FilterBar } from "@/shared/components/FilterBar";
 import { PeriodFilter } from "@/shared/components/PeriodFilter";
+import { TREND_RANGES, buildMonthlyIntakeTrend, trendRangeTitle } from "@/domain/branch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { makePeriodMatcher, periodLabel } from "@/shared/lib/periods";
 
 // Warna garis tren per cabang (berurutan; cabang tambahan memakai warna berikutnya)
@@ -125,27 +126,12 @@ export default function BranchPerformance() {
     return [...branchComparisonData].sort((a, b) => b.conversionRate - a.conversionRate)[0];
   }, [branchComparisonData]);
 
-  // 6-Month Intake Trend per Branch
-  const monthlyTrends = useMemo(() => {
-    const now = new Date();
-    return Array.from({ length: 6 }, (_, i) => {
-      const m = subMonths(now, 5 - i);
-      const key = format(m, "yyyy-MM");
-      const label = format(m, "MMM yyyy");
-
-      const item = { month: label };
-      BRANCHES.forEach((b) => {
-        const count = allClients.filter((c) => {
-          if (c.branchId !== b.id) return false;
-          const dStr = c.createdAt ? c.createdAt.slice(0, 7) : "";
-          return dStr === key;
-        }).length;
-        item[b.name] = count;
-      });
-
-      return item;
-    });
-  }, [allClients, BRANCHES]);
+  // Tren intake bulanan per cabang: punya filter rentang sendiri (tidak mengikuti filter waktu halaman)
+  const [trendRange, setTrendRange] = useState("6");
+  const monthlyTrends = useMemo(
+    () => buildMonthlyIntakeTrend({ clients: allClients, branches: BRANCHES, range: trendRange }),
+    [allClients, BRANCHES, trendRange]
+  );
 
   return (
     <div className="space-y-6" data-testid="master-branch-performance-page">
@@ -303,19 +289,33 @@ export default function BranchPerformance() {
       {/* CHARTS ROW 2: 6-MONTH TREND COMPARISON PER BRANCH */}
       <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
         <CardHeader className="pb-2 border-b border-slate-100">
-          <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-sky-600" />
-            Tren Volume Intake 6 Bulan Terakhir per Cabang
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-500">
-            Pergerakan pendaftaran client baru tiap bulan di setiap cabang (tidak mengikuti filter rentang waktu)
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2" data-testid="branch-trend-title">
+                <Calendar className="w-4 h-4 text-sky-600" />
+                Tren Volume Intake {trendRangeTitle(trendRange)} per Cabang
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-500 mt-1">
+                Pergerakan pendaftaran client baru tiap bulan di setiap cabang. Memakai filter sendiri; tidak terpengaruh filter waktu di atas.
+              </CardDescription>
+            </div>
+            <Select value={trendRange} onValueChange={setTrendRange}>
+              <SelectTrigger className="h-10 w-full sm:w-[140px] border-slate-200 bg-slate-50 text-xs" data-testid="branch-trend-range-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200">
+                {TREND_RANGES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="h-64 pt-4">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthlyTrends} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-              <XAxis dataKey="month" tick={{ fill: "#64748B", fontSize: 11 }} />
+              <XAxis dataKey="month" tick={{ fill: "#64748B", fontSize: 11 }} interval={monthlyTrends.length > 6 ? 1 : 0} />
               <YAxis allowDecimals={false} tick={{ fill: "#64748B", fontSize: 11 }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />

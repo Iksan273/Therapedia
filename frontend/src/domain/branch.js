@@ -1,3 +1,5 @@
+import { format, subMonths } from "date-fns";
+
 // Domain cabang klinik.
 // Data cabang dikelola Master (menu Master Cabang) dan disimpan di `branchesStore`. Registry modul ini disinkronkan oleh
 // store (`syncBranches`) supaya kode domain/UI lama yang membaca `BRANCHES` / `branchName` tetap bekerja.
@@ -56,4 +58,31 @@ export function validateBranch(form, branches = BRANCHES, selfId = null) {
   if (others.some((b) => b.code.toUpperCase() === code)) return `Kode cabang "${code}" sudah dipakai.`;
   if (others.some((b) => b.name.trim().toLowerCase() === name.toLowerCase())) return `Nama cabang "${name}" sudah dipakai.`;
   return null;
+}
+
+// Pilihan rentang tren intake bulanan (kartu punya filter sendiri, tidak mengikuti filter waktu halaman).
+export const TREND_RANGES = [
+  { value: "3", label: "3 bulan" },
+  { value: "6", label: "6 bulan" },
+  { value: "12", label: "12 bulan" },
+  { value: "ytd", label: "Tahun ini" },
+];
+
+// Jumlah bulan untuk pilihan rentang; "ytd" = Januari s/d bulan berjalan.
+export const trendMonthCount = (range, now = new Date()) => (range === "ytd" ? now.getMonth() + 1 : parseInt(range, 10) || 6);
+
+export const trendRangeTitle = (range) => (range === "ytd" ? "Tahun Ini" : `${range} Bulan Terakhir`);
+
+// Intake baru per bulan (berdasar createdAt) per cabang, berakhir di bulan berjalan. Hasil: [{ month, [branchName]: n }].
+export function buildMonthlyIntakeTrend({ clients, branches, range = "6", now = new Date() }) {
+  const count = trendMonthCount(range, now);
+  return Array.from({ length: count }, (_, i) => {
+    const m = subMonths(now, count - 1 - i);
+    const key = format(m, "yyyy-MM");
+    const item = { month: format(m, "MMM yyyy") };
+    branches.forEach((b) => {
+      item[b.name] = clients.filter((c) => c.branchId === b.id && (c.createdAt || "").slice(0, 7) === key).length;
+    });
+    return item;
+  });
 }
