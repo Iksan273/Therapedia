@@ -793,6 +793,8 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->timestamp('verified_at')->nullable();
     $table->text('rejection_reason')->nullable();
     $table->string('payment_method', 40)->default('transfer');   // teks bebas (mis. transfer, tunai)
+    $table->enum('renewal_reason', ['cash_at_cashier', 'transfer_confirmed', 'parent_requested_urgent', 'other'])->nullable();   // hanya renewal langsung lunas (wajib terisi); tambah nilai di akhir
+    $table->string('renewal_justification', 500)->nullable();   // hanya renewal langsung lunas: wajib, min. 10 karakter (divalidasi service)
     $table->unsignedTinyInteger('proof_upload_count')->default(0);   // upload pertama + re-upload; maks 4 (1 + 3 re-upload), dicek di service
 
     $table->unsignedInteger('version')->default(1);
@@ -810,7 +812,7 @@ Schema::create('invoices', function (Blueprint $table) {
 Status: `unpaid` → (ortu upload) `pending_verification` → Finance `paid` / `rejected` (ortu bisa upload ulang → `pending_verification`, maks 3x re-upload). `void` = dibatalkan role dengan akses modul finance (wajib alasan, tercatat di `invoice_logs`).
 
 - **Jenis `assessment`**: diterbitkan Finance (nominal diisi saat terbit, `master_package_id` null, `credits = 0`, tidak membuat `client_packages`). Selama client punya invoice `assessment` yang belum `paid` (`unpaid` / `pending_verification` / `rejected`), semua kuesioner client itu tidak bisa dibuka ortu (§6.5b); dicek lewat `idx_inv_client`.
-- **Jenis `package`**: `amount`, `credits`, `package_name` adalah **snapshot** master paket saat terbit/renewal; mengubah harga master tidak memengaruhi invoice atau paket yang sudah ada. Renewal langsung Finance (tunai) = invoice `paid` dibuat sekaligus. `purchased` vs `renewed` di ledger ditentukan otomatis dari ada tidaknya paket sebelumnya.
+- **Jenis `package`**: `amount`, `credits`, `package_name` adalah **snapshot** master paket saat terbit/renewal; mengubah harga master tidak memengaruhi invoice atau paket yang sudah ada. Renewal ada **2 jalur**: (1) *terbitkan invoice baru* = invoice biasa (`unpaid` → verifikasi); (2) *langsung lunas* (Finance) = invoice `paid` dibuat sekaligus, **wajib** `renewal_reason` + `renewal_justification` (juga masuk `invoice_logs.data` pada `renewal_paid`). Satu invoice = satu baris log berurutan: bayar, konversi, dst. tetap dihitung 1 invoice. `purchased` vs `renewed` di ledger ditentukan otomatis dari ada tidaknya paket sebelumnya.
 - Tanpa jatuh tempo: pengingat tagihan dilakukan admin manual lewat WhatsApp.
 - **Saldo lebihan**: saat invoice `package` terbit / renewal langsung, `balance_applied = min(clients.leftover_balance, gross)` mengurangi nominal dan saldo client; invoice **belum lunas** yang dihapus/void mengembalikan saldonya (log `balance_restored`). Paket yang dibuat dari invoice ini memakai **harga gross** sebagai `package_price` (nilai paket utuh).
 
@@ -1175,7 +1177,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 3. `reject`: invoice `rejected` + `rejection_reason`; proof `rejected` (ortu boleh upload ulang selama kuota re-upload belum habis).
 4. Tulis `invoice_logs` (`verified` / `rejected`).
 
-**Renewal langsung Finance** (tunai/di tempat): satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; `invoice_logs` (`renewal_paid`). **Void** dan **koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
+**Renewal** punya 2 jalur: *terbitkan invoice baru* (= alur invoice biasa di atas) atau **langsung lunas** (Finance; tunai/di tempat): validasi `renewal_reason` + `renewal_justification` wajib (422 bila kosong), lalu satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; `invoice_logs` (`renewal_paid`, `data` memuat alasan & justifikasi). **Void** dan **koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
 
 **Konversi paket** (`POST /invoices/{id}/convert-package`, modul finance; body `target_package_id`, `sessions?`, `reason?`): satu transaksi.
 1. Lock invoice + paket hidup invoice itu (ikuti rantai `converted_to_package_id`); invoice harus `paid`, `invoice_type = package`, paket `active` dengan `remaining_credit > 0`.

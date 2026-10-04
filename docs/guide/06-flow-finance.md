@@ -19,7 +19,9 @@ sequenceDiagram
   C-->>C: invoice paid; jenis Paket Sesi → paket baru di records[].packages (+N kredit dari SNAPSHOT invoice, history "renewed"); jenis Assessment → hanya lunas (membuka kuesioner ortu)
   Note over F,C: Reject = verifyPaymentProof(status "unpaid") → invoice tetap unpaid, kredit tidak berubah
 ```
-Jalur pintas: **Renewal langsung** (`renewClientCredit`) membuat invoice `paid` dan paket kredit sekaligus, tanpa langkah upload/verifikasi. Dipakai untuk pembayaran yang sudah diterima di kasir.
+**Renewal punya 2 jalur** (`RenewalDialog`, pilih di bagian atas dialog; `RENEWAL_MODES` di `domain/credit.js`):
+1. **Terbitkan invoice baru** (default): memanggil `issueInvoice` jenis paket → invoice `unpaid`, masuk antrean Verifikasi, alur upload → verifikasi seperti biasa.
+2. **Langsung lunas** (`renewClientCredit`): invoice `paid` + paket kredit sekaligus, tanpa upload/verifikasi (ortu sudah bayar, mis. tunai di kasir). **Wajib alasan** (`DIRECT_RENEWAL_REASONS`) **dan justifikasi** (teks, min. `MIN_RENEWAL_JUSTIFICATION` = 10 karakter; `validateDirectRenewal`). Disimpan di invoice (`renewalReason`, `renewalJustification`) dan tampil di log `renewal_paid`.
 
 ## Layar: `/finance`
 `features/finance/pages/FinancePortal.js` dengan 4 tab di `features/finance/components/`:
@@ -61,7 +63,7 @@ Contoh: sisa sesi paket **Senior** dikonversi ke **Regular**. Dari tab `billing`
 - Jejak: log invoice `converted` + `package_conversions` + ledger; jadwal yang dihapus menyimpan `deletedBy`. Akses: modul `finance` (bukan `canDelete`).
 
 ## Log invoice
-Setiap invoice punya **log sendiri** (`invoice.logs`, append-only, `appendInvoiceLog`) — satu-satunya jejak per invoice (tidak ada audit log). Diisi reducer `creditsStore` pada: terbit (`issued`), upload bukti (`proof_uploaded`), verifikasi (`verified`/`rejected`), renewal langsung (`renewal_paid`), pemakaian/pengembalian saldo, konversi (`converted`, memuat mode, alasan, sisa, sesi baru, lebihan), dan hapus (`deleted`). Tampil di tombol **Log** (terbaru di atas). Invoice dari seed lama tanpa log menampilkan baris dasar (terbit, lunas).
+Setiap invoice punya **log sendiri** (`invoice.logs`, append-only, `appendInvoiceLog`) — satu-satunya jejak per invoice (tidak ada audit log). Di tab **Semua Tagihan**, **1 invoice = 1 baris + 1 log** sepanjang hidupnya: dibayar lalu dikonversi tetap invoice yang sama (konversi hanya menambah baris log `converted`, tidak membuat invoice baru). Agar terlihat tanpa membuka log, baris invoice yang pernah dikonversi diberi badge **Dikonversi** (+ "Nx" bila berulang) dan tujuan konversi terakhir ("→ Regular 8 sesi"). Statusnya **diturunkan** dari log (`isInvoiceConverted`, `lastInvoiceConversion` di `domain/credit.js`), tidak disimpan; di backend = ada baris `invoice_logs.action = 'converted'`. Diisi reducer `creditsStore` pada: terbit (`issued`), upload bukti (`proof_uploaded`), verifikasi (`verified`/`rejected`), renewal langsung (`renewal_paid`), pemakaian/pengembalian saldo, konversi (`converted`, memuat mode, alasan, sisa, sesi baru, lebihan), dan hapus (`deleted`). Tampil di tombol **Log** (terbaru di atas). Invoice dari seed lama tanpa log menampilkan baris dasar (terbit, lunas).
 
 ## Revenue
 `features/master/pages/DashboardRevenue.js` (Master: `/master/revenue`, Manager: `/manager/revenue`) menghitung omzet dari `invoices` berstatus `paid` per cabang/periode (lihat 07).

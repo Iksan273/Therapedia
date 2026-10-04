@@ -380,6 +380,33 @@ export function applyBalanceToAmount(balance, gross) {
   return { gross: amount, applied, net: amount - applied, balanceAfter: available - applied };
 }
 
+// ---- Renewal: dua jalur ----
+// `invoice` = terbitkan invoice baru (unpaid → ortu upload → verifikasi); `direct` = langsung lunas (wajib alasan + justifikasi).
+export const RENEWAL_MODES = {
+  invoice: { label: "Terbitkan invoice baru", hint: "Invoice belum lunas; ortu upload bukti, Finance verifikasi." },
+  direct: { label: "Langsung lunas", hint: "Pembayaran sudah diterima. Invoice langsung lunas dan paket aktif." },
+};
+
+export const DIRECT_RENEWAL_REASONS = {
+  cash_at_cashier: "Dibayar tunai di kasir",
+  transfer_confirmed: "Transfer sudah masuk rekening (dicek mutasi)",
+  parent_requested_urgent: "Ortu ingin sesi langsung aktif (sesi hampir/sudah habis)",
+  other: "Lainnya",
+};
+
+export const MIN_RENEWAL_JUSTIFICATION = 10;
+
+export const directRenewalReasonLabel = (code) => DIRECT_RENEWAL_REASONS[code] || code || "—";
+
+// Renewal langsung lunas wajib punya alasan (pilihan) + justifikasi (teks bebas). Mengembalikan pesan error atau null.
+export function validateDirectRenewal({ reason, justification } = {}) {
+  if (!DIRECT_RENEWAL_REASONS[reason]) return "Alasan renewal langsung lunas wajib dipilih.";
+  if ((justification || "").trim().length < MIN_RENEWAL_JUSTIFICATION) {
+    return `Justifikasi wajib diisi (minimal ${MIN_RENEWAL_JUSTIFICATION} karakter).`;
+  }
+  return null;
+}
+
 // ---- Log invoice (milik invoice sendiri, append-only) ----
 export const INVOICE_LOG_ACTIONS = {
   issued: { label: "Invoice diterbitkan", tone: "info" },
@@ -400,6 +427,11 @@ export const appendInvoiceLog = (invoice, { action, by = null, note = "", data =
   ...invoice,
   logs: [...(invoice.logs || []), { id: uid(), at: at || new Date().toISOString(), by, action, note, data }],
 });
+
+// Status "dikonversi" diturunkan dari log invoice (tidak disimpan). Mengembalikan log `converted` terbaru atau null.
+export const lastInvoiceConversion = (invoice) => [...(invoice?.logs || [])].reverse().find((l) => l.action === "converted") || null;
+export const isInvoiceConverted = (invoice) => Boolean(lastInvoiceConversion(invoice));
+export const invoiceConversionCount = (invoice) => (invoice?.logs || []).filter((l) => l.action === "converted").length;
 
 // Log untuk tampilan. Invoice lama tanpa `logs` dibuatkan baris dasar dari createdAt / paidAt.
 export function invoiceLogsOf(invoice) {

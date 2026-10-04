@@ -11,6 +11,7 @@ import {
   applySessionCompleted,
   applySessionReverted,
   canUploadProof,
+  directRenewalReasonLabel,
   invoiceType,
   invoiceTypeCode,
   newClientPackage,
@@ -189,8 +190,15 @@ function creditsReducer(state, action) {
           status: "paid",
           proofOfPaymentUrl: "verified-by-finance.png",
           paidAt: todayStr(),
+          renewalReason: action.reason || null,
+          renewalJustification: action.justification || null,
         }),
-        { action: "renewal_paid", by: action.by, note: `Renewal langsung oleh Finance (+${action.credits} sesi)` }
+        {
+          action: "renewal_paid",
+          by: action.by,
+          note: `Renewal langsung oleh Finance (+${action.credits} sesi). Alasan: ${directRenewalReasonLabel(action.reason)}. Justifikasi: ${action.justification || "—"}`,
+          data: { reason: action.reason || null, justification: action.justification || null },
+        }
       );
       const { invoice, records } = withBalanceApplied(state, base, action.by);
       const withInvoiceId = { ...pkg, invoiceId: invoice.id, price: invoice.grossAmount || invoice.amount };
@@ -283,8 +291,9 @@ export const CreditsProvider = ({ children }) => {
     dispatch({ type: "UPLOAD_PAYMENT_PROOF", invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt });
   const verifyPaymentProof = ({ invoiceId, status, proofUrl, creditsToAdd, by }) =>
     dispatch({ type: "VERIFY_PAYMENT_PROOF", invoiceId, status, proofUrl, creditsToAdd, by });
-  const renewClientCredit = ({ clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, by }) =>
-    dispatch({ type: "RENEW_CREDIT", clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, by });
+  // Renewal langsung lunas: `reason` + `justification` wajib (divalidasi `validateDirectRenewal` oleh pemanggil)
+  const renewClientCredit = ({ clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, reason, justification, by }) =>
+    dispatch({ type: "RENEW_CREDIT", clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, reason, justification, by });
   // Konversi paket (angka sudah divalidasi `computePackageConversion`): lihat usePackageConversionActions.
   const convertPackage = (payload) => dispatch({ type: "CONVERT_PACKAGE", ...payload });
 

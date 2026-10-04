@@ -15,7 +15,7 @@ import { PackagesTab } from "@/features/finance/components/PackagesTab";
 import { CreateInvoiceDialog } from "@/features/finance/components/CreateInvoiceDialog";
 import { RenewalDialog } from "@/features/finance/components/RenewalDialog";
 import { NewPackageDialog } from "@/features/finance/components/NewPackageDialog";
-import { ASSESSMENT_INVOICE_CODE, invoiceTypeCode, packageInvoiceCode } from "@/domain/credit";
+import { ASSESSMENT_INVOICE_CODE, invoiceTypeCode, packageInvoiceCode, validateDirectRenewal } from "@/domain/credit";
 
 export default function FinancePortal() {
   const {
@@ -50,6 +50,9 @@ export default function FinancePortal() {
     packageId: "pkg-reguler",
     credits: 10,
     amount: 2500000,
+    mode: "invoice", // invoice | direct (langsung lunas: wajib reason + justification)
+    reason: "",
+    justification: "",
   });
 
   // Add Master Package Modal State
@@ -164,21 +167,52 @@ export default function FinancePortal() {
       return;
     }
     const pkg = masterPackages.find((p) => p.id === renewForm.packageId) || { name: "Regular Therapist" };
+    const credits = Number(renewForm.credits) || 10;
+    const amount = Number(renewForm.amount) || pkg.price || 2500000;
+    const packageName = `${pkg.name} (${credits}x)`;
 
+    // Jalur 1: terbitkan invoice renewal baru (unpaid → ortu upload → Finance verifikasi)
+    if (renewForm.mode !== "direct") {
+      issueInvoice({
+        clientId: c.id,
+        clientName: c.clientName,
+        branchId: c.branchId,
+        type: "package",
+        typeCode: packageInvoiceCode(pkg),
+        packageId: renewForm.packageId,
+        packageName,
+        credits,
+        amount,
+        by,
+      });
+      toast.success(`Invoice renewal ${c.clientName} diterbitkan. Menunggu pembayaran & verifikasi.`);
+      setRenewOpen(false);
+      return;
+    }
+
+    // Jalur 2: langsung lunas, wajib alasan + justifikasi (tercatat di invoice & log invoice)
+    const invalid = validateDirectRenewal(renewForm);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
     renewClientCredit({
       clientId: c.id,
       clientName: c.clientName,
       branchId: c.branchId,
       packageId: renewForm.packageId,
-      packageName: `${pkg.name} (${renewForm.credits}x)`,
+      packageName,
       typeCode: packageInvoiceCode(pkg),
-      credits: Number(renewForm.credits) || 10,
-      amount: Number(renewForm.amount) || pkg.price || 2500000,
+      credits,
+      amount,
+      reason: renewForm.reason,
+      justification: renewForm.justification.trim(),
       by,
     });
 
-    toast.success(`Renewal kredit ${c.clientName} berhasil ditambahkan! (+${renewForm.credits} sesi)`);
+    toast.success(`Renewal kredit ${c.clientName} langsung lunas! (+${credits} sesi)`);
     setRenewOpen(false);
+    setRenewForm({ ...renewForm, reason: "", justification: "" });
   };
 
   // Submit Add Master Package

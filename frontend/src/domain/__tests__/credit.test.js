@@ -6,6 +6,10 @@ import {
   computePackageConversion,
   invoiceLogMeta,
   invoiceLogsOf,
+  validateDirectRenewal,
+  invoiceConversionCount,
+  isInvoiceConverted,
+  lastInvoiceConversion,
   isInvoiceConvertible,
   resolveInvoicePackage,
   applyPackageAdded,
@@ -297,6 +301,15 @@ describe("saldo lebihan → invoice", () => {
   });
 });
 
+describe("renewal langsung lunas", () => {
+  test("wajib alasan valid + justifikasi minimal 10 karakter", () => {
+    expect(validateDirectRenewal({})).toMatch(/Alasan/);
+    expect(validateDirectRenewal({ reason: "other", justification: "singkat" })).toMatch(/Justifikasi/);
+    expect(validateDirectRenewal({ reason: "xxx", justification: "x".repeat(20) })).toMatch(/Alasan/);
+    expect(validateDirectRenewal({ reason: "cash_at_cashier", justification: "  Tunai di kasir, struk 123  " })).toBeNull();
+  });
+});
+
 describe("log invoice", () => {
   test("appendInvoiceLog append-only; invoiceLogsOf memberi baris dasar untuk invoice lama", () => {
     const inv = { id: "inv-1", createdAt: "2026-10-01", paidAt: "2026-10-02" };
@@ -305,5 +318,9 @@ describe("log invoice", () => {
     expect(next.logs).toHaveLength(1);
     expect(inv.logs).toBeUndefined();
     expect(invoiceLogMeta("converted").label).toBe("Paket dikonversi");
+    expect(isInvoiceConverted(inv)).toBe(false);
+    expect(isInvoiceConverted(next)).toBe(true);
+    expect(invoiceConversionCount(appendInvoiceLog(next, { action: "converted" }))).toBe(2);
+    expect(lastInvoiceConversion(next).by).toBe("Finance");
   });
 });

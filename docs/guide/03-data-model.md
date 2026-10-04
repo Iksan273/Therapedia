@@ -88,6 +88,7 @@ credits = {
   conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
   invoices: [{ id, type /*package|assessment*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid*/,
                proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt, deletedAt?, deletedBy?,
+               renewalReason? /*cash_at_cashier|transfer_confirmed|parent_requested_urgent|other; hanya renewal langsung lunas*/, renewalJustification? /*teks wajib, min. 10 karakter*/,
                grossAmount? /*sebelum saldo lebihan*/, balanceApplied? /*saldo lebihan yang dipakai; amount = gross − balanceApplied*/,
                logs: [{ id, at, by, action /*issued|proof_uploaded|verified|rejected|renewal_paid|balance_applied|balance_restored|converted|deleted*/, note, data }] /*LOG MILIK INVOICE (append-only); invoice lama = baris dasar dari createdAt/paidAt (invoiceLogsOf)*/ }],
   renewals: []   // belum dipakai

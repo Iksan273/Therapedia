@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { invoiceTypeLabel } from "@/domain/credit";
+import { invoiceConversionCount, invoiceTypeLabel, isInvoiceConverted, lastInvoiceConversion } from "@/domain/credit";
 import { DeleteButton } from "@/shared/components/DeleteControls";
 import { TabsContent } from "@/shared/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -57,6 +57,17 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                         <TableCell data-label="Paket Layanan" className="text-xs font-semibold text-slate-800 min-w-[180px] whitespace-nowrap">
                           {inv.packageName}
                           <span className="ml-1.5 text-[10px] font-bold uppercase text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded" data-testid={`invoice-type-${inv.id}`}>{invoiceTypeLabel(inv)}</span>
+                          {isInvoiceConverted(inv) && (
+                            <>
+                              <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" data-testid={`invoice-converted-${inv.id}`}>
+                                <ArrowRightLeft className="w-3 h-3" /> Dikonversi{invoiceConversionCount(inv) > 1 ? ` ${invoiceConversionCount(inv)}x` : ""}
+                              </span>
+                              <span className="block text-[10px] font-semibold text-amber-700" data-testid={`invoice-converted-to-${inv.id}`}>
+                                → {lastInvoiceConversion(inv).data?.toPackage || "paket lain"}
+                                {lastInvoiceConversion(inv).data?.toSessions != null ? ` (${lastInvoiceConversion(inv).data.toSessions} sesi)` : ""}
+                              </span>
+                            </>
+                          )}
                         </TableCell>
                         <TableCell data-label="Nominal" className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">
                           {fmtCurrency(inv.amount)}

@@ -53,7 +53,8 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by`/`deleted_b
 | `issueInvoice` (jenis `package` / `assessment`; saldo lebihan otomatis memotong invoice paket) | `POST invoices.list` | `invoices` (`gross_amount`, `balance_applied`), `invoice_counters`, `invoice_logs`, `clients.leftover_balance` | `invoice_logs` |
 | `uploadPaymentProof` (≤5 MB, maks 3x re-upload) | `POST invoices.proof(id)` (multipart, `api.upload`) | `payment_proofs`, `invoices` | `invoice_logs` |
 | `verifyPaymentProof` | `POST invoices.verify(id)` | `invoices`, `client_packages`, `credit_ledger` | `invoice_logs` |
-| `renewClientCredit` | `POST clients.renewals(id)` | `invoices`, `client_packages` (snapshot harga), `credit_ledger` | `invoice_logs` |
+| `renewClientCredit` (renewal **langsung lunas**; `reason` + `justification` wajib, 422 bila kosong) | `POST clients.renewals(id)` | `invoices` (`renewal_reason`, `renewal_justification`), `client_packages` (snapshot harga), `credit_ledger` | `invoice_logs` |
+| renewal **terbitkan invoice baru** = `issueInvoice` jenis `package` (tanpa endpoint baru) | `POST invoices.list` | lihat `issueInvoice` | `invoice_logs` |
 | `usePackageConversionActions.convertInvoicePackage` (konversi sisa sesi + hapus jadwal mendatang + saldo lebihan) *(baru)* | `POST invoices.convertPackage(id)` (`target_package_id`, `sessions?`, `reason?`) | `package_conversions`, `client_packages`, `credit_ledger`, `clients.leftover_balance`, `invoice_logs`, `schedules` (soft delete) | `invoice_logs` (`converted`), `package_conversions`, `credit_ledger` (`converted_out/in`) |
 | log milik invoice (tombol Log) *(baru)* | `GET invoices.logs(id)` | `invoice_logs` | — |
 | void / koreksi saldo | `invoices.void(id)` / `credits.adjust` | `invoices`, `credit_ledger` | `invoice_logs`, `credit_ledger` (`manual_adjust`) |
