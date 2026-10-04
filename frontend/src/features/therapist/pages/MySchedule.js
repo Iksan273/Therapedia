@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
 import { ChevronLeft, ChevronRight, Stethoscope, ExternalLink, User, BookOpen, ClipboardCheck, FileCheck2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { SearchInput } from "@/shared/components/FilterBar";
+import { matchesClientSearch } from "@/domain/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { CalendarLegend, DayAgenda, SessionDetailModal, WeeklyCalendar } from "@/features/schedule";
 import { useAuth } from "@/stores/authStore";
@@ -24,6 +26,7 @@ export default function MySchedule() {
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [clientFilter, setClientFilter] = useState("all");
   const [reportFilter, setReportFilter] = useState("all"); // all | pending | filled
+  const [search, setSearch] = useState(""); // nama anak / ortu / kode client
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionOpen, setSessionOpen] = useState(false);
 
@@ -34,9 +37,10 @@ export default function MySchedule() {
     return schedules.filter((s) => {
       if (s.therapistId !== auth.therapistId) return false;
       if (clientFilter !== "all" && s.clientId !== clientFilter) return false;
+      if (search.trim() && !matchesClientSearch(clients.find((c) => c.id === s.clientId), search)) return false;
       return true;
     });
-  }, [schedules, auth.therapistId, clientFilter]);
+  }, [schedules, auth.therapistId, clientFilter, search, clients]);
 
   // Unique clients handled by this therapist
   const myClients = useMemo(() => {
@@ -98,40 +102,46 @@ export default function MySchedule() {
           <p className="text-sm text-slate-500 mt-1">
             {therapist ? `${therapist.name} (${therapist.specialty})` : "Specialist Practitioner"} •{" "}
             <strong className="text-slate-800 tabular-nums">{mySchedules.length}</strong> sesi terdaftar.
-            <span className="ml-1 text-slate-400">
-              (Reschedule & Pembatalan dikelola Admin Jadwal • Terapis dapat mengisi laporan sesi kapanpun)
+            <span className="block text-xs text-slate-400 mt-0.5">
+              Reschedule & pembatalan dikelola Admin Jadwal • Terapis dapat mengisi laporan sesi kapan pun
             </span>
           </p>
         </div>
 
-        {/* Action button & Filter per Client */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-          <Link to="/therapist/summary">
-            <Button size="sm"
-              className="bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold gap-1.5 shadow-2xs"
-              data-testid="link-to-summary-header"
-            >
-              <FileCheck2 className="w-3.5 h-3.5" /> Summary Laporan ({reportMetrics.pending} Pending)
-            </Button>
-          </Link>
+        <Link to="/therapist/summary" className="self-start sm:self-auto shrink-0">
+          <Button
+            size="sm"
+            className="bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold gap-1.5 shadow-2xs min-h-10 md:min-h-9"
+            data-testid="link-to-summary-header"
+          >
+            <FileCheck2 className="w-3.5 h-3.5" /> Summary Laporan ({reportMetrics.pending} Pending)
+          </Button>
+        </Link>
+      </div>
 
-          <div className="flex items-center gap-2 bg-white border border-slate-200/90 rounded-xl px-3 py-1 shadow-2xs">
-            <User className="w-4 h-4 text-sky-600 shrink-0" />
-            <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="h-8 border-none bg-transparent shadow-none text-xs font-bold text-slate-800 focus:ring-0 p-0 w-44">
-                <SelectValue placeholder="Filter Client" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200">
-                <SelectItem value="all">Semua Client Saya ({myClients.length})</SelectItem>
-                {myClients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.clientName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+      {/* Pencarian & filter client */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3" data-testid="my-schedule-filters">
+        <SearchInput
+          className="w-full sm:flex-1 sm:max-w-xl"
+          placeholder="Cari nama anak, ortu, atau kode client..."
+          value={search}
+          onChange={setSearch}
+          data-testid="my-schedule-search"
+        />
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger className="w-full sm:w-64 bg-white border-slate-200/90 text-xs font-bold text-slate-800 shadow-2xs" aria-label="Filter client">
+            <User className="w-4 h-4 text-sky-600 shrink-0 mr-2" />
+            <SelectValue placeholder="Filter Client" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-slate-200">
+            <SelectItem value="all">Semua Client Saya ({myClients.length})</SelectItem>
+            {myClients.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.clientName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Date & View Controls */}

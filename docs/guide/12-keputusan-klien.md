@@ -15,11 +15,11 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 | B5 | **Cancel**: kuota 3 **per paket** (penghitung). Admin **wajib memilih potong kredit atau tidak** pada cancel (scheduled/rescheduled/reschedule_pending, semua jenis kalender, termasuk bulk dan drop pending). Reschedule & pending netral kredit | ✅ | ✅ `DeductCreditChoice` |
 | B6 | **Revert hanya 1x** per aksi: reschedule/pending → jadwal asal; sudah 2x reschedule → jadwal tersimpan terakhir (`rescheduledPrev`) | ✅ | ✅ `revertedAt` |
 | B7 | **Status client** boleh diubah manual ke tahap pipeline mana pun (koreksi outcome = ubah status; reaktivasi); discontinue punya `date_of_discontinue`; otomatis tetap hanya maju | ✅ | ✅ `changeStatus`, `dateOfDiscontinue` |
-| B7b | **Hapus di semua modul**: tombol delete hanya untuk role dengan `can_delete` (+ akses modul). Soft delete. Aksi non-hapus mengikuti akses modul (Manager boleh edit, tidak lagi read-only) | ✅ | ✅ (client, invoice, sesi, kode kuesioner, master asesmen/layanan/alasan; hari libur hard delete). Staf: nonaktif |
+| B7b | **Hapus di semua modul**: tombol delete hanya untuk role dengan `can_delete` (+ akses modul). **Hapus permanen dengan cascade** (4 Okt 2026, ADR 0005): hapus client/invoice/cabang menghapus semua data terkait; master ber-FK yang pernah dipakai tidak bisa dihapus. Aksi non-hapus mengikuti akses modul (Manager boleh edit, tidak lagi read-only) | ✅ | ✅ (client, invoice, sesi, kode kuesioner, master asesmen/layanan/alasan; hari libur hard delete). Staf: nonaktif |
 | B8 | Pencarian client: awal nama, nama ortu, kode client | ✅ | ✅ `matchesClientSearch` |
 | B9 | Form jadwal asesmen/terapi **tanpa pilih service** (diturunkan dari client) | ✅ | ✅ |
 | — | Dokumen client = link Google Drive; tanpa kolom sumber client; form landing tetap ke WhatsApp; 1 client = 1 ortu | ✅ | ✅ |
-| — | **Tanpa audit log** (diubah 3 Okt 2026, ADR 0004): semua modul memakai `created_by`/`updated_by`/`deleted_by`; hanya invoice punya log sendiri (`invoice_logs`) | ✅ | ✅ halaman & store audit dihapus; log invoice di tab Billing |
+| — | **Tanpa audit log** (diubah 3 Okt 2026, ADR 0004): semua modul memakai `created_by`/`updated_by`; hanya invoice punya log sendiri (`invoice_logs`) | ✅ | ✅ halaman & store audit dihapus; log invoice di tab Billing |
 | — | Non-master terikat 1 cabang; password sementara + wajib ganti login pertama; lupa password via email OTP; Master dapat reset; staf dinonaktifkan; role kustom dipertahankan; tanpa notifikasi otomatis | ✅ | ✅ (email OTP disimulasikan di demo) |
 
 ## B. Fitur baru / perubahan dari meeting
@@ -35,6 +35,7 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 | F7 | Landing page dua bahasa (EN/ID) | — | ✅ default Indonesia, pengalih ID/EN di header |
 | F8 | Integrasi Google Calendar — **paling akhir** | ✅ (fase akhir, migration ditunda) | ☐ belum dikerjakan (butuh OAuth + backend) |
 | F9 | Finance: konversi paket (Senior → Regular), otomatis/manual, lebihan jadi saldo pemotong invoice berikutnya, kuota cancel ikut pindah, jadwal mendatang dihapus, log invoice sendiri (ADR 0003) | ✅ (`package_conversions`, `invoice_logs`) | ✅ tab Billing: Konversi & Log |
+| F9b | Finance: **Void invoice lunas** (alasan wajib; pilih pertahankan kredit / cabut sisa kredit; sesi mendatang pindah ke paket aktif lain atau Frozen) + **invoice pengganti** memakai ulang paket void; hapus invoice hanya untuk yang belum lunas (4 Okt 2026, ADR 0005) | ✅ | ✅ tab Semua Tagihan: Void; Buat Tagihan: pilihan pengganti |
 | — | Master asesmen: tipe soal selengkap Google Form termasuk `birth_date`; Finance menerbitkan invoice assessment | ✅ | ✅ |
 
 ## C. Tafsir tim teknis yang perlu konfirmasi klien
@@ -42,8 +43,11 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 - "Revert 1x" = satu langkah mundur per aksi (setelah revert tidak bisa revert lagi sampai ada aksi baru), bukan sekali seumur sesi.
 - Pilihan potong/tidak hanya pada **cancel** (termasuk drop pending); reschedule/pending tidak memotong kredit. Cancel sesi asesmen: "potong" memotong paket aktif client (bila ada).
 - Kode login ortu berurutan (mudah ditebak) → diamankan throttle/lockout (backend); tanggal lahir satu-satunya faktor kedua.
-- Hapus: sesi `completed` harus di-revert dulu; hapus client menyembunyikan sesi & invoice-nya; invoice `paid` yang dihapus keluar dari omzet tanpa membatalkan paket/kredit.
+- **Hapus client (diputuskan 4 Okt 2026)**: seluruh data client hilang dari semua modul (client dihapus permanen, ADR 0005). Tanpa syarat revert sesi `completed`; sesi, invoice, riwayat kredit, jadwal, kuesioner, dan angka dashboard client itu tidak tampil lagi; invoice `paid` keluar dari omzet. Pemulihan client terhapus & data lama go-live (G1) dibahas setelah development selesai.
 - Gating kuesioner dihitung per **client**: selama ada invoice Assessment belum lunas, semua kuesioner client itu terkunci.
+- Renewal **langsung lunas** (4 Okt 2026, permintaan tim): wajib alasan (teks bebas) + justifikasi (min. 10 karakter). Alasan berupa string, bukan enum, jadi tidak perlu daftar kategori.
+- Invoice yang pernah dikonversi diberi badge **Dikonversi** di Semua Tagihan (diturunkan dari log, tanpa kolom baru); tetap 1 invoice.
+- **Retensi & backup (F1)**: rencana backup arsip berkala **tiap 6 bulan atau 1 tahun** (di samping backup harian); tanpa hapus permanen otomatis. Interval final dan lama simpan minimum menunggu keputusan klien/regulasi.
 - Kode demo `TDC-1009` kini `AE-00006`; kode kuesioner seed lama `ASM-xxxx` tetap valid (`SEED_VERSION` = `demo-2026-10-v8`).
 
 Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflow.md` (F1–F28), ADR `docs/adr/0002-hak-akses-modul-hapus-per-role-dan-audit-terbatas.md` (butir audit digantikan ADR 0004), `docs/adr/0003-…`, `docs/adr/0004-hapus-audit-log.md`.

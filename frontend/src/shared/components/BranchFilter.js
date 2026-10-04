@@ -2,10 +2,12 @@ import React from "react";
 import { Building2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { BRANCHES, branchName } from "@/domain/branch";
+import { useBranches } from "@/stores/branchesStore";
 import { cn } from "@/shared/lib/utils";
 
 // Filter cabang seragam. Non-master hanya melihat cabangnya sendiri (teks statis).
 export function BranchFilter({ value, onChange, isMaster, className }) {
+  useBranches(); // berlangganan agar daftar cabang ikut berubah saat Master mengelola cabang
   if (!isMaster) {
     return (
       <div

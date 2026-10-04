@@ -2,7 +2,7 @@
 
 Kumpulan hal yang **masih menggantung** dari `schema.md` dan `technical_workflow.md`, siap dibawa ke klien. Pertanyaan seputar jadwal, sesi, dan kuota cancel sengaja **tidak** dimasukkan (dibahas di dokumen terpisah).
 
-**Status (3 Okt 2026):** klien sudah menjawab kolom "Jawaban". Butir yang **belum dijawab** (F1–F4, G2–G4) tetap memakai kolom "Usulan teknis". Jawaban yang mengubah usulan lama dirangkum di bagian "Dampak jawaban klien" di bawah; hasil meeting ada di bagian "Penyesuaian dari meeting". Kolom "Usulan teknis" pada baris yang sudah dijawab hanya riwayat, **jawaban klien yang berlaku**.
+**Status (3 Okt 2026):** klien sudah menjawab kolom "Jawaban". Butir yang **belum dijawab** (F1–F3, G2–G4) tetap memakai kolom "Usulan teknis". Jawaban yang mengubah usulan lama dirangkum di bagian "Dampak jawaban klien" di bawah; hasil meeting ada di bagian "Penyesuaian dari meeting". Kolom "Usulan teknis" pada baris yang sudah dijawab hanya riwayat, **jawaban klien yang berlaku**.
 
 **Cara pakai (riwayat):** tanyakan kolom "Pertanyaan" dengan bahasa apa adanya. Kolom "Usulan teknis" adalah **default** yang kita pakai kalau klien jawab "terserah" atau belum punya preferensi, karena itu yang paling murah dibangun. Isi kolom "Jawaban" saat bertemu klien, lalu kita sesuaikan `schema.md` dan kode.
 
@@ -58,7 +58,7 @@ Kumpulan hal yang **masih menggantung** dari `schema.md` dan `technical_workflow
 |---|---|---|---|---|---|
 | D1 | 🔴 | Apakah satu terapis bisa bekerja di **lebih dari satu cabang**? | Akun staf sekarang terikat ke satu cabang (kosong = semua cabang) | Satu cabang per terapis. Terapis lintas cabang diberi akun "semua cabang". Pindah cabang diubah manual | Terapis tetap per cabang. Hanya Master yang bisa semua cabang; akun lain pasti per cabang. |
 | D2 | 🟡 | Kalau staf lupa password, bagaimana? Perlu login 2 langkah (OTP)? | Reset lewat email butuh layanan email | Master mengatur password sementara, wajib ganti saat login pertama. Tanpa OTP di versi 1 (ada batas percobaan login) | Master mengatur password sementara, wajib ganti saat login pertama. Ada **lupa password via email (kirim OTP)**, lalu reset. Master juga bisa membantu reset dan memasukkan password seperti pertama kali. |
-| D3 | 🟡 | Apa yang boleh dilakukan **Branch Manager**: hanya melihat (laporan, audit) atau juga mengubah data? | Menentukan izin role manager | Hanya melihat, terkunci ke cabangnya | Manager sesuai cabang dan pengaturan modul role-nya; **boleh edit** selama punya akses modul. |
+| D3 | 🟡 | Apa yang boleh dilakukan **Branch Manager**: hanya melihat (laporan) atau juga mengubah data? | Menentukan izin role manager | Hanya melihat, terkunci ke cabangnya | Manager sesuai cabang dan pengaturan modul role-nya; **boleh edit** selama punya akses modul. |
 | D4 | 🟡 | Terapis boleh melihat **semua client cabangnya** atau hanya client yang punya sesi dengannya? | Menentukan aturan akses data klinis | Hanya client yang punya sesi dengannya (sesuai tampilan sekarang) | Client yang punya sesi dengan terapis tsb (sesuai sekarang). |
 | D5 | 🟡 | Kalau ortu **lupa atau kodenya bocor**, siapa yang mengirim ulang / mengganti kode akses? | Login ortu: kode + tanggal lahir anak | Admin melihat dan mengirim ulang kode dari Client Detail, serta bisa membuat kode baru. Tanpa pemulihan mandiri | Benar: admin yang menginformasikan kode. |
 | D6 | 🟡 | Role kustom (selain 7 role bawaan) masih diperlukan? | Fitur sudah ada, tapi menambah beban pengujian | Pertahankan seperti sekarang, tanpa fitur baru | Masih diperlukan; role bisa diatur per modul. |
@@ -77,9 +77,7 @@ Kumpulan hal yang **masih menggantung** dari `schema.md` dan `technical_workflow
 |---|---|---|---|---|---|
 | F1 | 🔴 | Berapa lama **rekam klinis dan keuangan** wajib disimpan? Ada permintaan hapus data dari ortu? | Menentukan arsip dan hapus permanen. Perlu dicek ke regulasi (rekam medis, UU Pelindungan Data Pribadi). **Belum diverifikasi oleh tim teknis** | Tidak ada hapus permanen otomatis. Log audit 24 bulan online lalu diarsip (≥ 5 tahun, angka sementara). Hapus permanen hanya manual atas keputusan klinik | |
 | F2 | 🔴 | Siapa yang menyediakan dan memegang **server** (hosting, domain, backup)? Anggaran per bulan? | Menentukan lokasi data dan biaya | Satu VPS (Laravel + MySQL) dengan backup harian disimpan 14 hari plus salinan di tempat lain. Frontend tetap di Vercel | |
-| F3 | 🟡 | Siapa yang boleh **mencetak / mengekspor** laporan klinis? | Data sensitif anak | Semua staf yang berhak melihat client tersebut. Setiap cetak dan ekspor tercatat di audit | |
-| F4 | 🟡 | Siapa yang boleh melihat **log audit** (siapa mengubah apa)? | Log memuat aktivitas semua staf | Master (semua cabang) dan Manager (cabangnya) | |
-| F5 | 🟢 | Setuju bahwa aksi **melihat** data sensitif (bukti bayar, hasil asesmen, cetak laporan) ikut dicatat? | Menambah baris log | Ya, hanya untuk aksi sensitif itu (bukan semua halaman) | Log audit hanya untuk modul **Schedule dan Finance**. Modul lain cukup `created_by` / `updated_by`. |
+| F3 | 🟡 | Siapa yang boleh **mencetak / mengekspor** laporan klinis? | Data sensitif anak | Semua staf yang berhak melihat client tersebut | |
 
 ## G. Migrasi data & operasional
 
@@ -103,7 +101,6 @@ Item menggantung yang bisa kita putuskan sendiri. Kalau setuju, tinggal kita ter
 | T3 | `purchased` vs `renewed` | Otomatis dari ada tidaknya paket sebelumnya (C11 dijawab "Ya") |
 | T4 | Kode client / kuesioner bentrok | Kolom UNIQUE di DB. Kode client = grup huruf + counter berurutan (tidak acak, bentrok dicegah counter + UNIQUE). Kode kuesioner = kode jenis asesmen + suffix acak, ulang pembuatan bila bentrok |
 | T5 | `sort_order` di tabel master | Pertahankan (dipakai urutan dropdown). Kalau tidak butuh urut manual, kolom boleh dibuang |
-| T6 | `client_status_histories` vs `audit_logs` | Pertahankan keduanya: yang pertama ringan untuk dashboard funnel dan tidak ikut diarsip |
 | T7 | Dashboard besar | Tetap view MySQL. Tabel ringkasan hanya jika `EXPLAIN ANALYZE` view > 100 ms |
 
 ## Dampak jawaban klien (ringkas)
@@ -118,7 +115,7 @@ Item menggantung yang bisa kita putuskan sendiri. Kalau setuju, tinggal kita ter
 | Invoice | Jenis Paket Sesi / Assessment; `INV-{KODE}-{YYYYMMDD}-{NNN}`; tanpa jatuh tempo, diskon, cicilan, refund; snapshot harga saat perpanjang; bukti ≤5 MB, upload ulang maks 3x | `INV-tahun-nomor`, upload ulang tanpa batas |
 | Paket | Tanpa masa berlaku | Kolom masa berlaku disiapkan |
 | Akun | Non-master 1 cabang; password sementara + wajib ganti; lupa password via email OTP; master bisa reset; staf dinonaktifkan | Tanpa OTP |
-| Audit | `audit_logs` hanya modul Schedule dan Finance; modul lain `created_by/updated_by` | Audit semua aksi yang mengubah data |
+| Audit | Tanpa audit log (ADR 0004): semua modul `created_by/updated_by/deleted_by`, log khusus hanya `invoice_logs`, `credit_ledger`, `client_status_histories`, `package_conversions` | Audit semua aksi yang mengubah data |
 | Notifikasi | Tidak ada notifikasi otomatis; email ortu hanya data | Job pengingat invoice, digest jadwal |
 
 ## Penyesuaian dari meeting (3 Okt 2026)
@@ -144,7 +141,7 @@ Client dan portal:
 
 ## Masih terbuka
 
-- F1–F4 (retensi, server, cetak/ekspor, siapa melihat log audit) dan G2–G4 (cabang, format cetak, definisi dashboard): belum dijawab, pakai usulan teknis.
+- F1–F3 (retensi, server, cetak/ekspor) dan G2–G4 (cabang, format cetak, definisi dashboard): belum dijawab, pakai usulan teknis.
 - Jadwal: sesi mendatang saat client di-discharge, dan siapa yang boleh memaksa jadwal bentrok (`force`).
 - Konfirmasi tafsir tim teknis ke klien:
   - Grup kode client ditentukan dari huruf pertama nama (A–E=AE, F–J=FJ, K–O=KO, P–T=PT, U–Z=UZ).

@@ -9,7 +9,8 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
-import { BRANCHES } from "@/domain/branch";
+import { activeBranches } from "@/domain/branch";
+import { useBranches } from "@/stores/branchesStore";
 import { cn } from "@/shared/lib/utils";
 
 const HERO_IMG =
@@ -68,13 +69,39 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
   </motion.div>
 );
 
+// Role staf non-master terikat TEPAT 1 cabang (keputusan klien): demo meminta cabang dulu agar filter/data sesuai cabang itu.
+function BranchPicker({ role, staffName, path, enterRole }) {
+  return (
+    <div className="grid gap-2 p-3 rounded-2xl bg-white border border-sky-200 shadow-sm ml-2 sm:ml-4 animate-in fade-in slide-in-from-top-2 duration-200" data-testid={`role-branch-picker-${role}`}>
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Pilih Cabang Penugasan:</p>
+      {activeBranches().map((b) => (
+        <Button
+          size="lg"
+          key={b.id}
+          variant="outline"
+          className="justify-between bg-slate-50 hover:bg-sky-50 hover:text-sky-900 hover:border-sky-300 border-slate-200 px-3.5 text-left"
+          onClick={() => enterRole({ role, branchId: b.id, staffName: `${staffName} • ${b.name}` }, path)}
+          data-testid={`role-branch-${role}-${b.id}`}
+        >
+          <div className="flex items-center gap-2.5">
+            <Building2 className="w-4 h-4 text-sky-600" />
+            <span className="font-bold text-xs text-slate-800">{b.name}</span>
+          </div>
+          <span className="text-[11px] text-slate-500 font-medium">{b.city}</span>
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 export default function RoleSelect() {
   const navigate = useNavigate();
+  useBranches();
   const { login, setActiveBranch } = useAuth();
   const { clients } = useClients();
   const { therapists } = useTherapists();
 
-  const [expanded, setExpanded] = useState(null); // 'manager' | 'therapist' | 'client' | null
+  const [expanded, setExpanded] = useState(null); // 'manager' | 'admin_inquiry' | 'admin_schedule' | 'finance' | 'therapist' | null
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
 
@@ -193,7 +220,7 @@ export default function RoleSelect() {
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
                   Pilih Cabang yang Dikelola:
                 </p>
-                {BRANCHES.map((b) => (
+                {activeBranches().map((b) => (
                   <Button size="lg"
                     key={b.id}
                     variant="outline"
@@ -221,9 +248,11 @@ export default function RoleSelect() {
               title="Role Admin Inquiry & Intake"
               description="Pipeline non-sekuensial, pilih layanan BOT-A/FOT-A, multi-kode asesmen, link GDrive"
               badge="Intake Hub"
-              onClick={() => enterRole({ role: "admin_inquiry", staffName: "Rina (Admin Inquiry)" }, "/admin-inquiry/pipeline")}
+              onClick={() => setExpanded(expanded === "admin_inquiry" ? null : "admin_inquiry")}
+              active={expanded === "admin_inquiry"}
               testid="role-select-admin-inquiry-button"
             />
+            {expanded === "admin_inquiry" && <BranchPicker role="admin_inquiry" staffName="Rina (Admin Inquiry)" path="/admin-inquiry/pipeline" enterRole={enterRole} />}
 
             {/* 4. ADMIN SCHEDULE */}
             <RoleCard
@@ -231,9 +260,11 @@ export default function RoleSelect() {
               title="Role Admin Schedule & Timetable"
               description="Weekly Calendar multi-client/jam, slot frozen 0 kredit, alasan cancel, birthday radar"
               badge="Scheduling"
-              onClick={() => enterRole({ role: "admin_schedule", staffName: "Fajar (Admin Schedule)" }, "/admin-schedule/calendar")}
+              onClick={() => setExpanded(expanded === "admin_schedule" ? null : "admin_schedule")}
+              active={expanded === "admin_schedule"}
               testid="role-select-admin-schedule-button"
             />
+            {expanded === "admin_schedule" && <BranchPicker role="admin_schedule" staffName="Fajar (Admin Schedule)" path="/admin-schedule/calendar" enterRole={enterRole} />}
 
             {/* 5. ROLE FINANCE */}
             <RoleCard
@@ -241,9 +272,11 @@ export default function RoleSelect() {
               title="Role Finance (Billing & Verification)"
               description="Verifikasi bukti transfer ortu, terbitkan tagihan invoice, renewal paket kredit, master paket"
               badge="Finance Hub"
-              onClick={() => enterRole({ role: "finance", staffName: "Siti Rahmawati (Finance)" }, "/finance")}
+              onClick={() => setExpanded(expanded === "finance" ? null : "finance")}
+              active={expanded === "finance"}
               testid="role-select-finance-button"
             />
+            {expanded === "finance" && <BranchPicker role="finance" staffName="Siti Rahmawati (Finance)" path="/finance" enterRole={enterRole} />}
 
             {/* 6. THERAPIST PORTAL */}
             <RoleCard

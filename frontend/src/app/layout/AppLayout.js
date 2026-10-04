@@ -20,6 +20,7 @@ import { useTherapists } from "@/stores/therapistsStore";
 import { useClients } from "@/stores/clientsStore";
 import { resetDemoData } from "@/services/storage/localStore";
 import { BRANCHES } from "@/domain/branch";
+import { useBranches } from "@/stores/branchesStore";
 import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { ThemeToggle } from "@/shared/components/ThemeToggle";
 import { useAppTheme } from "@/shared/hooks/useAppTheme";
@@ -173,6 +174,7 @@ const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
 );
 
 const AppLayout = () => {
+  useBranches(); // daftar cabang di header ikut berubah saat Master mengelola cabang
   const { auth, logout, activeBranch, setActiveBranch, rolesList, hasPermission } = useAuth();
   const navigate = useNavigate();
   const { getTherapist } = useTherapists();

@@ -8,7 +8,7 @@ Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login
 | Pintu masuk | Route | Cara |
 |---|---|---|
 | Welcome (pemilih portal) | `/` | `features/auth/pages/Welcome.js` |
-| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager pilih cabang; terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
+| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan** (non-master terikat 1 cabang; hanya master yang melihat semua cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
 | Login form | `/login` | `features/auth/pages/Login.js`: email + password staf (preset demo memakai password demo `Therapedia2026!`); ortu dengan kode client |
 | Kuesioner ortu (publik) | `/assessment` | `features/assessment/pages/AssessmentFill.js`, kode kuesioner `{kode jenis asesmen}-{acak}` (mis. `SP2-K7M4QX`); `?code=` mengisi kolom kode |
 | Landing marketing | `/landing`, `/home` | `features/landing/pages/Home.js` |
@@ -37,7 +37,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 
 | Grup | `roles` (sistem) | Halaman → `module` RBAC |
 |---|---|---|
-| `/master` | master | `revenue`→revenue, `branch-performance`→revenue, `users`→user_management, `rbac`→rbac |
+| `/master` | master | `revenue`→revenue, `branch-performance`→revenue, `branches`→branch_master, `users`→user_management, `rbac`→rbac |
 | `/manager` | manager | `revenue`→revenue |
 | `/finance` | master, finance | index→finance |
 | `/admin-inquiry` | master, manager, admin_inquiry, therapist | index/`dashboard`→inquiry_dashboard; `pipeline`, `pipeline/:id`, `clients/:id`, `assessments`, `master-data`, `parent-assessment/:id`→inquiry_pipeline |

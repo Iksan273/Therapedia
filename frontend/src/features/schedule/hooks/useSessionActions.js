@@ -4,7 +4,7 @@ import { useSchedules } from "@/stores/schedulesStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useAuth } from "@/stores/authStore";
 import { advanceStatus } from "@/domain/client";
-import { CANCEL_QUOTA, findLiveSessionEntry } from "@/domain/credit";
+import { CANCEL_QUOTA, findLiveSessionEntry, resolveSessionPackage } from "@/domain/credit";
 import { nowIso, todayStr } from "@/shared/lib/id";
 import {
   CLEAR_PENDING_PATCH,
@@ -31,8 +31,8 @@ export function useSessionActions() {
   const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit } = useCredits();
   const { therapists } = useTherapists();
 
-  const findPackage = (record_, schedule) =>
-    record_?.packages.find((p) => p.id === schedule.creditPackageId || p.packageId === schedule.creditPackageId) || record_?.packages[0];
+  // Paket sesi: yang dipilih saat menjadwalkan bila masih bersisa, selain itu paket aktif tertua (otomatis setelah renewal)
+  const findPackage = (record_, schedule) => resolveSessionPackage(record_, schedule);
 
   // Efek kredit & pipeline saat satu sesi selesai (tanpa mengubah dokumen sesi).
   // `clientStatusFrom` = status client sebelum dimajukan otomatis (null bila tidak berubah).
@@ -45,7 +45,7 @@ export function useSessionActions() {
 
     if (schedule.type === "therapy" && creditRecord) {
       const pkg = findPackage(creditRecord, schedule);
-      spendPackageCredit({ clientId: client.id, packageId: schedule.creditPackageId || pkg?.id, scheduleId: schedule.id, date: schedule.date });
+      spendPackageCredit({ clientId: client.id, packageId: pkg?.id, scheduleId: schedule.id, date: schedule.date });
       creditSpent = true;
     }
 
@@ -112,7 +112,7 @@ export function useSessionActions() {
     const cancelCount = (pkg?.cancelCount || 0) + 1;
     handleScheduleCancellation({
       clientId: schedule.clientId,
-      packageId: schedule.creditPackageId || pkg?.id,
+      packageId: pkg?.id,
       scheduleId: schedule.id,
       cancelReason,
       date: schedule.date,
@@ -124,7 +124,7 @@ export function useSessionActions() {
   // Cancel: admin memilih potong kredit atau tidak. Kuota 3 per paket hanya penghitung (UI memberi peringatan bila lewat).
   const cancelSession = (schedule, { cancelReason, note, deductCredit }) => {
     requireDeductChoice(deductCredit);
-    updateSchedule(schedule.id, { status: "cancelled", previousStatus: schedule.status, revertedAt: null, cancelReason, notes: note?.trim() || null });
+    updateSchedule(schedule.id, { status: "cancelled", previousStatus: schedule.status, revertedAt: null, cancelReason, cancelNote: note?.trim() || null });
     const { cancelCount, deducted, quotaExceeded } = applyCancelCredit(schedule, cancelReason, deductCredit);
     return { cancelCount, deducted, penalized: deducted, quotaExceeded };
   };
@@ -166,7 +166,7 @@ export function useSessionActions() {
       previousStatus: schedule.status,
       revertedAt: null,
       cancelReason: RESCHEDULE_DROPPED,
-      notes: note?.trim() || null,
+      cancelNote: note?.trim() || null,
       ...CLEAR_PENDING_PATCH,
     });
     const { cancelCount, deducted, quotaExceeded } = applyCancelCredit(schedule, RESCHEDULE_DROPPED, deductCredit);
@@ -206,7 +206,7 @@ export function useSessionActions() {
 
     // revertedAt: revert hanya 1x; diblokir sampai ada transisi baru pada sesi ini
     const patch = { status: toStatus, previousStatus: schedule.status, revertedAt: nowIso(), clientStatusFrom: null, clientStatusTo: null };
-    if (kind === "cancellation") Object.assign(patch, { cancelReason: null, notes: null });
+    if (kind === "cancellation") Object.assign(patch, { cancelReason: null, cancelNote: null });
     if (kind === "pending") Object.assign(patch, CLEAR_PENDING_PATCH);
     if (kind === "reschedule") {
       Object.assign(patch, { date: toSlot.date, startTime: toSlot.startTime, endTime: toSlot.endTime, therapistId: toSlot.therapistId, rescheduledPrev: null });
@@ -249,10 +249,10 @@ export function useSessionActions() {
   const bulkCancel = (ids, { mode, note, deductCredit }) => {
     requireDeductChoice(deductCredit);
     const list = pick(ids);
-    const notes = note ? ` | Bulk Cancel: ${note}` : " | Bulk Cancelled";
+    const cancelNote = note ? `Bulk Cancel: ${note}` : "Bulk Cancelled";
     const cancelReason = mode === "leave" ? "izin_keluarga" : "lainnya";
     list.forEach((s) => applyCancelCredit(s, cancelReason, deductCredit));
-    updateSchedulesMany(ids, { status: "cancelled", cancelReason, notes, revertedAt: null });
+    updateSchedulesMany(ids, { status: "cancelled", cancelReason, cancelNote, revertedAt: null });
   };
 
   // Bulk reschedule: geser N hari / ke tanggal tertentu, opsional ganti terapis

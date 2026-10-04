@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { SearchInput } from "@/shared/components/FilterBar";
 import { Link, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import {
@@ -21,7 +22,8 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import { StatusBadge } from "@/shared/components/StatusBadge";
-import { CreditBar, LeaveInfo } from "@/shared/components/CreditBar";
+import { CreditBar } from "@/shared/components/CreditBar";
+import { CancelQuotaList } from "@/shared/components/CancelQuotaList";
 import { EmptyState } from "@/shared/components/EmptyState";
 import { SessionDetailModal } from "@/features/schedule";
 import { useClients } from "@/stores/clientsStore";
@@ -96,11 +98,21 @@ export default function TherapistClientDetail() {
 
   // Pagination for session history
   const pageSize = 8;
-  const totalHistoryPages = Math.ceil(clientSchedules.length / pageSize) || 1;
+  const [historySearch, setHistorySearch] = useState(""); // terapis, status, jenis, tanggal, isi laporan
+  const searchedSchedules = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    if (!q) return clientSchedules;
+    return clientSchedules.filter((s) =>
+      [getTherapist(s.therapistId)?.name, s.status, s.type, s.date, fmtDate(s.date), s.activitySection, s.noteSection, s.progressNote, s.homeworkSection, s.notes]
+        .some((v) => String(v || "").toLowerCase().includes(q))
+    );
+  }, [clientSchedules, historySearch, getTherapist]);
+  useEffect(() => setHistoryPage(1), [historySearch]);
+  const totalHistoryPages = Math.ceil(searchedSchedules.length / pageSize) || 1;
   const paginatedSchedules = useMemo(() => {
     const start = (historyPage - 1) * pageSize;
-    return clientSchedules.slice(start, start + pageSize);
-  }, [clientSchedules, historyPage, pageSize]);
+    return searchedSchedules.slice(start, start + pageSize);
+  }, [searchedSchedules, historyPage, pageSize]);
 
   if (!client) {
     return (
@@ -237,7 +249,7 @@ export default function TherapistClientDetail() {
             <div className="rounded-xl border border-slate-200/90 p-4 space-y-3 bg-slate-50/50">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Saldo Kredit Paket Sesi</p>
               <CreditBar remaining={record.remainingCredit} total={record.totalCredit} compact />
-              <LeaveInfo leaveUsed={record.leaveUsed} leaveQuota={record.leaveQuota} />
+              <CancelQuotaList record={record} compact />
             </div>
           )}
         </CardContent>
@@ -302,6 +314,15 @@ export default function TherapistClientDetail() {
           </span>
         </CardHeader>
         <CardContent className="p-4 space-y-2.5">
+          {clientSchedules.length > 0 && (
+            <SearchInput
+              className="max-w-md"
+              placeholder="Cari terapis, status, tanggal, atau isi laporan..."
+              value={historySearch}
+              onChange={setHistorySearch}
+              data-testid="client-history-search"
+            />
+          )}
           {clientSchedules.length === 0 ? (
             <EmptyState icon={Calendar} title="Belum ada sesi" subtitle="Belum ada rekam sesi tercatat untuk client ini." />
           ) : (

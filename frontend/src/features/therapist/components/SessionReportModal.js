@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, StickyNote, Home, CheckCircle2, Sparkles, Clock, Calendar, Stethoscope } from "lucide-react";
+import { BookOpen, StickyNote, Home, CheckCircle2, Clock, Calendar, Stethoscope } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,39 +15,6 @@ import { Textarea } from "@/shared/ui/textarea";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useClients } from "@/stores/clientsStore";
 import { fmtDate } from "@/shared/lib/format";
-
-const STARTER_TEMPLATES = [
-  {
-    target: "activity",
-    label: "+ Sensori Integrasi (Tactile)",
-    text: "Latihan sensorik integrasi dengan tactile bin (beras warna & sensory sand). Anak melatih toleransi tekstur dan eksplorasi sensori aktif.",
-  },
-  {
-    target: "activity",
-    label: "+ Motor Planning (Obstacle Course)",
-    text: "Aktivitas motor planning meniti balok titian, lompat trampolin terarah, dan panjat tangga busa untuk stimulasi vestibular & proprioseptif.",
-  },
-  {
-    target: "note",
-    label: "+ Regulasi Emosi & Fokus",
-    text: "Anak menunjukkan regulasi diri yang baik, atensi bersama (joint attention) meningkat hingga 15 menit, kontak mata konsisten saat instruksi verbal diberikan.",
-  },
-  {
-    target: "note",
-    label: "+ Respon Stimulasi Positif",
-    text: "Respon positif terhadap stimulasi vestibular berayun; modulasi sensori stabil tanpa tanda-tanda overstimulasi.",
-  },
-  {
-    target: "homework",
-    label: "+ Home Program: Bermain Tekstur",
-    text: "Lanjutkan bermain adonan playdough atau spons busa di rumah 10-15 menit setiap sore sebelum mandi untuk desensitisasi taktil.",
-  },
-  {
-    target: "homework",
-    label: "+ Home Program: Deep Pressure",
-    text: "Lakukan pijat deep pressure (tekanan lembut berirama) pada lengan dan tungkai anak sebelum tidur selama 5-7 menit.",
-  },
-];
 
 export function SessionReportModal({ schedule, open, onOpenChange }) {
   const { updateSchedule } = useSchedules();
@@ -74,17 +41,6 @@ export function SessionReportModal({ schedule, open, onOpenChange }) {
     noteSection.trim(),
     homeworkSection.trim(),
   ].filter(Boolean).length;
-
-  const handleApplyTemplate = (item) => {
-    if (item.target === "activity") {
-      setActivitySection((prev) => (prev ? `${prev}\n${item.text}` : item.text));
-    } else if (item.target === "note") {
-      setNoteSection((prev) => (prev ? `${prev}\n${item.text}` : item.text));
-    } else if (item.target === "homework") {
-      setHomeworkSection((prev) => (prev ? `${prev}\n${item.text}` : item.text));
-    }
-    toast.info(`Template "${item.label}" ditambahkan.`);
-  };
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -151,26 +107,6 @@ export function SessionReportModal({ schedule, open, onOpenChange }) {
 
         {/* Body Content */}
         <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-4 max-h-[72vh] overflow-y-auto">
-          {/* Quick Helper Templates */}
-          <div className="p-3.5 rounded-xl bg-sky-50/60 border border-sky-200/80 space-y-2">
-            <p className="text-[11px] font-bold text-sky-900 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-              Template Catatan Klinis Cepat (Klik untuk menyisipkan teks):
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {STARTER_TEMPLATES.map((tmpl, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleApplyTemplate(tmpl)}
-                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-white border border-sky-200 text-slate-700 hover:bg-sky-100 hover:text-sky-900 transition-colors shadow-2xs cursor-pointer"
-                >
-                  {tmpl.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* 1. Activity Section */}
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-slate-800 flex items-center justify-between">

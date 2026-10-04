@@ -26,10 +26,12 @@ export function InvoiceCard({ latestInvoice, setProofModalOpen }) {
                   "px-3 py-1 rounded-lg text-xs font-bold border",
                   latestInvoice.status === "paid"
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : latestInvoice.status === "void"
+                    ? "bg-slate-100 text-slate-600 border-slate-300"
                     : "bg-rose-50 text-rose-700 border-rose-200"
                 )}
               >
-                {latestInvoice.status === "paid" ? "LUNAS TERVERIFIKASI" : "MENUNGGU PEMBAYARAN"}
+                {latestInvoice.status === "paid" ? "LUNAS TERVERIFIKASI" : latestInvoice.status === "void" ? "VOID" : "MENUNGGU PEMBAYARAN"}
               </span>
             ) : (
               <span className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">

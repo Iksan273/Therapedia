@@ -20,7 +20,7 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 |---|---|---|---|
 | N1 | Google Calendar (keputusan klien, fase paling akhir) | Belum dikerjakan: butuh OAuth Google + backend (tabel `google_calendar_integrations`, `schedules.google_event_id`) | Dikerjakan setelah backend siap; lihat [12-keputusan-klien.md](12-keputusan-klien.md) F8 |
 | N2 | Auth demo | Password staf & OTP disimpan polos di localStorage (`staffUsers`, `passwordResets`); email OTP disimulasikan (kode tampil di layar) | Hanya untuk demo. Backend: hash password, OTP ter-hash + email nyata, throttle (`schema.md` §04-A, §10) |
-| N3 | Hapus client (demo) | Menyembunyikan sesi `completed` milik client tanpa revert (guard "revert dulu" hanya berlaku saat hapus sesi tunggal) | Konfirmasi aturan ke klien; saldo/ledger client tidak diubah |
+| N3 | Hapus client (demo) | **Diputuskan 4 Okt 2026:** seluruh data client hilang dari semua modul (tanpa syarat revert). **Diubah 4 Okt 2026 (ADR 0005): hapus permanen dengan cascade**; tidak ada pemulihan selain backup | Selesai |
 | N4 | Landing dua bahasa | Modal detail program yang sedang terbuka tidak ikut berganti bahasa sampai dibuka ulang; bio/artikel sudah diterjemahkan, nama orang & istilah teknis (SI, NDT) tetap | Minor |
 | N5 | Frontend lama di browser | `staffUsers`/`rolesList`/`rbacPermissions` tersimpan dan tidak ikut reset `SEED_VERSION`; akun master & flag `canDelete` memakai fallback (preset demo, default role) | Tombol Reset Demo Data / hapus localStorage bila perlu data bersih |
 | I1 | Status invoice | Prototype hanya `unpaid`/`paid`; bukti terunggah tetap `unpaid` | Diselaraskan saat integrasi (lihat 10) |
@@ -43,4 +43,4 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 
 ## Repo hygiene
 - Sisa Emergent: `backend/server.py`, `tests/`, `.emergent/`, `memory/`, `test_reports/`, `frontend/plugins/health-check/`, devDependency `@emergentbase/visual-edits`, folder `frontend/build/`.
-- File temp Office di `docs/`: `~$erapedia_Final_Requirement_v1.0.docx`, `~WRL2799.tmp`.
+- `docs/` sudah bersih (4 Okt 2026): file temp Office dan `generate_requirement.py` (generator `.docx`, tak direferensikan) dihapus. Sisa non-guide hanya `Therapedia_Final_Requirement_v1.0.docx` (dokumen bisnis, jangan diedit tanpa diminta).

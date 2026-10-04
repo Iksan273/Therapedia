@@ -6,7 +6,7 @@ import { Input } from "@/shared/ui/input";
 import { Textarea } from "@/shared/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
-import { BRANCHES } from "@/domain/branch";
+import { activeBranches } from "@/domain/branch";
 import { Button } from "@/shared/ui/button";
 
 export function EditIntakeDialog({ editIntakeForm, editIntakeOpen, handleSaveEditIntake, setEditIntakeForm, setEditIntakeOpen }) {
@@ -114,7 +114,7 @@ export function EditIntakeDialog({ editIntakeForm, editIntakeOpen, handleSaveEdi
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-slate-200">
-                    {BRANCHES.map((b) => (
+                    {activeBranches().map((b) => (
                       <SelectItem key={b.id} value={b.id}>
                         {b.name} ({b.city})
                       </SelectItem>

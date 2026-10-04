@@ -23,7 +23,7 @@ button, card, dialog, sheet, drawer, select, tabs, table, popover, calendar, too
 | `FilterBar`, `FilterField`, `SearchInput` | bar filter list |
 | `BranchFilter`, `BranchTag` | pilih/tampil cabang |
 | `PeriodFilter`, `DateFilterPicker` | filter periode dashboard / tanggal |
-| `usePagination`, `TablePagination` | pagination client-side |
+| `usePagination`, `TablePagination` | pagination client-side, **10 data per halaman** (default) |
 | `StatCard` | kartu KPI |
 | `CreditBar`, `LeaveInfo` | progres kredit & kuota cancel |
 | `ServiceChips` | chip layanan client |
@@ -31,6 +31,13 @@ button, card, dialog, sheet, drawer, select, tabs, table, popover, calendar, too
 | `PaymentProofViewerModal` | viewer bukti bayar gambar/PDF |
 
 Komponen domain: `features/schedule/components/calendar/*`, `features/therapist/components/*`, `features/schedule/components/analytics/*`, `features/landing/components/*`, `app/layout/AppLayout.js`.
+
+## List & pagination (wajib)
+Semua list, tabel, dan feed yang bisa memanjang memakai **pagination 10 data per halaman**, **bukan infinite scroll** dan bukan daftar penuh yang di-scroll ke bawah:
+- Pakai `usePagination(items, 10, resetKey)` + `<TablePagination .../>` (`shared/components/TablePagination.js`); `resetKey` = gabungan filter/pencarian supaya kembali ke halaman 1 saat filter berubah. Hook dipanggil sebelum early return.
+- Untuk feed kartu (mis. Session Feed, Rangkuman Client di Summary Laporan) kirim `pageItems` ke komponen presentasi dan taruh `TablePagination` di bawahnya.
+- Sudah dipaginasi: semua tabel Finance, Roster/Active Client, Analytics, Unreported Sessions, User Management, tab Inquiry, riwayat sesi client (admin & terapis), Session Feed + Rangkuman Client terapis, drawer riwayat laporan, Hari Libur, tabel transaksi Revenue. Kanban pipeline memuat bertahap per kolom.
+- Fase API: client-side slice diganti `page`/`per_page` (atau cursor untuk keyset) ke endpoint list; UI tidak berubah. Lihat `technical_workflow.md` §0 dan `schema.md` §07.
 
 ## Mode gelap
 - **Tombol**: ikon bulan/matahari di header `AppLayout` (`shared/components/ThemeToggle.js`, state di `shared/hooks/useAppTheme.js`). Tanpa preferensi tersimpan, ikut pengaturan sistem (`prefers-color-scheme`); pilihan disimpan di key `ui_theme`.

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Button } from "@/shared/ui/button";
 import { CalendarPlus } from "lucide-react";
 import { fmtDate } from "@/shared/lib/format";
+import { bookingNoteOf } from "@/domain/schedule";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 
 export function AssessmentScheduleCard({ assessmentSessions, getTherapist, setScheduleModalOpen }) {
@@ -78,9 +79,9 @@ export function AssessmentScheduleCard({ assessmentSessions, getTherapist, setSc
                           <p className="text-[11px] text-slate-500 mt-0.5">
                             Tanggal: <strong>{fmtDate(s.date)}</strong> • Jam: <strong>{s.startTime} – {s.endTime}</strong>
                           </p>
-                          {s.notes && (
+                          {bookingNoteOf(s) && (
                             <p className="text-[11px] text-slate-400 italic mt-0.5">
-                              Catatan: {s.notes}
+                              Catatan: {bookingNoteOf(s)}
                             </p>
                           )}
                         </div>

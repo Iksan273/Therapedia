@@ -26,4 +26,4 @@ Prototype awal (hasil generator) menaruh semua halaman di `pages/`, komponen di 
 - Positif: aturan bisnis teruji (52 test), migrasi API per store tanpa mengubah halaman, bug lintas store bisa dicegah di satu tempat.
 - Negatif: lebih banyak folder; developer harus mengikuti aturan lapisan (dibantu lint & skill `react-architecture`).
 - Lanjutan: implementasi store mode API (`VITE_DATA_SOURCE=api`), UI revert sesi & timeline audit, bersihkan warning `no-unused-vars`.
-- Dokumen terkait: `docs/guide/01`, `02`, `05`, `09`, `10`; `frontend/CLAUDE.md`; `schema.md`.
+- Dokumen terkait: `docs/guide/01`, `02`, `05`, `09`, `10`; `CLAUDE.md` (aturan teknis frontend); `schema.md`.

@@ -294,7 +294,7 @@ export function PaymentProofViewerModal({
             </Button>
 
             {/* Quick Action for Finance in Pending status */}
-            {isFinanceView && !isPaid && proofUrl && (
+            {isFinanceView && !isPaid && invoice.status !== "void" && proofUrl && (
               <>
                 {onReject && (
                   <Button size="sm"

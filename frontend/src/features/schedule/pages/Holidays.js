@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { toast } from "sonner";
 import { CalendarOff, Plus } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
@@ -35,6 +36,8 @@ export default function Holidays() {
         .sort((a, b) => a.date.localeCompare(b.date)),
     [holidays, isMaster, auth?.branchId]
   );
+
+  const holidaysPg = usePagination(visible, 10);
 
   const affectedCount = (h) =>
     schedules.filter(
@@ -114,6 +117,7 @@ export default function Holidays() {
           {visible.length === 0 ? (
             <EmptyState icon={CalendarOff} title="Belum ada hari libur" subtitle="Tambahkan tanggal libur nasional atau libur klinik di atas." />
           ) : (
+            <>
             <Table stackOnMobile className="min-w-[560px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
@@ -125,7 +129,7 @@ export default function Holidays() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visible.map((h) => {
+                {holidaysPg.pageItems.map((h) => {
                   const affected = affectedCount(h);
                   return (
                     <TableRow key={h.id} className="border-b border-slate-100 hover:bg-slate-50/50" data-testid={`holiday-row-${h.id}`}>
@@ -161,6 +165,8 @@ export default function Holidays() {
                 })}
               </TableBody>
             </Table>
+            <TablePagination {...holidaysPg} onPageChange={holidaysPg.setPage} onPageSizeChange={holidaysPg.setPageSize} noun="hari libur" />
+            </>
           )}
         </CardContent>
       </Card>

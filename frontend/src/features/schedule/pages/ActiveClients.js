@@ -27,7 +27,8 @@ import { useCredits } from "@/stores/creditsStore";
 import { useAuth } from "@/stores/authStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { branchName } from "@/domain/branch";
-import { formatPackageName } from "@/domain/credit";
+import { distinctActivePackages } from "@/domain/credit";
+import { CancelQuotaList } from "@/shared/components/CancelQuotaList";
 import { isActiveClient, isRosterClient, canReactivateClient, matchesRosterStatus, matchesClientSearch, ROSTER_STATUS_FILTERS } from "@/domain/client";
 import { cn } from "@/shared/lib/utils";
 
@@ -94,11 +95,12 @@ export default function ActiveClients() {
   // Birthday list for selected month
   const birthdayClients = useMemo(() => {
     return activeList.filter((c) => {
+      if (branchFilter !== "all" && c.branchId !== branchFilter) return false; // filter cabang (sama dengan roster)
       if (!c.dob) return false;
       const parts = c.dob.split("-");
       return parts.length >= 2 && parts[1] === birthdayMonth;
     });
-  }, [activeList, birthdayMonth]);
+  }, [activeList, birthdayMonth, branchFilter]);
 
   const handleReactivate = async (c) => {
     const ok = await confirm({
@@ -254,6 +256,7 @@ export default function ActiveClients() {
                       const rec = getRecordForClient(c.id);
                       const rem = rec ? rec.remainingCredit : 0;
                       const pkgs = rec?.packages || [];
+                      const activePkgs = distinctActivePackages(pkgs, { fallbackLast: true }); // hanya paket bersisa, distinct per jenis; semua habis = 1 paket terakhir
                       const isActive = isActiveClient(c);
                       const isFrozen = isActive && rem === 0;
 
@@ -296,15 +299,15 @@ export default function ActiveClients() {
                             />
                           </TableCell>
                           <TableCell data-label="Paket Kredit Aktif" className="text-xs py-4 min-w-[240px]">
-                            {pkgs.length === 0 ? (
+                            {activePkgs.length === 0 ? (
                               <span className="text-rose-600 font-bold bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg inline-flex items-center whitespace-nowrap">
                                 0 Kredit (Menunggu Finance)
                               </span>
                             ) : (
-                              <div className="space-y-1.5">
-                                {pkgs.map((p) => (
-                                  <div key={p.id} className="flex items-center gap-2 whitespace-nowrap">
-                                    <span className="font-bold text-slate-800">{formatPackageName(p.packageName)}:</span>
+                              <div className="space-y-1.5" data-testid={`roster-packages-${c.id}`}>
+                                {activePkgs.map((p) => (
+                                  <div key={p.name} className="flex items-center gap-2 whitespace-nowrap">
+                                    <span className="font-bold text-slate-800">{p.name}:</span>
                                     <span
                                       className={cn(
                                         "font-mono font-bold px-2 py-0.5 rounded-md text-[11px] shrink-0",
@@ -323,17 +326,7 @@ export default function ActiveClients() {
                             )}
                           </TableCell>
                           <TableCell data-label="Riwayat Cancel" className="text-xs font-medium py-4 min-w-[180px] hidden lg:table-cell">
-                            <span
-                              className={cn(
-                                "px-2.5 py-1 rounded-lg font-bold text-xs border inline-flex items-center whitespace-nowrap",
-                                (rec?.cancelCount || 0) <= 3
-                                  ? "bg-slate-100 text-slate-700 border-slate-200"
-                                  : "bg-rose-100 text-rose-800 border-rose-300 font-extrabold"
-                              )}
-                            >
-                              {rec?.cancelCount || 0}x Cancel
-                              {(rec?.cancelCount || 0) > 3 && " (Lewat Kuota)"}
-                            </span>
+                            <CancelQuotaList record={rec} />
                           </TableCell>
                           <TableCell data-nolabel className="text-right pr-6 py-4 min-w-[240px]">
                             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
@@ -398,7 +391,8 @@ export default function ActiveClients() {
                 Kirim ucapan selamat ulang tahun personal ke WhatsApp orang tua secara instan
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <BranchFilter className="w-48" value={branchFilter} onChange={(v) => setRosterFilter("branch", v)} isMaster={isMaster} />
               <span className="text-xs font-bold text-slate-500">Pilih Bulan:</span>
               <Select value={birthdayMonth} onValueChange={setBirthdayMonth}>
                 <SelectTrigger className="w-44 text-xs border-slate-200 bg-slate-50 font-bold">

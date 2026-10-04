@@ -8,8 +8,9 @@ import { INVOICE_TYPES } from "@/domain/credit";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { BalanceHint } from "@/features/finance/components/BalanceHint";
+import { ReplacementChoice } from "@/features/finance/components/ReplacementChoice";
 
-export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, issueOpen, masterPackages, setIssueForm, setIssueOpen }) {
+export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, issueOpen, masterPackages, replacementOptions = [], setIssueForm, setIssueOpen }) {
   return (
     <Dialog open={issueOpen} onOpenChange={setIssueOpen}>
         <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
@@ -24,7 +25,7 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
           <form onSubmit={handleIssueSubmit} className="space-y-3.5 pt-2">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Pilih Client *</Label>
-              <Select value={issueForm.clientId} onValueChange={(val) => setIssueForm({ ...issueForm, clientId: val })}>
+              <Select value={issueForm.clientId} onValueChange={(val) => setIssueForm({ ...issueForm, clientId: val, replacesInvoiceId: "" })}>
                 <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
                   <SelectValue placeholder="Pilih client..." />
                 </SelectTrigger>
@@ -94,6 +95,10 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
             </div>
             )}
 
+            {issueForm.type !== "assessment" && (
+              <ReplacementChoice options={replacementOptions} value={issueForm.replacesInvoiceId} onChange={(v) => setIssueForm({ ...issueForm, replacesInvoiceId: v })} />
+            )}
+
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Nominal Tagihan (IDR) *</Label>
               <Input
@@ -103,7 +108,7 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
                 onChange={(e) => setIssueForm({ ...issueForm, amount: e.target.value })}
               />
             </div>
-            issueForm.type !== "assessment" && <BalanceHint clientId={issueForm.clientId} amount={issueForm.amount} />
+            {issueForm.type !== "assessment" && <BalanceHint clientId={issueForm.clientId} amount={issueForm.amount} />}
 
             <DialogFooter className="mt-4 gap-2">
               <Button type="button" variant="outline" className="border-slate-200" onClick={() => setIssueOpen(false)}>

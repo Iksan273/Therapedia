@@ -2,6 +2,8 @@
 - Status: Diterima (keputusan klien); **butir 4 (audit) digantikan oleh ADR 0004**
 - Tanggal: 2026-10-03
 
+- Sebagian digantikan: butir 2 (soft delete) oleh [ADR 0005](0005-hapus-permanen-cascade.md) — hapus kini permanen dengan cascade
+
 ## Konteks
 Jawaban klien atas `pertanyaan_klien.md` dan hasil meeting mengubah beberapa asumsi desain awal: hak aksi per role di-hardcode (mis. `canManageSchedule` hanya master/admin_schedule), status client tidak boleh mundur, penghapusan hanya Master, dan `audit_logs` mencatat semua aksi yang mengubah data.
 

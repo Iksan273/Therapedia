@@ -1,6 +1,6 @@
 # 10 — Integrasi Laravel API
 
-Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis (cache, queue, session memakai driver `database`; job malam dijelaskan di `schema.md` §11). Desain database lengkap (tabel, indeks, jejak perubahan, alur transaksi): **`schema.md`**. Dokumen ini memetakan frontend → API.
+Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis dan tanpa queue (cache & session memakai driver `database`; semua proses sinkron; cron terjadwal dijelaskan di `schema.md` §11). Desain database lengkap (tabel, indeks, jejak perubahan, alur transaksi): **`schema.md`**. Dokumen ini memetakan frontend → API.
 
 ## Yang sudah siap di frontend
 | Bagian | File | Fungsi |
@@ -19,10 +19,10 @@ Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis (cache, queue, s
 2. Aksi lintas tabel = **satu endpoint transaksional** (complete, cancel, verify, transition). Frontend tidak merangkai beberapa request.
 3. Kirim `version` untuk entity ber-optimistic-lock (`clients`, `schedules`, `invoices`, `client_packages`, `session_reports`) → 409 ditangani `ApiError.isConflict`.
 4. Data turunan (saldo, frozen, skor kuadran, KPI) dihitung/diambil dari backend; jangan disimpan di frontend.
-5. **Tidak ada audit log** (ADR 0004). Semua modul memakai `created_by`/`updated_by`/`deleted_by`; log khusus hanya `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`.
+5. **Tidak ada audit log** (ADR 0004). Semua modul memakai `created_by`/`updated_by`; log khusus hanya `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`.
 
 ## Mapping use-case → endpoint
-Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by`/`deleted_by` (tidak ada tabel audit log, ADR 0004): `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`; `—` = cukup kolom pelaku. Endpoint bertanda *(baru)* belum ada di `endpoints.js`.
+Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada tabel audit log, ADR 0004): `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`; `—` = cukup kolom pelaku. Endpoint bertanda *(baru)* belum ada di `endpoints.js`.
 
 | Frontend (store / hook) | Endpoint (`ENDPOINTS`) | Tabel utama | Jejak |
 |---|---|---|---|
@@ -53,19 +53,26 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by`/`deleted_b
 | `issueInvoice` (jenis `package` / `assessment`; saldo lebihan otomatis memotong invoice paket) | `POST invoices.list` | `invoices` (`gross_amount`, `balance_applied`), `invoice_counters`, `invoice_logs`, `clients.leftover_balance` | `invoice_logs` |
 | `uploadPaymentProof` (≤5 MB, maks 3x re-upload) | `POST invoices.proof(id)` (multipart, `api.upload`) | `payment_proofs`, `invoices` | `invoice_logs` |
 | `verifyPaymentProof` | `POST invoices.verify(id)` | `invoices`, `client_packages`, `credit_ledger` | `invoice_logs` |
+| `usePackageActivationActions.approvePackagePayment` / `renewDirect` (aktivasi paket + pindahkan sesi mendatang ke paket aktif, satu transaksi dengan verify/renewal) | `POST invoices.verify(id)` / `POST clients.renewals(id)` | `schedules.client_package_id` | — |
 | `renewClientCredit` (renewal **langsung lunas**; `reason` + `justification` wajib, 422 bila kosong) | `POST clients.renewals(id)` | `invoices` (`renewal_reason`, `renewal_justification`), `client_packages` (snapshot harga), `credit_ledger` | `invoice_logs` |
-| renewal **terbitkan invoice baru** = `issueInvoice` jenis `package` (tanpa endpoint baru) | `POST invoices.list` | lihat `issueInvoice` | `invoice_logs` |
-| `usePackageConversionActions.convertInvoicePackage` (konversi sisa sesi + hapus jadwal mendatang + saldo lebihan) *(baru)* | `POST invoices.convertPackage(id)` (`target_package_id`, `sessions?`, `reason?`) | `package_conversions`, `client_packages`, `credit_ledger`, `clients.leftover_balance`, `invoice_logs`, `schedules` (soft delete) | `invoice_logs` (`converted`), `package_conversions`, `credit_ledger` (`converted_out/in`) |
+| renewal **terbitkan invoice baru** = `issueInvoice` jenis `package` + `isRenewal: true` (tanpa endpoint baru; kolom `invoices.is_renewal`) | `POST invoices.list` | lihat `issueInvoice` | `invoice_logs` |
+| `usePackageConversionActions.convertInvoicePackage` (konversi sisa sesi + hapus jadwal mendatang + saldo lebihan) *(baru)* | `POST invoices.convertPackage(id)` (`target_package_id`, `sessions?`, `reason?`) | `package_conversions`, `client_packages`, `credit_ledger`, `clients.leftover_balance`, `invoice_logs`, `schedules` (hapus permanen) | `invoice_logs` (`converted`), `package_conversions`, `credit_ledger` (`converted_out/in`) |
+| tab Saldo Lebihan (`leftoverSummaryByClient`) *(baru)* | `GET credits.leftoverBalances` (filter cabang, `q`, `include_zero`) | `clients.leftover_balance`, `package_conversions`, `invoices.balance_applied` | — |
 | log milik invoice (tombol Log) *(baru)* | `GET invoices.logs(id)` | `invoice_logs` | — |
 | void / koreksi saldo | `invoices.void(id)` / `credits.adjust` | `invoices`, `credit_ledger` | `invoice_logs`, `credit_ledger` (`manual_adjust`) |
-| hapus data (butuh `roles.can_delete`) *(baru)* | `DELETE …/{id}` pada client, inquiry, invoice, sesi, master data | `deleted_at`, `deleted_by` | `deleted_by` (+ `invoice_logs` `deleted`) |
+| `useInvoiceVoidActions.voidInvoiceAction` (alasan + `credit_action` keep/revoke; relink/Frozen sesi mendatang) *(baru)* | `POST invoices.void(id)` | `invoices` (`void_*`, `replaces_invoice_id`), `client_packages` (`voided`), `credit_ledger` (`manual_adjust`), `schedules.client_package_id`, `clients` | `invoice_logs` (`voided`) |
+| hapus data (butuh `roles.can_delete`; **permanen**, ADR 0005) *(baru)* | `DELETE …/{id}` pada client, invoice, sesi, master data, cabang (`DELETE branches.detail(id)` = sinkron, atomik, boleh lama; balas 200 + ringkasan jumlah data terhapus) | FK `ON DELETE CASCADE` (client → jadwal/invoice/ledger/…; invoice → bukti/log/paket/konversi); master ber-FK yang dipakai → 409 | log aplikasi (bukan tabel) |
 | riwayat kredit | `GET creditLedger` (keyset) | `credit_ledger` | — |
 | export laporan harian (portal ortu) *(baru)* | `GET portalClient.reportExport(scheduleId)` | `session_reports` | — |
 | `addMasterPackage` (+ `invoice_code`) | `master.packages` | `master_packages` | — |
 | layanan / kuadran | `master.services` / `master.quadrants` | `services` / `sensory_quadrants` | — |
+| `branchesStore` (`addBranch` / `updateBranch` / `setBranchActive` / `deleteBranch`) *(baru)* | `POST branches.list` / `PUT branches.detail(id)` / `PATCH branches.setActive(id)` / `DELETE branches.detail(id)` | `branches` (+ cascade seluruh isi cabang) | `updated_by` |
 | `addStaffUser` / nonaktifkan staf | `users.*` | `users` | — |
 | `addRole` / `updateRole` / `deleteRole` / `updateRolePermission` (termasuk `can_delete`) | `roles.*`, `roles.permissions(id)` | `roles`, `role_permissions` | — |
 | dashboard revenue / inquiry / schedule / cabang / terapis | `dashboards.*?branchId=&period=` | view `v_daily_revenue` / `v_daily_sessions` / `v_daily_pipeline` / `v_daily_credit_usage` / `v_therapist_sessions` | — |
+
+## Pagination list (semua endpoint list)
+Semua endpoint list memakai `page` + `per_page` (default **10**, maks 50) dan merespons `data` + `meta` (`total`, `page`, `per_page`, `last_page`). Riwayat yang terus bertambah (`creditLedger`, `invoices.logs`, riwayat sesi) memakai keyset: `cursor` + `per_page`, respons `next_cursor`. Filter/pencarian dijalankan di server sebelum dipaginasi. Frontend: `usePagination` (client-side sekarang) diganti state `page`/`perPage` yang masuk ke query react-query; `TablePagination` tetap.
 
 ## Keputusan yang sudah diambil di `schema.md` v2
 Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2):
@@ -82,7 +89,7 @@ Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2
 | Status invoice | Tampilkan `pending_verification` (setelah ortu upload), `rejected` (+ alasan), `void`; jenis invoice paket/assessment; hapus jatuh tempo |
 | Kode & kuesioner | Login ortu memakai `client_code` (bukan `TDC-`); kuesioner sekali isi (tanpa isi ulang), cek expiry/invoice dari server |
 | Hapus | Tombol delete mengikuti `canDelete` dari respons login (role) |
-| Jejak pelaku | Backend mengisi `created_by`/`updated_by`/`deleted_by`; frontend tidak mengirim pelaku |
+| Jejak pelaku | Backend mengisi `created_by`/`updated_by`; frontend tidak mengirim pelaku |
 | Riwayat kredit | Label aksi baru: `purchased`, `reversal`, `manual_adjust` |
 | Revert sesi | Tombol "Batalkan completed / cancel" (wajib alasan) sudah ada di `SessionDetailModal` (`RevertSessionPanel`, `useSessionActions.revertSession`); ganti isinya menjadi satu request `schedules.revert` |
 | Log invoice | Tombol **Log** membaca `GET invoices.logs(id)` (sekarang `invoice.logs` di store) |

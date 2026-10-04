@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { format, subMonths } from "date-fns";
 import {
   ResponsiveContainer,
@@ -14,7 +14,6 @@ import {
 } from "recharts";
 import {
   Building2,
-  TrendingUp,
   Users,
   UserCheck,
   UserX,
@@ -27,12 +26,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/sha
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { Badge } from "@/shared/ui/badge";
 import { useClients } from "@/stores/clientsStore";
-import { BRANCHES } from "@/domain/branch";
+import { useBranches } from "@/stores/branchesStore";
+import { FilterBar } from "@/shared/components/FilterBar";
+import { PeriodFilter } from "@/shared/components/PeriodFilter";
+import { makePeriodMatcher, periodLabel } from "@/shared/lib/periods";
+
+// Warna garis tren per cabang (berurutan; cabang tambahan memakai warna berikutnya)
+const BRANCH_LINE_COLORS = ["#0284c7", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#64748b"];
 
 const COLORS = {
-  timur: "#0284c7",
-  citraland: "#10b981",
-  barat: "#f59e0b",
   total: "#0284c7",
   admitted: "#10b981",
   inProgress: "#8b5cf6",
@@ -40,7 +42,35 @@ const COLORS = {
 };
 
 export default function BranchPerformance() {
-  const { clients } = useClients();
+  const { clients: allClients } = useClients();
+  const { branches: allBranches } = useBranches();
+
+  // Filter rentang waktu (template PeriodFilter): intake dihitung berdasarkan tanggal client dibuat (createdAt)
+  const [period, setPeriod] = useState("all");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const clients = useMemo(() => {
+    const inPeriod = makePeriodMatcher(period, customStart, customEnd);
+    return allClients.filter((c) => {
+      const d = (c.createdAt || "").slice(0, 10);
+      return !d || inPeriod(d);
+    });
+  }, [allClients, period, customStart, customEnd]);
+
+  // Cabang aktif + cabang nonaktif yang masih punya data intake
+  const BRANCHES = useMemo(
+    () => allBranches.filter((b) => b.isActive !== false || allClients.some((c) => c.branchId === b.id)),
+    [allBranches, allClients]
+  );
+  const activeBranchCount = allBranches.filter((b) => b.isActive !== false).length;
+
+  const filterChips = period !== "all"
+    ? [{
+        key: "period",
+        label: `Periode: ${periodLabel(period)}${period === "custom" ? ` (${customStart || "…"} – ${customEnd || "…"})` : ""}`,
+        onRemove: () => { setPeriod("all"); setCustomStart(""); setCustomEnd(""); },
+      }]
+    : [];
 
   // Cross-branch inquiry performance comparison data
   const branchComparisonData = useMemo(() => {
@@ -71,7 +101,7 @@ export default function BranchPerformance() {
         dropRate
       };
     });
-  }, [clients]);
+  }, [clients, BRANCHES]);
 
   // Overall multi-branch metrics
   const totalAllInquiries = useMemo(() => clients.length, [clients]);
@@ -105,7 +135,7 @@ export default function BranchPerformance() {
 
       const item = { month: label };
       BRANCHES.forEach((b) => {
-        const count = clients.filter((c) => {
+        const count = allClients.filter((c) => {
           if (c.branchId !== b.id) return false;
           const dStr = c.createdAt ? c.createdAt.slice(0, 7) : "";
           return dStr === key;
@@ -115,7 +145,7 @@ export default function BranchPerformance() {
 
       return item;
     });
-  }, [clients]);
+  }, [allClients, BRANCHES]);
 
   return (
     <div className="space-y-6" data-testid="master-branch-performance-page">
@@ -129,17 +159,37 @@ export default function BranchPerformance() {
             Performa Inquiry & Intake All-Branch
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Analitik komparatif performa inquiry, konversi admitted, dan laju drop-off antar seluruh cabang Therapedia (East, West, Citraland). Akses eksklusif Role Master.
+            Analitik komparatif performa inquiry, konversi admitted, dan laju drop-off antar seluruh cabang Therapedia ({BRANCHES.map((b) => b.name).join(", ")}). Akses eksklusif Role Master.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="bg-white border-slate-200 text-slate-700 font-bold px-3 py-1.5 text-xs rounded-xl shadow-2xs gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-sky-600" />
-            3 Cabang Aktif
+            {activeBranchCount} Cabang Aktif
           </Badge>
         </div>
       </div>
+
+      <FilterBar
+        title="Filter Rentang Waktu"
+        chips={filterChips}
+        onReset={() => { setPeriod("all"); setCustomStart(""); setCustomEnd(""); }}
+        resultText={`${clients.length} intake`}
+        gridClassName="lg:grid-cols-3"
+      >
+        <PeriodFilter
+          preset={period}
+          start={customStart}
+          end={customEnd}
+          testidPrefix="branch-performance"
+          onChange={({ preset, start, end }) => {
+            if (preset !== undefined) setPeriod(preset);
+            if (start !== undefined) setCustomStart(start);
+            if (end !== undefined) setCustomEnd(end);
+          }}
+        />
+      </FilterBar>
 
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -209,10 +259,10 @@ export default function BranchPerformance() {
         </Card>
       </div>
 
-      {/* CHARTS ROW 1: PRIMARY CROSS-BRANCH BAR CHART & CONVERSION COMPARISON */}
+      {/* CHART: PERFORMA INTAKE ANTAR CABANG (rasio konversi & drop-off ada di matriks di bawah) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Branch Intake Performance BarChart (The moved chart) */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs lg:col-span-7">
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs lg:col-span-12">
           <CardHeader className="pb-2 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <div>
@@ -248,33 +298,6 @@ export default function BranchPerformance() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        {/* Conversion Rate Comparison Bar Chart */}
-        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs lg:col-span-5">
-          <CardHeader className="pb-2 border-b border-slate-100">
-            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
-              Tingkat Konversi Admitted Antar Cabang
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-500">
-              Persentase keberhasilan intake menjadi klien aktif berkala
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-72 pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={branchComparisonData} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
-                <XAxis type="number" unit="%" domain={[0, 100]} tick={{ fill: "#64748B", fontSize: 11 }} />
-                <YAxis dataKey="branchName" type="category" tick={{ fill: "#334155", fontSize: 11, fontWeight: 600 }} width={100} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                  formatter={(val) => [`${val}%`, "Tingkat Konversi"]}
-                />
-                <Bar dataKey="conversionRate" name="Konversi Admitted (%)" fill="#10b981" radius={[0, 8, 8, 0]} maxBarSize={28} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
 
       {/* CHARTS ROW 2: 6-MONTH TREND COMPARISON PER BRANCH */}
@@ -285,7 +308,7 @@ export default function BranchPerformance() {
             Tren Volume Intake 6 Bulan Terakhir per Cabang
           </CardTitle>
           <CardDescription className="text-xs text-slate-500">
-            Pergerakan pendaftaran client baru tiap bulan di East, West, dan Citraland
+            Pergerakan pendaftaran client baru tiap bulan di setiap cabang (tidak mengikuti filter rentang waktu)
           </CardDescription>
         </CardHeader>
         <CardContent className="h-64 pt-4">
@@ -296,9 +319,9 @@ export default function BranchPerformance() {
               <YAxis allowDecimals={false} tick={{ fill: "#64748B", fontSize: 11 }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line type="monotone" dataKey="East" stroke={COLORS.timur} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="Citraland" stroke={COLORS.citraland} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="West" stroke={COLORS.barat} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              {BRANCHES.map((b, i) => (
+                <Line key={b.id} type="monotone" dataKey={b.name} stroke={BRANCH_LINE_COLORS[i % BRANCH_LINE_COLORS.length]} strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -311,7 +334,7 @@ export default function BranchPerformance() {
             Matriks Komparasi Performa Operasional Cabang
           </CardTitle>
           <CardDescription className="text-xs text-slate-500">
-            Ringkasan data intake, tingkat konversi aktif, dan rasio drop-off per cabang
+            Ringkasan data intake, rasio konversi (admitted ÷ total intake), dan rasio drop-off per cabang pada rentang waktu terpilih
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">

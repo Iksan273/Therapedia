@@ -25,6 +25,7 @@ const PrintClientReport = lazy(() => import("@/features/therapist/pages/PrintCli
 const ClientDashboard = lazy(() => import("@/features/parent/pages/ClientDashboard"));
 const DashboardRevenue = lazy(() => import("@/features/master/pages/DashboardRevenue"));
 const BranchPerformance = lazy(() => import("@/features/master/pages/BranchPerformance"));
+const BranchManagement = lazy(() => import("@/features/master/pages/BranchManagement"));
 const UserManagement = lazy(() => import("@/features/master/pages/UserManagement"));
 const RoleModuleAccess = lazy(() => import("@/features/master/pages/RoleModuleAccess"));
 const FinancePortal = lazy(() => import("@/features/finance/pages/FinancePortal"));
@@ -56,6 +57,7 @@ export const PROTECTED_GROUPS = [
       { index: true, redirect: "/master/revenue" },
       { path: "revenue", Component: DashboardRevenue, module: "revenue" },
       { path: "branch-performance", Component: BranchPerformance, module: "revenue" },
+      { path: "branches", Component: BranchManagement, module: "branch_master" },
       { path: "users", Component: UserManagement, module: "user_management" },
       { path: "rbac", Component: RoleModuleAccess, module: "rbac" },
     ],

@@ -9,7 +9,6 @@ export const ENDPOINTS = {
     logout: "/auth/logout",
     me: "/auth/me",
   },
-  branches: "/branches",
   users: {
     list: "/users",
     detail: (id) => `/users/${id}`,
@@ -48,6 +47,14 @@ export const ENDPOINTS = {
     services: "/master/services",
     quadrants: "/master/quadrants",
     packages: "/master/packages",
+  },
+  credits: {
+    leftoverBalances: "/credits/leftover-balances",
+  },
+  branches: {
+    list: "/branches",
+    detail: (id) => `/branches/${id}`,
+    setActive: (id) => `/branches/${id}/active`,
   },
   schedules: {
     list: "/schedules",

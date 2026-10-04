@@ -288,9 +288,15 @@ export default function AssessmentMasterData() {
       toast.error("Minimal harus terdapat 1 kategori asesmen master.");
       return;
     }
+    // Master ber-FK: template yang sudah dipakai (ada kode kuesioner terbit/terisi) tidak bisa dihapus
+    const usedBy = (clients || []).reduce((n, c) => n + (c.assessmentCodes || []).filter((code) => code.categoryId === catId).length, 0);
+    if (usedBy > 0) {
+      toast.error(`Template "${catName}" sudah dipakai di ${usedBy} kode kuesioner. Hapus kodenya dulu atau gunakan template lain.`);
+      return;
+    }
     const ok = await confirm({
       title: "Hapus template asesmen?",
-      description: `Template "${catName}" beserta seluruh bank soal di dalamnya akan dihapus.`,
+      description: `Template "${catName}" beserta seluruh bank soal di dalamnya akan dihapus permanen.`,
     });
     if (!ok) return;
     deleteCategory(catId);

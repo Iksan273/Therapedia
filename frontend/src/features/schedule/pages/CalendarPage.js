@@ -39,7 +39,8 @@ import { useCredits } from "@/stores/creditsStore";
 import { useHolidays } from "@/stores/holidaysStore";
 import { findHoliday } from "@/domain/holiday";
 import { useMasterData } from "@/stores/masterDataStore";
-import { CLEAR_PENDING_PATCH, getOriginSlot, scheduleSlot } from "@/domain/schedule";
+import { isCreditZero } from "@/domain/credit";
+import { CLEAR_PENDING_PATCH, bookingNoteOf, cancelNoteOf, getOriginSlot, scheduleSlot } from "@/domain/schedule";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
@@ -102,7 +103,7 @@ export default function CalendarPage() {
       const t = therapistById.get(s.therapistId);
       index.set(
         s.id,
-        [c?.clientName, c?.parentName, c?.clientCode, t?.name, s.notes, s.cancelReason]
+        [c?.clientName, c?.parentName, c?.clientCode, t?.name, bookingNoteOf(s), cancelNoteOf(s), s.cancelReason]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -147,8 +148,7 @@ export default function CalendarPage() {
   };
 
   const isClientCreditZero = (clientId) => {
-    const rec = getRecordForClient(clientId);
-    return rec ? rec.remainingCredit === 0 : false;
+    return isCreditZero(getRecordForClient(clientId)); // termasuk client yang belum punya paket sama sekali
   };
 
   const getClientName = (clientId) => {

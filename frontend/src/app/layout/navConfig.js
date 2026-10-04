@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   CalendarDays,
   CalendarOff,
   FileWarning,
@@ -37,6 +38,7 @@ export const NAV_CONFIG = {
       { to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, module: "unreported_reports", testid: "nav-master-unreported" },
       { to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, module: "holidays", testid: "nav-master-holidays" },
       { to: "/finance", label: "Finance & Invoices", icon: Receipt, module: "finance", testid: "nav-master-finance" },
+      { to: "/master/branches", label: "Master Cabang", icon: Building2, module: "branch_master", testid: "nav-master-branches" },
       { to: "/master/users", label: "User Management", icon: UserCog, module: "user_management", testid: "nav-master-users" },
       { to: "/master/rbac", label: "RBAC Module Access", icon: ShieldCheck, module: "rbac", testid: "nav-master-rbac" },
     ],
@@ -114,6 +116,7 @@ const CUSTOM_ROLE_ITEMS = [
   { module: "schedule_dashboard", to: "/admin-schedule", label: "Schedule Dashboard", icon: LayoutDashboard, end: true, testid: "nav-custom-sched-dash" },
   { module: "active_clients", to: "/admin-schedule/clients", label: "Active Clients", icon: Users, testid: "nav-custom-clients" },
   { module: "finance", to: "/finance", label: "Finance & Invoices", icon: Receipt, testid: "nav-custom-finance" },
+  { module: "branch_master", to: "/master/branches", label: "Master Cabang", icon: Building2, testid: "nav-custom-branches" },
   { module: "user_management", to: "/master/users", label: "User Management", icon: UserCog, testid: "nav-custom-users" },
   { module: "rbac", to: "/master/rbac", label: "RBAC Module Access", icon: ShieldCheck, testid: "nav-custom-rbac" },
   { module: "therapist_module", to: "/therapist", label: "Therapist Module", icon: CalendarDays, testid: "nav-custom-therapist" },

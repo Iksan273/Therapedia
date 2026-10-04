@@ -229,6 +229,12 @@ export const buildReportPatch = ({ activitySection = "", noteSection = "", homew
 // Field jejak reschedule menggantung yang dikosongkan saat sesi dipindah/dibatalkan
 export const CLEAR_PENDING_PATCH = { pendingFrom: null, pendingAt: null, pendingReason: null, pendingNote: null };
 
+// Catatan sesi dipisah per sumber (tidak digabung): `bookingNote` = catatan penjadwalan oleh admin saat membuat jadwal,
+// `cancelNote` = catatan saat cancel, `pendingNote` = catatan reschedule menggantung. Data lama memakai satu field `notes`:
+// dibaca sebagai catatan cancel bila sesi `cancelled`, selain itu sebagai catatan penjadwalan.
+export const bookingNoteOf = (s) => s?.bookingNote ?? (s?.status === "cancelled" ? null : s?.notes) ?? null;
+export const cancelNoteOf = (s) => s?.cancelNote ?? (s?.status === "cancelled" ? s?.notes : null) ?? null;
+
 // Filter sesi berdasarkan rentang tanggal inklusif (yyyy-MM-dd). Batas kosong = tidak dibatasi.
 export const filterSessionsByDate = (sessions, from = "", to = "") =>
   sessions.filter((s) => (!from || s.date >= from) && (!to || s.date <= to));

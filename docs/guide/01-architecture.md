@@ -58,7 +58,7 @@ features/
   therapist/   pages: MySchedule, TherapistSummary, TherapistClientDetail, PrintClientReport
                components: SessionReportModal, ClientReportHistoryDrawer, summary/
   parent/      pages: ClientDashboard
-  master/      pages: DashboardRevenue, BranchPerformance, UserManagement, RoleModuleAccess
+  master/      pages: DashboardRevenue, BranchPerformance, BranchManagement, UserManagement, RoleModuleAccess
 stores/        authStore, clientsStore, schedulesStore, creditsStore, assessmentsStore, therapistsStore, masterDataStore
 domain/        branch, status, client, schedule, credit, rbac  (+ __tests__)
 services/

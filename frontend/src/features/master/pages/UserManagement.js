@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/stores/authStore";
-import { BRANCHES } from "@/domain/branch";
+import { BRANCHES, activeBranches } from "@/domain/branch";
 import { generateTempPassword, validateNewPassword, validateStaffBranch } from "@/domain/auth";
 
 const ROLE_OPTIONS = [
@@ -362,7 +362,7 @@ export default function UserManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                  {BRANCHES.map((b) => (
+                  {activeBranches().map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.name} ({b.city})
                     </SelectItem>

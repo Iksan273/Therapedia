@@ -26,7 +26,7 @@ import { BRANCHES } from "@/domain/branch";
 import { filterSessionsByDate, isReportEmpty } from "@/domain/schedule";
 import { isQuestionnaireCodeFilled } from "@/domain/client";
 import { hasPendingAssessmentInvoice, isQuestionnaireCodeExpired } from "@/domain/assessment";
-import { canUploadProof, invoiceType, proofUploadsLeft, PROOF_ACCEPT } from "@/domain/credit";
+import { canUploadProof, distinctActivePackages, invoiceType, proofUploadsLeft, PROOF_ACCEPT } from "@/domain/credit";
 import { processProofFile, formatFileSize } from "@/shared/lib/fileUpload";
 import { buildSessionReportsHtml, printHtmlDocument } from "@/shared/lib/reportExport";
 import { cn } from "@/shared/lib/utils";
@@ -50,9 +50,10 @@ export default function ClientDashboard() {
 
   const client = getClient(auth.clientId);
   const record = client ? getRecordForClient(client.id) : null;
+  const activePackages = distinctActivePackages(record?.packages, { fallbackLast: true });
   const invoices = client ? getInvoicesForClient(client.id) : [];
   // Banner tagihan = invoice Paket Sesi terbaru. Invoice Assessment tampil di kartu kuesioner karena menahan akses kuesioner.
-  const latestInvoice = invoices.find((i) => invoiceType(i) === "package") || null;
+  const latestInvoice = invoices.find((i) => invoiceType(i) === "package" && i.status !== "void") || null; // invoice void tidak ditagihkan ke ortu
   const assessmentInvoices = invoices.filter((i) => invoiceType(i) === "assessment");
   const pendingAssessmentInvoices = assessmentInvoices.filter((i) => i.status !== "paid" && i.status !== "void");
   const uploadTarget = invoices.find((i) => i.id === uploadInvoiceId) || latestInvoice;
@@ -333,13 +334,13 @@ export default function ClientDashboard() {
             </span>
           </div>
           <div className="space-y-2 text-xs">
-            {(record?.packages || []).length === 0 ? (
+            {activePackages.length === 0 ? (
               <p className="text-slate-400 italic">Belum ada paket terapi aktif.</p>
             ) : (
-              (record?.packages || []).map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-800">{p.packageName}</span>
-                  <span className="font-mono font-black text-slate-900">{p.remainingCredit} / {p.totalCredit} Sesi</span>
+              activePackages.map((p) => (
+                <div key={p.name} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="font-bold text-slate-800">{p.name}</span>
+                  <span className="font-mono font-black text-slate-900">{p.remainingCredit} Sesi</span>
                 </div>
               ))
             )}

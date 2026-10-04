@@ -57,7 +57,7 @@ Outcome step 8 memakai hook use-case `useClientOutcomeActions()` (`features/inqu
 **Reactivate** (`reactivate`, dari Active Clients Roster / detail): client `discharged`/`discontinued` → `admitted` lewat `buildActivationPatch` (`domain/client.js`): `dateOfJoin` asal dipertahankan, `dateOfDischarge`/`dischargeReason`/`dischargeNote` dikosongkan, record kredit dipastikan ada. `admit` memakai patch yang sama.
 **Discharge** (`discharge`, kartu ke-5 `OutcomeCard` + `DischargeDialog`, juga dipakai detail Active Client): alasan wajib (pilihan cepat Master Data atau ketik sendiri), catatan opsional → `status=discharged`, `dateOfDischarge=today`; `finalOutcome` tidak diubah.
 **Discontinue**: alasan wajib diisi → `status=discontinued`, `dateOfDiscontinue=today` (field sendiri), `dischargeReason="other"`, `dischargeNote=alasan`.
-**Ubah status manual** (`changeStatus`): ke tahap pipeline mana pun; tahap awal mengosongkan outcome & data keluar, `admitted` memakai aktivasi, discontinue/discharge membuka dialog alasan. **Hapus client / inquiry**: `DeleteButton` di header Client Detail (hanya role `canDelete`; soft delete, sesi & invoice milik client ikut disembunyikan; `useClientDeleteActions`).
+**Ubah status manual** (`changeStatus`): ke tahap pipeline mana pun; tahap awal mengosongkan outcome & data keluar, `admitted` memakai aktivasi, discontinue/discharge membuka dialog alasan. **Hapus client / inquiry**: `DeleteButton` di header Client Detail (hanya role `canDelete`; hapus permanen, sesi, invoice, dan seluruh data kredit client ikut terhapus; `useClientDeleteActions`).
 
 ### 3. Isi kuesioner (ortu): `/assessment` (publik)
 `features/assessment/pages/AssessmentFill.js`

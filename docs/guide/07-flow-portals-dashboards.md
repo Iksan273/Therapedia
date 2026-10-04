@@ -12,7 +12,7 @@ Semua data difilter berdasarkan `auth.therapistId`.
 | `/therapist/clients/:id` | `TherapistClientDetail.js` | Profil client, riwayat sesi & laporan, link hasil asesmen, tombol cetak ke `/print/client/:id` |
 | `/therapist/parent-assessment/:id` | `features/assessment/pages/ParentAssessmentView.js` | Hasil kuesioner + kuadran (lihat 04) |
 
-**Laporan sesi 3 bagian** (disimpan di schedule): `activitySection` (aktivitas), `noteSection` (catatan klinis/SOAP, disalin juga ke `progressNote`), dan `homeworkSection` (PR di rumah). `SessionReportModal` menyediakan template teks cepat. Laporan bisa diisi kapan saja, tidak harus menunggu sesi completed.
+**Laporan sesi 3 bagian** (disimpan di schedule): `activitySection` (aktivitas), `noteSection` (catatan klinis/SOAP, disalin juga ke `progressNote`), dan `homeworkSection` (PR di rumah). Laporan bisa diisi kapan saja, tidak harus menunggu sesi completed.
 
 ## B. Portal Orang Tua (`/client`, role `client`)
 `features/parent/pages/ClientDashboard.js`, data milik `auth.clientId`.
@@ -27,7 +27,8 @@ Semua data difilter berdasarkan `auth.therapistId`.
 | Route | Role | Halaman | Isi |
 |---|---|---|---|
 | `/master/revenue`, `/manager/revenue` | master, manager | `features/master/pages/DashboardRevenue.js` | Omzet dari invoice `paid` per cabang & periode, tren, breakdown paket. Manager terkunci ke cabangnya |
-| `/master/branch-performance` | master | `BranchPerformance.js` | Perbandingan performa intake/pipeline antar cabang (recharts) |
+| `/master/branch-performance` | master | `BranchPerformance.js` | Perbandingan performa intake/pipeline antar cabang (recharts). Filter **rentang waktu** (`PeriodFilter`: Semua Waktu … Bulan Ini … Rentang Kustom) menyaring intake berdasarkan `createdAt`; tren 6 bulan tidak mengikuti filter. Rasio konversi (admitted ÷ total intake) dan drop-off hanya di KPI + matriks (chart konversi terpisah dihapus karena duplikat). Cabang dinamis dari Master Cabang |
+| `/master/branches` | master (modul `branch_master`) | `BranchManagement.js` | Master Cabang: tambah, ubah, aktif/nonaktif, dan hapus cabang (hapus = **permanen** seluruh isi cabang: client + jadwal + invoice + ledger + hari libur + akun staf cabang; hanya role `canDelete`, konfirmasi mengetik kode cabang; ADR 0005), cari + pagination 10. Tanpa kolom jumlah client. Store `branchesStore` mensinkronkan registry `BRANCHES` di `domain/branch.js` |
 | `/admin-inquiry` | lihat 04 | `DashboardInquiry.js` | KPI funnel inquiry |
 | `/admin-schedule` | lihat 05 | `DashboardSchedule.js` | KPI sesi & client aktif |
 

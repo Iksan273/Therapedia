@@ -3,7 +3,7 @@ import { findHoliday, holidayDateSet, holidayMessage } from "@/domain/holiday";
 import { useHolidays } from "@/stores/holidaysStore";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info } from "lucide-react";
+import { AlertTriangle, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info, Snowflake } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -136,7 +136,14 @@ export const AddScheduleModal = ({
   const lockedClient = defaultsLockClient ? clients.find((c) => c.id === defaultsClientId) : null;
   const selectedClient = clients.find((c) => c.id === clientId);
   const clientRecord = useMemo(() => (clientId ? getRecordForClient(clientId) : null), [clientId, getRecordForClient]);
-  const clientPackages = useMemo(() => clientRecord?.packages || [], [clientRecord]);
+  // Pilihan paket: hanya paket yang masih punya sisa (urutan FIFO; paket 0 sesi disembunyikan agar tidak jadi data sampah).
+  // Bila tidak ada paket bersisa sama sekali, tampilkan paket terakhir (0 sesi = Frozen) sebagai satu-satunya pilihan.
+  // Kuota cancel / pemotongan kredit sesi ini mengikuti paket yang dipilih (`creditPackageId`).
+  const clientPackages = useMemo(() => {
+    const all = clientRecord?.packages || [];
+    const active = all.filter((p) => p.remainingCredit > 0);
+    return active.length ? active : all.length ? [all[all.length - 1]] : [];
+  }, [clientRecord]);
 
   // Service tidak dipilih di form jadwal: diturunkan dari layanan client (keputusan klien).
   const derivedServiceType = getClientServiceIds(selectedClient)[0] || null;
@@ -231,7 +238,7 @@ export const AddScheduleModal = ({
         status: "scheduled",
         isRecurring: false,
         recurrenceRule: "none",
-        notes: notes.trim() || null,
+        bookingNote: notes.trim() || null,
         activitySection: "",
         homeworkSection: "",
       };
@@ -258,7 +265,7 @@ export const AddScheduleModal = ({
         startTime: defaultStartTime,
         endTime: defaultEndTime,
         status: "scheduled",
-        notes: notes.trim() || null,
+        bookingNote: notes.trim() || null,
         activitySection: "",
         homeworkSection: "",
       };
@@ -338,7 +345,7 @@ export const AddScheduleModal = ({
                   >
                     {selectedClient
                       ? `${selectedClient.clientName} (${selectedClient.parentName})`
-                      : "Search active client roster..."}
+                      : "Cari anak, ortu, atau kode client..."}
                     <ChevronsUpDown className="w-4 h-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -348,7 +355,7 @@ export const AddScheduleModal = ({
                   collisionPadding={16}
                 >
                   <Command>
-                    <CommandInput placeholder="Search client or parent..." data-testid="add-schedule-client-search" />
+                    <CommandInput placeholder="Cari nama anak, ortu, atau kode client..." data-testid="add-schedule-client-search" />
                     <CommandList
                       className="max-h-[min(320px,calc(var(--radix-popover-content-available-height)-3.5rem))] overflow-y-auto overscroll-contain"
                       data-testid="add-schedule-client-list"
@@ -358,7 +365,7 @@ export const AddScheduleModal = ({
                         {selectableClients.map((c) => (
                           <CommandItem
                             key={c.id}
-                            value={`${c.clientName} ${c.parentName}`}
+                            value={`${c.clientName} ${c.parentName} ${c.clientCode}`}
                             onSelect={() => {
                               setClientId(c.id);
                               setClientOpen(false);
@@ -368,7 +375,7 @@ export const AddScheduleModal = ({
                           >
                             <Check className={cn("mr-2 w-4 h-4 text-sky-600", clientId === c.id ? "opacity-100" : "opacity-0")} />
                             <span className="font-bold text-xs text-slate-900 truncate min-w-0">{c.clientName}</span>
-                            <span className="ml-auto pl-2 text-[11px] text-slate-400 font-normal truncate max-w-[45%]">{c.parentName}</span>
+                            <span className="ml-auto pl-2 text-[11px] text-slate-400 font-normal truncate max-w-[45%]">{c.parentName} • <span className="font-mono">{c.clientCode}</span></span>
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -378,6 +385,17 @@ export const AddScheduleModal = ({
               </Popover>
             )}
           </div>
+
+          {/* Client tanpa kredit sisa: sesi terapi tetap boleh dibuat, berstatus Frozen sampai paket aktif */}
+          {!isAssessmentType && clientId && !clientPackages.some((p) => p.remainingCredit > 0) && (
+            <div className="flex items-start gap-2 rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-xs text-cyan-900" data-testid="add-schedule-frozen-notice">
+              <Snowflake className="w-4 h-4 shrink-0 mt-0.5" />
+              <p>
+                Client ini <strong>tidak punya kredit sisa</strong>. Sesi tetap bisa dijadwalkan dan berstatus <strong>Frozen</strong>
+                {" "}sampai Finance mengaktifkan paket baru; setelah itu jadwal mendatang otomatis memakai paket yang aktif.
+              </p>
+            </div>
+          )}
 
           {/* Scheduling Mode Switcher (Hanya untuk Sesi Terapi Rutin, Asesmen khusus Single Date) */}
           {!defaults.lockType && !isAssessmentType && (
@@ -455,7 +473,7 @@ export const AddScheduleModal = ({
                         ) : (
                           clientPackages.map((p) => (
                             <SelectItem key={p.id} value={p.id}>
-                              {p.packageName} — Sisa {p.remainingCredit} Sesi
+                              {p.packageName} — {p.remainingCredit > 0 ? `Sisa ${p.remainingCredit} Sesi` : "Habis (Frozen)"}
                             </SelectItem>
                           ))
                         )}
@@ -655,7 +673,7 @@ export const AddScheduleModal = ({
                               ) : (
                                 clientPackages.map((p) => (
                                   <SelectItem key={p.id} value={p.id}>
-                                    {p.packageName} ({p.remainingCredit} sisa)
+                                    {p.packageName} ({p.remainingCredit > 0 ? `${p.remainingCredit} sisa` : "Habis/Frozen"})
                                   </SelectItem>
                                 ))
                               )}
@@ -722,7 +740,7 @@ export const AddScheduleModal = ({
 
           {/* Notes */}
           <div className="space-y-1">
-            <Label className="text-xs font-bold text-slate-700">Clinical / Booking Notes (Optional)</Label>
+            <Label className="text-xs font-bold text-slate-700">Catatan Penjadwalan (Opsional)</Label>
             <Textarea
               rows={2}
               className="rounded-xl border-slate-200 bg-slate-50 focus:bg-white text-xs"

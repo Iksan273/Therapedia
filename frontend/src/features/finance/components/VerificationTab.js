@@ -103,7 +103,7 @@ export function VerificationTab({ handleApprovePayment, handleRejectPayment, pen
                                 iconOnly
                                 label={`Hapus invoice ${inv.invoiceNumber}`}
                                 title={`Hapus invoice ${inv.invoiceNumber}?`}
-                                description="Invoice disembunyikan (soft delete) dan tercatat di log invoice. Paket dan kredit client tidak berubah."
+                                description="Invoice belum lunas ini DIHAPUS PERMANEN beserta bukti bayar dan lognya. Saldo lebihan yang dipakainya dikembalikan ke client."
                                 onConfirm={() => onDeleteInvoice?.(inv)}
                                 testId={`delete-pending-invoice-${inv.id}`}
                               />

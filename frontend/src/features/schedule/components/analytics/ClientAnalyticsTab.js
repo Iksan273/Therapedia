@@ -1,5 +1,6 @@
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import React, { useMemo, useState } from "react";
+import { isCreditedAbsence } from "@/domain/credit";
 import { useNavigate } from "react-router-dom";
 import { addWeeks, format, parseISO, startOfWeek } from "date-fns";
 import {
@@ -21,7 +22,6 @@ import {
   CalendarClock,
   Wallet,
   Flame,
-  ShieldAlert,
   CheckCircle2,
   Download,
   Snowflake,
@@ -68,7 +68,7 @@ const PERIODS = PERIOD_OPTIONS; // termasuk "Rentang Kustom" (pilih tanggal awal
 const SORTS = [
   { value: "attendance_asc", label: "Kehadiran terendah" },
   { value: "credit_asc", label: "Kredit tersedikit" },
-  { value: "cancel_desc", label: "Cancel terbanyak" },
+  { value: "cancel_desc", label: "Tidak hadir terbanyak" },
   { value: "name", label: "Nama A–Z" },
 ];
 
@@ -173,19 +173,16 @@ export default function ClientAnalyticsTab({ activeList }) {
 
       const completed = sessions.filter((s) => s.status === "completed").length;
       const cancelled = sessions.filter((s) => s.status === "cancelled").length;
+      // Tidak hadir = cancel yang memotong kredit (cancel tanpa potong kredit tidak dihitung)
+      const absent = sessions.filter((s) => s.status === "cancelled" && isCreditedAbsence(getRecordForClient(client.id), s.id)).length;
       const upcoming = sessions.filter(isUpcoming);
-      const finished = completed + cancelled;
+      const finished = completed + absent;
       const next = upcoming
         .map((s) => s.date)
         .filter((d) => d && d >= today)
         .sort()[0];
 
       const rec = getRecordForClient(client.id);
-      const pkgs = rec?.packages || [];
-      const familyRemaining = (re) =>
-        pkgs
-          .filter((p) => re.test(`${p.packageId} ${p.packageName}`.toLowerCase()))
-          .reduce((a, p) => a + (p.remainingCredit || 0), 0);
       const remaining = rec ? rec.remainingCredit : 0;
 
       out.push({
@@ -193,14 +190,12 @@ export default function ClientAnalyticsTab({ activeList }) {
         client,
         completed,
         cancelled,
+        absent,
         upcomingCount: upcoming.length,
         attendanceRate: finished > 0 ? Math.round((completed / finished) * 100) : null,
         nextSession: next || null,
         remaining,
         total: rec ? rec.totalCredit : 0,
-        cancelTotal: rec ? rec.cancelCount : cancelled,
-        regular: familyRemaining(/reguler|regular/),
-        senior: familyRemaining(/vip|senior/),
         creditStatus: remaining === 0 ? "zero" : remaining <= 2 ? "low" : "healthy",
       });
     });
@@ -210,7 +205,7 @@ export default function ClientAnalyticsTab({ activeList }) {
   // ---- KPI ----
   const kpi = useMemo(() => {
     const completed = scopeSchedules.filter((s) => s.status === "completed").length;
-    const cancelled = scopeSchedules.filter((s) => s.status === "cancelled").length;
+    const cancelled = scopeSchedules.filter((s) => s.status === "cancelled" && isCreditedAbsence(getRecordForClient(s.clientId), s.id)).length; // tidak hadir (potong kredit)
     const upcoming = scopeSchedules.filter((s) => isUpcoming(s) && (s.date || "") >= today).length;
     const finished = completed + cancelled;
     const total = rows.reduce((a, r) => a + r.total, 0);
@@ -226,9 +221,8 @@ export default function ClientAnalyticsTab({ activeList }) {
       remaining,
       needRenewal: rows.filter((r) => r.remaining <= 2).length,
       frozen: rows.filter((r) => r.remaining === 0).length,
-      overCancel: rows.filter((r) => r.cancelTotal > 3).length,
     };
-  }, [scopeSchedules, rows, today]);
+  }, [scopeSchedules, rows, today, getRecordForClient]);
 
   // ---- Tren mingguan: 6 minggu terakhir sampai 2 minggu ke depan ----
   const weeklyTrend = useMemo(() => {
@@ -336,7 +330,7 @@ export default function ClientAnalyticsTab({ activeList }) {
     const list = [...rows];
     if (sort === "attendance_asc") list.sort((a, b) => (a.attendanceRate ?? 101) - (b.attendanceRate ?? 101));
     else if (sort === "credit_asc") list.sort((a, b) => a.remaining - b.remaining);
-    else if (sort === "cancel_desc") list.sort((a, b) => b.cancelTotal - a.cancelTotal);
+    else if (sort === "cancel_desc") list.sort((a, b) => b.absent - a.absent);
     else list.sort((a, b) => a.client.clientName.localeCompare(b.client.clientName));
     return list;
   }, [rows, sort]);
@@ -347,7 +341,7 @@ export default function ClientAnalyticsTab({ activeList }) {
   const renewalPg = usePagination(renewal, 6, `${branch}|${search}|${effectiveTherapist}|${period}|${customStart}|${customEnd}`);
 
   const exportCsv = () => {
-    const header = ["Nama", "Kode", "Cabang", "Kehadiran (%)", "Selesai", "Batal", "Sesi Berikutnya", "Sisa Regular", "Sisa Senior", "Sisa Total", "Status Kuota"];
+    const header = ["Nama", "Kode", "Cabang", "Kehadiran (%)", "Hadir (Selesai)", "Tidak Hadir (Cancel Potong Kredit)", "Sesi Berikutnya"];
     const lines = sortedRows.map((r) =>
       [
         r.client.clientName,
@@ -355,12 +349,8 @@ export default function ClientAnalyticsTab({ activeList }) {
         branchName(r.client.branchId),
         r.attendanceRate ?? "",
         r.completed,
-        r.cancelTotal,
+        r.absent,
         r.nextSession || "",
-        r.regular,
-        r.senior,
-        r.remaining,
-        r.creditStatus === "zero" ? "Frozen" : r.creditStatus === "low" ? "Menipis" : "Sehat",
       ]
         .map(csvCell)
         .join(",")
@@ -481,14 +471,14 @@ export default function ClientAnalyticsTab({ activeList }) {
       </FilterBar>
 
       {/* KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         <KpiCard icon={Users} tone="bg-sky-50 text-sky-700" label="Client Aktif" value={kpi.clients} sub={`${kpi.withNext} punya jadwal berikutnya`} />
         <KpiCard
           icon={Activity}
           tone="bg-emerald-50 text-emerald-700"
           label="Tingkat Kehadiran"
           value={kpi.attendance === null ? "—" : `${kpi.attendance}%`}
-          sub={`${kpi.completed} selesai • ${kpi.cancelled} batal`}
+          sub={`${kpi.completed} hadir • ${kpi.cancelled} tidak hadir (potong kredit)`}
         />
         <KpiCard icon={CalendarClock} tone="bg-blue-50 text-blue-700" label="Sesi Mendatang" value={kpi.upcoming} sub="Terjadwal dari hari ini" />
         <KpiCard
@@ -499,7 +489,6 @@ export default function ClientAnalyticsTab({ activeList }) {
           sub={`${kpi.remaining} sesi tersisa`}
         />
         <KpiCard icon={Flame} tone="bg-amber-50 text-amber-700" label="Perlu Renewal" value={kpi.needRenewal} sub={`${kpi.frozen} Frozen (0 kredit)`} />
-        <KpiCard icon={ShieldAlert} tone="bg-rose-50 text-rose-700" label="Lewat Kuota Cancel" value={kpi.overCancel} sub="Cancel lebih dari 3x" />
       </div>
 
       {insights.length > 0 && (
@@ -764,9 +753,9 @@ export default function ClientAnalyticsTab({ activeList }) {
         <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-sm font-bold text-slate-900">Tabel Performa Caseload ({rows.length} client)</CardTitle>
+              <CardTitle className="text-sm font-bold text-slate-900">Tabel Performa Kehadiran ({rows.length} client)</CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Kehadiran = sesi selesai ÷ (selesai + batal) pada filter. Baris merah muda: total cancel paket lebih dari 3x.
+                Kehadiran = sesi selesai ÷ (selesai + tidak hadir) pada filter. Tidak hadir = cancel yang memotong kredit; cancel tanpa potong kredit tidak dihitung.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -805,18 +794,16 @@ export default function ClientAnalyticsTab({ activeList }) {
                   <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 whitespace-nowrap">Client & Kode</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap hidden md:table-cell">Cabang</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Kehadiran</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap hidden md:table-cell">Selesai / Batal</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap hidden lg:table-cell">Sesi Berikutnya</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap hidden lg:table-cell">Sisa Regular</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap hidden lg:table-cell">Sisa Senior</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs pr-6 whitespace-nowrap">Status Kuota</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Hadir (Selesai)</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Tidak Hadir (Cancel Potong Kredit)</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs pr-6 whitespace-nowrap hidden lg:table-cell">Sesi Berikutnya</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tablePg.pageItems.map((r) => (
                   <TableRow
                     key={r.id}
-                    className={cn("border-b border-slate-100 text-xs", r.cancelTotal > 3 ? "bg-rose-50/50 hover:bg-rose-50" : "hover:bg-slate-50/50")}
+                    className="border-b border-slate-100 text-xs hover:bg-slate-50/50"
                   >
                     <TableCell data-nolabel className="pl-6 py-3 whitespace-nowrap">
                       <button
@@ -828,9 +815,6 @@ export default function ClientAnalyticsTab({ activeList }) {
                       </button>
                       <p className="font-mono text-[11px] text-slate-500">
                         {r.client.clientCode}
-                        {r.cancelTotal > 3 && (
-                          <span className="ml-2 font-sans font-bold text-rose-700">• Cancel {r.cancelTotal}x (lewat kuota)</span>
-                        )}
                       </p>
                     </TableCell>
                     <TableCell data-label="Cabang" className="whitespace-nowrap hidden md:table-cell">
@@ -857,30 +841,10 @@ export default function ClientAnalyticsTab({ activeList }) {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell data-label="Selesai / Batal" className="whitespace-nowrap tabular-nums hidden md:table-cell">
-                      <span className="font-bold text-emerald-700">{r.completed}</span>
-                      <span className="text-slate-300 mx-1">/</span>
-                      <span className={cn("font-bold", r.cancelled > 0 ? "text-rose-700" : "text-slate-500")}>{r.cancelled}x</span>
-                    </TableCell>
-                    <TableCell data-label="Sesi Berikutnya" className="whitespace-nowrap hidden lg:table-cell text-slate-700">
+                    <TableCell data-label="Hadir (Selesai)" className="whitespace-nowrap tabular-nums font-bold text-emerald-700">{r.completed}x</TableCell>
+                    <TableCell data-label="Tidak Hadir (Cancel Potong Kredit)" className={cn("whitespace-nowrap tabular-nums font-bold", r.absent > 0 ? "text-rose-700" : "text-slate-500")}>{r.absent}x</TableCell>
+                    <TableCell data-label="Sesi Berikutnya" className="pr-6 whitespace-nowrap hidden lg:table-cell text-slate-700">
                       {r.nextSession ? fmtDate(r.nextSession) : <span className="text-slate-400">Belum dijadwalkan</span>}
-                    </TableCell>
-                    <TableCell data-label="Sisa Regular" className="font-mono font-bold text-slate-800 hidden lg:table-cell">{r.regular}</TableCell>
-                    <TableCell data-label="Sisa Senior" className="font-mono font-bold text-purple-800 hidden lg:table-cell">{r.senior}</TableCell>
-                    <TableCell data-label="Status Kuota" className="pr-6 whitespace-nowrap">
-                      {r.creditStatus === "zero" ? (
-                        <span className="px-2.5 py-1 rounded-lg bg-cyan-100 text-cyan-900 border border-cyan-300 font-extrabold inline-flex items-center gap-1">
-                          <Snowflake className="w-3 h-3" /> Frozen
-                        </span>
-                      ) : r.creditStatus === "low" ? (
-                        <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 font-bold">
-                          Menipis ({r.remaining})
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
-                          Sehat ({r.remaining})
-                        </span>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}

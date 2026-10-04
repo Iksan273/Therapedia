@@ -8,10 +8,11 @@ import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
 import { cn } from "@/shared/lib/utils";
-import { DIRECT_RENEWAL_REASONS, MIN_RENEWAL_JUSTIFICATION, RENEWAL_MODES } from "@/domain/credit";
+import { MIN_RENEWAL_JUSTIFICATION, RENEWAL_MODES } from "@/domain/credit";
 import { BalanceHint } from "@/features/finance/components/BalanceHint";
+import { ReplacementChoice } from "@/features/finance/components/ReplacementChoice";
 
-export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, renewForm, renewOpen, setRenewForm, setRenewOpen }) {
+export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, renewForm, renewOpen, replacementOptions = [], setRenewForm, setRenewOpen }) {
   const isDirect = renewForm.mode === "direct";
   return (
     <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
@@ -47,7 +48,7 @@ export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, rene
 
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Pilih Client Aktif *</Label>
-              <Select value={renewForm.clientId} onValueChange={(val) => setRenewForm({ ...renewForm, clientId: val })}>
+              <Select value={renewForm.clientId} onValueChange={(val) => setRenewForm({ ...renewForm, clientId: val, replacesInvoiceId: "" })}>
                 <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
                   <SelectValue placeholder="Pilih client aktif..." />
                 </SelectTrigger>
@@ -111,21 +112,20 @@ export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, rene
               </div>
             </div>
             <BalanceHint clientId={renewForm.clientId} amount={renewForm.amount} />
+            <ReplacementChoice options={replacementOptions} value={renewForm.replacesInvoiceId} onChange={(v) => setRenewForm({ ...renewForm, replacesInvoiceId: v })} />
 
             {isDirect && (
               <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-3" data-testid="renewal-direct-fields">
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Alasan Langsung Lunas *</Label>
-                  <Select value={renewForm.reason || ""} onValueChange={(val) => setRenewForm({ ...renewForm, reason: val })}>
-                    <SelectTrigger className="border-slate-200 bg-white text-xs font-semibold" data-testid="renewal-reason">
-                      <SelectValue placeholder="Pilih alasan..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-200">
-                      {Object.entries(DIRECT_RENEWAL_REASONS).map(([code, label]) => (
-                        <SelectItem key={code} value={code}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    className="border-slate-200 bg-white text-xs"
+                    placeholder="Mis. dibayar tunai di kasir"
+                    maxLength={150}
+                    value={renewForm.reason || ""}
+                    onChange={(e) => setRenewForm({ ...renewForm, reason: e.target.value })}
+                    data-testid="renewal-reason"
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-bold text-slate-700">Justifikasi * <span className="font-normal text-slate-500">(min. {MIN_RENEWAL_JUSTIFICATION} karakter)</span></Label>

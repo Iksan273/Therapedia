@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/ui/sheet";
 import { Button } from "@/shared/ui/button";
@@ -20,6 +21,8 @@ export function ClientReportHistoryDrawer({
       .filter((s) => s.clientId === client.id && s.status === "completed")
       .sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime));
   }, [client, schedules]);
+
+  const historyPg = usePagination(clientCompletedSchedules, 10, client?.id || "");
 
   if (!client) return null;
 
@@ -141,8 +144,9 @@ export function ClientReportHistoryDrawer({
               <p>Belum ada rekaman sesi dengan status 'completed' untuk client ini.</p>
             </div>
           ) : (
+            <>
             <div className="space-y-3.5">
-              {clientCompletedSchedules.map((s, idx) => {
+              {historyPg.pageItems.map((s, idx) => {
                 const isComplete =
                   Boolean(s.activitySection?.trim()) &&
                   Boolean(s.noteSection?.trim()) &&
@@ -252,6 +256,8 @@ export function ClientReportHistoryDrawer({
                 );
               })}
             </div>
+            <TablePagination {...historyPg} onPageChange={historyPg.setPage} onPageSizeChange={null} pageSizeOptions={[10]} noun="sesi" className="rounded-xl border mt-3" />
+            </>
           )}
         </div>
       </SheetContent>

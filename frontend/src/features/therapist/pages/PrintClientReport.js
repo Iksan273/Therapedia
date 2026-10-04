@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { cancelQuotaByPackage } from "@/domain/credit";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Printer, Search } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -186,7 +187,7 @@ export default function PrintClientReport() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3.5 bg-slate-50/70 p-4 rounded-xl border border-slate-200/70">
                 <InfoItem label="Package Plan" value={record.packageName} />
                 <InfoItem label="Remaining Credits" value={`${record.remainingCredit} / ${record.totalCredit} sessions`} />
-                <InfoItem label="Leave Allotment" value={`${record.leaveUsed} / ${record.leaveQuota} used${record.leaveUsed > record.leaveQuota ? " (Over quota)" : ""}`} />
+                <InfoItem label="Leave Allotment" value={cancelQuotaByPackage(record).rows.map((r) => `${r.label}: ${r.cancelCount}/${r.quota} used${r.over ? " (Over quota)" : ""}`).join(" • ") || "-"} />
                 <InfoItem label="Purchase Date" value={fmtDate(record.purchaseDate)} />
               </div>
             )}

@@ -19,6 +19,7 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `master_cancel_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `cancel_reasons` (tanpa FK) |
 | `master_discharge_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `discharge_reasons` (tanpa FK) |
 | `auth`, `activeBranch`, `staffUsers`, `rolesList` (+ `canDelete`), `rbacPermissions`, `passwordResets` | `authStore` | lihat 02 |
+| `branches` | `branchesStore` | `{ id, name, code (unik), city, address, phone, isActive, createdBy?, updatedBy? }[]` (nonaktif = tak muncul di pilihan baru, riwayat tetap; hapus = permanen beserta seluruh isi cabang, ADR 0005) | `branches` | — |
 | `holidays` | `holidaysStore` | `{ id, date, name, branchId \| null }[]` | `holidays` | `users`, `roles`, `role_permissions`, `access_modules`, `branches` |
 | `therapedia_seed_version` (tanpa prefix) | `data/seedRegistry.js` | string | — |
 
@@ -47,7 +48,7 @@ Dibuat oleh `makeInquiryClient(form)` di `domain/client.js`.
 
 **Status client** (`PIPELINE_STATUSES` + `discharged`):
 `inquiry` → `service_selected` → `assessment_scheduled` → `assessment_done` → `admitted` | `done_consult` | `done_assessment` | `discontinued`. Client `admitted` bisa menjadi `discharged`; `discharged`/`discontinued` bisa diaktifkan kembali menjadi `admitted` (`client.reactivated`). Kolom pipeline inquiry memuat `discharged`.
-Transisi otomatis hanya maju lewat `advanceStatus(current, target)` (`domain/client.js`, urutan `PIPELINE_FLOW`). Perubahan **manual** boleh ke tahap mana pun (`buildStatusChangePatch`, `useClientOutcomeActions().changeStatus`). Client juga bisa di-**soft delete** (`deletedAt`/`deletedBy`; store tidak menampilkannya).
+Transisi otomatis hanya maju lewat `advanceStatus(current, target)` (`domain/client.js`, urutan `PIPELINE_FLOW`). Perubahan **manual** boleh ke tahap mana pun (`buildStatusChangePatch`, `useClientOutcomeActions().changeStatus`). Client bisa **dihapus permanen** (ADR 0005): `useClientDeleteActions.deleteClientCascade` menghapus client + jadwal + invoice + record kredit + konversi miliknya.
 Label & kelas warna: `STATUS_META` di `domain/status.js`.
 
 ## Schedule (`schedules[]`)
@@ -62,7 +63,9 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `creditPackageId` | string \| null | id item paket di `credits.records[].packages[]` |
 | `isRecurring`, `recurrenceRule` | bool, string | `none`, `weekly`, `weekly_Monday,Thursday`, `single_week` |
 | `cancelReason` | string \| null | **string bebas**: `value` pilihan cepat (Master Data), teks custom, atau `RESCHEDULE_DROPPED` (alasan sistem); `pendingReason` sama |
-| `notes` | string \| null | |
+| `bookingNote` | string \| null | catatan penjadwalan oleh admin saat membuat jadwal (tampil di kolom "Catatan Penjadwalan" riwayat sesi). Dipisah dari `cancelNote` / `pendingNote`; data lama memakai satu field `notes` (dibaca lewat `bookingNoteOf` / `cancelNoteOf`) |
+| `cancelNote` | string \| null | catatan saat cancel (bersama `cancelReason`); hanya tampil di kalender / detail sesi, bukan di riwayat client |
+| `pendingNote` | string \| null | catatan reschedule menggantung (bersama `pendingReason`) |
 | `activitySection`, `noteSection`, `homeworkSection` | string | laporan sesi 3 bagian (Activity / SOAP note / Homework) |
 | `progressNote` | string | duplikat `noteSection` (legacy sync) |
 | `reportUpdatedAt` | ISO | |
@@ -72,7 +75,6 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `rescheduledPrev` `{date,startTime,endTime,therapistId}` | | slot tepat sebelum reschedule terakhir (target revert; `rescheduledFrom` = jadwal asal pertama) |
 | `clientStatusFrom` / `clientStatusTo` | string \| null | sesi **asesmen** completed yang memajukan client otomatis: tahap sebelum/sesudah. Dipakai revert untuk memulihkan tahap client (hanya bila status client masih = `clientStatusTo`); dikosongkan saat revert |
 | `revertedAt` | ISO \| null | terisi saat revert; **revert hanya 1x** (diblokir bila terisi, dikosongkan transisi berikutnya) |
-| `deletedAt`, `deletedBy` | | soft delete sesi |
 
 ## Credits (`credits`)
 ```
@@ -86,11 +88,11 @@ credits = {
     history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
   }],
   conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
-  invoices: [{ id, type /*package|assessment*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid*/,
-               proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt, deletedAt?, deletedBy?,
-               renewalReason? /*cash_at_cashier|transfer_confirmed|parent_requested_urgent|other; hanya renewal langsung lunas*/, renewalJustification? /*teks wajib, min. 10 karakter*/,
+  invoices: [{ id, type /*package|assessment*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid|void*/,
+               proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt,
+               isRenewal? /*true = invoice perpanjangan paket (kedua jalur renewal)*/, voidReason?, voidedAt?, voidedBy?, voidCreditAction? /*keep|revoke*/, replacesInvoiceId? /*invoice void yang digantikan: paket lama dipakai ulang*/, renewalReason? /*teks bebas, wajib, hanya renewal langsung lunas*/, renewalJustification? /*teks wajib, min. 10 karakter*/,
                grossAmount? /*sebelum saldo lebihan*/, balanceApplied? /*saldo lebihan yang dipakai; amount = gross − balanceApplied*/,
-               logs: [{ id, at, by, action /*issued|proof_uploaded|verified|rejected|renewal_paid|balance_applied|balance_restored|converted|deleted*/, note, data }] /*LOG MILIK INVOICE (append-only); invoice lama = baris dasar dari createdAt/paidAt (invoiceLogsOf)*/ }],
+               logs: [{ id, at, by, action /*issued|proof_uploaded|verified|rejected|renewal_paid|balance_applied|converted|voided*/, note, data }] /*LOG MILIK INVOICE (append-only); invoice lama = baris dasar dari createdAt/paidAt (invoiceLogsOf)*/ }],
   renewals: []   // belum dipakai
 }
 ```

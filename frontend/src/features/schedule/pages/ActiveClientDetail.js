@@ -30,9 +30,10 @@ import { ReasonPicker } from "@/shared/components/ReasonPicker";
 import { useMasterData } from "@/stores/masterDataStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { BRANCHES } from "@/domain/branch";
-import { formatPackageName } from "@/domain/credit";
+import { distinctActivePackages } from "@/domain/credit";
+import { CancelQuotaList } from "@/shared/components/CancelQuotaList";
 import { isActiveClient, canReactivateClient, dischargeReasonLabel } from "@/domain/client";
-import { deriveRecurringRoutines, upcomingActiveSessions } from "@/domain/schedule";
+import { bookingNoteOf, deriveRecurringRoutines, upcomingActiveSessions } from "@/domain/schedule";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
 
@@ -99,6 +100,7 @@ export default function ActiveClientDetail() {
 
   const br = BRANCHES.find((b) => b.id === client.branchId);
   const pkgs = record?.packages || [];
+  const activePkgs = distinctActivePackages(pkgs, { fallbackLast: true }); // hanya paket bersisa, distinct per jenis; semua habis = 1 paket terakhir
   const remCredit = record ? record.remainingCredit : 0;
   const isActive = isActiveClient(client);
   const isFrozen = isActive && remCredit === 0;
@@ -267,20 +269,18 @@ export default function ActiveClientDetail() {
             </div>
 
             <div className="space-y-2.5 pt-3.5 text-xs">
-              {pkgs.length === 0 ? (
+              {activePkgs.length === 0 ? (
                 <p className="text-xs text-rose-600 font-bold bg-rose-50 p-3 rounded-xl border border-rose-200 leading-relaxed">
                   Client belum memiliki paket kredit (Kredit 0). Sesi kalender otomatis berstatus Frozen .
                 </p>
               ) : (
-                pkgs.map((p) => (
-                  <div key={p.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                activePkgs.map((p) => (
+                  <div key={p.name} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between" data-testid={`detail-package-${p.name}`}>
                     <div>
-                      <p className="font-bold text-slate-900">{formatPackageName(p.packageName)}</p>
-                      <p className="text-[11px] text-slate-500 font-medium">Status: {p.status}</p>
+                      <p className="font-bold text-slate-900">{p.name}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">Status: {p.depleted ? "habis (Frozen)" : "active"}{p.packageCount > 1 ? ` • ${p.packageCount} paket digabung` : ""}</p>
                     </div>
-                    <span className="font-mono font-extrabold text-sm text-slate-800">
-                      {p.remainingCredit} / {p.totalCredit}
-                    </span>
+                    <span className="font-mono font-extrabold text-sm text-slate-800">{p.remainingCredit} sisa</span>
                   </div>
                 ))
               )}
@@ -405,17 +405,13 @@ export default function ActiveClientDetail() {
         <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-sm font-bold text-slate-900">
-              Riwayat Sesi Terapi & Log Pembatalan ({clientSchedules.length})
+              Riwayat Sesi Terapi ({clientSchedules.length})
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
-              Cancel pada paket aktif: {record?.cancelCount || 0}x dari kuota {record?.cancelQuota || 3}x (hanya penghitung; potong kredit atau tidak ditentukan admin tiap cancel)
+              Kuota cancel dihitung per paket (hanya penghitung; potong kredit atau tidak ditentukan admin tiap cancel):
             </CardDescription>
+            <CancelQuotaList record={record} className="mt-2" />
           </div>
-          {(record?.cancelCount || 0) > (record?.cancelQuota || 3) && (
-            <span className="text-xs font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg">
-              Melebihi Kuota Cancel Paket (&gt;3x)
-            </span>
-          )}
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {clientSchedules.length === 0 ? (
@@ -428,7 +424,7 @@ export default function ActiveClientDetail() {
                   <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Terapis</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Paket Kredit</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Status</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs min-w-[220px]">Alasan Cancel / Catatan</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[220px]">Catatan Penjadwalan</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[100px] whitespace-nowrap">Detail</TableHead>
                 </TableRow>
               </TableHeader>
@@ -446,16 +442,8 @@ export default function ActiveClientDetail() {
                       <TableCell data-label="Status" className="min-w-[130px] whitespace-nowrap">
                         <StatusBadge status={s.status} />
                       </TableCell>
-                      <TableCell data-label="Alasan Cancel / Catatan" className="text-slate-500 min-w-[220px]">
-                        {s.status === "cancelled" ? (
-                          <span className="font-bold text-rose-700">
-                            {s.cancelReason ? `[${s.cancelReason.toUpperCase()}] ${s.notes || ""}` : s.notes || "Dibatalkan"}
-                          </span>
-                        ) : s.activitySection ? (
-                          <span className="text-emerald-700 font-medium">✓ Activity report tersimpan</span>
-                        ) : (
-                          s.notes || "—"
-                        )}
+                      <TableCell data-label="Catatan Penjadwalan" className="text-slate-500 min-w-[220px]">
+                        {bookingNoteOf(s) || "—"}
                       </TableCell>
                       <TableCell data-label="Detail" className="text-right pr-6 min-w-[100px] whitespace-nowrap">
                         <Button

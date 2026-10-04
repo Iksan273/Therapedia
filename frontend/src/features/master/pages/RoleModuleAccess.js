@@ -23,7 +23,7 @@ import { cn } from "@/shared/lib/utils";
 
 export default function RoleModuleAccess() {
   const { confirm, confirmDialog } = useConfirm();
-  const { rolesList, addRole, updateRole, deleteRole, rbacPermissions, updateRolePermission, setRoleCanDelete } = useAuth();
+  const { rolesList, addRole, updateRole, deleteRole, rbacPermissions, updateRolePermission, setRoleCanDelete, staffUsers } = useAuth();
   const [activeTab, setActiveTab] = useState("matrix"); // 'matrix' | 'roles'
   const [searchRole, setSearchRole] = useState("");
 
@@ -117,7 +117,13 @@ export default function RoleModuleAccess() {
       toast.error("System Role bawaan tidak dapat dihapus!");
       return;
     }
-    if (await confirm({ title: "Hapus role?", description: `Role '${role.label}' akan dihapus.` })) {
+    // Master ber-FK: role yang masih dipakai akun staf tidak bisa dihapus (pindahkan staf ke role lain dulu)
+    const usedBy = staffUsers.filter((u) => u.role === role.id).length;
+    if (usedBy > 0) {
+      toast.error(`Role '${role.label}' masih dipakai ${usedBy} akun staf. Pindahkan akunnya ke role lain dulu.`);
+      return;
+    }
+    if (await confirm({ title: "Hapus role?", description: `Role '${role.label}' akan dihapus permanen.` })) {
       try {
         deleteRole(role.id);
         toast.info(`Role '${role.label}' telah dihapus.`);

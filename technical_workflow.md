@@ -2,6 +2,8 @@
 
 Alur pemrosesan data **per fitur**: cara fitur berjalan, tabel database yang terdampak, dan urutan operasinya. Ditulis sebagai bahan review desain database (`schema.md` v2) dan acuan implementasi backend Laravel 11 + MySQL 8.
 
+Rincian API dan tabel per endpoint: `implementation_detail.md`.
+
 Sumber: perilaku frontend saat ini (`frontend/src/domain`, `features/*/hooks`, `docs/guide/`), desain DB (`schema.md`), dan jawaban klien + hasil meeting 3 Okt 2026 (`pertanyaan_klien.md`). Bila keduanya berbeda, perbedaan ditandai **[Beda]** dan dikumpulkan di bagian [Catatan untuk review database](#catatan-untuk-review-database).
 
 ## Daftar isi
@@ -10,7 +12,7 @@ Sumber: perilaku frontend saat ini (`frontend/src/domain`, `features/*/hooks`, `
 - [A. Akses & administrasi](#a-akses--administrasi): F1 Login & lupa password, F2 User/Role/RBAC, F3 Master data
 - [B. Inquiry & asesmen](#b-inquiry--asesmen): F4 Intake, F5 Layanan, F6 Kode kuesioner, F7 Isi kuesioner (ortu), F8 Mesin kuesioner, F9 Outcome & dokumen
 - [C. Penjadwalan & sesi](#c-penjadwalan--sesi): F10 Buat jadwal, F11 Complete, F12 Cancel, F13 Reschedule/Pending/Drop, F14 Revert, F15 Bulk, F16 Laporan sesi
-- [D. Keuangan & kredit](#d-keuangan--kredit): F17 Invoice & pembayaran, F18 Renewal langsung, F19 Paket kredit, F29 Konversi paket & log invoice
+- [D. Keuangan & kredit](#d-keuangan--kredit): F17 Invoice & pembayaran, F18 Renewal (2 jalur), F19 Paket kredit, F29 Konversi paket & log invoice
 - [E. Client aktif](#e-client-aktif): F20 Active client, Frozen, Discharge
 - [F. Portal & pelaporan](#f-portal--pelaporan): F21 Portal terapis, F22 Portal ortu, F23 Dashboard, F24 (dihapus: tanpa audit log)
 - [G. Job terjadwal](#g-job-terjadwal): F25
@@ -26,16 +28,17 @@ Sumber: perilaku frontend saat ini (`frontend/src/domain`, `features/*/hooks`, `
 | Aturan | Penjelasan |
 |---|---|
 | **Satu use-case = satu endpoint transaksional** | Aksi lintas tabel (complete, cancel, verify, transition) dikerjakan satu request di dalam `DB::transaction()`. Frontend tidak merangkai beberapa request. |
-| **Tanpa audit log (ADR 0004)** | Semua modul cukup `created_by` / `updated_by` / `deleted_by`. Log khusus hanya yang dipakai logika/UI: `credit_ledger` (kredit), `client_status_histories` (pipeline), **`invoice_logs`** (log milik tiap invoice: terbit, bukti, verifikasi, saldo, konversi, hapus), `package_conversions`. Ditulis di transaksi yang sama dengan perubahan datanya. |
+| **Tanpa audit log (ADR 0004)** | Semua modul cukup `created_by` / `updated_by`. Log khusus hanya yang dipakai logika/UI: `credit_ledger` (kredit), `client_status_histories` (pipeline), **`invoice_logs`** (log milik tiap invoice: terbit, bukti, verifikasi, saldo, konversi, hapus), `package_conversions`. Ditulis di transaksi yang sama dengan perubahan datanya. |
 | **Kunci & versi** | Baris yang diubah dikunci `lockForUpdate()`. Entity ber-`version` (`clients`, `schedules`, `invoices`, `client_packages`, `session_reports`, `assessment_categories`) dicek optimistic lock: `UPDATE … WHERE version = ?`, 0 baris → HTTP 409. |
 | **Ledger sumber kebenaran** | `credit_ledger` append-only. Saldo di `client_packages.remaining_credit` dan `clients.credit_balance` adalah denormalisasi, diperbarui di transaksi yang sama. Koreksi = baris `reversal`, tidak pernah UPDATE/DELETE. |
 | **Idempoten** | Potong kredit memakai `credit_ledger.idempotency_key` UNIQUE (`used:schedule:{id}:v{version}`); aktivasi paket memakai `client_packages.invoice_id` UNIQUE. |
 | **Data turunan tidak disimpan** | Frozen = `clients.credit_balance = 0`. KPI dashboard = VIEW. Skor kuadran disimpan hanya karena dihitung sekali saat submit. |
 | **Alasan = string bebas** | `schedules.cancel_reason`, `pending_reason`, `clients.discharge_reason`, `credit_ledger.cancel_reason` berisi code pilihan cepat atau teks custom. Tanpa FK ke `cancel_reasons` / `discharge_reasons`. |
 | **Scope cabang** | Semua akun non-master (termasuk terapis dan manager) terikat **tepat 1 cabang** dan hanya melihat/mengubah data `branch_id` miliknya (`BranchScope`). Hanya Master yang bisa semua cabang. |
-| **Hak akses = modul** | Punya akses modul (RBAC) = boleh **semua aksi** di modul itu kecuali hapus (termasuk Manager). Aksi **hapus** hanya tampil/diizinkan bila `roles.can_delete = 1` dan role punya akses modulnya. Hapus = soft delete (`deleted_at`, `deleted_by`). Staf dinonaktifkan, tidak dihapus. |
+| **Hak akses = modul** | Punya akses modul (RBAC) = boleh **semua aksi** di modul itu kecuali hapus (termasuk Manager). Aksi **hapus** hanya tampil/diizinkan bila `roles.can_delete = 1` dan role punya akses modulnya. Hapus = permanen (ADR 0005, `schema.md` §6.7). Staf dinonaktifkan, tidak dihapus. |
 | **Status client: otomatis maju, manual bebas** | `advanceStatus` (efek jadwal asesmen / kuesioner terisi / sesi asesmen completed) melompat ke tahap tertinggi yang tercapai, tidak mundur. Perubahan **manual** boleh ke tahap pipeline mana pun (maju maupun mundur, termasuk reaktivasi discharged/discontinued → admitted). Setiap perubahan status = 1 baris `client_status_histories`. |
-| **Efek samping eksternal setelah commit** | Tidak ada notifikasi otomatis (WA tetap klik-kirim di frontend; email ortu hanya data). Queue `database` hanya untuk email OTP lupa password (dan sinkron Google Calendar di fase terakhir), dengan `afterCommit`. |
+| **Efek samping eksternal setelah commit** | Tidak ada notifikasi otomatis (WA tetap klik-kirim di frontend; email ortu hanya data). Tidak ada queue/job async: email OTP lupa password, hapus file bukti bayar, dan sinkron Google Calendar (fase akhir) dijalankan **sinkron tepat setelah commit**. |
+| **List = pagination 10 data, bukan infinite scroll** | Semua list/tabel/feed di UI memuat **10 data per halaman** (default; pilihan 10/25/50) supaya render dan query ringan. Endpoint list menerima `page` + `per_page` (default 10, maks 50) dan mengembalikan `data` + `meta` (`total`, `page`, `per_page`, `last_page`); server tidak pernah mengirim seluruh isi tabel. Filter & pencarian dijalankan **di server** sebelum dipaginasi, dan ganti filter mengembalikan ke halaman 1. List kecil ber-filter (master data, hari libur, daftar staf) memakai offset (`LIMIT 10 OFFSET n`); list yang terus bertambah dan dibaca terbaru-dulu (`credit_ledger`, `invoice_logs`, riwayat sesi) memakai **keyset** (`WHERE (created_at, id) < (?, ?) ORDER BY created_at DESC, id DESC LIMIT 10`, cursor `next_cursor`). Detail di `docs/guide/08-ui-conventions.md` dan `schema.md` §07. |
 | **Tanggal WIB** | Kolom bisnis `*_date` adalah generated column `DATE(ts + INTERVAL 7 HOUR)` agar dashboard tidak salah hari. |
 
 Notasi tabel dampak: **C** = insert, **U** = update, **D** = delete, **R** = baca/lock.
@@ -63,9 +66,9 @@ Notasi tabel dampak: **C** = insert, **U** = update, **D** = delete, **R** = bac
 | F15 Bulk | sama dengan aksi tunggal, satu `batch_id` | — |
 | F16 Laporan sesi | `session_reports`(C/U) | `schedules` |
 | F17 Invoice & bayar | `invoices`, `invoice_counters`, `payment_proofs`, `invoice_logs`(C), `client_packages`(C), `credit_ledger`(C), `clients`(U; `leftover_balance` bila saldo dipakai) | `master_packages` |
-| F18 Renewal langsung | `invoices`(C paid), `invoice_counters`, `invoice_logs`(C), `client_packages`(C), `credit_ledger`(C), `clients`(U) | `master_packages` |
+| F18 Renewal (2 jalur) | `invoices`(C paid), `invoice_counters`, `invoice_logs`(C), `client_packages`(C), `credit_ledger`(C), `clients`(U) | `master_packages` |
 | F19 Paket kredit | `master_packages`(C) | — |
-| F29 Konversi paket | `package_conversions`(C), `client_packages`(C paket baru, U paket lama `converted`), `credit_ledger`(C `converted_out`/`converted_in`), `clients`(U `credit_balance`, `leftover_balance`), `invoice_logs`(C), `schedules`(U soft delete jadwal mendatang) | `invoices`, `master_packages`, `schedules` |
+| F29 Konversi paket | `package_conversions`(C), `client_packages`(C paket baru, U paket lama `converted`), `credit_ledger`(C `converted_out`/`converted_in`), `clients`(U `credit_balance`, `leftover_balance`), `invoice_logs`(C), `schedules`(D jadwal mendatang) | `invoices`, `master_packages`, `schedules` |
 | F20 Active client | `clients`(U discharge/discontinue/reaktivasi), `client_status_histories`(C) | `client_packages`, `credit_ledger`, `schedules`, `schedule_series` |
 | F21 Portal terapis | `session_reports`(C/U) | `schedules`, `clients`, `v_therapist_sessions` |
 | F22 Portal ortu | `payment_proofs`(C), `invoices`(U) | `schedules` (completed), `session_reports`, `client_packages`, `invoices`, `assessment_access_codes` |
@@ -89,7 +92,7 @@ Notasi tabel dampak: **C** = insert, **U** = update, **D** = delete, **R** = bac
 3. **Login pertama:** password sementara diatur Master → `must_change_password = 1` → user hanya boleh memanggil endpoint ganti password; setelah diganti flag 0 dan `password_changed_at` terisi.
 
 **Lupa password (staf)**
-1. User memasukkan email → bila akun aktif, buat OTP 6 digit (hash di `password_reset_otps`, kedaluwarsa ±10 menit, maks 5 percobaan) dan kirim email lewat queue. Respons selalu generik. Throttle per email & IP.
+1. User memasukkan email → bila akun aktif, buat OTP 6 digit (hash di `password_reset_otps`, kedaluwarsa ±10 menit, maks 5 percobaan) dan kirim email sinkron setelah commit (SMTP gagal → 503, OTP dibatalkan). Respons sukses selalu generik. Throttle per email & IP.
 2. User memasukkan OTP + password baru → OTP valid dan belum dipakai → password diganti, `used_at` terisi, token lama dicabut.
 3. **Dibantu Master:** dari User Management, Master mengatur password sementara baru (`must_change_password = 1`), sama seperti pembuatan akun.
 
@@ -127,7 +130,7 @@ Notasi tabel dampak: **C** = insert, **U** = update, **D** = delete, **R** = bac
 | Layanan | `services` (PK `code`) | tambah, edit, aktif/nonaktif, hapus | tidak boleh dihapus bila dipakai `client_services`/`schedules.service_code` (FK `restrict`); nonaktifkan agar riwayat utuh |
 | Kuadran | `sensory_quadrants` | tambah, edit, hapus | tidak boleh dihapus bila dipakai `assessment_questions`; minimal 1 kuadran |
 | Alasan cancel / discharge | `cancel_reasons`, `discharge_reasons` | tambah, edit, aktif/nonaktif, hapus | tanpa pengaman: hanya sumber dropdown, riwayat menyimpan string sendiri |
-| Paket kredit | `master_packages` | tambah (edit/nonaktifkan; harga yang diubah tidak memengaruhi invoice/paket lama) | `invoices.master_package_id` `nullOnDelete` + snapshot nama/harga di invoice dan `client_packages` |
+| Paket kredit | `master_packages` | tambah (edit/nonaktifkan; harga yang diubah tidak memengaruhi invoice/paket lama) | FK `RESTRICT` dari `invoices`/`client_packages.master_package_id` (paket yang pernah dipakai tidak bisa dihapus; nonaktifkan) + snapshot nama/harga di invoice dan `client_packages` |
 
 Jejak: `updated_by`. Hapus hanya untuk role `can_delete`. `master_packages` punya `invoice_code` (kode pendek di nomor invoice; `ASM` dicadangkan untuk invoice assessment). Tabel master kecil, dibaca by PK dan dimuat sekali per sesi (react-query `staleTime` panjang). Alasan sistem `reschedule_dibatalkan` bukan baris tabel (konstanta kode).
 
@@ -171,7 +174,7 @@ Melepas semua layanan tidak memundurkan status.
 
 Satu client boleh punya banyak kode (multi kategori).
 
-**Hapus kode** (UI: tombol hapus di Questionnaire Code Generator): hanya kode `status = issued` (belum diisi ortu); baris dihapus tanpa jejak (`deleted_by` tidak ada pada kode). Kode `submitted` ditolak (409/422). Status client tidak dimundurkan. Link yang sudah dibagikan langsung tidak valid.
+**Hapus kode** (UI: tombol hapus di Questionnaire Code Generator): hanya kode `status = issued` (belum diisi ortu); baris dihapus permanen tanpa jejak. Kode `submitted` ditolak (409/422). Status client tidak dimundurkan. Link yang sudah dibagikan langsung tidak valid.
 
 ### F7. Ortu mengisi kuesioner (publik)
 **Layar:** `/assessment` (tanpa login).
@@ -216,7 +219,7 @@ Aturan:
 Dashboard "Awaiting questionnaire" (Q18, dengan pencarian nama): kode `issued` belum submit, `idx_codes_awaiting (status, issued_at)`; kode kedaluwarsa tetap tampil (ditandai).
 
 ### F8. Mesin kuesioner (Master)
-**Layar:** `/admin-inquiry/assessments`. CRUD `assessment_categories` (`version`, `scoring_key` JSON, **`type_code`** = prefix kode kuesioner), `assessment_sections`, `assessment_questions` (12 tipe soal selengkap Google Form, termasuk `birth_date`; `options` JSON, soft delete). Jejak: `updated_by`. Soal yang sudah dijawab tidak boleh hard delete (`assessment_answers.question_id` `restrict`) — gunakan soft delete; jawaban lama menyimpan snapshot `item_no` dan `quadrant_code`.
+**Layar:** `/admin-inquiry/assessments`. CRUD `assessment_categories` (`version`, `scoring_key` JSON, **`type_code`** = prefix kode kuesioner), `assessment_sections`, `assessment_questions` (12 tipe soal selengkap Google Form, termasuk `birth_date`; `options` JSON, hapus permanen bila belum dijawab). Jejak: `updated_by`. Soal yang sudah dijawab tidak boleh hard delete (`assessment_answers.question_id` `restrict`) — nonaktifkan bila sudah dipakai; jawaban lama menyimpan snapshot `item_no` dan `quadrant_code`.
 
 ### F9. Outcome, dokumen, dan catatan client
 **Layar:** Client Detail → `OutcomeCard`, `GDriveLinkCard`. Riwayat = `client_status_histories`.
@@ -228,7 +231,7 @@ Dashboard "Awaiting questionnaire" (Q18, dengan pencarian nama): kode `issued` b
 | **Discontinue** | `status = discontinued`, `final_outcome = discontinued`, **`date_of_discontinue = today`**; alasan (`discharge_reason` / `discharge_note`). History `outcome` |
 | **Ubah status manual / koreksi** | Cari client di pipeline, klik ubah status ke **tahap mana pun** (mis. salah klik Admit → pindah lagi; atau Admit to Active dari status lain). Tidak ada tombol "revert" khusus. History `manual` / `revert` |
 | **Simpan link GDrive** | `client_documents` (`type = gdrive_folder`, `url`); dokumen client = link Google Drive saja (tanpa upload file) |
-| **Hapus** (client / inquiry) | soft delete (`deleted_at`, `deleted_by`) hanya untuk role `can_delete`; sesi dan invoice milik client ikut disembunyikan; client terhapus tidak bisa login ortu |
+| **Hapus** (client / inquiry) | hapus **permanen** hanya untuk role `can_delete` (ADR 0005, `schema.md` §6.7): client + jadwal + laporan sesi + invoice (bukti, log, paket, konversi) + ledger + riwayat status + kuesioner ikut terhapus lewat FK `CASCADE`; file bukti bayar dihapus setelah commit; client terhapus tidak bisa login ortu |
 
 Semua perubahan status lewat `POST clients/{id}/transition` (validasi + history dalam satu transaksi). Client discharge/discontinued bisa diaktifkan kembali dari list maupun detail (F20).
 
@@ -254,7 +257,7 @@ Client Frozen tetap boleh dijadwalkan (hanya ditandai di kalender).
 | `schedule_series` | C | pola berulang |
 | `clients`, `client_status_histories` | U, C | hanya sesi asesmen |
 
-**Baca kalender (Q1):** satu query per minggu per cabang, `idx_sch_calendar (branch_id, session_date, status, deleted_at)`; filter terapis memakai `idx_sch_therapist`. Frozen dihitung saat render dari `clients.credit_balance = 0`.
+**Baca kalender (Q1):** satu query per minggu per cabang, `idx_sch_calendar (branch_id, session_date, status)`; filter terapis memakai `idx_sch_therapist`. Frozen dihitung saat render dari `clients.credit_balance = 0`.
 
 ### F11. Complete sesi
 **Endpoint:** `POST /schedules/{id}/complete`. **Role:** akses modul schedule (terapis hanya mengisi laporan).
@@ -378,8 +381,8 @@ sequenceDiagram
 **3. Verifikasi** (`POST invoices/{id}/verify`, Finance), transaksi, invoice harus `pending_verification`, cek `version`:
 - **Approve:** `invoices` → `paid` (`paid_at`, `verified_by/at`); `payment_proofs.review_status = accepted`. Bila **Paket Sesi**: insert `client_packages` (snapshot nama/harga/kredit, `invoice_id` UNIQUE mencegah aktivasi ganda), ledger `purchased` (client belum pernah punya paket) / `renewed` (sudah pernah; otomatis), `clients.credit_balance += N` (keluar dari Frozen). Bila **Assessment**: hanya `paid`; kuesioner client otomatis terbuka untuk ortu bila tidak ada invoice assessment lain yang belum lunas. `invoice_logs` (`verified`). Paket hasil verifikasi memakai harga **gross** (nilai paket utuh).
 - **Reject:** `invoices.status = rejected`, `rejection_reason`; proof `rejected`. `invoice_logs` (`rejected`).
-- **Void** (alasan wajib): `status = void`, `invoice_logs` (alasan di `note`).
-- **Hapus** invoice: soft delete untuk role `can_delete` (`deleted_by` + `invoice_logs` `deleted`; invoice belum lunas yang memakai saldo lebihan mengembalikan saldonya); invoice `paid` yang dihapus keluar dari omzet, tidak membatalkan paket/kredit (koreksi saldo = `manual_adjust`).
+- **Hapus** invoice: hapus **permanen**, role `can_delete`, **hanya invoice belum lunas / ditolak** (ADR 0005): `payment_proofs` (+ file) dan `invoice_logs` ikut terhapus, saldo lebihan yang dipakai kembali ke `clients.leftover_balance`. Invoice `paid`/`void` ditolak (409).
+- **Void** invoice lunas (`POST invoices/{id}/void`, modul finance): `status = void`, alasan wajib, pilihan kredit `keep`/`revoke` (wajib bila invoice paket). `revoke`: paket hidup → `voided`, ledger `manual_adjust` −sisa, saldo lebihan kembali; sesi selesai & laporan utuh; sesi mendatang pindah ke paket aktif lain atau `client_package_id = NULL` (Frozen). `invoice_logs` `voided`. **Invoice pengganti** (`replaces_invoice_id`; dari Buat Tagihan maupun Renewal, kedua jalurnya): saat verifikasi / renewal langsung, paket lama dipakai ulang (`client_packages.invoice_id` dipindah), tanpa kredit baru. Detail: `schema.md` §6.5.
 
 Melihat bukti bayar tidak dicatat. Metode bayar = teks bebas (mis. transfer, tunai).
 
@@ -391,12 +394,16 @@ Melihat bukti bayar tidak dicatat. Metode bayar = teks bebas (mis. transfer, tun
 | `client_packages` | C | paket baru per invoice paket paid |
 | `credit_ledger` | C | `purchased` / `renewed` |
 | `clients` | U | `credit_balance` |
-| `invoice_logs` | C | satu baris per kejadian (`issued`, `proof_uploaded`, `verified` / `rejected`, `balance_applied`, `deleted`, …) |
+| `invoice_logs` | C | satu baris per kejadian (`issued`, `proof_uploaded`, `verified` / `rejected`, `balance_applied`, …) |
 
 Antrean Finance (Q9): `v_invoice_queue` / `idx_inv_queue (branch_id, status, issued_at)`. Riwayat mutasi kredit (Q10): `credit_ledger` keyset `idx_ledger_branch (branch_id, created_at, id)`. Revenue (Q11): invoice `paid` per cabang/periode lewat `v_daily_revenue`.
 
-### F18. Renewal langsung (kasir)
-Pembayaran yang sudah diterima di kasir/tunai. `POST clients/{id}/renewals` (akses modul finance): satu transaksi membuat `invoices` langsung `paid` (`invoice_type = package`, `payment_method` teks bebas mis. "tunai", nomor dari `invoice_counters`), `client_packages` (**snapshot harga paket saat perpanjang**: harga master yang berubah kemudian tidak ikut berubah), `credit_ledger` (`renewed`), dan `clients.credit_balance`, **tanpa** upload/verifikasi. `invoice_logs` (`renewal_paid`); saldo lebihan konversi (F29) otomatis mengurangi nominal bila ada. Bila client belum punya record kredit, pembayaran yang disetujui tetap menghasilkan kredit.
+### F18. Renewal (dua jalur)
+Renewal dilakukan dari dialog Renewal (modul finance) dengan **dua jalur**; keduanya menghasilkan invoice `invoice_type = package` dengan `is_renewal = 1`:
+1. **Terbitkan invoice baru**: sama dengan F17 (invoice `unpaid` → ortu upload → Finance verifikasi → paket aktif). `invoice_logs` `issued` (catatan "renewal").
+2. **Langsung lunas** (pembayaran sudah diterima, mis. tunai di kasir): `POST clients/{id}/renewals` (akses modul finance). **Wajib** `renewal_reason` (teks bebas, min. 3 karakter) dan `renewal_justification` (teks, min. 10 karakter), 422 bila kosong. Satu transaksi membuat `invoices` langsung `paid` (`payment_method` teks bebas mis. "tunai", nomor dari `invoice_counters`, alasan + justifikasi tersimpan di kolom invoice), `client_packages` (**snapshot harga paket saat perpanjang**: harga master yang berubah kemudian tidak ikut berubah), `credit_ledger` (`renewed`), dan `clients.credit_balance`, **tanpa** upload/verifikasi. `invoice_logs` (`renewal_paid`, `data` memuat alasan & justifikasi); saldo lebihan konversi (F29) otomatis mengurangi nominal bila ada. Bila client belum punya record kredit, pembayaran yang disetujui tetap menghasilkan kredit.
+
+**Efek ke jadwal (kedua jalur, saat paket aktif):** sesi terapi mendatang client yang `client_package_id`-nya kosong / menunjuk paket habis dipindah ke paket aktif tertua (atau paket baru) di transaksi yang sama; sesi tidak lagi Frozen (turunan `credit_balance`). Lihat `schema.md` §6.5 langkah 5. **Invoice pengganti** (`replaces_invoice_id`) memakai ulang paket void tanpa kredit baru (lihat F17).
 
 ### F19. Paket kredit
 - **Master paket** (`master_packages`): nama, `credits`, `price`, aktif. Dibaca saat menerbitkan invoice; hasilnya disalin (snapshot) ke `invoices` dan `client_packages`, sehingga mengubah master tidak mengubah histori.
@@ -414,12 +421,12 @@ Pembayaran yang sudah diterima di kasir/tunai. `POST clients/{id}/renewals` (aks
 2. `remaining_value = sisa sesi × (harga bayar paket ÷ total_credit)`; **otomatis** `sessions = floor(remaining_value ÷ harga per sesi tujuan)`. **Manual**: Finance mengisi `sessions` (alasan wajib) dengan batas atas = hasil otomatis — **tidak boleh ada kekurangan bayar**. 422 bila nilai sisa < 1 sesi tujuan.
 3. `leftover = remaining_value − sessions × harga per sesi tujuan` → **saldo rupiah client** (`clients.leftover_balance`), otomatis mengurangi invoice **paket** berikutnya (terbit invoice atau renewal langsung; F17/F18) sampai sebesar nominal invoice.
 4. **Kuota cancel (penalti) ikut pindah**: `client_packages.cancel_count` paket baru = paket lama.
-5. **Semua jadwal terapi mendatang client dihapus** (soft delete `deleted_by`; status `scheduled`/`reschedule_pending`) agar admin schedule menjadwalkan ulang sesuai paket dan terapis baru. Sesi riwayat dan asesmen tidak disentuh.
+5. **Semua jadwal terapi mendatang client dihapus permanen** (status `scheduled`/`reschedule_pending`) agar admin schedule menjadwalkan ulang sesuai paket dan terapis baru. Sesi riwayat dan asesmen tidak disentuh.
 6. Tanpa revert konversi.
 
-**Transaksi:** lock invoice + paket hidup → paket lama `converted` (`remaining_credit = 0`, `converted_to_package_id`) → paket baru (`converted_from_package_id`, `package_price = sessions × harga per sesi tujuan`, `cancel_count` disalin) → ledger `converted_out` (−sisa) + `converted_in` (+sessions) dengan `conversion_id` → `clients.credit_balance` dan `leftover_balance` → insert `package_conversions` → insert `invoice_logs` (`converted`) → soft delete jadwal mendatang.
+**Transaksi:** lock invoice + paket hidup → paket lama `converted` (`remaining_credit = 0`, `converted_to_package_id`) → paket baru (`converted_from_package_id`, `package_price = sessions × harga per sesi tujuan`, `cancel_count` disalin) → ledger `converted_out` (−sisa) + `converted_in` (+sessions) dengan `conversion_id` → `clients.credit_balance` dan `leftover_balance` → insert `package_conversions` → insert `invoice_logs` (`converted`) → hapus jadwal mendatang (permanen).
 
-**Log invoice (`invoice_logs`)** — log milik invoice sendiri, append-only, bukan dari audit: `issued`, `proof_uploaded`, `verified`, `rejected`, `renewal_paid`, `balance_applied`, `balance_restored`, `converted`, `deleted`; berisi pelaku, waktu, `note`, dan `data` JSON. Kueri: `idx_invlog_invoice (invoice_id, created_at, id)`.
+**Log invoice (`invoice_logs`)** — log milik invoice sendiri, append-only, bukan dari audit: `issued`, `proof_uploaded`, `verified`, `rejected`, `renewal_paid`, `balance_applied`, `converted`; berisi pelaku, waktu, `note`, dan `data` JSON. Kueri: `idx_invlog_invoice (invoice_id, created_at, id)`.
 
 | Tabel | Op | Efek |
 |---|---|---|
@@ -428,7 +435,7 @@ Pembayaran yang sudah diterima di kasir/tunai. `POST clients/{id}/renewals` (aks
 | `credit_ledger` | C | `converted_out` / `converted_in` |
 | `clients` | U | `credit_balance`, `leftover_balance` |
 | `invoice_logs` | C | `converted` |
-| `schedules` | U | soft delete jadwal terapi mendatang |
+| `schedules` | D | hapus jadwal terapi mendatang |
 
 ---
 
@@ -486,7 +493,7 @@ Semua angka dibaca dari **VIEW** (bukan tabel ringkasan), selalu dengan filter c
 Tabel ringkasan `daily_branch_metrics` hanya dibuat bila `EXPLAIN ANALYZE` view > 100 ms (job `metrics:rebuild`).
 
 ### F24. Audit log — dihapus (ADR 0004)
-Tidak ada halaman maupun tabel `audit_logs`. Jejak perubahan: `created_by`/`updated_by`/`deleted_by` di semua modul, `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`. Nomor F24 dipertahankan agar rujukan lain tidak bergeser.
+Tidak ada halaman maupun tabel `audit_logs`. Jejak perubahan: `created_by`/`updated_by` di semua modul, `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`. Nomor F24 dipertahankan agar rujukan lain tidak bergeser.
 
 ---
 
@@ -498,10 +505,11 @@ Tidak ada halaman maupun tabel `audit_logs`. Jejak perubahan: `created_by`/`upda
 |---|---|---|
 | 02:00 harian | `credits:reconcile` | bandingkan Σ `credit_ledger` vs `client_packages.remaining_credit` dan `clients.credit_balance`, serta `client_packages.cancel_count` vs jumlah baris ledger `cancel_*` yang belum di-reversal; selisih diperbaiki dari ledger + dicatat di log aplikasi Laravel + peringatan ke Master |
 | 03:30 harian | backup DB | `mysqldump --single-transaction` + binlog |
-| 04:00 harian | housekeeping | prune token Sanctum, failed jobs, cache kedaluwarsa, `password_reset_otps` kedaluwarsa (`otp:prune`) |
+| Tiap 6 bulan (alt. 1 tahun, konfigurasi) | backup arsip jangka panjang | dump penuh + file bukti bayar, off-server, uji restore; tanpa hapus permanen otomatis |
+| 04:00 harian | housekeeping | prune token Sanctum, cache kedaluwarsa, `password_reset_otps` kedaluwarsa (`otp:prune`) |
 | Minggu 04:30 | `db:analyze` | `ANALYZE TABLE` tabel transaksi utama |
 
-**Tidak ada notifikasi otomatis.** WhatsApp tetap klik-kirim di frontend; email ortu hanya data. Queue `database` dipakai untuk email OTP lupa password (dan sinkron Google Calendar di fase terakhir).
+**Tidak ada notifikasi otomatis.** WhatsApp tetap klik-kirim di frontend; email ortu hanya data. Tidak ada queue: email OTP lupa password (dan sinkron Google Calendar di fase terakhir) dikirim sinkron setelah commit.
 
 **Sengaja tanpa job:** dashboard (view), Frozen, birthday radar, kuota cancel/penalti, skor kuadran, kedaluwarsa kode kuesioner (dicek saat dibuka), masa berlaku paket (tidak ada), pengingat invoice & digest sesi terlambat (admin mengingatkan manual lewat WhatsApp).
 
@@ -516,7 +524,7 @@ Tidak ada halaman maupun tabel `audit_logs`. Jejak perubahan: `created_by`/`upda
 **Layar:** modul `unreported_reports`. Daftar seluruh sesi `completed` yang laporannya belum diisi (Q19, view `v_unreported_sessions`: `status = completed`, `filled_sections = 0`), filter cabang/terapis/periode, agar manager dapat memantau. Baca saja.
 
 ### F28. Integrasi Google Calendar (fase terakhir)
-Dikerjakan **paling akhir**, setelah semua fitur lain selesai. Sinkron satu arah sesi → Google Calendar per user (`google_calendar_integrations`, token terenkripsi; `schedules.google_event_id`), lewat queue `database` setelah commit. Detail desain ditetapkan saat fase ini dimulai.
+Dikerjakan **paling akhir**, setelah semua fitur lain selesai. Sinkron satu arah sesi → Google Calendar per user (`google_calendar_integrations`, token terenkripsi; `schedules.google_event_id`), dipanggil sinkron setelah commit. Detail desain ditetapkan saat fase ini dimulai.
 
 ---
 
@@ -616,7 +624,7 @@ C = insert, U = update, D = delete, R = baca/lock.
 | `credit_ledger` | F11, F12, F14, F17, F18 (C saja) | riwayat kredit, `v_daily_credit_usage`, reconcile |
 | `invoice_logs` | F17, F18, F29 (C saja), hapus invoice | tombol Log di tab Billing |
 | `package_conversions` | F29 (C saja) | F29 |
-| tabel Laravel (`personal_access_tokens`, `sessions`, `cache`, `jobs`, …) | F1, F25 | framework |
+| tabel Laravel (`personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches`; tabel queue dibuat tetapi tidak dipakai) | F1, F25 | framework |
 
 ---
 

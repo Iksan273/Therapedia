@@ -14,8 +14,8 @@ function schedulesReducer(state, action) {
       return state.map((s) => (s.id === action.id ? { ...s, ...action.patch } : s));
     case "UPDATE_MANY":
       return state.map((s) => (action.ids.includes(s.id) ? { ...s, ...action.patch } : s));
-    case "DELETE_MANY": // soft delete
-      return state.map((s) => (action.ids.includes(s.id) ? { ...s, deletedAt: new Date().toISOString(), deletedBy: action.by || null } : s));
+    case "DELETE_MANY": // hapus permanen (ADR 0005)
+      return state.filter((s) => !action.ids.includes(s.id));
     case "RESCHEDULE_BULK":
       return state.map((s) => {
         if (!action.itemsMap[s.id]) return s;
@@ -27,15 +27,14 @@ function schedulesReducer(state, action) {
 }
 
 export const SchedulesProvider = ({ children }) => {
-  const [allSchedules, dispatch] = usePersistentReducer("schedules", schedulesReducer, () => getSeedLoader().loadSchedulesSeed());
-  const schedules = React.useMemo(() => allSchedules.filter((s) => !s.deletedAt), [allSchedules]);
+  const [schedules, dispatch] = usePersistentReducer("schedules", schedulesReducer, () => getSeedLoader().loadSchedulesSeed());
 
   const addSchedule = (schedule) => dispatch({ type: "ADD", schedule });
   const addSchedules = (list) => dispatch({ type: "ADD_MANY", schedules: list });
   const updateSchedule = (id, patch) => dispatch({ type: "UPDATE", id, patch });
   const updateSchedulesMany = (ids, patch) => dispatch({ type: "UPDATE_MANY", ids, patch });
   const rescheduleSchedulesBulk = (itemsMap) => dispatch({ type: "RESCHEDULE_BULK", itemsMap });
-  const deleteSchedules = (ids, by) => dispatch({ type: "DELETE_MANY", ids, by });
+  const deleteSchedules = (ids) => dispatch({ type: "DELETE_MANY", ids });
 
   return (
     <SchedulesContext.Provider

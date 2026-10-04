@@ -53,7 +53,7 @@ Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolo
 - Indeks `(therapist_id, session_date, start_time)`.
 
 ### Dashboard cepat
-- **Stack hanya MySQL (tanpa Redis)**: cache, queue, session memakai driver `database`. Andalkan InnoDB buffer pool + indeks yang tepat.
+- **Stack hanya MySQL (tanpa Redis)**: cache dan session memakai driver `database`; tanpa queue/job async (semua proses sinkron). Andalkan InnoDB buffer pool + indeks yang tepat.
 - Dashboard membaca **VIEW** (`v_daily_*`) di atas indeks covering. Kolom tanggal bisnis = generated column WIB (`DATE(ts + INTERVAL 7 HOUR)`) agar sargable. Query ke view selalu difilter cabang + rentang tanggal (pushdown MySQL ≥ 8.0.22).
 - Tabel ringkasan (`daily_branch_metrics` + job `metrics:rebuild`) **hanya** jika `EXPLAIN ANALYZE` view > 100 ms. Struktur query view dipakai ulang sebagai pengisinya.
 - JOIN tanpa agregasi aman dijadikan view (algoritma MERGE); pastikan kolom filter terindeks di tabel dasar.

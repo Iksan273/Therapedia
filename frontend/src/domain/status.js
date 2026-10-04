@@ -18,6 +18,7 @@ export const STATUS_META = {
   reschedule_pending: { label: "Reschedule – Belum Ada Jadwal", cls: "bg-orange-50 text-orange-800 border border-dashed border-orange-300" },
   unpaid: { label: "Belum Lunas", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
   paid: { label: "Lunas Terverifikasi", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+  void: { label: "Void", cls: "bg-slate-100 text-slate-600 border border-slate-300 line-through decoration-slate-400" },
   frozen: { label: "Frozen (0 Kredit)", cls: "bg-cyan-50 text-cyan-900 border border-cyan-400 font-bold ring-1 ring-cyan-400/40" },
   b_ota: { label: "BOT-A", cls: "bg-indigo-50 text-indigo-700 border border-indigo-200/70" },
   f_ota: { label: "FOT-A", cls: "bg-purple-50 text-purple-700 border border-purple-200/70" },

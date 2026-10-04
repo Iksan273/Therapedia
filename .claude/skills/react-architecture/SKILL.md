@@ -5,7 +5,7 @@ description: Pola arsitektur React Therapedia (feature-based + domain layer + st
 
 # React Architecture Pattern — Therapedia
 
-Stack: React 19 · react-router 7 · Vite 6 · Tailwind 3 + shadcn · Vitest. Aturan teknis lengkap: `frontend/CLAUDE.md`. Batas lapisan ditegakkan `npm run lint`.
+Stack: React 19 · react-router 7 · Vite 6 · Tailwind 3 + shadcn · Vitest. Aturan teknis lengkap: `CLAUDE.md` (bagian "Aturan teknis frontend"). Batas lapisan ditegakkan `npm run lint`.
 
 ## 1. Struktur
 

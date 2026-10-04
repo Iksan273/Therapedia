@@ -8,6 +8,8 @@ import { ClientReportHistoryDrawer } from "@/features/therapist/components/Clien
 import { useAuth } from "@/stores/authStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useClients } from "@/stores/clientsStore";
+import { matchesClientSearch } from "@/domain/client";
+import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { useTherapists } from "@/stores/therapistsStore";
 import { FilterBar, FilterField, SearchInput } from "@/shared/components/FilterBar";
 import { PeriodFilter } from "@/shared/components/PeriodFilter";
@@ -165,8 +167,8 @@ export default function TherapistSummary() {
       // Search query (client name, parent name, notes, activity)
       if (q) {
         const client = clients.find((c) => c.id === s.clientId);
-        const nameMatch = client?.clientName?.toLowerCase().includes(q);
-        const parentMatch = client?.parentName?.toLowerCase().includes(q);
+        const nameMatch = client ? matchesClientSearch(client, q) : false; // nama anak / ortu / kode client
+        const parentMatch = false;
         const activityMatch = s.activitySection?.toLowerCase().includes(q);
         const noteMatch = (s.noteSection || s.progressNote)?.toLowerCase().includes(q);
         const homeworkMatch = s.homeworkSection?.toLowerCase().includes(q);
@@ -180,20 +182,25 @@ export default function TherapistSummary() {
     });
   }, [completedSchedules, clientFilter, reportFilter, dateFilter, customStartDate, customEndDate, searchQuery, clients]);
 
+  // Pagination 10 data per halaman (feed tidak scroll tanpa batas); kembali ke halaman 1 saat filter berubah
+  const filterKey = [searchQuery, clientFilter, reportFilter, dateFilter, customStartDate, customEndDate].join("|");
+  const sessionsPg = usePagination(filteredSchedules, 10, filterKey);
+
   // 5. Filtered Clients for Tab 2
   const filteredClients = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return myClients.filter((c) => {
       if (clientFilter !== "all" && c.id !== clientFilter) return false;
       if (q) {
-        const nameMatch = c.clientName?.toLowerCase().includes(q);
-        const parentMatch = c.parentName?.toLowerCase().includes(q);
+        const nameMatch = matchesClientSearch(c, q); // nama anak / ortu / kode client
+        const parentMatch = false;
         const contactMatch = c.parentContact?.toLowerCase().includes(q);
         if (!nameMatch && !parentMatch && !contactMatch) return false;
       }
       return true;
     });
   }, [myClients, clientFilter, searchQuery]);
+  const clientsPg = usePagination(filteredClients, 10, filterKey);
 
   const handleOpenReportModal = (schedule) => {
     setSelectedScheduleForReport(schedule);
@@ -298,7 +305,7 @@ export default function TherapistSummary() {
         <FilterField label="Pencarian">
           <SearchInput
             className="min-w-0"
-            placeholder={activeTab === "sessions" ? "Anak / ortu / catatan..." : "Nama client / ortu..."}
+            placeholder={activeTab === "sessions" ? "Anak / ortu / kode client / catatan..." : "Nama client / ortu / kode client..."}
             value={searchQuery}
             onChange={setSearchQuery}
             data-testid="summary-search-input"
@@ -358,14 +365,20 @@ export default function TherapistSummary() {
       {/* TAB 1: DAFTAR SESI KELAR (SESSION-CENTRIC FEED)                            */}
       {/* ========================================================================= */}
       {activeTab === "sessions" && (
-        <SessionFeed clients={clients} filteredSchedules={filteredSchedules} getDayName={getDayName} handleOpenClientDrawer={handleOpenClientDrawer} handleOpenReportModal={handleOpenReportModal} setClientFilter={setClientFilter} setDateFilter={setDateFilter} setReportFilter={setReportFilter} setSearchQuery={setSearchQuery} />
+        <>
+        <SessionFeed clients={clients} filteredSchedules={sessionsPg.pageItems} getDayName={getDayName} handleOpenClientDrawer={handleOpenClientDrawer} handleOpenReportModal={handleOpenReportModal} setClientFilter={setClientFilter} setDateFilter={setDateFilter} setReportFilter={setReportFilter} setSearchQuery={setSearchQuery} />
+        <TablePagination {...sessionsPg} onPageChange={sessionsPg.setPage} onPageSizeChange={sessionsPg.setPageSize} noun="sesi" className="rounded-2xl border" />
+        </>
       )}
 
       {/* ========================================================================= */}
       {/* TAB 2: RANGKUMAN PER CLIENT (CLIENT DOSSIER & PROGRESSION)                  */}
       {/* ========================================================================= */}
       {activeTab === "clients" && (
-        <ClientRollup completedSchedules={completedSchedules} filteredClients={filteredClients} handleOpenClientDrawer={handleOpenClientDrawer} />
+        <>
+        <ClientRollup completedSchedules={completedSchedules} filteredClients={clientsPg.pageItems} handleOpenClientDrawer={handleOpenClientDrawer} />
+        <TablePagination {...clientsPg} onPageChange={clientsPg.setPage} onPageSizeChange={clientsPg.setPageSize} noun="client" className="rounded-2xl border" />
+        </>
       )}
 
       {/* ========================================================================= */}

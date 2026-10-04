@@ -35,12 +35,13 @@ import {
   RESCHEDULE_DROPPED,
   canManageSchedule,
   canRevertSession,
+  cancelNoteOf,
   checkConflicts,
   getOriginSlot,
   isCreditNeutralCancel,
   timeToMin,
 } from "@/domain/schedule";
-import { CANCEL_QUOTA } from "@/domain/credit";
+import { CANCEL_QUOTA, resolveSessionPackage } from "@/domain/credit";
 import { fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 
@@ -83,7 +84,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       setDropNote("");
       setDeductChoice("");
       setCancelReason(schedule.cancelReason || "");
-      setCancelNote(schedule.notes || "");
+      setCancelNote(cancelNoteOf(schedule) || "");
       setActivitySection(schedule.activitySection || "");
       setNoteSection(schedule.noteSection || schedule.progressNote || "");
       setHomeworkSection(schedule.homeworkSection || "");
@@ -164,9 +165,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const isTherapist = auth.role === "therapist";
 
   // Target credit package for this session
-  const targetPackage = record?.packages?.find(
-    (p) => p.id === schedule.creditPackageId || p.packageId === schedule.creditPackageId
-  ) || record?.packages?.[0];
+  const targetPackage = resolveSessionPackage(record, schedule);
 
   const report = { activitySection, noteSection, homeworkSection };
 

@@ -1,4 +1,5 @@
 import { todayStr, uid } from "@/shared/lib/id";
+import { matchesClientSearch } from "./client";
 
 // Domain kredit & paket terapi.
 // Aturan di file ini pure (tanpa React/storage). Dipakai reducer creditsStore sekarang,
@@ -42,10 +43,12 @@ export function newCreditRecord({ clientId, branchId, id }) {
   return { id: id || `cr-${uid().slice(-6)}`, clientId, branchId, packages: [], history: [] };
 }
 
+export const newClientPackageId = () => `cp-${uid().slice(-6)}`;
+
 // `price` = snapshot harga saat paket dibuat/diperpanjang (tidak ikut berubah bila harga master diedit).
-export function newClientPackage({ packageId, packageName, credits, price = null }) {
+export function newClientPackage({ id, packageId, packageName, credits, price = null }) {
   return {
-    id: `cp-${uid().slice(-6)}`,
+    id: id || newClientPackageId(),
     packageId: packageId || "pkg-reguler",
     packageName: packageName || "Regular Therapist (10x)",
     price,
@@ -254,8 +257,94 @@ export const validateProofFile = (file) => {
 // Paket yang sedang dipakai: paket pertama yang masih punya sisa (FIFO); bila semua habis, paket terakhir.
 export const activePackageOf = (record) => {
   const packages = record?.packages || [];
-  return packages.find((p) => p.remainingCredit > 0) || packages[packages.length - 1] || null;
+  const live = packages.filter((p) => p.status !== "voided"); // paket yang dicabut (void) tidak jadi pilihan
+  return live.find((p) => p.remainingCredit > 0) || live[live.length - 1] || packages[packages.length - 1] || null;
 };
+
+// Paket aktif untuk tampilan ringkas (mis. Client Roster): hanya paket yang masih punya sisa, digabung per jenis paket
+// (nama tanpa akhiran "(10x)") sehingga tidak muncul dobel. Paket habis (0) disembunyikan. Urutan = paket pertama muncul.
+// `fallbackLast`: bila tak ada paket bersisa sama sekali, kembalikan SATU paket terakhir (0 sesi = Frozen), bukan daftar kosong.
+export function distinctActivePackages(packages = [], { fallbackLast = false } = {}) {
+  const byName = new Map();
+  for (const p of packages) {
+    if (!(p.remainingCredit > 0)) continue;
+    const name = formatPackageName(p.packageName).replace(/\s*\(\d+x\)\s*$/i, "").trim();
+    const prev = byName.get(name);
+    byName.set(name, { name, remainingCredit: (prev?.remainingCredit || 0) + p.remainingCredit, packageCount: (prev?.packageCount || 0) + 1 });
+  }
+  if (byName.size === 0 && fallbackLast && packages.length) {
+    const nonVoided = packages.filter((p) => p.status !== "voided");
+    if (nonVoided.length === 0) return [];
+    const last = nonVoided[nonVoided.length - 1];
+    return [{ name: formatPackageName(last.packageName).replace(/\s*\(\d+x\)\s*$/i, "").trim(), remainingCredit: 0, packageCount: 1, depleted: true }];
+  }
+  return [...byName.values()];
+}
+
+// Pencarian baris keuangan (invoice / log kredit): nama anak, nama ortu, kode client (lewat `matchesClientSearch`),
+// plus nomor invoice. `client` = data client lengkap (untuk nama ortu & kode); bila tak ada, jatuh ke `row.clientName`.
+export function matchesFinanceSearch(row, client, query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return true;
+  const ref = client || { clientName: row?.clientName };
+  return matchesClientSearch(ref, q) || String(row?.invoiceNumber || "").toLowerCase().includes(q);
+}
+
+// Paket yang dipakai sebuah sesi: paket yang dipilih saat menjadwalkan bila masih punya sisa; bila sudah habis /
+// belum dipilih → paket aktif tertua (FIFO), dan bila semua habis → paket terakhir (sesi Frozen).
+export function resolveSessionPackage(record, schedule) {
+  const packages = record?.packages || [];
+  const chosen = packages.find((p) => p.id === schedule?.creditPackageId || p.packageId === schedule?.creditPackageId);
+  if (chosen && chosen.remainingCredit > 0) return chosen;
+  return activePackageOf(record) || chosen || null;
+}
+
+// Sesi terapi mendatang yang masih menunjuk paket habis / tak ada, dan perlu dipindah ke paket aktif saat renewal.
+// `targetId` = paket aktif tertua yang sudah ada, atau paket baru bila belum ada yang bersisa. Mengembalikan { ids, targetId }.
+const RELINKABLE_STATUSES = ["scheduled", "rescheduled", "reschedule_pending"];
+export function planSessionRelink({ record, schedules, newPackageId, today }) {
+  const packages = record?.packages || [];
+  const activeExisting = packages.find((p) => p.remainingCredit > 0);
+  const targetId = activeExisting?.id || newPackageId;
+  const usable = new Set(packages.filter((p) => p.remainingCredit > 0).map((p) => p.id));
+  const ids = schedules
+    .filter((s) => s.type === "therapy" && RELINKABLE_STATUSES.includes(s.status) && (!today || s.date >= today))
+    .filter((s) => !s.creditPackageId || !usable.has(s.creditPackageId))
+    .filter((s) => s.creditPackageId !== targetId)
+    .map((s) => s.id);
+  return { ids, targetId };
+}
+
+// "Tidak hadir" untuk analitik kehadiran: sesi cancelled yang MEMOTONG kredit (baris ledger `cancel_penalty` yang belum
+// dibalik). Cancel yang tidak memotong kredit (`cancel_excused`) tidak dihitung sebagai tidak hadir.
+export const isCreditedAbsence = (record, scheduleId) => Boolean(findLiveSessionEntry(record, scheduleId, ["cancel_penalty"]));
+
+// Frozen (turunan, tidak disimpan): kredit client 0 ATAU belum punya record/paket sama sekali.
+export const isCreditZero = (record) => !record || !(record.remainingCredit > 0);
+
+// Rincian kuota cancel PER PAKET (penghitung ada di tiap paket, bukan per client). Paket yang dirinci = paket yang masih
+// punya sisa; bila tak ada yang bersisa, paket terakhir. Paket sejenis diberi nomor urut ("Regular Therapist #1", "#2")
+// agar tidak tertukar. `total` = jumlah cancel semua paket yang dirinci, `anyOver` = ada paket yang melewati kuota.
+export function cancelQuotaByPackage(record) {
+  const packages = record?.packages || [];
+  const shown = packages.filter((p) => p.remainingCredit > 0);
+  const list = shown.length ? shown : packages.filter((p) => p.status !== "voided").slice(-1);
+  const baseName = (p) => formatPackageName(p.packageName).replace(/\s*\(\d+x\)\s*$/i, "").trim();
+  const sameName = (p) => list.filter((q) => baseName(q) === baseName(p));
+  const rows = list.map((p) => {
+    const peers = sameName(p);
+    const used = p.cancelCount || 0;
+    return {
+      id: p.id,
+      label: peers.length > 1 ? `${baseName(p)} #${peers.indexOf(p) + 1}` : baseName(p),
+      remainingCredit: p.remainingCredit || 0,
+      cancelCount: used,
+      quota: CANCEL_QUOTA,
+      over: used > CANCEL_QUOTA,
+    };
+  });
+  return { rows, total: rows.reduce((a, r) => a + r.cancelCount, 0), anyOver: rows.some((r) => r.over) };
+}
 
 // Ringkasan record untuk UI: total sisa & total kredit semua paket + kuota cancel paket yang sedang dipakai.
 export function summarizeCreditRecord(record) {
@@ -387,24 +476,156 @@ export const RENEWAL_MODES = {
   direct: { label: "Langsung lunas", hint: "Pembayaran sudah diterima. Invoice langsung lunas dan paket aktif." },
 };
 
-export const DIRECT_RENEWAL_REASONS = {
-  cash_at_cashier: "Dibayar tunai di kasir",
-  transfer_confirmed: "Transfer sudah masuk rekening (dicek mutasi)",
-  parent_requested_urgent: "Ortu ingin sesi langsung aktif (sesi hampir/sudah habis)",
-  other: "Lainnya",
-};
-
+export const MIN_RENEWAL_REASON = 3;
 export const MIN_RENEWAL_JUSTIFICATION = 10;
 
-export const directRenewalReasonLabel = (code) => DIRECT_RENEWAL_REASONS[code] || code || "—";
-
-// Renewal langsung lunas wajib punya alasan (pilihan) + justifikasi (teks bebas). Mengembalikan pesan error atau null.
+// Renewal langsung lunas wajib punya alasan (teks singkat) + justifikasi (teks penjelasan). Mengembalikan pesan error atau null.
 export function validateDirectRenewal({ reason, justification } = {}) {
-  if (!DIRECT_RENEWAL_REASONS[reason]) return "Alasan renewal langsung lunas wajib dipilih.";
+  if ((reason || "").trim().length < MIN_RENEWAL_REASON) return "Alasan renewal langsung lunas wajib diisi.";
   if ((justification || "").trim().length < MIN_RENEWAL_JUSTIFICATION) {
     return `Justifikasi wajib diisi (minimal ${MIN_RENEWAL_JUSTIFICATION} karakter).`;
   }
   return null;
+}
+
+// ---- Hapus & Void invoice (ADR 0005) ----
+// Hapus (permanen) HANYA untuk invoice yang belum lunas / ditolak: belum punya paket, jadi hanya bukti bayar & log-nya yang
+// ikut hilang dan saldo lebihan yang dipakainya kembali ke client. Invoice lunas dikoreksi lewat VOID (invoice tetap tercatat).
+export const canDeleteInvoice = (inv) => Boolean(inv) && inv.status !== "paid" && inv.status !== "void";
+export const canVoidInvoice = (inv) => Boolean(inv) && inv.status === "paid";
+
+export const VOID_CREDIT_ACTIONS = {
+  keep: { label: "Void invoice saja, pertahankan kredit", hint: "Salah input invoice (nominal salah / dobel) tetapi pembayaran client valid. Paket, sisa kredit, dan jadwal tidak berubah." },
+  revoke: { label: "Void dan cabut sisa kredit", hint: "Pembayaran batal / bukti tidak valid. Sisa kredit paket dicabut jadi 0; sesi selesai & laporannya tetap; sesi mendatang dipindah ke paket aktif lain atau menjadi Frozen." },
+};
+
+// Alasan wajib; pilihan kredit wajib bila invoice punya paket (tanpa nilai default, seperti pilihan potong kredit saat cancel).
+export function validateVoid({ reason, creditAction, hasPackage }) {
+  if (!String(reason || "").trim()) return "Alasan void wajib diisi.";
+  if (hasPackage && !VOID_CREDIT_ACTIONS[creditAction]) return "Pilih perlakuan kredit: pertahankan atau cabut sisa kredit.";
+  return null;
+}
+
+// Rantai paket milik invoice: paket asal + turunan konversinya sampai paket hidup (ujung rantai).
+export function invoicePackageChain(record, invoice) {
+  const packages = record?.packages || [];
+  if (!invoice || invoiceType(invoice) !== "package") return [];
+  const root = packages.find((p) => p.invoiceId === invoice.id);
+  const chain = [];
+  const seen = new Set();
+  let cur = root || resolveInvoicePackage(record, invoice);
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    chain.push(cur);
+    cur = cur.convertedToId ? packages.find((p) => p.id === cur.convertedToId) : null;
+  }
+  return chain;
+}
+
+const VOID_UPCOMING = ["scheduled", "rescheduled", "reschedule_pending"];
+
+// Ringkasan untuk dialog Void: paket hidup, sisa kredit, sesi selesai yang sudah memakai paket, sesi mendatang.
+export function voidSummary(record, invoice, schedules = [], today = "") {
+  const chain = invoicePackageChain(record, invoice);
+  const live = chain[chain.length - 1] || null;
+  const ids = new Set(chain.map((p) => p.id));
+  const mine = schedules.filter((s) => s.creditPackageId && ids.has(s.creditPackageId));
+  return {
+    hasPackage: Boolean(live),
+    packageName: live ? live.packageName : null,
+    livePackageId: live ? live.id : null,
+    chainIds: [...ids],
+    remaining: live ? live.remainingCredit || 0 : 0,
+    usedSessions: mine.filter((s) => s.status === "completed").length,
+    upcomingSessions: mine.filter((s) => s.type === "therapy" && VOID_UPCOMING.includes(s.status) && (!today || s.date >= today)).length,
+    balanceApplied: invoice?.balanceApplied || 0,
+  };
+}
+
+// Pilihan "cabut sisa kredit": paket hidup jadi `voided` (sisa 0, mutasi ledger `manual_adjust` bernilai −sisa) dan saldo
+// lebihan yang dipakai invoice kembali ke client. Sesi selesai & ledger lama tidak disentuh.
+export function applyVoidRevoke(record, invoice, { note = "", date } = {}) {
+  const live = invoicePackageChain(record, invoice).slice(-1)[0] || null;
+  const returned = invoice?.balanceApplied || 0;
+  if (!live) return { ...record, balance: (record.balance || 0) + returned };
+  const out = live.remainingCredit || 0;
+  return {
+    ...record,
+    balance: (record.balance || 0) + returned,
+    packages: (record.packages || []).map((p) => (p.id === live.id ? { ...p, remainingCredit: 0, status: "voided" } : p)),
+    history: [
+      ...(record.history || []),
+      historyEntry({ date: date || todayStr(), packageId: live.id, packageName: live.packageName, action: "manual_adjust", creditChange: -out, note }),
+    ],
+  };
+}
+
+// Invoice void (pilihan "pertahankan kredit") yang paketnya belum diambil alih invoice pengganti. Invoice baru bisa
+// "menggantikan" salah satunya agar paket lama dipakai ulang dan kredit tidak dobel.
+export function replacementCandidates(invoices = [], clientId) {
+  const replaced = new Set(invoices.map((i) => i.replacesInvoiceId).filter(Boolean));
+  return invoices.filter(
+    (i) => i.clientId === clientId && i.status === "void" && i.voidCreditAction === "keep" && invoiceType(i) === "package" && !replaced.has(i.id)
+  );
+}
+
+// Paket yang dipakai ulang oleh invoice pengganti: pindahkan `invoiceId` paket akar ke invoice baru (kredit tidak bertambah).
+export function adoptPackageForReplacement(record, replacedInvoiceId, newInvoice) {
+  const price = newInvoice.grossAmount || newInvoice.amount;
+  let adopted = false;
+  const packages = (record.packages || []).map((p) => {
+    if (!adopted && p.invoiceId === replacedInvoiceId) {
+      adopted = true;
+      return { ...p, invoiceId: newInvoice.id, price };
+    }
+    return p;
+  });
+  return adopted ? { record: { ...record, packages }, adopted: true } : { record, adopted: false };
+}
+
+// ---- Ringkasan saldo lebihan per client (tab Saldo Lebihan Finance) ----
+// `sources` = konversi paket yang menghasilkan lebihan (beserta invoice asal), `uses` = invoice yang memakai saldo itu.
+// Invoice yang sudah dihapus (tidak ada di daftar) atau di-void dengan "cabut kredit" tidak dihitung sebagai pemakaian karena
+// saldonya sudah kembali. `expected` = total masuk − total terpakai; bila beda dari `balance` (data lama / koreksi manual)
+// baris ditandai tidak sinkron agar Finance bisa memeriksa.
+export function leftoverSummaryByClient({ records = [], conversions = [], invoices = [] } = {}) {
+  const byId = new Map(invoices.map((i) => [i.id, i]));
+  const clientIds = new Set([
+    ...records.filter((r) => (r.balance || 0) > 0).map((r) => r.clientId),
+    ...conversions.filter((c) => (c.leftover || 0) > 0).map((c) => c.clientId),
+    ...invoices.filter((i) => (i.balanceApplied || 0) > 0).map((i) => i.clientId),
+  ]);
+  return [...clientIds].map((clientId) => {
+    const record = records.find((r) => r.clientId === clientId);
+    const sources = conversions
+      .filter((c) => c.clientId === clientId && (c.leftover || 0) > 0)
+      .map((c) => ({
+        conversionId: c.id,
+        invoiceId: c.invoiceId,
+        invoiceNumber: byId.get(c.invoiceId)?.invoiceNumber || "—",
+        toPackageName: c.toPackageName,
+        toSessions: c.toSessions,
+        mode: c.mode,
+        amount: c.leftover,
+        date: (c.createdAt || "").slice(0, 10),
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const uses = invoices
+      .filter((i) => i.clientId === clientId && (i.balanceApplied || 0) > 0)
+      .map((i) => ({
+        invoiceId: i.id,
+        invoiceNumber: i.invoiceNumber,
+        status: i.status,
+        amount: i.balanceApplied,
+        returned: i.status === "void" && i.voidCreditAction === "revoke",
+        date: (i.createdAt || "").slice(0, 10),
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const totalIn = sources.reduce((a, s) => a + s.amount, 0);
+    const totalOut = uses.filter((u) => !u.returned).reduce((a, u) => a + u.amount, 0);
+    const balance = record?.balance || 0;
+    return { clientId, balance, sources, uses, totalIn, totalOut, expected: Math.max(0, totalIn - totalOut), inSync: balance === Math.max(0, totalIn - totalOut) };
+  });
 }
 
 // ---- Log invoice (milik invoice sendiri, append-only) ----
@@ -415,9 +636,8 @@ export const INVOICE_LOG_ACTIONS = {
   rejected: { label: "Pembayaran ditolak", tone: "danger" },
   renewal_paid: { label: "Renewal langsung (lunas)", tone: "success" },
   balance_applied: { label: "Saldo lebihan dipakai", tone: "warning" },
-  balance_restored: { label: "Saldo lebihan dikembalikan", tone: "neutral" },
   converted: { label: "Paket dikonversi", tone: "warning" },
-  deleted: { label: "Invoice dihapus", tone: "danger" },
+  voided: { label: "Invoice di-void", tone: "danger" },
 };
 
 export const invoiceLogMeta = (action) => INVOICE_LOG_ACTIONS[action] || { label: action, tone: "neutral" };

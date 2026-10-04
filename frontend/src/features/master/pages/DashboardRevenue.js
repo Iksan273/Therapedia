@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from "react";
+import { SearchInput } from "@/shared/components/FilterBar";
+import { matchesFinanceSearch } from "@/domain/credit";
+import React, { useEffect, useMemo, useState } from "react";
 import { TrendingUp, Building2, Receipt, CheckCircle2, AlertCircle, Layers, ChevronLeft, ChevronRight, Users, UserCog, CalendarDays, Activity, BarChart3 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -153,14 +155,21 @@ export default function DashboardRevenue() {
     setCustomEnd("");
   };
 
+  // Pencarian tabel transaksi (nama anak / ortu / kode client / no. invoice); ringkasan & grafik tetap memakai filteredInvoices
+  const [invoiceSearch, setInvoiceSearch] = useState("");
+  const tableInvoices = useMemo(() => {
+    const byId = new Map(clients.map((c) => [c.id, c]));
+    return filteredInvoices.filter((inv) => matchesFinanceSearch(inv, byId.get(inv.clientId), invoiceSearch));
+  }, [filteredInvoices, clients, invoiceSearch]);
   // Pagination for Invoices Table
   const [invoicesPage, setInvoicesPage] = useState(1);
   const invoicesPageSize = 8;
-  const totalInvoicesPages = Math.ceil(filteredInvoices.length / invoicesPageSize) || 1;
+  useEffect(() => setInvoicesPage(1), [invoiceSearch]);
+  const totalInvoicesPages = Math.ceil(tableInvoices.length / invoicesPageSize) || 1;
   const paginatedInvoices = useMemo(() => {
     const start = (invoicesPage - 1) * invoicesPageSize;
-    return filteredInvoices.slice(start, start + invoicesPageSize);
-  }, [filteredInvoices, invoicesPage, invoicesPageSize]);
+    return tableInvoices.slice(start, start + invoicesPageSize);
+  }, [tableInvoices, invoicesPage, invoicesPageSize]);
 
   // Aggregate KPI metrics
   const metrics = useMemo(() => {
@@ -590,16 +599,19 @@ export default function DashboardRevenue() {
         <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-sm font-bold text-slate-900">
-              Transaksi & Tagihan Pembayaran ({filteredInvoices.length})
+              Transaksi & Tagihan Pembayaran ({tableInvoices.length})
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
               Daftar tagihan, paket yang dipilih, dan status verifikasi per cabang
             </CardDescription>
           </div>
         </CardHeader>
+        <div className="px-6 py-3 border-b border-slate-100">
+          <SearchInput className="max-w-md" placeholder="Cari nama anak, orang tua, kode client, atau no. invoice..." value={invoiceSearch} onChange={setInvoiceSearch} data-testid="revenue-invoice-search" />
+        </div>
         <CardContent className="p-0 overflow-x-auto">
-          {filteredInvoices.length === 0 ? (
-            <EmptyState icon={Receipt} title="Tidak ada transaksi" subtitle="Belum ada transaksi pada filter periode ini." />
+          {tableInvoices.length === 0 ? (
+            <EmptyState icon={Receipt} title="Tidak ada transaksi" subtitle={invoiceSearch ? "Tidak ada transaksi yang cocok dengan pencarian." : "Belum ada transaksi pada filter periode ini."} />
           ) : (
             <Table stackOnMobile className="min-w-[860px] w-full">
               <TableHeader>
@@ -643,11 +655,11 @@ export default function DashboardRevenue() {
         </CardContent>
 
         {/* Pagination for Invoices Table */}
-        {filteredInvoices.length > 0 && (
+        {tableInvoices.length > 0 && (
           <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 bg-slate-50/50">
             <span className="font-medium">
               Menampilkan {(invoicesPage - 1) * invoicesPageSize + 1} –{" "}
-              {Math.min(invoicesPage * invoicesPageSize, filteredInvoices.length)} dari {filteredInvoices.length} transaksi
+              {Math.min(invoicesPage * invoicesPageSize, tableInvoices.length)} dari {tableInvoices.length} transaksi
             </span>
             <div className="flex items-center gap-1.5">
               <Button

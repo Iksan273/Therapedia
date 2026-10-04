@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { invoiceConversionCount, invoiceTypeLabel, isInvoiceConverted, lastInvoiceConversion } from "@/domain/credit";
+import { canDeleteInvoice, canVoidInvoice, invoiceConversionCount, invoiceTypeLabel, isInvoiceConverted, lastInvoiceConversion } from "@/domain/credit";
 import { DeleteButton } from "@/shared/components/DeleteControls";
 import { TabsContent } from "@/shared/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -8,17 +8,19 @@ import { BRANCHES } from "@/domain/branch";
 import { fmtCurrency, fmtDate } from "@/shared/lib/format";
 import { Button } from "@/shared/ui/button";
 import { getProofFileType } from "@/shared/lib/fileUpload";
-import { ArrowRightLeft, Eye, FileText, History } from "lucide-react";
+import { ArrowRightLeft, Ban, Eye, FileText, History } from "lucide-react";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { TablePagination } from "@/shared/components/TablePagination";
 import { ConvertPackageDialog } from "@/features/finance/components/ConvertPackageDialog";
 import { InvoiceLogDialog } from "@/features/finance/components/InvoiceLogDialog";
+import { VoidInvoiceDialog } from "@/features/finance/components/VoidInvoiceDialog";
 import { usePackageConversionActions } from "@/features/finance/hooks/usePackageConversionActions";
 
 export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoice }) {
   const { canConvert } = usePackageConversionActions();
   const [convertInvoice, setConvertInvoice] = useState(null);
   const [logInvoice, setLogInvoice] = useState(null);
+  const [voidTarget, setVoidTarget] = useState(null);
   return (
     <TabsContent value="billing" className="space-y-4">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -38,7 +40,7 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Nominal</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Tanggal</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs min-w-[140px] whitespace-nowrap">Bukti Transfer</TableHead>
-                    <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Aksi</TableHead>
+                    <TableHead className="font-bold text-slate-700 text-xs min-w-[210px] whitespace-nowrap">Aksi</TableHead>
                     <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[130px] whitespace-nowrap">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -57,6 +59,9 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                         <TableCell data-label="Paket Layanan" className="text-xs font-semibold text-slate-800 min-w-[180px] whitespace-nowrap">
                           {inv.packageName}
                           <span className="ml-1.5 text-[10px] font-bold uppercase text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded" data-testid={`invoice-type-${inv.id}`}>{invoiceTypeLabel(inv)}</span>
+                          {inv.isRenewal && (
+                            <span className="ml-1.5 text-[10px] font-bold uppercase text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded" data-testid={`invoice-renewal-${inv.id}`}>Renewal</span>
+                          )}
                           {isInvoiceConverted(inv) && (
                             <>
                               <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-bold uppercase text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded" data-testid={`invoice-converted-${inv.id}`}>
@@ -72,8 +77,11 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                         <TableCell data-label="Nominal" className="text-xs font-bold text-slate-900 tabular-nums min-w-[150px] whitespace-nowrap">
                           {fmtCurrency(inv.amount)}
                           {inv.balanceApplied > 0 && (
-                            <span className="block text-[10px] font-semibold text-amber-700" data-testid={`invoice-balance-${inv.id}`}>
-                              Saldo lebihan −{fmtCurrency(inv.balanceApplied)} dari {fmtCurrency(inv.grossAmount)}
+                            <span className="mt-0.5 flex flex-col gap-0.5 text-[10px] leading-tight" data-testid={`invoice-balance-${inv.id}`}>
+                              <span className="font-medium text-slate-400 line-through decoration-slate-300">{fmtCurrency(inv.grossAmount)}</span>
+                              <span className="inline-flex w-fit rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 font-semibold text-amber-700">
+                                Saldo −{fmtCurrency(inv.balanceApplied)}
+                              </span>
                             </span>
                           )}
                         </TableCell>
@@ -102,8 +110,8 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                             <span className="text-slate-400 italic text-[11px]">—</span>
                           )}
                         </TableCell>
-                        <TableCell data-label="Aksi" className="min-w-[130px] whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
+                        <TableCell data-label="Aksi" className="min-w-[200px]">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <Button
                               size="sm"
                               variant="outline"
@@ -113,6 +121,17 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                             >
                               <History className="w-3 h-3 text-slate-500" /> Log
                             </Button>
+                            {canVoidInvoice(inv) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="px-2.5 min-h-10 md:min-h-0 text-[11px] font-semibold text-rose-700 border-rose-200 hover:bg-rose-50 gap-1.5 cursor-pointer"
+                                onClick={() => setVoidTarget(inv)}
+                                data-testid={`void-invoice-${inv.id}`}
+                              >
+                                <Ban className="w-3 h-3" /> Void
+                              </Button>
+                            )}
                             {canConvert(inv) && (
                               <Button
                                 size="sm"
@@ -124,20 +143,21 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                                 <ArrowRightLeft className="w-3 h-3" /> Konversi
                               </Button>
                             )}
+                            {canDeleteInvoice(inv) && (
+                              <DeleteButton
+                                module="finance"
+                                label="Hapus"
+                                title={`Hapus invoice ${inv.invoiceNumber}?`}
+                                description="Invoice belum lunas ini DIHAPUS PERMANEN beserta bukti bayar dan lognya. Saldo lebihan yang dipakainya dikembalikan ke client. Invoice yang sudah lunas tidak bisa dihapus, gunakan Void."
+                                onConfirm={() => onDeleteInvoice?.(inv)}
+                                testId={`delete-invoice-${inv.id}`}
+                              />
+                            )}
                           </div>
                         </TableCell>
                         <TableCell data-label="Status" className="text-right pr-6 min-w-[130px] whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
                             <StatusBadge status={inv.status} />
-                            <DeleteButton
-                              module="finance"
-                              iconOnly
-                              label={`Hapus invoice ${inv.invoiceNumber}`}
-                              title={`Hapus invoice ${inv.invoiceNumber}?`}
-                              description="Invoice disembunyikan (soft delete) dan tercatat di log invoice. Invoice yang sudah lunas keluar dari omzet, tetapi paket dan kredit client tidak berubah (koreksi saldo lewat penyesuaian manual)."
-                              onConfirm={() => onDeleteInvoice?.(inv)}
-                              testId={`delete-invoice-${inv.id}`}
-                            />
                           </div>
                         </TableCell>
                       </TableRow>
@@ -156,6 +176,7 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
           </Card>
           <ConvertPackageDialog invoice={convertInvoice} open={Boolean(convertInvoice)} onOpenChange={(v) => !v && setConvertInvoice(null)} />
           <InvoiceLogDialog invoice={logInvoice} open={Boolean(logInvoice)} onOpenChange={(v) => !v && setLogInvoice(null)} />
+          <VoidInvoiceDialog invoice={voidTarget} open={Boolean(voidTarget)} onOpenChange={(v) => !v && setVoidTarget(null)} />
         </TabsContent>
   );
 }
