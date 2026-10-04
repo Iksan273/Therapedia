@@ -2,6 +2,7 @@ import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useTherapists } from "@/stores/therapistsStore";
+import { useHolidays } from "@/stores/holidaysStore";
 import { useAuth } from "@/stores/authStore";
 import { advanceStatus } from "@/domain/client";
 import { CANCEL_QUOTA, findLiveSessionEntry, resolveSessionPackage } from "@/domain/credit";
@@ -13,6 +14,7 @@ import {
   canRevertSession,
   checkConflicts,
   getOriginSlot,
+  planBulkReschedule,
   restoreSlotOf,
   restoreStatusOf,
   scheduleSlot,
@@ -30,6 +32,7 @@ export function useSessionActions() {
   const { getClient, updateClient } = useClients();
   const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit } = useCredits();
   const { therapists } = useTherapists();
+  const { holidays } = useHolidays();
 
   // Paket sesi: yang dipilih saat menjadwalkan bila masih bersisa, selain itu paket aktif tertua (otomatis setelah renewal)
   const findPackage = (record_, schedule) => resolveSessionPackage(record_, schedule);
@@ -255,9 +258,32 @@ export function useSessionActions() {
     updateSchedulesMany(ids, { status: "cancelled", cancelReason, cancelNote, revertedAt: null });
   };
 
-  // Bulk reschedule: geser N hari / ke tanggal tertentu, opsional ganti terapis
-  const bulkReschedule = (itemsMap) => {
-    rescheduleSchedulesBulk(itemsMap);
+  // Bulk reschedule ATOMIK: tiap baris punya tujuan sendiri ({ id, date, startTime, endTime, therapistId }).
+  // Divalidasi ulang di sini; bila ada satu saja yang bermasalah (bentrok / libur / kosong) TIDAK ADA yang disimpan.
+  // Fase API: POST /schedules/bulk-reschedule dalam 1 transaksi (semua atau tidak sama sekali, 422 + error per baris).
+  const bulkReschedule = (rows) => {
+    const plan = planBulkReschedule({ rows, schedules, therapists, holidays });
+    if (!plan.ok) return { ok: false, issues: plan.issues };
+    const at = nowIso();
+    const itemsMap = {};
+    const byId = new Map(schedules.map((s) => [s.id, s]));
+    rows.forEach((r) => {
+      const s = byId.get(r.id);
+      itemsMap[r.id] = {
+        date: r.date,
+        startTime: r.startTime,
+        endTime: r.endTime,
+        therapistId: r.therapistId,
+        status: "rescheduled",
+        rescheduledFrom: getOriginSlot(s) || scheduleSlot(s),
+        rescheduledPrev: scheduleSlot(s),
+        rescheduledAt: at,
+        revertedAt: null,
+        ...CLEAR_PENDING_PATCH,
+      };
+    });
+    rescheduleSchedulesBulk(itemsMap); // satu dispatch = satu pembaruan state
+    return { ok: true, count: rows.length };
   };
 
   // Bulk revert (completed / cancelled / rescheduled). Sesi yang tidak bisa di-revert dilewati; sesi yang slot-nya

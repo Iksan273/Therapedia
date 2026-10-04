@@ -329,3 +329,28 @@ describe("revert hanya 1x", () => {
     expect(canRevertSession(sched(s.id))).toBe(false);
   });
 });
+
+describe("bulkReschedule atomik", () => {
+  test("tujuan beda per sesi tersimpan semua; ada yang bermasalah → tidak ada yang berubah", async () => {
+    const [a, b] = pickSessions(2);
+    const ok = [
+      { id: a.id, date: "2031-03-03", startTime: "08:00", endTime: "09:00", therapistId: a.therapistId },
+      { id: b.id, date: "2031-03-05", startTime: "10:00", endTime: "11:00", therapistId: b.therapistId },
+    ];
+    // baris kedua dikosongkan → seluruh batch ditolak
+    const bad = [ok[0], { ...ok[1], date: "" }];
+    let res;
+    await act(async () => { res = ctx.actions.bulkReschedule(bad); });
+    expect(res.ok).toBe(false);
+    const after = ctx.schedules.schedules.find((s) => s.id === a.id);
+    expect(after.date).toBe(a.date);
+    expect(after.status).toBe("scheduled");
+
+    await act(async () => { res = ctx.actions.bulkReschedule(ok); });
+    expect(res.ok).toBe(true);
+    const sa = ctx.schedules.schedules.find((s) => s.id === a.id);
+    const sb = ctx.schedules.schedules.find((s) => s.id === b.id);
+    expect([sa.date, sb.date]).toEqual(["2031-03-03", "2031-03-05"]);
+    expect([sa.status, sb.status]).toEqual(["rescheduled", "rescheduled"]);
+  });
+});

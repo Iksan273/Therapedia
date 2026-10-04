@@ -36,10 +36,9 @@ stateDiagram-v2
 - Chip berwarna sesuai status. Chip **Frozen** (ikon salju) muncul untuk sesi therapy `scheduled/rescheduled` milik client dengan sisa kredit 0.
 - **Bulk action** (pilih banyak chip) lewat `useSessionActions`:
   - Complete → `bulkComplete(ids)`: aturan sama dengan complete tunggal (kredit therapy −1 per sesi, idempoten; asesmen memajukan pipeline).
-  - Reschedule → `bulkReschedule(itemsMap)`: geser N hari / ke tanggal tertentu / ganti terapis; jejak `rescheduledFrom` memakai `getOriginSlot`.
+  - Reschedule → `bulkReschedule(rows)` + `BulkRescheduleDialog`: **tujuan per sesi** (tanggal, jam mulai/selesai, terapis per baris; isi cepat "geser N hari / satu tanggal / satu terapis" hanya mengisi baris). **Atomik**: `planBulkReschedule` (`domain/schedule.js`) mengecek tiap baris terhadap jadwal lain, sesama baris dalam batch, dan hari libur; bila ada satu saja bermasalah (bentrok, libur, belum berubah, jam terbalik) tombol Simpan nonaktif dan hook mengembalikan `{ ok:false, issues }` tanpa menyimpan apa pun. Slot asal yang ditinggalkan sesi lain dalam batch boleh dipakai. Jejak `rescheduledFrom` memakai `getOriginSlot`. Reschedule Pending tidak tersedia di jalur massal (lakukan per sesi).
   - Revert → `bulkRevert(ids, { reason })` (tombol Bulk Revert + `BulkRevertDialog`): membatalkan completed / cancelled / rescheduled / pending sekaligus dengan satu alasan wajib; aturan sama dengan revert tunggal (hanya 1x per sesi). Sesi status lain, yang sudah di-revert, dan yang slot-nya sudah terisi dilewati dan dilaporkan.
   - Cancel → `bulkCancel(ids, { mode, note, deductCredit })`: `mode` hanya menentukan alasan (`leave` = `izin_keluarga`, `other` = `lainnya`). Admin **wajib memilih** potong kredit atau tidak (berlaku untuk seluruh sesi terpilih; tanpa pilihan ditolak).
-  - Bulk Reschedule melewati/menolak tanggal tujuan yang hari libur.
 
 ### Tambah jadwal: `features/schedule/components/calendar/AddScheduleModal.js`
 - **Tanpa pilih service**: `serviceType` diturunkan dari layanan client (`getClientServiceIds`), tidak ada dropdown layanan (juga tidak per hari).

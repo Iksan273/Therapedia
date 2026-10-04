@@ -260,7 +260,7 @@ Layar: `/admin-schedule/calendar` (Weekly Calendar), Client Detail (jadwal asesm
 ### 8.4 Aksi massal
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Catatan |
 |---|---|---|---|---|---|---|
-| 6.18 | `POST /schedules/bulk/{action}` — `complete`, `cancel`, `reschedule`, `revert` | `Bulk*Action` | `weekly_calendar` | `ids[]` + parameter aksi (`reason`, `deduct_credit` untuk cancel, `shift_days`/`target_date`/`therapist_id` untuk reschedule) | sama dengan aksi tunggal, satu `batch_id` pada `credit_ledger` | sesi yang tak memenuhi syarat dilewati dan dilaporkan `{ done:[…], skipped:[{id,reason}] }`; satu transaksi per batch |
+| 6.18 | `POST /schedules/bulk/{action}` — `complete`, `cancel`, `reschedule`, `revert` | `Bulk*Action` | `weekly_calendar` | `ids[]` + parameter aksi (`reason`, `deduct_credit` untuk cancel). **`reschedule` memakai `rows[{id,date,start_time,end_time,therapist_id}]` (tujuan per sesi), bukan `ids[]`** | sama dengan aksi tunggal, satu `batch_id` pada `credit_ledger` | `complete`/`cancel`/`revert`: sesi yang tak memenuhi syarat dilewati dan dilaporkan `{ done:[…], skipped:[{id,reason}] }`. **`reschedule` ATOMIK**: validasi semua baris (bentrok terapis termasuk antar-baris dalam batch, libur, tidak berubah, jam terbalik); ada satu gagal → rollback semua, 422 `{ errors:{ "rows.N":[…] } }`; satu transaksi per batch |
 
 ### 8.5 Efek jadwal dari modul lain
 - Aktivasi paket / renewal (M7) memindahkan sesi mendatang ke paket aktif: `UPDATE schedules SET client_package_id` (§9 langkah relink).
@@ -465,7 +465,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | M3 | master dipakai → 409, pilihan string terhapus bebas, UNIQUE libur |
 | M4 | kode client berurutan per grup, transisi otomatis hanya maju & manual bebas, hapus client cascade |
 | M5 | sekali isi, expiry, gating invoice assessment, skor kuadran server, consent wajib |
-| M6 | bentrok + `force`, libur dilewati, cancel `deduct_credit` wajib, revert 1x, bulk sebagian dilewati |
+| M6 | bentrok + `force`, libur dilewati, cancel `deduct_credit` wajib, revert 1x, bulk complete/cancel/revert sebagian dilewati, bulk reschedule atomik (satu gagal = tidak ada yang tersimpan) |
 | M7 | saldo = Σ ledger, approve tidak dobel, void keep/revoke, pengganti tanpa kredit dobel, hapus invoice lunas ditolak, konversi tanpa kekurangan, relink jadwal |
 | M8–M11 | scope cabang/terapis/ortu, view dengan filter cabang+tanggal, `EXPLAIN` Q1–Q23 pada ±50 ribu sesi |
 | M12 | uji integritas FK: tidak ada baris yatim setelah hapus client/cabang; master terpakai ditolak |

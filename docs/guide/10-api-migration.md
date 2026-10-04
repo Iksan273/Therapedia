@@ -46,7 +46,7 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | `useSessionActions.cancelSession` (body: `reason`, `deduct_credit` wajib) | `POST schedules.cancel(id)` | `schedules`, `client_packages` (`cancel_count`), `credit_ledger` | `credit_ledger` (`used` / `cancel_*`) |
 | `rescheduleSession` / `markPending` / `dropPending` | `schedules.reschedule/markPending/dropPending(id)` | `schedules` | `updated_by` |
 | revert (hanya 1x) | `POST schedules.revert(id)` | `schedules`, `credit_ledger` (reversal) | `credit_ledger` (`reversal`), `schedules.reverted_at` |
-| `bulkComplete` / `bulkCancel` / `bulkReschedule` | `POST schedules.bulkAction(action)` (complete / cancel / reschedule / revert) | sama + `batch_id` | `updated_by` |
+| `bulkComplete` / `bulkCancel` / `bulkReschedule` | `POST schedules.bulkAction(action)` (complete / cancel / reschedule / revert). `reschedule` menerima `rows[{id,date,start_time,end_time,therapist_id}]` dan berjalan **1 transaksi atomik**: ada satu baris gagal → rollback semua, respons 422 berisi error per baris | sama + `batch_id` | `updated_by` |
 | cek bentrok (preview) | `GET schedules.conflicts` | `schedules`, `holidays` | — |
 | hari libur *(baru)* | `holidays.*` (CRUD) | `holidays` | — |
 | monitoring sesi completed tanpa report *(baru)* | `GET schedules.unreported` | view `v_unreported_sessions` | — |

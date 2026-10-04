@@ -14,7 +14,6 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { SearchInput } from "@/shared/components/FilterBar";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
@@ -30,6 +29,7 @@ import { WeeklyCalendar, CalendarLegend } from "@/features/schedule/components/c
 import { DayAgenda } from "@/features/schedule/components/calendar/DayAgenda";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
+import { BulkRescheduleDialog } from "@/features/schedule/components/calendar/BulkRescheduleDialog";
 import { BulkRevertDialog } from "@/features/schedule/components/calendar/BulkRevertDialog";
 import { DeductCreditChoice } from "@/features/schedule/components/calendar/DeductCreditChoice";
 import { useSchedules } from "@/stores/schedulesStore";
@@ -37,10 +37,9 @@ import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useHolidays } from "@/stores/holidaysStore";
-import { findHoliday } from "@/domain/holiday";
 import { useMasterData } from "@/stores/masterDataStore";
 import { isCreditZero } from "@/domain/credit";
-import { CLEAR_PENDING_PATCH, bookingNoteOf, cancelNoteOf, getOriginSlot, scheduleSlot } from "@/domain/schedule";
+import { bookingNoteOf, cancelNoteOf } from "@/domain/schedule";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
@@ -71,11 +70,6 @@ export default function CalendarPage() {
   const [bulkRescheduleOpen, setBulkRescheduleOpen] = useState(false);
   const [bulkCancelOpen, setBulkCancelOpen] = useState(false);
   const [bulkRevertOpen, setBulkRevertOpen] = useState(false);
-
-  // Bulk Reschedule form states
-  const [bulkTargetDate, setBulkTargetDate] = useState("");
-  const [bulkDayOffset, setBulkDayOffset] = useState("0");
-  const [bulkTargetTherapist, setBulkTargetTherapist] = useState("keep");
 
   // Bulk Cancel form states
   const [bulkCancelReason, setBulkCancelReason] = useState("leave");
@@ -183,46 +177,16 @@ export default function CalendarPage() {
     clearSelection();
   };
 
-  // Bulk Action: Reschedule Confirm
-  const handleBulkRescheduleConfirm = () => {
-    if (selectedSessionIds.length === 0) return;
-    const selectedSchedules = schedules.filter((s) => selectedSessionIds.includes(s.id));
-    const offsetDays = parseInt(bulkDayOffset, 10) || 0;
-    const itemsMap = {};
-
-    const blocked = [];
-    selectedSchedules.forEach((s) => {
-      let finalDate = s.date;
-      if (bulkTargetDate) {
-        finalDate = bulkTargetDate;
-      } else if (offsetDays !== 0) {
-        finalDate = format(addDays(parseISO(s.date), offsetDays), "yyyy-MM-dd");
-      }
-
-      if (finalDate !== s.date && findHoliday(holidays, finalDate, s.branchId)) {
-        blocked.push(finalDate);
-        return;
-      }
-
-      itemsMap[s.id] = {
-        date: finalDate,
-        status: "rescheduled",
-        therapistId: bulkTargetTherapist !== "keep" ? bulkTargetTherapist : s.therapistId,
-        // Jejak jadwal asal agar sesi yang dipindah massal tetap bertanda
-        rescheduledFrom: getOriginSlot(s) || scheduleSlot(s),
-        rescheduledPrev: scheduleSlot(s),
-        revertedAt: null,
-        rescheduledAt: new Date().toISOString(),
-        ...CLEAR_PENDING_PATCH,
-      };
-    });
-
-    if (blocked.length > 0) toast.warning(`${blocked.length} sesi dilewati karena tanggal tujuan adalah hari libur.`);
-    if (Object.keys(itemsMap).length === 0) return;
-    sessionActions.bulkReschedule(itemsMap);
-    toast.success(`Bulk operation complete: ${Object.keys(itemsMap).length} session(s) rescheduled.`);
-    setBulkRescheduleOpen(false);
+  // Bulk Action: Reschedule (atomik: gagal satu = tidak ada yang tersimpan)
+  const handleBulkRescheduleConfirm = (rows) => {
+    const result = sessionActions.bulkReschedule(rows);
+    if (!result.ok) {
+      toast.error(`${Object.keys(result.issues).length} sesi bermasalah; tidak ada jadwal yang diubah.`);
+      return result;
+    }
+    toast.success(`${result.count} sesi berhasil di-reschedule.`);
     clearSelection();
+    return result;
   };
 
   // Bulk Action: Revert (batalkan completed / cancel / reschedule). Sesi yang slot-nya terisi dilewati.
@@ -596,75 +560,18 @@ export default function CalendarPage() {
         clientLinkBase="/admin-schedule/clients"
       />
 
-      {/* Bulk Reschedule Dialog */}
-      <Dialog open={bulkRescheduleOpen} onOpenChange={setBulkRescheduleOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="bulk-reschedule-dialog">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-slate-900">Bulk Reschedule ({selectedSessionIds.length} Sessions)</DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Shift selected sessions by a weekday offset or assign to a target calendar date.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3.5 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Option 1: Shift by Days Offset</Label>
-              <Select value={bulkDayOffset} onValueChange={setBulkDayOffset}>
-                <SelectTrigger className="border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-offset-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="0">No Offset (Use exact target date below)</SelectItem>
-                  <SelectItem value="1">+1 Day (Tomorrow)</SelectItem>
-                  <SelectItem value="2">+2 Days</SelectItem>
-                  <SelectItem value="7">+1 Week (7 Days)</SelectItem>
-                  <SelectItem value="14">+2 Weeks (14 Days)</SelectItem>
-                  <SelectItem value="-7">-1 Week (-7 Days)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Option 2: Exact Target Date (DD/MM/YYYY) (Overrides offset)</Label>
-              <DateFilterPicker
-                placeholder="DD/MM/YYYY"
-                className="w-full bg-slate-50"
-                value={bulkTargetDate}
-                onChange={(e) => setBulkTargetDate(e?.target?.value ?? e)}
-                data-testid="bulk-reschedule-date-input"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Reassign Therapist (Optional)</Label>
-              <Select value={bulkTargetTherapist} onValueChange={setBulkTargetTherapist}>
-                <SelectTrigger className="border-slate-200 bg-slate-50 focus:bg-white" data-testid="bulk-reschedule-therapist-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200">
-                  <SelectItem value="keep">Keep Currently Assigned Therapist(s)</SelectItem>
-                  {therapists.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter className="mt-5 gap-2">
-            <Button variant="outline" className="border-slate-200" onClick={() => setBulkRescheduleOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-sky-600 hover:bg-sky-700 text-white font-bold"
-              onClick={handleBulkRescheduleConfirm}
-              data-testid="bulk-reschedule-confirm-button"
-            >
-              Confirm Reschedule
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Bulk Reschedule Dialog (tujuan per sesi, atomik) */}
+      <BulkRescheduleDialog
+        key={bulkRescheduleOpen ? "reschedule-open" : "reschedule-closed"}
+        open={bulkRescheduleOpen}
+        onOpenChange={setBulkRescheduleOpen}
+        sessions={schedules.filter((s) => selectedSessionIds.includes(s.id))}
+        schedules={schedules}
+        therapists={therapists}
+        holidays={holidays}
+        getClientName={getClientName}
+        onConfirm={handleBulkRescheduleConfirm}
+      />
 
       {/* Bulk Revert Dialog */}
       <BulkRevertDialog

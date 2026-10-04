@@ -1,5 +1,6 @@
 import { addDays, addWeeks, format, parseISO, startOfWeek } from "date-fns";
 import { uid } from "@/shared/lib/id";
+import { findHoliday, holidayMessage } from "@/domain/holiday";
 
 // Domain penjadwalan: jam kalender, alasan cancel, deteksi bentrok, dan generator jadwal berulang.
 // Aturan di sini adalah acuan untuk Service Laravel (lihat docs/guide/05 & 10).
@@ -117,6 +118,33 @@ export function checkConflicts({ therapistId, date, startTime, endTime, schedule
     issues.push(`${therapist ? therapist.name : "Terapis ini"} sudah menangani client lain di jam tersebut (${clashes.length} jadwal bersamaan).`);
   }
   return issues;
+}
+
+// Reschedule massal ATOMIK: `rows` = [{ id, date, startTime, endTime, therapistId }] (satu baris per sesi, tujuan boleh
+// beda-beda). Semua baris dicek terhadap jadwal lain DAN terhadap baris lain di batch yang sama (posisi baru).
+// Mengembalikan { ok, issues: { [id]: string[] } }; pemanggil hanya boleh menyimpan bila `ok` (tanpa simpan sebagian).
+export function planBulkReschedule({ rows, schedules, therapists, holidays = [] }) {
+  const byId = new Map(schedules.map((s) => [s.id, s]));
+  const moved = new Map(rows.map((r) => [r.id, r]));
+  const working = schedules.map((s) => (moved.has(s.id) ? { ...s, ...moved.get(s.id), status: "rescheduled" } : s));
+  const issues = {};
+  const add = (id, msg) => {
+    (issues[id] ||= []).push(msg);
+  };
+
+  rows.forEach((r) => {
+    const orig = byId.get(r.id);
+    if (!orig) return add(r.id, "Sesi tidak ditemukan.");
+    if (!r.date || !r.startTime || !r.endTime || !r.therapistId) return add(r.id, "Tanggal, jam, dan terapis wajib diisi.");
+    if (timeToMin(r.endTime) <= timeToMin(r.startTime)) return add(r.id, "Jam selesai harus setelah jam mulai.");
+    if (r.date === orig.date && r.startTime === orig.startTime && r.endTime === orig.endTime && r.therapistId === orig.therapistId) {
+      return add(r.id, "Belum ada perubahan jadwal.");
+    }
+    const holiday = findHoliday(holidays, r.date, orig.branchId);
+    if (holiday && r.date !== orig.date) add(r.id, holidayMessage(holiday));
+    checkConflicts({ ...r, schedules: working, therapists, excludeId: r.id }).forEach((m) => add(r.id, m));
+  });
+  return { ok: Object.keys(issues).length === 0, issues };
 }
 
 // Id semua sesi yang bentrok dengan sesi aktif lain milik terapis & tanggal yang sama (untuk penanda kalender).
