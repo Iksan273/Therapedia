@@ -126,6 +126,7 @@ export default function Login() {
       role: staff.role,
       staffName: staff.name,
       branchId: staff.branchId || null,
+      allBranches: Boolean(staff.allBranches),
       therapistId: staff.therapistId || null,
     });
     if (staff.branchId) setActiveBranch(staff.branchId);

@@ -103,6 +103,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | **B. Master data** | `services` | Layanan intake (BOT-A, FOT-A, Consultation, …) |
 | | `sensory_quadrants` | Kuadran sensori (AV/SN/RG/SK) |
 | | `cancel_reasons` | Pilihan cepat alasan cancel (tanpa FK; transaksi menyimpan string) |
+| | `off_reasons` | Pilihan cepat alasan Off sesi (OL, S, SCA, MCU, FM, TI, H, dst; tanpa FK) |
 | | `discharge_reasons` | Pilihan cepat alasan discharge (tanpa FK; transaksi menyimpan string) |
 | | `master_packages` | Katalog paket kredit |
 | | `holidays` | Hari libur (dilewati jadwal berulang, tak bisa dipilih di kalender) |
@@ -265,7 +266,8 @@ Staf internal & terapis dalam satu tabel. Atribut klinis nullable untuk non-tera
 Schema::create('users', function (Blueprint $table) {
     $table->id();
     $table->foreignId('role_id')->constrained()->restrictOnDelete();
-    $table->foreignId('branch_id')->nullable()->constrained()->restrictOnDelete(); // JANGAN nullOnDelete (staf berubah jadi "semua cabang"); dihapus eksplisit oleh hapus cabang (§6.7). Wajib terisi untuk semua role kecuali master (null = semua cabang, hanya master); divalidasi di service. Terapis & staf lain = tepat 1 cabang
+    $table->foreignId('branch_id')->nullable()->constrained()->restrictOnDelete(); // JANGAN nullOnDelete (staf berubah jadi "semua cabang"); dihapus eksplisit oleh hapus cabang (§6.7). Wajib terisi untuk semua role kecuali master (null = semua cabang, hanya master); divalidasi di service. Terapis & staf lain = tepat 1 cabang, KECUALI `all_branches = 1`
+    $table->boolean('all_branches')->default(false);    // akses semua cabang (diatur Master di User Management); master selalu semua cabang. Bila 1 → branch_id NULL. Berlaku untuk semua role non-master termasuk terapis & role kustom
     $table->string('name', 150);
     $table->string('email', 150)->unique();
     $table->string('password');
@@ -339,7 +341,7 @@ Schema::create('sensory_quadrants', function (Blueprint $table) {
 });
 ```
 
-#### `cancel_reasons` & `discharge_reasons` (pilihan cepat, TANPA foreign key)
+#### `cancel_reasons`, `off_reasons` & `discharge_reasons` (pilihan cepat, TANPA foreign key)
 Hanya **sumber pilihan cepat** untuk dropdown di UI (dikelola di menu Master Data). Tabel transaksi (`schedules`, `clients`, `credit_ledger`) menyimpan alasan sebagai **string biasa** (`cancel_reason`, `pending_reason`, `discharge_reason`): berisi `code` pilihan cepat **atau** teks bebas yang diketik user ("Lainnya"). Karena itu tidak ada FK: mengubah/menghapus pilihan tidak memengaruhi riwayat, dan teks bebas tidak perlu terdaftar. Label tampil = `label` bila string cocok dengan `code`, selain itu string apa adanya.
 Kuota cancel (3 per paket, penghitung `client_packages.cancel_count`) adalah aturan di service (§6.2), bukan atribut per alasan. Alasan sistem `reschedule_dibatalkan` (drop reschedule menggantung, netral kredit) adalah konstanta kode, bukan baris tabel.
 ```php
@@ -347,6 +349,15 @@ Schema::create('cancel_reasons', function (Blueprint $table) {
     $table->string('code', 40)->primary();            // sakit, izin_keluarga, bentrok_sekolah, tanpa_kabar
     $table->string('label', 120);
     $table->boolean('is_active')->default(true);      // nonaktif = tidak muncul di pilihan baru
+    $table->unsignedSmallInteger('sort_order')->default(0);
+    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamps();
+});
+
+Schema::create('off_reasons', function (Blueprint $table) {
+    $table->string('code', 40)->primary();            // OL, S, SCA, MCU, FM, TI, H (bisa ditambah di Master Data Layanan)
+    $table->string('label', 120);
+    $table->boolean('is_active')->default(true);
     $table->unsignedSmallInteger('sort_order')->default(0);
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
@@ -677,7 +688,7 @@ Schema::create('schedules', function (Blueprint $table) {
     $table->time('start_time');
     $table->time('end_time');
 
-    $table->enum('status', ['scheduled', 'completed', 'cancelled', 'rescheduled', 'reschedule_pending'])->default('scheduled');
+    $table->enum('status', ['scheduled', 'completed', 'cancelled', 'rescheduled', 'reschedule_pending', 'off'])->default('scheduled');   // 'off' ditambah di akhir
     $table->string('previous_status', 30)->nullable();   // status sebelum transisi terakhir — dipakai revert
     $table->string('client_status_from', 30)->nullable(); // sesi asesmen completed yang memajukan client otomatis: tahap client sebelumnya (dipakai revert)
     $table->string('client_status_to', 30)->nullable();   // tahap hasil transisi otomatis; revert hanya memulihkan bila `clients.status` masih sama
@@ -686,6 +697,14 @@ Schema::create('schedules', function (Blueprint $table) {
 
     // Catatan penjadwalan
     $table->text('booking_note')->nullable();            // catatan penjadwalan oleh admin saat membuat jadwal (tampil di riwayat sesi client). Dipisah dari cancel_note / pending_note: tiap sumber punya kolom sendiri
+
+    // Catatan riwayat (bisa ditimpa siapa pun yang punya akses modul schedule; 1 catatan per sesi, tanpa riwayat versi)
+    $table->text('history_note')->nullable();
+    $table->foreignId('history_note_by')->nullable()->constrained('users')->nullOnDelete();
+
+    // Off (terapis/klinik off; admin memilih potong kredit atau tidak; TIDAK menambah cancel_count paket)
+    $table->string('off_reason', 150)->nullable();       // string bebas: code off_reasons atau teks custom (tanpa FK)
+    $table->text('off_note')->nullable();
 
     // Cancel
     $table->string('cancel_reason', 150)->nullable();    // string bebas: code pilihan cepat atau teks custom (tanpa FK)
@@ -810,9 +829,9 @@ Schema::create('invoices', function (Blueprint $table) {
     $table->timestamp('verified_at')->nullable();
     $table->text('rejection_reason')->nullable();
     $table->string('payment_method', 40)->default('transfer');   // teks bebas (mis. transfer, tunai)
-    $table->string('renewal_reason', 150)->nullable();   // teks bebas, hanya renewal langsung lunas (wajib terisi, min. 3 karakter; divalidasi service)
-    $table->string('renewal_justification', 500)->nullable();   // hanya renewal langsung lunas: wajib, min. 10 karakter (divalidasi service)
-    $table->unsignedTinyInteger('proof_upload_count')->default(0);   // upload pertama + re-upload; maks 4 (1 + 3 re-upload), dicek di service
+    $table->string('renewal_reason', 150)->nullable();   // catatan Finance (opsional) pada invoice langsung lunas / renewal langsung lunas
+    $table->string('renewal_justification', 500)->nullable();   // LEGACY: tidak lagi diisi frontend (justifikasi dihapus); dipertahankan agar data lama terbaca
+    $table->unsignedTinyInteger('proof_upload_count')->default(0);   // LEGACY: ortu tidak lagi mengunggah bukti (Finance menandai lunas langsung); kolom hanya untuk data lama
 
     $table->unsignedInteger('version')->default(1);
     $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
@@ -827,7 +846,7 @@ Schema::create('invoices', function (Blueprint $table) {
 Status: `unpaid` → (ortu upload) `pending_verification` → Finance `paid` / `rejected` (ortu bisa upload ulang → `pending_verification`, maks 3x re-upload). `void` = invoice **lunas** dibatalkan Finance (aksi modul finance, wajib alasan + pilihan perlakuan kredit, tercatat di `invoice_logs` `voided`); invoice tetap ada (tidak dihapus) dan keluar dari omzet. Void satu arah (tidak ada pembatalan void). Invoice **belum lunas / ditolak** boleh dihapus permanen; invoice **lunas tidak boleh dihapus** (409), koreksinya lewat Void (§6.5).
 
 - **Jenis `assessment`**: diterbitkan Finance (nominal diisi saat terbit, `master_package_id` null, `credits = 0`, tidak membuat `client_packages`). Selama client punya invoice `assessment` yang belum `paid` (`unpaid` / `pending_verification` / `rejected`), semua kuesioner client itu tidak bisa dibuka ortu (§6.5b); dicek lewat `idx_inv_client`.
-- **Jenis `package`**: `amount`, `credits`, `package_name` adalah **snapshot** master paket saat terbit/renewal; mengubah harga master tidak memengaruhi invoice atau paket yang sudah ada. Renewal ada **2 jalur**: (1) *terbitkan invoice baru* = invoice biasa (`unpaid` → verifikasi); (2) *langsung lunas* (Finance) = invoice `paid` dibuat sekaligus, **wajib** `renewal_reason` + `renewal_justification` (juga masuk `invoice_logs.data` pada `renewal_paid`). Satu invoice = satu baris log berurutan: bayar, konversi, dst. tetap dihitung 1 invoice. `purchased` vs `renewed` di ledger ditentukan otomatis dari ada tidaknya paket sebelumnya.
+- **Jenis `package`**: `amount`, `credits`, `package_name` adalah **snapshot** master paket saat terbit/renewal; mengubah harga master tidak memengaruhi invoice atau paket yang sudah ada. Renewal ada **2 jalur**: (1) *terbitkan invoice baru* = invoice biasa (`unpaid` → verifikasi); (2) *langsung lunas* (Finance) = invoice `paid` dibuat sekaligus dengan `renewal_reason` sebagai catatan opsional (juga masuk `invoice_logs.note/data` pada `renewal_paid`). Ortu **tidak** mengunggah bukti: invoice `unpaid` ditandai lunas oleh Finance (`verified`). *Create invoice* juga punya opsi langsung lunas (paket pertama; `is_renewal = 0`). Satu invoice = satu baris log berurutan: bayar, konversi, dst. tetap dihitung 1 invoice. `purchased` vs `renewed` di ledger ditentukan otomatis dari ada tidaknya paket sebelumnya.
 - Tanpa jatuh tempo: pengingat tagihan dilakukan admin manual lewat WhatsApp.
 - **Saldo lebihan**: saat invoice `package` terbit / renewal langsung, `balance_applied = min(clients.leftover_balance, gross)` mengurangi nominal dan saldo client; invoice yang dihapus (permanen) mengembalikan saldo yang dipakainya ke `clients.leftover_balance` (dihitung ulang; lebihan dari konversi yang ikut terhapus hilang). Invoice yang di-**void** mengembalikan saldo yang dipakainya hanya pada pilihan `revoke`; pada `keep` saldo tidak dikembalikan karena paketnya masih dipakai. Paket yang dibuat dari invoice ini memakai **harga gross** sebagai `package_price` (nilai paket utuh).
 
@@ -942,7 +961,7 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->foreignId('client_package_id')->nullable()->constrained()->cascadeOnDelete();   // paket terhapus (hapus client) = ledger-nya ikut
     $table->foreignId('schedule_id')->nullable()->constrained()->nullOnDelete();
     $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'reversal', 'manual_adjust', 'converted_out', 'converted_in']);   // converted_out = −sisa paket lama, converted_in = +sesi paket baru (berbagi conversion_id)
+    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'off_excused', 'off_penalty', 'reversal', 'manual_adjust', 'converted_out', 'converted_in']);   // converted_out = −sisa paket lama, converted_in = +sesi paket baru (berbagi conversion_id)
     $table->foreignId('conversion_id')->nullable()->constrained('package_conversions')->cascadeOnDelete();
     $table->smallInteger('credit_change');            // +N / -1 / 0
     $table->smallInteger('package_balance_after');    // saldo paket setelah mutasi (audit cepat)
@@ -1174,7 +1193,7 @@ Aturan tambahan (diterapkan di frontend demo, `useSessionActions.revertSession`)
 ### 6.4 Buat / pindah sesi (conflict check)
 Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (cabang itu atau semua cabang); seri berulang **melewati** tanggal libur (tidak dibuatkan sesi). Form jadwal asesmen/terapi tidak memilih service (diturunkan dari client).
 
-1. `SELECT … FROM schedules WHERE therapist_id=? AND session_date=? AND status NOT IN ('cancelled','reschedule_pending') FOR UPDATE` (indeks `idx_sch_therapist`).
+1. `SELECT … FROM schedules WHERE therapist_id=? AND session_date=? AND status NOT IN ('cancelled','off','reschedule_pending') FOR UPDATE` (indeks `idx_sch_therapist`).
 2. Cek overlap jam dengan sesi aktif terapis itu (tidak ada konsep jam kerja; bentrok = terapis sudah handle client lain di jam yang sama). Bentrok → 409 dengan daftar sesi bentrok (kecuali `force=true` oleh role yang diizinkan; jejak = `schedules.updated_by`).
 3. Insert/update. Pindah slot (reschedule): isi `prev_*` dari slot sekarang (dan `origin_*` hanya bila masih kosong). Seri berulang: insert batch dalam satu transaksi (`schedule_series` + N `schedules`, tanggal libur dilewati).
 4. Saat **membuat** sesi `type = assessment` dan `clients.status` masih sebelum `assessment_scheduled` (`inquiry` / `service_selected`): update `clients.status = assessment_scheduled` + insert `client_status_histories` (`trigger=assessment_scheduled`) di transaksi yang sama (riwayat = `client_status_histories`). Boleh melompat dari `inquiry` (tidak perlu `service_selected` / kode kuesioner dulu); transisi **otomatis** tidak pernah mundur (perubahan manual bebas, lihat §6.6). Pindah jadwal (reschedule) tidak memicu transisi.
@@ -1191,13 +1210,13 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 4. Tulis `invoice_logs` (`verified` / `rejected`).
 5. **Relink sesi (approve paket & renewal langsung)**: di transaksi yang sama, `UPDATE schedules SET client_package_id = :target WHERE client_id = ? AND type = 'therapy' AND status IN ('scheduled','rescheduled','reschedule_pending') AND session_date >= CURDATE() AND (client_package_id IS NULL OR client_package_id IN (paket client dengan remaining_credit = 0))` (`:target` = paket aktif tertua yang sudah ada, atau paket baru). Sesi riwayat tidak diubah. Frozen tetap turunan dari `credit_balance`, jadi sesi otomatis tidak Frozen lagi. Dilayani `idx_sch_client`.
 
-**Renewal** punya 2 jalur: *terbitkan invoice baru* (= alur invoice biasa di atas) atau **langsung lunas** (Finance; tunai/di tempat): validasi `renewal_reason` + `renewal_justification` wajib (422 bila kosong), lalu satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; `invoice_logs` (`renewal_paid`, `data` memuat alasan & justifikasi). **Koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
+**Renewal** punya 2 jalur: *terbitkan invoice baru* (= alur invoice biasa di atas) atau **langsung lunas** (Finance; tunai/di tempat): `renewal_reason` opsional (catatan), lalu satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; `invoice_logs` (`renewal_paid`, `data` memuat catatan). **Koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
 
 **Void invoice lunas** (`POST /invoices/{id}/void`, modul finance, tanpa `can_delete`; body `reason`, `credit_action` = `keep` | `revoke` wajib bila invoice `package`): satu transaksi. (1) Lock invoice (status harus `paid`; invoice belum lunas dihapus, bukan di-void) lalu `status = void`, `void_reason`, `voided_at/by`, `void_credit_action`; tulis `invoice_logs` `voided`. (2) `keep`: paket, sisa kredit, jadwal tidak berubah (paket tetap menunjuk invoice void sampai ada invoice pengganti). (3) `revoke`: paket hidup di ujung rantai konversi invoice itu → `status = voided`, `remaining_credit = 0`, ledger `manual_adjust` bernilai −sisa (catatan menunjuk invoice), `clients.credit_balance` diperbarui; `clients.leftover_balance += invoices.balance_applied` (saldo lebihan yang dipakai invoice kembali). Sesi `completed` dan laporannya tidak disentuh; sesi **mendatang** (`scheduled`/`rescheduled`/`reschedule_pending`) yang memakai paket itu dipindah (`client_package_id`) ke paket aktif tertua lain milik client, bila tidak ada paket aktif lain `client_package_id = NULL` (sesi Frozen, tidak dihapus). (4) Invoice `void` tidak ikut v_daily_revenue (hanya `status = 'paid'`), tidak masuk antrean verifikasi, dan invoice assessment `void` tidak lagi menahan gating kuesioner.
 
 **Invoice pengganti** (`POST /invoices` atau `POST clients/{id}/renewals` dengan `replaces_invoice_id`; berlaku untuk Buat Tagihan, renewal invoice baru, dan renewal langsung lunas): bila client punya invoice `void` ber-`void_credit_action = keep` yang paketnya belum diambil alih, Finance **wajib memilih** (tanpa default) invoice baru ini menggantikan salah satunya atau pembelian paket baru. Saat invoice pengganti di-verifikasi (`paid`) atau renewal langsung dibuat `paid`, service **tidak** membuat `client_packages` baru dan tidak menambah kredit: `client_packages.invoice_id` paket lama dipindah ke invoice pengganti (`package_price` diperbarui ke nominal gross), `invoice_logs` `verified` mencatat penggantian. `replaces_invoice_id` UNIQUE mencegah satu invoice void diganti dua kali.
 
-**Konversi paket** (`POST /invoices/{id}/convert-package`, modul finance; body `target_package_id`, `sessions?`, `reason?`): satu transaksi.
+**Konversi paket** (`POST /invoices/{id}/convert-package`, modul finance; body `target_package_id`, `sessions?`, `reason` wajib): satu transaksi.
 1. Lock invoice + paket hidup invoice itu (ikuti rantai `converted_to_package_id`); invoice harus `paid`, `invoice_type = package`, paket `active` dengan `remaining_credit > 0`.
 2. Hitung: `remaining_value = remaining × (harga bayar paket ÷ total_credit)`; `max = floor(remaining_value ÷ harga per sesi tujuan)`. `sessions` kosong → otomatis = `max`; diisi → manual (`reason` wajib), 1 ≤ sessions ≤ `max` (**tidak boleh ada kekurangan bayar**). `leftover = remaining_value − sessions × harga per sesi tujuan`. 422 bila `max < 1`.
 3. Paket lama → `converted` (`remaining_credit = 0`); paket baru (`converted_from_package_id`, `package_price = sessions × harga per sesi tujuan`, **`cancel_count` disalin dari paket lama**); ledger `converted_out` (−sisa) + `converted_in` (+sessions) dengan `conversion_id`; update `clients.credit_balance`; `clients.leftover_balance += leftover`.
@@ -1280,6 +1299,8 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `schedules[].creditPackageId` | `schedules.client_package_id` |
 | `schedules[].rescheduledFrom{…}` | `schedules.origin_date / origin_start_time / origin_end_time / origin_therapist_id` |
 | `schedules[].bookingNote / cancelNote` (dulu satu field `notes`) | `schedules.booking_note / cancel_note` |
+| `schedules[].historyNote / historyNoteBy` | `schedules.history_note / history_note_by` |
+| `staffUsers[].allBranches` | `users.all_branches` |
 | `schedules[].pendingFrom / pendingReason / pendingNote` | slot tetap + `pending_reason / pending_note / pending_at` |
 | `schedules[].activitySection / noteSection / homeworkSection` | `session_reports.*` |
 | `schedules[].recurrenceRule / isRecurring` | `schedule_series` + `schedules.series_id` |
@@ -1301,7 +1322,8 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `therapists[]` + `staffUsers[]` | `users` |
 | `rolesList[]` / `rbacPermissions` | `roles` / `role_permissions` (+ `access_modules`) |
 | `master_services` / `master_quadrants` | `services` / `sensory_quadrants` |
-| `master_cancel_reasons`, `master_discharge_reasons` (+ `DEFAULT_*` seed) | `cancel_reasons`, `discharge_reasons` (pilihan cepat; kolom transaksi = string, tanpa FK) |
+| `master_cancel_reasons`, `master_off_reasons`, `master_discharge_reasons` (+ `DEFAULT_*` seed) | `cancel_reasons`, `off_reasons`, `discharge_reasons` (pilihan cepat; kolom transaksi = string, tanpa FK) |
+| `schedules[].offReason / offNote` | `schedules.off_reason / off_note` |
 | dashboard (hitung di `useMemo`) | view `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage` |
 
 Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services/http/httpClient.js`.
@@ -1319,7 +1341,7 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 | `client_packages.status` | `active, depleted, converted, voided` (paket tanpa masa berlaku; `converted` = sisa sesi sudah dikonversi; `voided` = sisa kredit dicabut karena invoice di-void) | Tidak ada status `expired` |
 | Hapus data | Permanen dengan FK `CASCADE`; master ber-FK yang dipakai `RESTRICT`; invoice lunas tidak dihapus (di-void) | `deletedAt/deletedBy` dibuang dari store; hook use-case melakukan cascade (ADR 0005) |
 | Void invoice | `invoices.status = void` + `void_credit_action` (`keep`/`revoke`); kredit dicabut lewat ledger `manual_adjust` | Dialog Void + invoice pengganti (`ReplacementChoice`) |
-| `credit_ledger.action` | `purchased, renewed, used, cancel_excused, cancel_penalty, reversal, manual_adjust, converted_out, converted_in` | Tidak ada |
+| `credit_ledger.action` | `purchased, renewed, used, cancel_excused, cancel_penalty, off_excused, off_penalty, reversal, manual_adjust, converted_out, converted_in` | Tidak ada |
 | Revert sesi | `POST /schedules/{id}/revert`, hanya 1x (`reverted_at`); reschedule → slot `prev_*` | Blokir revert kedua; simpan riwayat slot (`prev_*`) |
 
 ---

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { Link, useSearchParams } from "react-router-dom";
 import { FileCheck2, Clock, Users, CalendarDays } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -313,22 +314,15 @@ export default function TherapistSummary() {
         </FilterField>
 
         <FilterField label="Client">
-          <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="border-slate-200 bg-slate-50" aria-label="Filter client">
-              <SelectValue placeholder="Pilih Client" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200">
-              <SelectItem value="all">Semua Client ({myClients.length})</SelectItem>
-              {myClients.map((c) => {
-                const pending = clientPendingCounts[c.id] || 0;
-                return (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.clientName} {pending > 0 ? `(${pending} belum lengkap)` : ""}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+          <ClientCombobox
+            clients={myClients}
+            value={clientFilter}
+            onChange={setClientFilter}
+            allOption={{ value: "all", label: `Semua Client (${myClients.length})` }}
+            placeholder="Pilih Client"
+            testId="summary-client-filter"
+            renderMeta={(c) => ((clientPendingCounts[c.id] || 0) > 0 ? `${clientPendingCounts[c.id]} belum lengkap` : <span className="font-mono">{c.clientCode}</span>)}
+          />
         </FilterField>
 
         {activeTab === "sessions" && (

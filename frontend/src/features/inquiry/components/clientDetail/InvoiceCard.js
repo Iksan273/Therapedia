@@ -1,4 +1,5 @@
 import React from "react";
+import { invoicePackageName } from "@/domain/credit";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/utils";
 import { fmtCurrency, fmtDate } from "@/shared/lib/format";
@@ -44,7 +45,7 @@ export function InvoiceCard({ latestInvoice, setProofModalOpen }) {
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <p className="font-bold text-slate-900">
-                    {latestInvoice.invoiceNumber} — {latestInvoice.packageName}
+                    {latestInvoice.invoiceNumber} — {invoicePackageName(latestInvoice)}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     Nominal: {fmtCurrency(latestInvoice.amount)} • Terbit: {fmtDate(latestInvoice.createdAt)}

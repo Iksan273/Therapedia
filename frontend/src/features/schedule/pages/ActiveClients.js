@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useMemo, useState } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -44,7 +45,7 @@ export default function ActiveClients() {
   const { activeBranch, auth } = useAuth();
   const { reactivate } = useClientOutcomeActions();
   const { confirm, confirmDialog } = useConfirm();
-  const isMaster = auth?.role === "master";
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
 
   const [activeTab, setActiveTab] = useState("roster"); // roster | birthday | analytics

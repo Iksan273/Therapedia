@@ -9,6 +9,7 @@ import { Switch } from "@/shared/ui/switch";
 import { Button } from "@/shared/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { fmtCurrency } from "@/shared/lib/format";
+import { invoicePackageName, packageBaseName } from "@/domain/credit";
 import { useCredits } from "@/stores/creditsStore";
 import { usePackageConversionActions } from "@/features/finance/hooks/usePackageConversionActions";
 
@@ -16,7 +17,7 @@ import { usePackageConversionActions } from "@/features/finance/hooks/usePackage
 // manual = Finance mengisi jumlah sesi (tidak boleh melebihi nilai sisa, alasan wajib). Lebihan rupiah → saldo client.
 export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
   const { getMasterPackages, getCreditBalance } = useCredits();
-  const { previewConversion, convertInvoicePackage, upcomingSchedules } = usePackageConversionActions();
+  const { previewConversion, convertInvoicePackage, upcomingSchedules, sourceInfo } = usePackageConversionActions();
   const [targetId, setTargetId] = useState("");
   const [manual, setManual] = useState(false);
   const [sessions, setSessions] = useState("");
@@ -35,6 +36,8 @@ export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
   const target = targets.find((p) => p.id === targetId) || null;
   const auto = target && invoice ? previewConversion({ invoice, target }) : null;
   const preview = target && invoice ? previewConversion({ invoice, target, sessions: manual ? sessions : null }) : null;
+  const src = invoice ? sourceInfo(invoice) : null;
+  const sourceLabel = src ? `${packageBaseName(src.name)} (sisa ${src.remainingCredit} sesi)` : "";
   const upcoming = invoice ? upcomingSchedules(invoice.clientId).length : 0;
   const balance = invoice ? getCreditBalance(invoice.clientId) : 0;
 
@@ -61,7 +64,7 @@ export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
             <ArrowRightLeft className="w-5 h-5 text-sky-600" /> Konversi Paket
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            {invoice ? `${invoice.invoiceNumber} • ${invoice.clientName} • ${invoice.packageName}` : ""}
+            {invoice ? `${invoice.invoiceNumber} • ${invoice.clientName} • ${invoicePackageName(invoice)}` : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -95,10 +98,14 @@ export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
                 <Label className="text-xs font-bold text-slate-700">Jumlah sesi{auto?.ok ? ` (maks ${auto.maxSessions})` : ""} *</Label>
                 <Input type="number" min={1} className="border-slate-200 bg-slate-50 text-xs font-bold" value={sessions} onChange={(e) => setSessions(e.target.value)} data-testid="convert-sessions-input" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-bold text-slate-700">Alasan *</Label>
-                <Textarea rows={2} className="border-slate-200 bg-slate-50 text-xs" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Mis. kesepakatan dengan orang tua" data-testid="convert-reason-input" />
-              </div>
+            </div>
+          )}
+
+          {target && (
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Catatan Finance *</Label>
+              <Textarea rows={2} className="border-slate-200 bg-slate-50 text-xs" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={manual ? "Mis. kesepakatan dengan orang tua" : "Mis. ortu minta pindah ke paket Regular"} data-testid="convert-reason-input" />
+              <p className="text-[11px] text-slate-500">Catatan ini tampil di log invoice.</p>
             </div>
           )}
 
@@ -109,6 +116,7 @@ export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
                   <p className="flex justify-between"><span className="text-slate-600">Nilai sisa paket asal</span><b className="tabular-nums">{fmtCurrency(preview.remainingValue)}</b></p>
                   <p className="flex justify-between"><span className="text-slate-600">Harga per sesi tujuan</span><b className="tabular-nums">{fmtCurrency(preview.targetUnit)}</b></p>
                   <p className="flex justify-between"><span className="text-slate-600">Sesi di paket baru</span><b className="tabular-nums">{preview.sessions} sesi</b></p>
+                  <p className="flex justify-between gap-3" data-testid="convert-preview-package"><span className="text-slate-600 shrink-0">Paket client</span><b className="text-right">{sourceLabel} → {target.name} ({preview.sessions} sesi)</b></p>
                   <p className="flex justify-between"><span className="text-slate-600">Lebihan → saldo client</span><b className="tabular-nums">{fmtCurrency(preview.leftover)}</b></p>
                   {balance > 0 && <p className="text-[11px] text-slate-500">Saldo client saat ini {fmtCurrency(balance)}; dipotong dari invoice paket berikutnya.</p>}
                 </>
@@ -129,7 +137,7 @@ export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
 
           <DialogFooter className="mt-4 gap-2">
             <Button type="button" variant="outline" className="border-slate-200" onClick={() => onOpenChange(false)}>Batal</Button>
-            <Button type="submit" disabled={!preview?.ok} className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="convert-submit">
+            <Button type="submit" disabled={!preview?.ok || !reason.trim()} className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="convert-submit">
               Konversi Paket
             </Button>
           </DialogFooter>

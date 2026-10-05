@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, ClipboardList } from "lucide-react";
@@ -34,7 +35,7 @@ export default function InquiryPipeline() {
   const { clients, addClient } = useClients();
   const { activeServices, getService } = useMasterData();
   const { activeBranch, auth } = useAuth();
-  const isMaster = auth?.role === "master";
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
 
   const { values: filters, setFilter, reset: resetFilters } = useUrlFilters({

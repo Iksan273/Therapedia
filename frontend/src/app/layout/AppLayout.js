@@ -1,4 +1,5 @@
 import React, { Suspense, useState, useEffect } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Home, RotateCcw, LogOut, Menu, UserCircle2, Building2, ShieldAlert, PanelLeftClose, PanelLeftOpen, Maximize2, Minimize2, Expand, Shrink } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -284,7 +285,7 @@ const AppLayout = () => {
   };
 
   const isStaff = ["master", "manager", "admin_inquiry", "admin_schedule", "finance", "therapist"].includes(auth.role);
-  const canSwitchBranch = auth.role === "master";
+  const canSwitchBranch = hasAllBranchAccess(auth);
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

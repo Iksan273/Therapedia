@@ -14,6 +14,7 @@ export const STATUS_META = {
   scheduled: { label: "Scheduled", cls: "bg-sky-50 text-sky-700 border border-sky-200/70" },
   completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
   cancelled: { label: "Cancelled", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
+  off: { label: "Off", cls: "bg-violet-50 text-violet-700 border border-violet-200/70" },
   rescheduled: { label: "Rescheduled (Sudah Pindah)", cls: "bg-amber-50 text-amber-700 border border-amber-200/70" },
   reschedule_pending: { label: "Reschedule – Belum Ada Jadwal", cls: "bg-orange-50 text-orange-800 border border-dashed border-orange-300" },
   unpaid: { label: "Belum Lunas", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },

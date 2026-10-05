@@ -8,7 +8,7 @@ Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login
 | Pintu masuk | Route | Cara |
 |---|---|---|
 | Welcome (pemilih portal) | `/` | `features/auth/pages/Welcome.js` |
-| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan** (non-master terikat 1 cabang; hanya master yang melihat semua cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
+| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan atau "Semua Cabang"** (`allBranches`; tanpa itu terikat 1 cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
 | Login form | `/login` | `features/auth/pages/Login.js`: email + password staf (preset demo memakai password demo `Therapedia2026!`); ortu dengan kode client |
 | Kuesioner ortu (publik) | `/assessment` | `features/assessment/pages/AssessmentFill.js`, kode kuesioner `{kode jenis asesmen}-{acak}` (mis. `SP2-K7M4QX`); `?code=` mengisi kolom kode |
 | Landing marketing | `/landing`, `/home` | `features/landing/pages/Home.js` |
@@ -24,7 +24,7 @@ Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login
 | `therapist` | Therapist | Data miliknya (`auth.therapistId`) | `/therapist` |
 | `client` | Orang tua | Data anaknya (`auth.clientId`) | `/client` |
 
-Role sistem = `SYSTEM_ROLE_IDS` di `domain/rbac.js`. Role lain = **role kustom** buatan Master di `/master/rbac`. **Semua akun non-master terikat tepat 1 cabang** (terapis juga); hanya Master yang boleh semua cabang (`validateStaffBranch`).
+Role sistem = `SYSTEM_ROLE_IDS` di `domain/rbac.js`. Role lain = **role kustom** buatan Master di `/master/rbac`. Akun non-master terikat tepat 1 cabang, **kecuali** Master mencentang **Akses semua cabang** (`allBranches`) di User Management (berlaku untuk semua role non-master, termasuk terapis dan role kustom): akun itu berperilaku seperti Master untuk cabang (filter semua cabang, ganti `activeBranch`) memakai `hasAllBranchAccess(auth)` di `domain/auth.js` (`validateStaffBranch(role, branchId, allBranches)`).
 
 ## Konfigurasi route (`frontend/src/app/router/routes.js`)
 Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
@@ -68,7 +68,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | Tabel backend | `roles`, `access_modules`, `role_permissions` (`schema.md` §04-A) |
 
 ## Scoping cabang
-- `activeBranch` (`"all"` atau id cabang) di `useAuth()`. Non-master otomatis dikunci ke `auth.branchId`.
+- `activeBranch` (`"all"` atau id cabang) di `useAuth()`. Akun tanpa akses semua cabang otomatis dikunci ke `auth.branchId`. Pada halaman, `isMaster = hasAllBranchAccess(auth)`.
 - Pola standar halaman list/dashboard:
   ```js
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");

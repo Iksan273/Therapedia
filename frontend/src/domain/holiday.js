@@ -33,11 +33,11 @@ export const isHoliday = (holidays, date, branchId = null) => Boolean(findHolida
 // Set tanggal (yyyy-MM-dd) libur untuk cabang tertentu (dipakai generator jadwal berulang).
 export const holidayDateSet = (holidays, branchId = null) => new Set(holidaysForBranch(holidays, branchId).map((h) => h.date));
 
-// Validasi tambah libur: tanggal & nama wajib, tidak duplikat pada cakupan yang sama. Mengembalikan pesan error atau null.
-export const validateHoliday = (holidays, { date, name, branchId = null }) => {
+// Validasi tambah/ubah libur (`excludeId` = libur yang sedang diubah): tanggal & nama wajib, tidak duplikat pada cakupan yang sama. Mengembalikan pesan error atau null.
+export const validateHoliday = (holidays, { date, name, branchId = null, excludeId = null }) => {
   if (!date) return "Tanggal libur wajib diisi.";
   if (!String(name || "").trim()) return "Nama hari libur wajib diisi.";
-  const dup = holidays.some((h) => h.date === date && (h.branchId || null) === (branchId || null));
+  const dup = holidays.some((h) => h.id !== excludeId && h.date === date && (h.branchId || null) === (branchId || null));
   return dup ? "Tanggal ini sudah terdaftar sebagai hari libur." : null;
 };
 

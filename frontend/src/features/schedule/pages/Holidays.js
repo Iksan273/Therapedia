@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { toast } from "sonner";
-import { CalendarOff, Plus } from "lucide-react";
+import { CalendarOff, Pencil, Plus } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
@@ -21,13 +22,15 @@ import { todayStr } from "@/shared/lib/id";
 // Pengaturan hari libur: jadwal berulang melewati tanggal libur dan kalender tidak bisa memilihnya.
 // Menambah libur tidak mengubah sesi yang sudah ada (hanya diberi penanda jumlah sesi terdampak).
 export default function Holidays() {
-  const { holidays, addHoliday, removeHoliday } = useHolidays();
+  const { holidays, addHoliday, updateHoliday, removeHoliday } = useHolidays();
   const { schedules } = useSchedules();
   const { auth } = useAuth();
-  const isMaster = auth?.role === "master";
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
 
   // Master boleh libur semua cabang; role lain terkunci ke cabangnya
-  const [form, setForm] = useState({ date: "", name: "", scope: isMaster ? "all" : auth?.branchId || "all" });
+  const emptyForm = { date: "", name: "", scope: isMaster ? "all" : auth?.branchId || "all" };
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null); // id libur yang sedang diubah (null = tambah baru)
 
   const visible = useMemo(
     () =>
@@ -47,9 +50,16 @@ export default function Holidays() {
   const handleAdd = (e) => {
     e.preventDefault();
     const branchId = form.scope === "all" ? null : form.scope;
-    const error = validateHoliday(holidays, { date: form.date, name: form.name, branchId });
+    const error = validateHoliday(holidays, { date: form.date, name: form.name, branchId, excludeId: editingId });
     if (error) {
       toast.error(error);
+      return;
+    }
+    if (editingId) {
+      updateHoliday(editingId, { date: form.date, name: form.name.trim(), branchId });
+      toast.success("Hari libur diperbarui. Sesi yang sudah dibuat tidak berubah otomatis.");
+      setEditingId(null);
+      setForm(emptyForm);
       return;
     }
     const holiday = makeHoliday({ date: form.date, name: form.name, branchId });
@@ -80,7 +90,7 @@ export default function Holidays() {
 
       <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
         <CardContent className="p-4 sm:p-5">
-          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr_auto] gap-3 items-end" data-testid="holiday-form">
+          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr_auto_auto] gap-3 items-end" data-testid="holiday-form">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Tanggal *</Label>
               <Input type="date" className="border-slate-200 bg-slate-50 text-xs font-semibold" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="holiday-date-input" />
@@ -106,8 +116,13 @@ export default function Holidays() {
               </Select>
             </div>
             <Button type="submit" className="bg-rose-600 hover:bg-rose-700 text-white font-bold gap-1.5" data-testid="holiday-add-button">
-              <Plus className="w-4 h-4" /> Tambah
+              {editingId ? "Simpan" : <><Plus className="w-4 h-4" /> Tambah</>}
             </Button>
+            {editingId && (
+              <Button type="button" variant="outline" className="border-slate-200 font-bold" onClick={() => { setEditingId(null); setForm(emptyForm); }} data-testid="holiday-cancel-edit">
+                Batal
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -146,7 +161,22 @@ export default function Holidays() {
                           <span className="text-slate-400">—</span>
                         )}
                       </TableCell>
-                      <TableCell data-nolabel className="text-right pr-6">
+                      <TableCell data-nolabel className="text-right pr-6 whitespace-nowrap">
+                        <Button
+                          aria-label={`Edit hari libur ${h.name}`}
+                          size="icon"
+                          variant="ghost"
+                          className="text-slate-400 hover:text-sky-700 hover:bg-sky-50 cursor-pointer"
+                          onClick={() => {
+                            setEditingId(h.id);
+                            setForm({ date: h.date, name: h.name, scope: h.branchId || "all" });
+                            window.scrollTo?.({ top: 0, behavior: "smooth" });
+                          }}
+                          title="Edit hari libur"
+                          data-testid={`edit-holiday-${h.id}`}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
                         <DeleteButton
                           module="holidays"
                           iconOnly

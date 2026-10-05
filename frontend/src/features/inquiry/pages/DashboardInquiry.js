@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { useNavigate } from "react-router-dom";
 import { format, subMonths } from "date-fns";
 import { ClipboardList, UserX, ArrowRight, Clock } from "lucide-react";
@@ -47,7 +48,7 @@ export default function DashboardInquiry() {
   const { services, activeServices, getService } = useMasterData();
   const { activeBranch, auth } = useAuth();
 
-  const isMaster = auth?.role === "master";
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
   const defaultBranch = !isMaster && auth?.branchId
     ? auth.branchId
     : (activeBranch && activeBranch !== "all" ? activeBranch : (!isMaster ? "branch-sby-timur" : "all"));

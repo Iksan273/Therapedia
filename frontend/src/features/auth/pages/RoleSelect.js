@@ -69,11 +69,31 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
   </motion.div>
 );
 
-// Role staf non-master terikat TEPAT 1 cabang (keputusan klien): demo meminta cabang dulu agar filter/data sesuai cabang itu.
+// Tombol "Semua Cabang": akun dengan akses semua cabang (allBranches), seperti Master untuk cakupan data.
+function AllBranchesButton({ role, staffName, path, enterRole }) {
+  return (
+    <Button
+      size="lg"
+      variant="outline"
+      className="justify-between bg-sky-50 hover:bg-sky-100 hover:text-sky-900 hover:border-sky-300 border-sky-200 px-3.5 text-left"
+      onClick={() => enterRole({ role, allBranches: true, staffName: `${staffName} • Semua Cabang` }, path)}
+      data-testid={`role-branch-${role}-all`}
+    >
+      <div className="flex items-center gap-2.5">
+        <Building2 className="w-4 h-4 text-sky-600" />
+        <span className="font-bold text-xs text-slate-800">Semua Cabang</span>
+      </div>
+      <span className="text-[11px] text-slate-500 font-medium">Akses semua cabang</span>
+    </Button>
+  );
+}
+
+// Role staf non-master terikat 1 cabang, atau semua cabang bila akunnya diberi akses itu (keputusan klien): demo meminta cabang dulu agar filter/data sesuai cabang itu.
 function BranchPicker({ role, staffName, path, enterRole }) {
   return (
     <div className="grid gap-2 p-3 rounded-2xl bg-white border border-sky-200 shadow-sm ml-2 sm:ml-4 animate-in fade-in slide-in-from-top-2 duration-200" data-testid={`role-branch-picker-${role}`}>
       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Pilih Cabang Penugasan:</p>
+      <AllBranchesButton role={role} staffName={staffName} path={path} enterRole={enterRole} />
       {activeBranches().map((b) => (
         <Button
           size="lg"
@@ -109,6 +129,8 @@ export default function RoleSelect() {
     login(payload);
     if (payload.branchId) {
       setActiveBranch(payload.branchId);
+    } else if (payload.allBranches) {
+      setActiveBranch("all");
     }
     navigate(path);
   };
@@ -220,6 +242,7 @@ export default function RoleSelect() {
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
                   Pilih Cabang yang Dikelola:
                 </p>
+                <AllBranchesButton role="manager" staffName="Manager" path="/manager/revenue" enterRole={enterRole} />
                 {activeBranches().map((b) => (
                   <Button size="lg"
                     key={b.id}

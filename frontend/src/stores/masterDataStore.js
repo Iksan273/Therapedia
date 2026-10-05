@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
 import { DEFAULT_DISCHARGE_REASONS, INTAKE_SERVICES, dischargeReasonLabel } from "@/domain/client";
-import { DEFAULT_CANCEL_REASONS, cancelReasonLabel } from "@/domain/schedule";
+import { DEFAULT_CANCEL_REASONS, DEFAULT_OFF_REASONS, cancelReasonLabel, offReasonLabel } from "@/domain/schedule";
 
 const MasterDataContext = createContext(null);
 
@@ -101,6 +101,7 @@ const SEED_QUADRANTS = [
 const seedServices = () => INTAKE_SERVICES.map((s) => ({ ...s, active: true }));
 const seedQuadrants = () => SEED_QUADRANTS.map((q) => ({ ...q }));
 const seedCancelReasons = () => DEFAULT_CANCEL_REASONS.map((r) => ({ ...r, active: true }));
+const seedOffReasons = () => DEFAULT_OFF_REASONS.map((r) => ({ ...r, active: true }));
 const seedDischargeReasons = () => DEFAULT_DISCHARGE_REASONS.map((r) => ({ ...r, active: true }));
 
 // Reducer generik untuk daftar master yang dikunci oleh `idKey`.
@@ -125,6 +126,7 @@ export const MasterDataProvider = ({ children }) => {
   const [services, dispatchServices] = usePersistentReducer("master_services", servicesReducer, seedServices);
   const [quadrants, dispatchQuadrants] = usePersistentReducer("master_quadrants", quadrantsReducer, seedQuadrants);
   const [cancelReasons, dispatchCancel] = usePersistentReducer("master_cancel_reasons", reasonsReducer, seedCancelReasons);
+  const [offReasons, dispatchOff] = usePersistentReducer("master_off_reasons", reasonsReducer, seedOffReasons);
   const [dischargeReasons, dispatchDischarge] = usePersistentReducer("master_discharge_reasons", reasonsReducer, seedDischargeReasons);
 
   const value = useMemo(() => {
@@ -153,6 +155,14 @@ export const MasterDataProvider = ({ children }) => {
       updateCancelReason: (id, patch) => dispatchCancel({ type: "UPDATE", id, patch }),
       deleteCancelReason: (id) => dispatchCancel({ type: "DELETE", id }),
 
+      // Pilihan cepat alasan Off sesi (OL, S, SCA, MCU, FM, TI, H, ...); sifatnya hanya combo box cepat, teks bebas tetap boleh
+      offReasons,
+      activeOffReasons: offReasons.filter((r) => r.active !== false),
+      getOffReasonLabel: (val) => offReasonLabel(val, offReasons),
+      addOffReason: (item) => dispatchOff({ type: "ADD", item }),
+      updateOffReason: (id, patch) => dispatchOff({ type: "UPDATE", id, patch }),
+      deleteOffReason: (id) => dispatchOff({ type: "DELETE", id }),
+
       dischargeReasons,
       activeDischargeReasons: dischargeReasons.filter((r) => r.active !== false),
       getDischargeReasonLabel: (val) => dischargeReasonLabel(val, dischargeReasons),
@@ -160,7 +170,7 @@ export const MasterDataProvider = ({ children }) => {
       updateDischargeReason: (id, patch) => dispatchDischarge({ type: "UPDATE", id, patch }),
       deleteDischargeReason: (id) => dispatchDischarge({ type: "DELETE", id }),
     };
-  }, [services, quadrants, cancelReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchDischarge]);
+  }, [services, quadrants, cancelReasons, offReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchOff, dispatchDischarge]);
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
 };

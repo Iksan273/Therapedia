@@ -5,16 +5,16 @@ import { Label } from "@/shared/ui/label";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 
-export function NewPackageDialog({ handleAddMasterPackageSubmit, newPkgForm, newPkgOpen, setNewPkgForm, setNewPkgOpen }) {
+export function NewPackageDialog({ handleAddMasterPackageSubmit, newPkgForm, newPkgOpen, setNewPkgForm, setNewPkgOpen, isEdit = false }) {
   return (
     <Dialog open={newPkgOpen} onOpenChange={setNewPkgOpen}>
         <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Package className="w-5 h-5 text-sky-600" /> Tambah Paket Kredit Baru
+              <Package className="w-5 h-5 text-sky-600" /> {isEdit ? "Edit Paket Kredit" : "Tambah Paket Kredit Baru"}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Buat definisi paket layanan baru yang dapat dibeli oleh client.
+              {isEdit ? "Perubahan berlaku untuk invoice berikutnya. Invoice & paket client yang sudah terbit memakai snapshot lama dan tidak berubah." : "Buat definisi paket layanan baru yang dapat dibeli oleh client."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMasterPackageSubmit} className="space-y-3.5 pt-2">
@@ -77,7 +77,7 @@ export function NewPackageDialog({ handleAddMasterPackageSubmit, newPkgForm, new
                 Batal
               </Button>
               <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
-                Simpan Paket Baru
+                {isEdit ? "Simpan Perubahan" : "Simpan Paket Baru"}
               </Button>
             </DialogFooter>
           </form>

@@ -76,5 +76,12 @@ export const checkStaffCredentials = (staff, password) => {
   return { ok: true, mustChangePassword: Boolean(staff.mustChangePassword) };
 };
 
-// Staf non-master terikat TEPAT satu cabang; hanya master yang boleh tanpa cabang (semua cabang).
-export const validateStaffBranch = (role, branchId) => (role !== "master" && !branchId ? "Cabang wajib dipilih (hanya Master yang boleh semua cabang)." : null);
+// Akses semua cabang: Master selalu; role lain bila akunnya diberi `allBranches` (diatur Master di User Management).
+export const hasAllBranchAccess = (user) => user?.role === "master" || Boolean(user?.allBranches);
+
+// Staf non-master (semua role, termasuk terapis & role kustom) terikat TEPAT satu cabang, kecuali akunnya diberi akses semua cabang (`allBranches`).
+export const validateStaffBranch = (role, branchId, allBranches = false) => {
+  if (role === "master" || branchId) return null;
+  if (allBranches) return null;
+  return "Cabang wajib dipilih (atau aktifkan Akses semua cabang).";
+};

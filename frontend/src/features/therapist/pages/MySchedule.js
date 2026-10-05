@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { Link } from "react-router-dom";
 import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
 import { ChevronLeft, ChevronRight, Stethoscope, ExternalLink, User, BookOpen, ClipboardCheck, FileCheck2 } from "lucide-react";
@@ -53,7 +54,7 @@ export default function MySchedule() {
     const total = mySchedules.length;
     const filled = mySchedules.filter((s) => s.activitySection || s.noteSection || s.progressNote || s.homeworkSection).length;
     const pending = mySchedules.filter(
-      (s) => !s.activitySection && !s.noteSection && !s.progressNote && !s.homeworkSection && s.status !== "cancelled"
+      (s) => !s.activitySection && !s.noteSection && !s.progressNote && !s.homeworkSection && s.status !== "cancelled" && s.status !== "off"
     ).length;
     return { total, filled, pending };
   }, [mySchedules]);
@@ -62,7 +63,7 @@ export default function MySchedule() {
   const displayedSchedules = useMemo(() => {
     return mySchedules.filter((s) => {
       const hasReport = Boolean(s.activitySection || s.noteSection || s.progressNote || s.homeworkSection);
-      if (reportFilter === "pending") return !hasReport && s.status !== "cancelled";
+      if (reportFilter === "pending") return !hasReport && s.status !== "cancelled" && s.status !== "off";
       if (reportFilter === "filled") return hasReport;
       return true;
     });
@@ -128,20 +129,9 @@ export default function MySchedule() {
           onChange={setSearch}
           data-testid="my-schedule-search"
         />
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="w-full sm:w-64 bg-white border-slate-200/90 text-xs font-bold text-slate-800 shadow-2xs" aria-label="Filter client">
-            <User className="w-4 h-4 text-sky-600 shrink-0 mr-2" />
-            <SelectValue placeholder="Filter Client" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl border-slate-200">
-            <SelectItem value="all">Semua Client Saya ({myClients.length})</SelectItem>
-            {myClients.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.clientName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-full sm:w-64">
+          <ClientCombobox clients={myClients} value={clientFilter} onChange={setClientFilter} allOption={{ value: "all", label: `Semua Client Saya (${myClients.length})` }} placeholder="Filter Client" testId="my-schedule-client-filter" />
+        </div>
       </div>
 
       {/* Date & View Controls */}

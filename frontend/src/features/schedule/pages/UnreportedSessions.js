@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { FileWarning } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
@@ -27,7 +28,7 @@ export default function UnreportedSessions() {
   const { getClient } = useClients();
   const { therapists, getTherapist } = useTherapists();
   const { activeBranch, auth } = useAuth();
-  const isMaster = auth?.role === "master";
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
   const defaultBranch = isMaster ? activeBranch || "all" : auth?.branchId || activeBranch || "branch-sby-timur";
 
   const { values: filters, setFilter, reset } = useUrlFilters({ q: "", branch: defaultBranch, therapist: "all", from: "", to: "" });

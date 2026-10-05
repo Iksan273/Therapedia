@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Portal ortu: View Report nonaktif bila laporan kosong, daftar kuesioner belum diisi, dan invoice assessment menahan akses.
+// Portal ortu: View Report nonaktif bila laporan kosong; kode kuesioner // Portal ortu: View Report nonaktif bila laporan kosong, daftar kuesioner belum diisi, dan invoice assessment menahan akses. upload bukti bayar tidak ditampilkan.
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
@@ -64,38 +64,18 @@ test("View Report nonaktif untuk sesi completed tanpa laporan, aktif bila lapora
   expect(q(`export-report-${second.id}`).disabled).toBe(false);
 });
 
-test("kuesioner belum diisi tampil; invoice assessment belum lunas mengunci, lunas membuka", async () => {
+test("kode kuesioner tidak ditampilkan di portal ortu (admin kirim kode lewat WhatsApp) dan tidak ada upload bukti bayar", async () => {
   const client = ctx.clients.clients.find((c) => c.status === "service_selected" || c.status === "assessment_scheduled");
   const code = { code: "SP2-ABC234", categoryId: "cat-001", name: "Child Sensory Profile 2", status: "issued", expiresAt: null };
   await act(async () => ctx.clients.updateClient(client.id, { assessmentCodes: [code], assessmentAnswers: [] }));
-  await act(async () => ctx.auth.login({ role: "client", clientId: client.id }));
-
-  expect(q("parent-questionnaires-card")).toBeTruthy();
-  expect(q("fill-questionnaire-SP2-ABC234")).toBeTruthy();
-  expect(q("questionnaire-locked-SP2-ABC234")).toBeNull();
-
-  // Finance menerbitkan invoice assessment → kuesioner terkunci
   await act(async () =>
-    ctx.credits.issueInvoice({ clientId: client.id, clientName: client.clientName, branchId: client.branchId, type: "assessment", typeCode: "ASM", packageName: "Assessment", credits: 0, amount: 350000 })
+    ctx.credits.issueInvoice({ clientId: client.id, clientName: client.clientName, branchId: client.branchId, type: "package", typeCode: "REG", packageName: "Paket", credits: 10, amount: 350000 })
   );
-  expect(q("questionnaire-locked-SP2-ABC234")).toBeTruthy();
-  expect(q("fill-questionnaire-SP2-ABC234")).toBeNull();
-  expect(container.textContent).toMatch(/INV-ASM-/);
-
-  // Finance memverifikasi pembayaran → kuesioner terbuka lagi
-  const invoice = ctx.credits.getInvoicesForClient(client.id).find((i) => i.type === "assessment");
-  await act(async () => ctx.credits.verifyPaymentProof({ invoiceId: invoice.id, status: "paid" }));
-  expect(q("questionnaire-locked-SP2-ABC234")).toBeNull();
-  expect(q("fill-questionnaire-SP2-ABC234")).toBeTruthy();
-  // invoice assessment tidak membuat paket kredit
-  expect((ctx.credits.getRecordForClient(client.id)?.packages || []).some((p) => p.packageName === "Assessment")).toBe(false);
-});
-
-test("kode kedaluwarsa tidak bisa dibuka dari portal ortu", async () => {
-  const client = ctx.clients.clients.find((c) => c.status === "service_selected" || c.status === "assessment_scheduled");
-  const expired = { code: "SP2-OLD234", categoryId: "cat-001", name: "Child Sensory Profile 2", status: "issued", expiresAt: "2020-01-01T00:00:00.000Z" };
-  await act(async () => ctx.clients.updateClient(client.id, { assessmentCodes: [expired], assessmentAnswers: [] }));
   await act(async () => ctx.auth.login({ role: "client", clientId: client.id }));
-  expect(q("questionnaire-locked-SP2-OLD234")).toBeTruthy();
-  expect(q("fill-questionnaire-SP2-OLD234")).toBeNull();
+
+  expect(q("parent-questionnaires-card")).toBeNull();
+  expect(container.textContent).not.toContain("SP2-ABC234");
+  expect(q("reupload-proof-button")).toBeNull();
+  expect(container.textContent).not.toMatch(/Upload Bukti/);
+  expect(q("parent-invoice-banner")).toBeTruthy();
 });

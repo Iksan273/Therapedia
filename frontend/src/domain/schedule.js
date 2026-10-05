@@ -14,6 +14,20 @@ export const DEFAULT_CANCEL_REASONS = [
   { value: "tanpa_kabar", label: "Tanpa Kabar (No Show)" },
 ];
 
+// Seed pilihan cepat alasan Off (sesi tidak berjalan karena terapis/klinik off; bisa ditambah di Master Data Layanan).
+// Sama seperti alasan cancel: yang tersimpan di sesi adalah STRING (`value` atau teks bebas), tanpa relasi ke daftar.
+export const DEFAULT_OFF_REASONS = [
+  { value: "OL", label: "OL - On Leave (Cuti)" },
+  { value: "S", label: "S - Sick" },
+  { value: "SCA", label: "SCA - School Activities" },
+  { value: "MCU", label: "MCU - Medical Check Up" },
+  { value: "FM", label: "FM - Family Matter" },
+  { value: "TI", label: "TI - Transport Issue" },
+  { value: "H", label: "H - Holiday" },
+];
+
+export const offReasonLabel = (val, list = DEFAULT_OFF_REASONS) => list.find((r) => r.value === val)?.label || val || "—";
+
 // Alasan sistem (tidak muncul di dropdown pembatalan biasa)
 export const RESCHEDULE_DROPPED = "reschedule_dibatalkan";
 
@@ -45,13 +59,14 @@ export const getPrevSlot = (s) => s?.rescheduledPrev || s?.rescheduledFrom || nu
 
 // Revert HANYA 1x (keputusan klien): satu langkah mundur per aksi. Setelah revert, `revertedAt` terisi dan revert berikutnya
 // diblokir sampai ada transisi baru pada sesi itu (complete / cancel / reschedule / pending mengosongkan `revertedAt`).
-//   completed / cancelled → status sebelumnya; rescheduled → jadwal asal (1x reschedule) atau jadwal tersimpan terakhir
+//   completed / cancelled / off → status sebelumnya; rescheduled → jadwal asal (1x reschedule) atau jadwal tersimpan terakhir
 //   (sudah 2x reschedule); reschedule_pending → status sebelumnya (jadwal asal, slot tidak berubah).
 export const canRevertSession = (s) =>
   Boolean(s) &&
   !s.revertedAt &&
   (s.status === "completed" ||
     s.status === "cancelled" ||
+    s.status === "off" ||
     s.status === "reschedule_pending" ||
     (s.status === "rescheduled" && Boolean(getPrevSlot(s))));
 
@@ -97,8 +112,8 @@ export const timeToMin = (t) => {
 export const rangesOverlap = (s1, e1, s2, e2) =>
   timeToMin(s1) < timeToMin(e2) && timeToMin(s2) < timeToMin(e1);
 
-// Sesi yang ikut dihitung dalam bentrok: cancelled & reschedule_pending tidak memakai slot terapis.
-const occupiesTherapist = (s) => s.status !== "cancelled" && s.status !== "reschedule_pending";
+// Sesi yang ikut dihitung dalam bentrok: cancelled, off & reschedule_pending tidak memakai slot terapis.
+const occupiesTherapist = (s) => s.status !== "cancelled" && s.status !== "off" && s.status !== "reschedule_pending";
 
 // Bentrok = terapis yang sama sudah handle client lain di jam yang overlap pada tanggal itu.
 // Tidak ada konsep jam kerja terapis.

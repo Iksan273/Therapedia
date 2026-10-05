@@ -1,4 +1,5 @@
 import React from "react";
+import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { Receipt } from "lucide-react";
 import { Label } from "@/shared/ui/label";
@@ -7,6 +8,8 @@ import { fmtCurrency } from "@/shared/lib/format";
 import { INVOICE_TYPES } from "@/domain/credit";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
+import { Switch } from "@/shared/ui/switch";
+import { Textarea } from "@/shared/ui/textarea";
 import { BalanceHint } from "@/features/finance/components/BalanceHint";
 import { ReplacementChoice } from "@/features/finance/components/ReplacementChoice";
 
@@ -25,18 +28,7 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
           <form onSubmit={handleIssueSubmit} className="space-y-3.5 pt-2">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Pilih Client *</Label>
-              <Select value={issueForm.clientId} onValueChange={(val) => setIssueForm({ ...issueForm, clientId: val, replacesInvoiceId: "" })}>
-                <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
-                  <SelectValue placeholder="Pilih client..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200 max-h-56">
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.clientName} ({c.parentName}) — {c.clientCode}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientCombobox clients={clients} value={issueForm.clientId} onChange={(val) => setIssueForm({ ...issueForm, clientId: val, replacesInvoiceId: "" })} placeholder="Cari client..." testId="invoice-client-select" />
             </div>
 
             <div className="space-y-1">
@@ -63,7 +55,7 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
                 </SelectContent>
               </Select>
               {issueForm.type === "assessment" && (
-                <p className="text-[11px] text-slate-500">Invoice assessment yang belum dibayar menahan akses ortu ke kuesioner.</p>
+                <p className="text-[11px] text-slate-500">Invoice assessment yang belum lunas menahan akses ortu ke kuesioner; Finance menandai lunas setelah pembayaran diterima.</p>
               )}
             </div>
 
@@ -110,12 +102,25 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
             </div>
             {issueForm.type !== "assessment" && <BalanceHint clientId={issueForm.clientId} amount={issueForm.amount} />}
 
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 space-y-2">
+              <div className="flex items-center justify-between gap-3 min-h-10">
+                <div>
+                  <Label htmlFor="invoice-paid-direct" className="text-xs font-bold text-slate-700 cursor-pointer">Langsung lunas</Label>
+                  <p className="text-[11px] text-slate-500">Pembayaran sudah diterima (mis. paket pertama). Invoice langsung lunas{issueForm.type === "assessment" ? "" : " dan paket aktif"}.</p>
+                </div>
+                <Switch id="invoice-paid-direct" checked={Boolean(issueForm.paidDirect)} onCheckedChange={(v) => setIssueForm({ ...issueForm, paidDirect: v })} data-testid="invoice-paid-direct-switch" />
+              </div>
+              {issueForm.paidDirect && (
+                <Textarea rows={2} className="border-slate-200 bg-white text-xs" placeholder="Catatan Finance (opsional), mis. dibayar tunai di kasir" value={issueForm.note || ""} onChange={(e) => setIssueForm({ ...issueForm, note: e.target.value })} data-testid="invoice-paid-note" />
+              )}
+            </div>
+
             <DialogFooter className="mt-4 gap-2">
               <Button type="button" variant="outline" className="border-slate-200" onClick={() => setIssueOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
-                Terbitkan Invoice
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="invoice-submit">
+                {issueForm.paidDirect ? "Terbitkan & Tandai Lunas" : "Terbitkan Invoice"}
               </Button>
             </DialogFooter>
           </form>

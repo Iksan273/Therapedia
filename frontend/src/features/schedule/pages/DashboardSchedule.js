@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
+import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -33,7 +35,7 @@ export default function DashboardSchedule() {
   const { therapists } = useTherapists();
   const { cancelReasons } = useMasterData();
   const { activeBranch, auth } = useAuth();
-  const isMaster = auth?.role === "master";
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
 
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
   const [selectedBranch, setSelectedBranch] = useState(defaultBranch);
@@ -451,19 +453,7 @@ export default function DashboardSchedule() {
             gridClassName="lg:grid-cols-6"
           >
             <FilterField label="Client / Anak">
-              <Select value={telemetryClientId} onValueChange={setTelemetryClientId}>
-                <SelectTrigger className="border-slate-200 bg-slate-50" aria-label="Client">
-                  <SelectValue placeholder="Semua Client" />
-                </SelectTrigger>
-                <SelectContent className="max-h-56">
-                  <SelectItem value="all">Semua Client ({clients.length})</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.clientName} ({c.clientCode})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientCombobox clients={clients} value={telemetryClientId} onChange={setTelemetryClientId} allOption={{ value: "all", label: `Semua Client (${clients.length})` }} placeholder="Semua Client" testId="telemetry-client" />
             </FilterField>
             <FilterField label="Terapis">
               <Select value={telemetryTherapistId} onValueChange={setTelemetryTherapistId}>
@@ -507,6 +497,7 @@ export default function DashboardSchedule() {
                   <SelectItem value="rescheduled">Rescheduled (sudah pindah)</SelectItem>
                   <SelectItem value="reschedule_pending">Reschedule – belum ada jadwal</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="off">Off</SelectItem>
                 </SelectContent>
               </Select>
             </FilterField>

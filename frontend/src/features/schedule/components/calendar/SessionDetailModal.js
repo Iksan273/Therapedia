@@ -53,9 +53,11 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const { getRecordForClient } = useCredits();
   const { holidays } = useHolidays();
   const sessionActions = useSessionActions();
-  const { activeCancelReasons, getCancelReasonLabel } = useMasterData();
+  const { activeCancelReasons, getCancelReasonLabel, activeOffReasons, getOffReasonLabel } = useMasterData();
 
-  const [mode, setMode] = useState("view"); // view | cancel | reschedule | drop
+  const [mode, setMode] = useState("view"); // view | cancel | off | reschedule | drop
+  const [offReason, setOffReason] = useState("");
+  const [offNote, setOffNote] = useState("");
   const [rescheduleKind, setRescheduleKind] = useState("move"); // move = pindah sekarang, pending = jadwal pengganti menyusul
   const [pendingReason, setPendingReason] = useState("");
   const [pendingNote, setPendingNote] = useState("");
@@ -84,6 +86,8 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       setDropNote("");
       setDeductChoice("");
       setCancelReason(schedule.cancelReason || "");
+      setOffReason(schedule.offReason || "");
+      setOffNote(schedule.offNote || "");
       setCancelNote(cancelNoteOf(schedule) || "");
       setActivitySection(schedule.activitySection || "");
       setNoteSection(schedule.noteSection || schedule.progressNote || "");
@@ -225,6 +229,26 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       toast.info(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). ${quotaText} Kredit tidak dipotong.`);
     }
 
+    onOpenChange(false);
+  };
+
+  // Off: sesi tidak berjalan karena off (OL, S, SCA, MCU, FM, TI, H, atau teks bebas). Admin memilih potong kredit atau tidak.
+  const handleOff = () => {
+    if (!canCancel) {
+      toast.error("Hanya Admin Schedule yang berhak menandai sesi Off.");
+      return;
+    }
+    const reason = offReason.trim();
+    if (!reason) {
+      toast.error("Pilih atau tulis alasan Off.");
+      return;
+    }
+    if (!deductChoice) {
+      toast.error("Pilih dulu: potong 1 kredit atau jangan potong kredit.");
+      return;
+    }
+    const { deducted } = sessionActions.offSession(schedule, { offReason: reason, note: offNote, deductCredit: deductChoice === "deduct" });
+    toast.info(`Sesi ditandai Off (${getOffReasonLabel(reason)}). ${deducted ? "1 kredit dipotong." : "Kredit tidak dipotong."} Kuota cancel tidak berubah.`);
     onOpenChange(false);
   };
 
@@ -381,6 +405,15 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                 {originTherapist ? ` (${originTherapist.name})` : ""} ke <strong>{slotText(schedule)}</strong>.
                 {schedule.rescheduledAt && <> Dipindah {fmtDate(schedule.rescheduledAt.slice(0, 10))}.</>}
               </p>
+            </div>
+          )}
+          {schedule.status === "off" && (
+            <div className="p-4 rounded-2xl bg-violet-50 border border-violet-200 space-y-1" data-testid="session-off-banner">
+              <p className="font-extrabold text-violet-950 flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-violet-600" /> Sesi Off: {getOffReasonLabel(schedule.offReason)}
+              </p>
+              {schedule.offNote && <p className="text-violet-900/80 italic">"{schedule.offNote}"</p>}
+              <p className="text-[11px] text-violet-800/80">Pemotongan kredit mengikuti pilihan admin (lihat riwayat kredit client). Tidak menambah kuota cancel.</p>
             </div>
           )}
           {isCreditNeutralCancel(schedule) && (
@@ -598,6 +631,14 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                             >
                               Batalkan Sesi (Cancel)
                             </Button>
+                            <Button
+                              variant="outline"
+                              className="col-span-2 border-violet-200 text-violet-700 hover:bg-violet-50 font-bold"
+                              onClick={() => setMode("off")}
+                              data-testid="session-off-button"
+                            >
+                              Tandai Off
+                            </Button>
                           </div>
 
                           <Button size="lg"
@@ -668,6 +709,32 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     </Button>
                     <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold flex-1" onClick={handleCancel} disabled={!deductChoice} data-testid="session-confirm-cancel-button">
                       Konfirmasi Pembatalan
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* OFF MODE */}
+              {mode === "off" && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-violet-50/70 border border-violet-200 space-y-3.5" data-testid="session-off-panel">
+                  <h4 className="font-extrabold text-sm text-violet-900 flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-violet-600" /> Tandai Sesi Off
+                  </h4>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700 text-xs">Alasan Off *</Label>
+                    <ReasonPicker options={activeOffReasons} value={offReason} onChange={setOffReason} testId="off-reason" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-bold text-slate-700 text-xs">Catatan Tambahan</Label>
+                    <Input className="border-slate-200 bg-white text-xs" placeholder="e.g. Terapis cuti sampai Jumat..." value={offNote} onChange={(e) => setOffNote(e.target.value)} />
+                  </div>
+                  <DeductCreditChoice value={deductChoice} onChange={setDeductChoice} pkg={targetPackage} kind="off" testId="off-deduct" />
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <Button variant="outline" className="font-bold flex-1" onClick={() => setMode("view")}>
+                      Batal
+                    </Button>
+                    <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold flex-1" onClick={handleOff} disabled={!deductChoice} data-testid="session-confirm-off-button">
+                      Konfirmasi Off
                     </Button>
                   </div>
                 </div>

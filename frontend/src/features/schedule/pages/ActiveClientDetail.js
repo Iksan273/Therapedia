@@ -18,10 +18,13 @@ import {
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { EmptyState } from "@/shared/components/EmptyState";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
+import { ClientReportMonitoringCard } from "@/features/schedule/components/clientDetail/ClientReportMonitoringCard";
+import { SessionHistoryNoteDialog } from "@/features/schedule/components/clientDetail/SessionHistoryNoteDialog";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
 import { useClientOutcomeActions, useClientDeleteActions } from "@/features/inquiry";
 import { DeleteButton } from "@/shared/components/DeleteControls";
+import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
@@ -30,10 +33,10 @@ import { ReasonPicker } from "@/shared/components/ReasonPicker";
 import { useMasterData } from "@/stores/masterDataStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { BRANCHES } from "@/domain/branch";
-import { distinctActivePackages } from "@/domain/credit";
+import { distinctActivePackages, packageBaseName } from "@/domain/credit";
 import { CancelQuotaList } from "@/shared/components/CancelQuotaList";
 import { isActiveClient, canReactivateClient, dischargeReasonLabel } from "@/domain/client";
-import { bookingNoteOf, deriveRecurringRoutines, upcomingActiveSessions } from "@/domain/schedule";
+import { bookingNoteOf, cancelNoteOf, deriveRecurringRoutines, upcomingActiveSessions } from "@/domain/schedule";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
 
@@ -41,16 +44,18 @@ export default function ActiveClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { clients } = useClients();
-  const { schedules } = useSchedules();
+  const { schedules, updateSchedule } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { getTherapist } = useTherapists();
-  const { activeDischargeReasons } = useMasterData();
+  const { activeDischargeReasons, getCancelReasonLabel, getOffReasonLabel } = useMasterData();
+  const { auth } = useAuth();
   const { reactivate, discharge } = useClientOutcomeActions();
   const { deleteClientCascade } = useClientDeleteActions();
   const { confirm, confirmDialog } = useConfirm();
 
   const [addOpen, setAddOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [noteSession, setNoteSession] = useState(null); // sesi yang catatan riwayatnya sedang diedit
   const [sessionOpen, setSessionOpen] = useState(false);
   const [dischargeOpen, setDischargeOpen] = useState(false);
   const [dischargeReason, setDischargeReason] = useState("");
@@ -400,6 +405,15 @@ export default function ActiveClientDetail() {
         </CardContent>
       </Card>
 
+      <ClientReportMonitoringCard
+        sessions={clientSchedules}
+        getTherapistName={(tid) => getTherapist(tid)?.name || "—"}
+        onOpenSession={(s) => {
+          setSelectedSession(s);
+          setSessionOpen(true);
+        }}
+      />
+
       {/* Sessions History & Cancellation Log */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
         <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -417,15 +431,17 @@ export default function ActiveClientDetail() {
           {clientSchedules.length === 0 ? (
             <EmptyState icon={Calendar} title="Belum ada sesi" subtitle="Belum ada sesi tercatat untuk client ini." />
           ) : (
-            <Table stackOnMobile className="min-w-[860px] w-full">
+            <Table stackOnMobile className="min-w-[1280px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                   <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 min-w-[180px] whitespace-nowrap">Tanggal & Jam</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Terapis</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs min-w-[150px] whitespace-nowrap">Paket Kredit</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs min-w-[130px] whitespace-nowrap">Status</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[200px]">Alasan Cancel / Off</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs min-w-[220px]">Catatan Penjadwalan</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 min-w-[100px] whitespace-nowrap">Detail</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs min-w-[220px]">Catatan</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-xs text-center min-w-[240px] whitespace-nowrap">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -438,25 +454,55 @@ export default function ActiveClientDetail() {
                         {fmtDate(s.date)} • <span className="font-mono text-slate-500">{s.startTime}–{s.endTime}</span>
                       </TableCell>
                       <TableCell data-label="Terapis" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{th?.name || "—"}</TableCell>
-                      <TableCell data-label="Paket Kredit" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{pkg ? pkg.packageName : "Default"}</TableCell>
+                      <TableCell data-label="Paket Kredit" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{pkg ? packageBaseName(pkg.packageName) : "Default"}</TableCell>
                       <TableCell data-label="Status" className="min-w-[130px] whitespace-nowrap">
                         <StatusBadge status={s.status} />
+                      </TableCell>
+                      <TableCell data-label="Alasan Cancel / Off" className="text-slate-600 min-w-[200px]">
+                        {s.status === "off" && s.offReason ? (
+                          <>
+                            <span className="font-semibold">Off: {getOffReasonLabel(s.offReason)}</span>
+                            {s.offNote && <span className="block text-[11px] text-slate-500">{s.offNote}</span>}
+                          </>
+                        ) : s.status === "cancelled" && s.cancelReason ? (
+                          <>
+                            <span className="font-semibold">{getCancelReasonLabel(s.cancelReason)}</span>
+                            {cancelNoteOf(s) && <span className="block text-[11px] text-slate-500">{cancelNoteOf(s)}</span>}
+                          </>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       <TableCell data-label="Catatan Penjadwalan" className="text-slate-500 min-w-[220px]">
                         {bookingNoteOf(s) || "—"}
                       </TableCell>
-                      <TableCell data-label="Detail" className="text-right pr-6 min-w-[100px] whitespace-nowrap">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="font-bold text-sky-700 hover:bg-sky-50 whitespace-nowrap cursor-pointer"
-                          onClick={() => {
-                            setSelectedSession(s);
-                            setSessionOpen(true);
-                          }}
-                        >
-                          Lihat
-                        </Button>
+                      <TableCell data-label="Catatan" className="min-w-[220px] text-slate-700 whitespace-pre-wrap" data-testid={`history-note-${s.id}`}>
+                        {s.historyNote || "—"}
+                      </TableCell>
+                      <TableCell data-label="Aksi" className="text-center min-w-[240px]">
+                        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="font-bold text-sky-700 hover:bg-sky-50 whitespace-nowrap cursor-pointer"
+                            onClick={() => {
+                              setSelectedSession(s);
+                              setSessionOpen(true);
+                            }}
+                            data-testid={`view-session-${s.id}`}
+                          >
+                            Lihat Detail
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="font-bold text-sky-700 hover:bg-sky-50 whitespace-nowrap cursor-pointer"
+                            onClick={() => setNoteSession(s)}
+                            data-testid={`edit-history-note-${s.id}`}
+                          >
+                            {s.historyNote ? "Ubah Catatan" : "Tambah Catatan"}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -514,6 +560,16 @@ export default function ActiveClientDetail() {
       )}
 
       {/* Modals */}
+      <SessionHistoryNoteDialog
+        session={noteSession}
+        open={Boolean(noteSession)}
+        onOpenChange={(o) => !o && setNoteSession(null)}
+        onSave={(text) => {
+          updateSchedule(noteSession.id, { historyNote: text, historyNoteBy: auth?.staffName || auth?.role || null });
+          toast.success("Catatan riwayat sesi disimpan.");
+          setNoteSession(null);
+        }}
+      />
       <AddScheduleModal
         open={addOpen}
         onOpenChange={setAddOpen}

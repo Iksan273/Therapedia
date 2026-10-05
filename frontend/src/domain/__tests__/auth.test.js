@@ -9,6 +9,7 @@ import {
   makeOtpRequest,
   validateNewPassword,
   validateStaffBranch,
+  hasAllBranchAccess,
   verifyOtp,
 } from "@/domain/auth";
 import { canManageSchedule } from "@/domain/schedule";
@@ -42,6 +43,17 @@ describe("password & akun staf", () => {
     expect(validateStaffBranch("therapist", null)).toMatch(/Cabang wajib/);
     expect(validateStaffBranch("manager", "branch-sby-timur")).toBeNull();
     expect(validateStaffBranch("master", null)).toBeNull();
+  });
+
+  test("semua role (termasuk terapis & role kustom) boleh semua cabang bila allBranches", () => {
+    expect(validateStaffBranch("finance", null, true)).toBeNull();
+    expect(validateStaffBranch("finance", null, false)).toMatch(/Cabang wajib/);
+    expect(validateStaffBranch("therapist", null, true)).toBeNull();
+    expect(validateStaffBranch("custom_role", null, true)).toBeNull();
+    expect(validateStaffBranch("custom_role", null, false)).toMatch(/Cabang wajib/);
+    expect(hasAllBranchAccess({ role: "master" })).toBe(true);
+    expect(hasAllBranchAccess({ role: "finance", allBranches: true })).toBe(true);
+    expect(hasAllBranchAccess({ role: "finance", branchId: "branch-sby-timur" })).toBe(false);
   });
 });
 

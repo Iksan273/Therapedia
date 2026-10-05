@@ -14,7 +14,7 @@ export function RevertSessionPanel({ schedule, preview, toSlotLabel, conflicts, 
   const [reason, setReason] = useState("");
   const isReschedule = schedule.status === "rescheduled";
   const isPending = schedule.status === "reschedule_pending";
-  const noun = { completed: "Completed", cancelled: "Cancel", rescheduled: "Reschedule", reschedule_pending: "Reschedule Menggantung" }[schedule.status];
+  const noun = { completed: "Completed", cancelled: "Cancel", off: "Off", rescheduled: "Reschedule", reschedule_pending: "Reschedule Menggantung" }[schedule.status];
   const actionLabel = isReschedule ? "Batalkan Pemindahan Jadwal (Revert)" : `Batalkan Status ${noun} (Revert)`;
   const blocked = conflicts.length > 0;
 

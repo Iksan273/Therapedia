@@ -25,6 +25,12 @@ export function usePackageConversionActions() {
     return { pkg, price: pkg.price ?? invoice.grossAmount ?? invoice.amount };
   };
 
+  // Paket client yang akan dikonversi (untuk pratinjau sebelum -> sesudah)
+  const sourceInfo = (invoice) => {
+    const src = sourceOf(invoice);
+    return src ? { name: src.pkg.packageName, remainingCredit: src.pkg.remainingCredit } : null;
+  };
+
   const upcomingSchedules = (clientId) => schedules.filter((s) => s.clientId === clientId && s.type === "therapy" && UPCOMING_STATUSES.includes(s.status));
 
   // Pratinjau/validasi tanpa mengubah data. `sessions` kosong = otomatis.
@@ -38,12 +44,12 @@ export function usePackageConversionActions() {
     });
   };
 
-  // `sessions` kosong = otomatis; diisi = manual (alasan wajib). Mengembalikan { ok, error? , result?, deletedSchedules? }.
+  // `sessions` kosong = otomatis; diisi = manual (catatan wajib). Mengembalikan { ok, error? , result?, deletedSchedules? }.
   const convertInvoicePackage = ({ invoice, target, sessions = null, reason = "" }) => {
     const src = sourceOf(invoice);
     if (!src || !canConvert(invoice)) return { ok: false, error: "Paket invoice ini tidak bisa dikonversi." };
     const manual = sessions !== null && sessions !== undefined && sessions !== "";
-    if (manual && !reason.trim()) return { ok: false, error: "Alasan wajib diisi untuk konversi manual." };
+    if (!reason.trim()) return { ok: false, error: "Catatan Finance wajib diisi." };
     const result = previewConversion({ invoice, target, sessions });
     if (!result.ok) return result;
 
@@ -70,5 +76,5 @@ export function usePackageConversionActions() {
     return { ok: true, result, deletedSchedules: upcoming.length };
   };
 
-  return { canConvert, previewConversion, convertInvoicePackage, upcomingSchedules };
+  return { canConvert, previewConversion, convertInvoicePackage, upcomingSchedules, sourceInfo };
 }

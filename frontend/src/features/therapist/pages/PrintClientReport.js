@@ -69,6 +69,7 @@ export default function PrintClientReport() {
   const completed = history.filter((s) => s.status === "completed").length;
   const cancelled = history.filter((s) => s.status === "cancelled").length;
   const rescheduled = history.filter((s) => s.status === "rescheduled").length;
+  const off = history.filter((s) => s.status === "off").length;
 
   return (
     <div className="min-h-screen bg-slate-100/70 print:bg-white py-8 print:py-0 px-4 print:px-0" data-testid="print-client-report-page">
@@ -194,7 +195,7 @@ export default function PrintClientReport() {
           </Section>
 
           {/* Session history */}
-          <Section title={`Clinical Session Log (${history.length} total · ${completed} completed · ${cancelled} cancelled · ${rescheduled} rescheduled)`}>
+          <Section title={`Clinical Session Log (${history.length} total · ${completed} completed · ${cancelled} cancelled · ${off} off · ${rescheduled} rescheduled)`}>
             {history.length === 0 ? (
               <p className="text-xs text-slate-400 italic">No therapy sessions recorded yet.</p>
             ) : (

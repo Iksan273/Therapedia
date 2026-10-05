@@ -51,3 +51,17 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 - Kode demo `TDC-1009` kini `AE-00006`; kode kuesioner seed lama `ASM-xxxx` tetap valid (`SEED_VERSION` = `demo-2026-10-v8`).
 
 Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflow.md` (F1–F28), ADR `docs/adr/0002-hak-akses-modul-hapus-per-role-dan-audit-terbatas.md` (butir audit digantikan ADR 0004), `docs/adr/0003-…`, `docs/adr/0004-hapus-audit-log.md`.
+
+## Revisi lanjutan (5 Okt 2026) — status frontend
+| Revisi | Status |
+|---|---|
+| Catatan Finance wajib saat konversi paket (tampil di log invoice) | Selesai: `ConvertPackageDialog`, `creditsStore` `CONVERT_PACKAGE` |
+| Akun semua role (termasuk terapis & role kustom) bisa **Akses semua cabang** (User Management) | Selesai: `allBranches`, `hasAllBranchAccess` |
+| Combobox pencarian client (nama/ortu/kode) seragam | Selesai: `shared/components/ClientCombobox.js` (Create Invoice, Renewal, Jadwal, Generate Kode, Dashboard Schedule, portal terapis) |
+| Riwayat sesi: alasan cancel + kolom Catatan yang bisa ditimpa | Selesai: `ActiveClientDetail` (`historyNote`) |
+| Monitoring laporan per client di detail client | Selesai: `ClientReportMonitoringCard` |
+| Tombol edit di data master | Selesai: paket master (Finance), hari libur, akun staff (+ yang sudah ada: layanan, kuadran, alasan, asesmen, cabang, role) |
+| Tanpa upload bukti ortu; Finance langsung lunas (renewal & create invoice paket pertama) | Selesai |
+| Portal ortu tidak menampilkan kode kuesioner | Selesai |
+| Status sesi **Off** (OL/S/SCA/MCU/FM/TI/H/manual; potong kredit atau tidak pilihan admin) + alasan Off di Master Data Layanan sebagai combo box cepat | Selesai: `offSession`, `masterDataStore` (`offReasons`), tab Alasan Off. Off **tidak** menambah kuota cancel (asumsi; konfirmasi ke klien bila kuota harus ikut dihitung) |
+| Riwayat sesi: nama paket tanpa "(10x)"; konversi mengubah nama paket di invoice (log tetap memuat paket asal) + pratinjau paket client sebelum → sesudah | Selesai. Layanan client (BOT-A/FOT-A/dst) **tidak** diubah: tidak ada relasi paket Regular/Senior ke layanan intake di data |

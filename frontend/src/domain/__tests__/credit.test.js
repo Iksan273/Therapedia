@@ -6,7 +6,6 @@ import {
   computePackageConversion,
   invoiceLogMeta,
   invoiceLogsOf,
-  validateDirectRenewal,
   distinctActivePackages,
   cancelQuotaByPackage,
   isCreditZero,
@@ -295,7 +294,9 @@ describe("konversi paket", () => {
     expect(isInvoiceConvertible(rec, { ...inv, status: "unpaid" })).toBe(false);
     const next = applyPackageConversion(rec, { sourcePackageId: "cp-s", target: { packageName: "Regular" }, sessions: 8, price: 2000000, conversionId: "cv-1" });
     expect(resolveInvoicePackage(next, inv).convertedFromId).toBe("cp-s");
+    // konversi hanya 1x per invoice: setelah ada log `converted`, tidak bisa dikonversi lagi walau paket baru masih bersisa
     expect(isInvoiceConvertible(next, inv)).toBe(true);
+    expect(isInvoiceConvertible(next, appendInvoiceLog(inv, { action: "converted" }))).toBe(false);
   });
 
   test("invoice lama tanpa invoiceId dicocokkan lewat packageId + kredit", () => {
@@ -311,15 +312,6 @@ describe("saldo lebihan → invoice", () => {
     expect(applyBalanceToAmount(100000, 2500000)).toEqual({ gross: 2500000, applied: 100000, net: 2400000, balanceAfter: 0 });
     expect(applyBalanceToAmount(3000000, 2500000)).toEqual({ gross: 2500000, applied: 2500000, net: 0, balanceAfter: 500000 });
     expect(applyBalanceToAmount(0, 2500000).applied).toBe(0);
-  });
-});
-
-describe("renewal langsung lunas", () => {
-  test("wajib alasan valid + justifikasi minimal 10 karakter", () => {
-    expect(validateDirectRenewal({})).toMatch(/Alasan/);
-    expect(validateDirectRenewal({ reason: "Tunai", justification: "singkat" })).toMatch(/Justifikasi/);
-    expect(validateDirectRenewal({ reason: "  ", justification: "x".repeat(20) })).toMatch(/Alasan/);
-    expect(validateDirectRenewal({ reason: "Bayar tunai di kasir", justification: "  Tunai di kasir, struk 123  " })).toBeNull();
   });
 });
 

@@ -18,7 +18,7 @@ import { CreateInvoiceDialog } from "@/features/finance/components/CreateInvoice
 import { RenewalDialog } from "@/features/finance/components/RenewalDialog";
 import { usePackageActivationActions } from "@/features/finance/hooks/usePackageActivationActions";
 import { NewPackageDialog } from "@/features/finance/components/NewPackageDialog";
-import { ASSESSMENT_INVOICE_CODE, canDeleteInvoice, invoiceTypeCode, replacementCandidates, resolveInvoicePackage, leftoverSummaryByClient, matchesFinanceSearch, packageInvoiceCode, validateDirectRenewal } from "@/domain/credit";
+import { ASSESSMENT_INVOICE_CODE, canDeleteInvoice, invoiceTypeCode, replacementCandidates, resolveInvoicePackage, leftoverSummaryByClient, matchesFinanceSearch, packageInvoiceCode } from "@/domain/credit";
 
 export default function FinancePortal() {
   const {
@@ -27,6 +27,7 @@ export default function FinancePortal() {
     verifyPaymentProof,
     issueInvoice,
     addMasterPackage,
+    updateMasterPackage,
     getMasterPackages,
     deleteInvoices,
     getRawRecord,
@@ -47,6 +48,8 @@ export default function FinancePortal() {
     packageId: "pkg-reguler",
     amount: 2500000,
     replacesInvoiceId: "", // "" belum dipilih | invoice void yang digantikan | "none" pembelian paket baru
+    paidDirect: false, // langsung lunas (tanpa bukti bayar ortu)
+    note: "",
   });
 
   // Renewal Modal State (Exclusive to Finance)
@@ -57,13 +60,13 @@ export default function FinancePortal() {
     credits: 10,
     amount: 2500000,
     replacesInvoiceId: "", // "" belum dipilih | id invoice void yang digantikan | "none" paket baru
-    mode: "invoice", // invoice | direct (langsung lunas: wajib reason + justification)
-    reason: "",
-    justification: "",
+    mode: "invoice", // invoice | direct (langsung lunas)
+    reason: "", // catatan Finance (opsional)
   });
 
   // Add Master Package Modal State
   const [newPkgOpen, setNewPkgOpen] = useState(false);
+  const [editingPkgId, setEditingPkgId] = useState(null); // id paket master yang sedang diubah (null = tambah baru)
   const [newPkgForm, setNewPkgForm] = useState({
     name: "",
     invoiceCode: "",
@@ -128,14 +131,14 @@ export default function FinancePortal() {
   const handleApprovePayment = (invoice) => {
     if (invoice.type === "assessment") {
       verifyPaymentProof({ invoiceId: invoice.id, status: "paid", by });
-      toast.success(`Pembayaran ${invoice.invoiceNumber} (Assessment) berhasil diverifikasi. Kuesioner ortu kini dapat dibuka.`);
+      toast.success(`Pembayaran ${invoice.invoiceNumber} (Assessment) ditandai lunas. Akses kuesioner ortu terbuka.`);
       return;
     }
     // Kredit memakai snapshot invoice; master paket hanya cadangan untuk invoice lama tanpa snapshot.
     const pkg = masterPackages.find((p) => p.id === invoice.packageId) || { credits: 10 };
     const credits = invoice.credits || pkg.credits || 10;
     const { relinked } = approvePackagePayment(invoice, { creditsToAdd: credits });
-    toast.success(`Pembayaran ${invoice.invoiceNumber} berhasil diverifikasi! (+${credits} kredit aktif)${relinked ? ` ${relinked} jadwal mendatang dipindah ke paket aktif.` : ""}`);
+    toast.success(`Pembayaran ${invoice.invoiceNumber} ditandai lunas! (+${credits} kredit aktif)${relinked ? ` ${relinked} jadwal mendatang dipindah ke paket aktif.` : ""}`);
   };
 
   const handleRejectPayment = (invoice) => {
@@ -180,19 +183,39 @@ export default function FinancePortal() {
     }
     const replaced = needsChoice && issueForm.replacesInvoiceId !== "none" ? rawInvoices.find((i) => i.id === issueForm.replacesInvoiceId) : null;
 
-    issueInvoice({
+    const payload = {
       replacesInvoiceId: replaced ? replaced.id : null,
       clientId: c.id,
       clientName: c.clientName,
       branchId: c.branchId,
-      type: issueForm.type,
       typeCode: invoiceTypeCode(issueForm.type, pkg),
       packageId: isAssessment ? null : issueForm.packageId,
       packageName: isAssessment ? "Assessment" : pkg.name,
       credits: isAssessment ? 0 : pkg.credits,
       amount,
       by,
-    });
+    };
+    const note = (issueForm.note || "").trim();
+
+    // Langsung lunas: tanpa bukti bayar ortu. Paket → invoice lunas + paket aktif; assessment → invoice lunas.
+    if (issueForm.paidDirect) {
+      if (isAssessment) {
+        issueInvoice({ ...payload, type: "assessment", paidDirect: true, note });
+        toast.success(`Invoice assessment ${c.clientName} diterbitkan dan langsung lunas.`);
+      } else {
+        const { relinked } = renewDirect({ ...payload, isRenewal: false, reason: note });
+        toast.success(
+          replaced
+            ? `Invoice ${c.clientName} langsung lunas, menggantikan ${replaced.invoiceNumber}: paket lama dipakai ulang (kredit tidak bertambah).`
+            : `Invoice ${c.clientName} langsung lunas! (+${pkg.credits} sesi)${relinked ? ` ${relinked} jadwal mendatang dipindah ke paket aktif.` : ""}`
+        );
+      }
+      setIssueForm({ ...issueForm, replacesInvoiceId: "", paidDirect: false, note: "" });
+      setIssueOpen(false);
+      return;
+    }
+
+    issueInvoice({ ...payload, type: issueForm.type });
 
     toast.success(`Tagihan untuk ${c.clientName} berhasil diterbitkan.${replaced ? ` Menggantikan ${replaced.invoiceNumber}.` : ""}`);
     setIssueForm({ ...issueForm, replacesInvoiceId: "" });
@@ -220,7 +243,7 @@ export default function FinancePortal() {
     const snapshotCredits = replaced ? replaced.totalCredit : credits;
     const snapshotPackageId = replaced ? replaced.packageId || renewForm.packageId : renewForm.packageId;
 
-    // Jalur 1: terbitkan invoice renewal baru (unpaid → ortu upload → Finance verifikasi)
+    // Jalur 1: terbitkan invoice renewal baru (unpaid → Finance menandai lunas setelah pembayaran diterima)
     if (renewForm.mode !== "direct") {
       issueInvoice({
         replacesInvoiceId: replaced ? replaced.id : null,
@@ -236,18 +259,13 @@ export default function FinancePortal() {
         amount,
         by,
       });
-      toast.success(`Invoice renewal ${c.clientName} diterbitkan${replaced ? `, menggantikan ${replaced.invoiceNumber}` : ""}. Menunggu pembayaran & verifikasi.`);
+      toast.success(`Invoice renewal ${c.clientName} diterbitkan${replaced ? `, menggantikan ${replaced.invoiceNumber}` : ""}. Menunggu pembayaran, lalu tandai lunas.`);
       setRenewOpen(false);
       setRenewForm({ ...renewForm, replacesInvoiceId: "" });
       return;
     }
 
-    // Jalur 2: langsung lunas, wajib alasan + justifikasi (tercatat di invoice & log invoice)
-    const invalid = validateDirectRenewal(renewForm);
-    if (invalid) {
-      toast.error(invalid);
-      return;
-    }
+    // Jalur 2: langsung lunas; catatan Finance opsional (tercatat di invoice & log invoice)
     const { relinked } = renewDirect({
       replacesInvoiceId: replaced ? replaced.id : null,
       clientId: c.id,
@@ -258,8 +276,8 @@ export default function FinancePortal() {
       typeCode: packageInvoiceCode(pkg),
       credits: snapshotCredits,
       amount,
-      reason: renewForm.reason.trim(),
-      justification: renewForm.justification.trim(),
+      isRenewal: true,
+      reason: (renewForm.reason || "").trim(),
     });
 
     toast.success(
@@ -268,10 +286,22 @@ export default function FinancePortal() {
         : `Renewal kredit ${c.clientName} langsung lunas! (+${credits} sesi)${relinked ? ` ${relinked} jadwal mendatang dipindah ke paket aktif.` : ""}`
     );
     setRenewOpen(false);
-    setRenewForm({ ...renewForm, reason: "", justification: "", replacesInvoiceId: "" });
+    setRenewForm({ ...renewForm, reason: "", replacesInvoiceId: "" });
   };
 
-  // Submit Add Master Package
+  const closePackageDialog = () => {
+    setNewPkgOpen(false);
+    setEditingPkgId(null);
+    setNewPkgForm({ name: "", invoiceCode: "", credits: 10, price: 2500000, description: "" });
+  };
+
+  const openEditPackage = (pkg) => {
+    setEditingPkgId(pkg.id);
+    setNewPkgForm({ name: pkg.name, invoiceCode: packageInvoiceCode(pkg), credits: pkg.credits, price: pkg.price, description: pkg.description || "" });
+    setNewPkgOpen(true);
+  };
+
+  // Submit Add/Edit Master Package
   const handleAddMasterPackageSubmit = (e) => {
     e.preventDefault();
     if (!newPkgForm.name.trim()) {
@@ -284,8 +314,21 @@ export default function FinancePortal() {
       toast.error("Kode paket untuk nomor invoice wajib diisi (mis. REG).");
       return;
     }
-    if (invoiceCode === ASSESSMENT_INVOICE_CODE || masterPackages.some((m) => packageInvoiceCode(m) === invoiceCode)) {
+    if (invoiceCode === ASSESSMENT_INVOICE_CODE || masterPackages.some((m) => m.id !== editingPkgId && packageInvoiceCode(m) === invoiceCode)) {
       toast.error(`Kode paket "${invoiceCode}" sudah dipakai. Pilih kode lain.`);
+      return;
+    }
+
+    if (editingPkgId) {
+      updateMasterPackage(editingPkgId, {
+        name: newPkgForm.name.trim(),
+        invoiceCode,
+        credits: Number(newPkgForm.credits) || 10,
+        price: Number(newPkgForm.price) || 2500000,
+        description: newPkgForm.description.trim(),
+      });
+      toast.success(`Paket '${newPkgForm.name}' diperbarui.`);
+      closePackageDialog();
       return;
     }
 
@@ -298,8 +341,7 @@ export default function FinancePortal() {
     });
 
     toast.success(`Paket baru '${newPkgForm.name}' berhasil ditambahkan ke Master Data!`);
-    setNewPkgOpen(false);
-    setNewPkgForm({ name: "", invoiceCode: "", credits: 10, price: 2500000, description: "" });
+    closePackageDialog();
   };
 
   return (
@@ -315,7 +357,7 @@ export default function FinancePortal() {
             Role Finance Portal
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Verifikasi transfer orang tua, penerbitan tagihan paket, penambahan kredit renewal, dan buku besar kredit.
+            Konfirmasi pembayaran orang tua, penerbitan tagihan paket, penambahan kredit renewal, dan buku besar kredit.
           </p>
         </div>
 
@@ -351,7 +393,7 @@ export default function FinancePortal() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-slate-100/90 border border-slate-200/80 p-1.5 rounded-2xl shadow-2xs gap-1.5 flex flex-wrap h-auto">
           <TabsTrigger value="verification" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Verifikasi Transfer
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Menunggu Pembayaran
             {pendingInvoices.length > 0 && (
               <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold">
                 {pendingInvoices.length}
@@ -373,7 +415,7 @@ export default function FinancePortal() {
         </TabsList>
 
         {/* TAB 1: VERIFIKASI TRANSFER */}
-        <VerificationTab handleApprovePayment={handleApprovePayment} handleRejectPayment={handleRejectPayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} />
+        <VerificationTab handleApprovePayment={handleApprovePayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} onDeleteInvoice={handleDeleteInvoice} />
 
         {/* TAB 2: SEMUA TAGIHAN */}
         <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} />
@@ -385,7 +427,7 @@ export default function FinancePortal() {
         <LeftoverTab rows={leftoverRows} leftoverPg={leftoverPg} includeZero={includeZeroLeftover} setIncludeZero={setIncludeZeroLeftover} />
 
         {/* TAB 4: MASTER DATA PAKET KREDIT */}
-        <PackagesTab masterPackages={masterPackages} setNewPkgOpen={setNewPkgOpen} />
+        <PackagesTab masterPackages={masterPackages} setNewPkgOpen={(o) => { setEditingPkgId(null); setNewPkgOpen(o); }} onEditPackage={openEditPackage} />
       </Tabs>
 
       {/* Pratinjau Foto & Dokumen Bukti Transfer Modal */}
@@ -405,7 +447,7 @@ export default function FinancePortal() {
       <RenewalDialog clients={clients} handleRenewSubmit={handleRenewSubmit} masterPackages={masterPackages} renewForm={renewForm} renewOpen={renewOpen} replacementOptions={renewReplacementOptions} setRenewForm={setRenewForm} setRenewOpen={setRenewOpen} />
 
       {/* Add Master Package Modal */}
-      <NewPackageDialog handleAddMasterPackageSubmit={handleAddMasterPackageSubmit} newPkgForm={newPkgForm} newPkgOpen={newPkgOpen} setNewPkgForm={setNewPkgForm} setNewPkgOpen={setNewPkgOpen} />
+      <NewPackageDialog handleAddMasterPackageSubmit={handleAddMasterPackageSubmit} newPkgForm={newPkgForm} newPkgOpen={newPkgOpen} setNewPkgForm={setNewPkgForm} setNewPkgOpen={(o) => (o ? setNewPkgOpen(true) : closePackageDialog())} isEdit={Boolean(editingPkgId)} />
     </div>
   );
 }

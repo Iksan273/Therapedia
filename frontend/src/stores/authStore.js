@@ -2,7 +2,7 @@ import React, { createContext, useContext } from "react";
 import { usePersistentState } from "@/shared/hooks/usePersistentState";
 import { ACCESS_MODULES, DEFAULT_PERMISSIONS, DEFAULT_ROLES, canDeleteIn, roleHasPermission, withDefaultPermissions } from "@/domain/rbac";
 import DEFAULT_STAFF from "@/data/staffUsers.seed.json";
-import { findStaffByEmail, generateOtp, generateTempPassword, makeOtpRequest, verifyOtp } from "@/domain/auth";
+import { findStaffByEmail, generateOtp, generateTempPassword, hasAllBranchAccess, makeOtpRequest, verifyOtp } from "@/domain/auth";
 import { nowIso } from "@/shared/lib/id";
 
 const EMPTY_AUTH = {
@@ -11,6 +11,7 @@ const EMPTY_AUTH = {
   clientId: null,
   staffName: null,
   branchId: null,
+  allBranches: false,
 };
 
 const AuthContext = createContext(null);
@@ -28,13 +29,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = (payload) => {
     setAuth({ ...EMPTY_AUTH, ...payload });
-    if (payload?.role !== "master" && payload?.branchId) {
+    if (!hasAllBranchAccess(payload) && payload?.branchId) {
       setActiveBranch(payload.branchId);
     }
   };
 
   React.useEffect(() => {
-    if (auth?.role && auth.role !== "master" && auth.branchId) {
+    if (auth?.role && !hasAllBranchAccess(auth) && auth.branchId) {
       if (activeBranch !== auth.branchId) {
         setActiveBranch(auth.branchId);
       }

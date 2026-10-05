@@ -1,4 +1,5 @@
 import React from "react";
+import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { CheckCircle2, KeyRound } from "lucide-react";
 import { Label } from "@/shared/ui/label";
@@ -26,21 +27,14 @@ export function GenerateCodeDialog({ categories, clients, genDialog, handleConfi
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Pilih Klien Tujuan</Label>
-              <Select
+              <ClientCombobox
+                clients={clients}
                 value={genDialog.selectedClientId}
-                onValueChange={(val) => setGenDialog((prev) => ({ ...prev, selectedClientId: val }))}
-              >
-                <SelectTrigger className="border-slate-200 text-xs font-semibold">
-                  <SelectValue placeholder="Pilih Klien..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-56 rounded-xl">
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs font-medium">
-                      {c.clientName} ({c.clientCode}) • {c.branchId === "branch-citraland" ? "Citraland" : c.branchId === "branch-sby-barat" ? "West" : "East"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(val) => setGenDialog((prev) => ({ ...prev, selectedClientId: val }))}
+                placeholder="Cari klien..."
+                testId="generate-code-client"
+                renderMeta={(c) => <><span className="font-mono">{c.clientCode}</span> • {c.branchId === "branch-citraland" ? "Citraland" : c.branchId === "branch-sby-barat" ? "West" : "East"}</>}
+              />
             </div>
 
             <div className="space-y-1.5">

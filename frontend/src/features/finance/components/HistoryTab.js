@@ -53,6 +53,7 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                                 log.action === "used" && "bg-sky-50 text-sky-800 border-sky-200",
                                 log.action === "cancel_excused" && "bg-slate-100 text-slate-700 border-slate-200",
                                 log.action === "cancel_penalty" && "bg-rose-50 text-rose-800 border-rose-200 font-extrabold",
+                                (log.action === "off_excused" || log.action === "off_penalty") && "bg-violet-50 text-violet-800 border-violet-200",
                                 log.action === "reversal" && "bg-violet-50 text-violet-800 border-violet-200",
                                 (log.action === "converted_out" || log.action === "converted_in") && "bg-amber-50 text-amber-800 border-amber-200",
                                 log.action === "manual_adjust" && "bg-rose-50 text-rose-800 border-rose-200"
@@ -62,6 +63,8 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                               {log.action === "used" && "Sesi Terpakai"}
                               {log.action === "cancel_excused" && "Cancel (Kredit Utuh)"}
                               {log.action === "cancel_penalty" && "Penalti Cancel (>3x)"}
+                              {log.action === "off_excused" && "Sesi Off (Kredit Utuh)"}
+                              {log.action === "off_penalty" && "Sesi Off (Potong Kredit)"}
                               {log.action === "reversal" && "Dibatalkan (Reversal)"}
                               {log.action === "converted_out" && "Konversi Keluar"}
                               {log.action === "converted_in" && "Konversi Masuk"}

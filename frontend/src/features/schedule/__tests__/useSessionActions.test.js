@@ -354,3 +354,35 @@ describe("bulkReschedule atomik", () => {
     expect([sa.status, sb.status]).toEqual(["rescheduled", "rescheduled"]);
   });
 });
+
+test("offSession: admin memilih potong kredit; kuota cancel tidak bertambah; revert memulihkan", async () => {
+  const [s] = pickSessions(1);
+  const pkgBefore = pkgOf(s);
+  expect(() => ctx.actions.offSession(s, { offReason: "OL", note: "" })).toThrow(/wajib dipilih/);
+
+  await act(async () => { ctx.actions.offSession(s, { offReason: "OL", note: "Cuti terapis", deductCredit: true }); });
+  const off = ctx.schedules.schedules.find((x) => x.id === s.id);
+  expect(off).toMatchObject({ status: "off", offReason: "OL", offNote: "Cuti terapis" });
+  const pkgAfter = pkgOf(s);
+  expect(pkgAfter.remainingCredit).toBe(pkgBefore.remainingCredit - 1);
+  expect(pkgAfter.cancelCount || 0).toBe(pkgBefore.cancelCount || 0);
+  expect(canRevertSession(off)).toBe(true);
+
+  let r;
+  await act(async () => { r = ctx.actions.revertSession(off, { reason: "salah klik" }); });
+  expect(r).toMatchObject({ kind: "off", creditChange: 1, quotaChange: 0 });
+  const back = ctx.schedules.schedules.find((x) => x.id === s.id);
+  expect(back.status).toBe("scheduled");
+  expect(back.offReason).toBeNull();
+  expect(pkgOf(s).remainingCredit).toBe(pkgBefore.remainingCredit);
+});
+
+test("offSession tanpa potong kredit: kredit & kuota utuh", async () => {
+  const [s] = pickSessions(1);
+  const before = pkgOf(s);
+  await act(async () => { ctx.actions.offSession(s, { offReason: "Libur panjang sekolah", note: "", deductCredit: false }); });
+  const after = pkgOf(s);
+  expect(after.remainingCredit).toBe(before.remainingCredit);
+  expect(after.cancelCount || 0).toBe(before.cancelCount || 0);
+  expect(ctx.schedules.schedules.find((x) => x.id === s.id).status).toBe("off");
+});

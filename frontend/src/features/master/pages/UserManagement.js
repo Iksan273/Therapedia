@@ -2,9 +2,10 @@ import React, { useState, useMemo } from "react";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
-import { UserCog, Plus, KeyRound, UserX, UserCheck, Search } from "lucide-react";
+import { UserCog, Plus, KeyRound, UserX, UserCheck, Search, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
+import { Switch } from "@/shared/ui/switch";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
@@ -19,7 +20,7 @@ import {
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, activeBranches } from "@/domain/branch";
-import { generateTempPassword, validateNewPassword, validateStaffBranch } from "@/domain/auth";
+import { generateTempPassword, hasAllBranchAccess, validateNewPassword, validateStaffBranch } from "@/domain/auth";
 
 const ROLE_OPTIONS = [
   { value: "manager", label: "Branch Manager" },
@@ -31,8 +32,8 @@ const ROLE_OPTIONS = [
 
 export default function UserManagement() {
   const { confirm, confirmDialog } = useConfirm();
-  const { staffUsers, addStaffUser, setStaffActive, resetStaffPassword, activeBranch, auth, rolesList } = useAuth();
-  const isMaster = auth?.role === "master";
+  const { staffUsers, addStaffUser, updateStaffUser, setStaffActive, resetStaffPassword, activeBranch, auth, rolesList } = useAuth();
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
 
   const roleOptions = useMemo(() => {
@@ -45,11 +46,13 @@ export default function UserManagement() {
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState(defaultBranch);
   const [addOpen, setAddOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null); // id staf yang sedang diubah (null = tambah baru)
   const emptyForm = () => ({
     name: "",
     email: "",
     role: "admin_inquiry",
     branchId: "branch-sby-timur",
+    allBranches: false, // akses semua cabang (semua role non-master)
     title: "",
     specialty: "",
     bio: "",
@@ -79,22 +82,48 @@ export default function UserManagement() {
     }
 
     // Semua akun non-master terikat tepat 1 cabang; hanya Master yang boleh semua cabang (tanpa cabang)
-    const branchId = form.role === "master" ? null : form.branchId;
-    const branchError = validateStaffBranch(form.role, branchId);
+    const allBranches = form.role !== "master" && Boolean(form.allBranches);
+    const branchId = form.role === "master" || allBranches ? null : form.branchId;
+    const branchError = validateStaffBranch(form.role, branchId, allBranches);
     if (branchError) {
       toast.error(branchError);
       return;
     }
+    const emailTaken = (staffUsers || []).some((u) => u.id !== editingId && u.email.trim().toLowerCase() === form.email.trim().toLowerCase());
+    if (emailTaken) {
+      toast.error("Email sudah dipakai akun staff lain.");
+      return;
+    }
+
+    if (editingId) {
+      const { password: _pw, ...profile } = form;
+      updateStaffUser(editingId, { ...profile, name: form.name.trim(), email: form.email.trim(), branchId, allBranches });
+      toast.success(`Akun ${form.name} diperbarui.`);
+      closeStaffDialog();
+      return;
+    }
+
     const pwError = validateNewPassword(form.password);
     if (pwError) {
       toast.error(`Password sementara: ${pwError}`);
       return;
     }
 
-    addStaffUser({ ...form, branchId });
+    addStaffUser({ ...form, branchId, allBranches });
     toast.success(`Akun ${form.name} dibuat. Password sementara: ${form.password} (wajib diganti saat login pertama).`, { duration: 9000 });
+    closeStaffDialog();
+  };
+
+  const closeStaffDialog = () => {
     setAddOpen(false);
+    setEditingId(null);
     setForm(emptyForm());
+  };
+
+  const openEditStaff = (u) => {
+    setEditingId(u.id);
+    setForm({ ...emptyForm(), name: u.name, email: u.email, role: u.role, branchId: u.branchId || "branch-sby-timur", allBranches: Boolean(u.allBranches), title: u.title || "", specialty: u.specialty || "", bio: u.bio || "" });
+    setAddOpen(true);
   };
 
   // Master mengatur ulang password staf (lupa password / bantuan): password sementara baru + wajib ganti
@@ -145,7 +174,7 @@ export default function UserManagement() {
 
         <Button
           className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-2 shadow-sm shadow-sky-600/20"
-          onClick={() => setAddOpen(true)}
+          onClick={() => { setEditingId(null); setForm(emptyForm()); setAddOpen(true); }}
           data-testid="add-staff-button"
         >
           <Plus className="w-4 h-4" /> Tambah Staff Baru
@@ -224,7 +253,7 @@ export default function UserManagement() {
                     <TableCell data-label="Email Akun" className="text-xs font-mono text-slate-600 min-w-[190px] whitespace-nowrap">{u.email}</TableCell>
                     <TableCell data-label="Penugasan Cabang" className="text-xs min-w-[170px] whitespace-nowrap">
                       <span className="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 inline-flex items-center gap-1.5 whitespace-nowrap">
-                        {br ? br.name : u.role === "master" ? "Semua cabang" : "—"}
+                        {br ? br.name : hasAllBranchAccess(u) ? "Semua cabang" : "—"}
                       </span>
                     </TableCell>
                     <TableCell data-label="Peran (Role)" className="text-xs min-w-[160px] whitespace-nowrap">
@@ -233,6 +262,9 @@ export default function UserManagement() {
                       </span>
                     </TableCell>
                     <TableCell data-nolabel className="text-right pr-6 min-w-[90px] whitespace-nowrap">
+                      <Button aria-label={`Edit staff ${u.name}`} size="icon" variant="ghost" className="text-slate-400 hover:text-sky-700 hover:bg-sky-50 cursor-pointer" onClick={() => openEditStaff(u)} title="Edit data staff" data-testid={`edit-staff-${u.id}`}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
                       {isMaster && (
                         <Button aria-label="Reset password"
                           size="icon"
@@ -298,15 +330,15 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Staff Dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      {/* Add / Edit Staff Dialog */}
+      <Dialog open={addOpen} onOpenChange={(o) => (o ? setAddOpen(true) : closeStaffDialog())}>
         <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <UserCog className="w-5 h-5 text-sky-600" /> Tambah Akun Staff
+              <UserCog className="w-5 h-5 text-sky-600" /> {editingId ? "Edit Akun Staff" : "Tambah Akun Staff"}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Daftarkan personil baru ke sistem Therapedia dengan penetapan role dan cabang operasional.
+              {editingId ? "Ubah profil, role, dan penugasan cabang. Password diatur lewat tombol reset password." : "Daftarkan personil baru ke sistem Therapedia dengan penetapan role dan cabang operasional."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddSubmit} className="space-y-3.5 pt-2">
@@ -344,6 +376,7 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
+            {!editingId && (
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Password Sementara *</Label>
               <Input
@@ -354,10 +387,20 @@ export default function UserManagement() {
               />
               <p className="text-[11px] text-slate-500">Berikan ke staf; wajib diganti saat login pertama. Lupa password: OTP email atau reset oleh Master.</p>
             </div>
+            )}
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Penugasan Cabang *</Label>
-              {form.role === "master" && <p className="text-[11px] text-slate-500">Role Master berlaku untuk semua cabang. Role lain terikat tepat 1 cabang.</p>}
-              <Select value={form.branchId} disabled={form.role === "master"} onValueChange={(val) => setForm({ ...form, branchId: val })}>
+              {form.role === "master" && <p className="text-[11px] text-slate-500">Role Master berlaku untuk semua cabang.</p>}
+              {form.role !== "master" && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 min-h-10">
+                  <div>
+                    <Label htmlFor="staff-all-branches" className="text-xs font-bold text-slate-700 cursor-pointer">Akses semua cabang</Label>
+                    <p className="text-[11px] text-slate-500">Seperti Master: bisa melihat & berpindah antar cabang. Nonaktif = terikat 1 cabang.</p>
+                  </div>
+                  <Switch id="staff-all-branches" checked={Boolean(form.allBranches)} onCheckedChange={(v) => setForm({ ...form, allBranches: v })} data-testid="staff-all-branches-switch" />
+                </div>
+              )}
+              <Select value={form.branchId} disabled={form.role === "master" || Boolean(form.allBranches)} onValueChange={(val) => setForm({ ...form, branchId: val })}>
                 <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>
@@ -399,11 +442,11 @@ export default function UserManagement() {
               </div>
             )}
             <DialogFooter className="mt-4 gap-2">
-              <Button type="button" variant="outline" className="border-slate-200" onClick={() => setAddOpen(false)}>
+              <Button type="button" variant="outline" className="border-slate-200" onClick={closeStaffDialog}>
                 Batal
               </Button>
               <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
-                Simpan Staff Baru
+                {editingId ? "Simpan Perubahan" : "Simpan Staff Baru"}
               </Button>
             </DialogFooter>
           </form>

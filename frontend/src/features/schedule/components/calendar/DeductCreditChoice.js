@@ -3,13 +3,14 @@ import { cn } from "@/shared/lib/utils";
 import { CANCEL_QUOTA } from "@/domain/credit";
 
 const OPTIONS = [
-  { value: "deduct", title: "Potong 1 kredit", hint: "Kredit paket berkurang 1 (ledger cancel_penalty)." },
-  { value: "keep", title: "Jangan potong kredit", hint: "Kredit tetap utuh (ledger cancel_excused)." },
+  { value: "deduct", title: "Potong 1 kredit", hint: "Kredit paket berkurang 1 (ledger cancel_penalty / off_penalty)." },
+  { value: "keep", title: "Jangan potong kredit", hint: "Kredit tetap utuh (ledger cancel_excused / off_excused)." },
 ];
 
 // Pilihan WAJIB saat membatalkan sesi: potong kredit atau tidak (keputusan admin). Tanpa nilai awal.
 // `pkg` = paket target sesi; kuota cancel 3 per paket hanya penghitung (tidak otomatis memotong).
-export function DeductCreditChoice({ value, onChange, pkg, count = 1, bulk = false, testId = "deduct-credit" }) {
+export function DeductCreditChoice({ value, onChange, pkg, count = 1, bulk = false, kind = "cancel", testId = "deduct-credit" }) {
+  const isOff = kind === "off";
   const canDeduct = bulk || (Boolean(pkg) && pkg.remainingCredit > 0);
   const used = pkg?.cancelCount || 0;
   const after = used + count;
@@ -40,7 +41,12 @@ export function DeductCreditChoice({ value, onChange, pkg, count = 1, bulk = fal
           );
         })}
       </div>
-      {bulk ? (
+      {isOff ? (
+        <p className="text-[11px] text-slate-600 leading-relaxed" data-testid={`${testId}-quota`}>
+          Sesi Off tidak menambah kuota cancel paket; keputusan potong kredit ada pada admin.
+          {!canDeduct && " Saldo paket 0 / tanpa paket, kredit tidak bisa dipotong."}
+        </p>
+      ) : bulk ? (
         <p className="text-[11px] text-slate-600 leading-relaxed" data-testid={`${testId}-quota`}>
           Berlaku untuk semua sesi terpilih. Sesi yang client-nya tanpa paket aktif atau saldo 0 tidak dipotong. Kuota cancel 3x per paket hanya penghitung.
         </p>

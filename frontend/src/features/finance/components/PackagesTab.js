@@ -1,12 +1,12 @@
 import React from "react";
 import { TabsContent } from "@/shared/ui/tabs";
 import { Button } from "@/shared/ui/button";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { Card } from "@/shared/ui/card";
 import { fmtCurrency } from "@/shared/lib/format";
 import { packageInvoiceCode } from "@/domain/credit";
 
-export function PackagesTab({ masterPackages, setNewPkgOpen }) {
+export function PackagesTab({ masterPackages, setNewPkgOpen, onEditPackage }) {
   return (
     <TabsContent value="packages" className="space-y-4">
           <div className="flex items-center justify-between">
@@ -31,9 +31,14 @@ export function PackagesTab({ masterPackages, setNewPkgOpen }) {
                     <span className="inline-block mt-0.5 font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Kode: {packageInvoiceCode(pkg)}</span>
                     <p className="text-xs text-slate-500 mt-0.5">{pkg.description || "Paket sesi terapi resmi"}</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold shrink-0">
-                    {pkg.credits} Sesi
-                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="px-2.5 py-1 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold">
+                      {pkg.credits} Sesi
+                    </span>
+                    <Button aria-label={`Edit paket ${pkg.name}`} size="icon" variant="ghost" className="text-slate-400 hover:text-sky-700 hover:bg-sky-50 cursor-pointer" onClick={() => onEditPackage(pkg)} title="Edit paket" data-testid={`edit-package-${pkg.id}`}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-400">Harga Standar:</span>

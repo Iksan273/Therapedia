@@ -1,5 +1,6 @@
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import React, { useMemo, useState } from "react";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { isCreditedAbsence } from "@/domain/credit";
 import { useNavigate } from "react-router-dom";
 import { addWeeks, format, parseISO, startOfWeek } from "date-fns";
@@ -117,7 +118,7 @@ export default function ClientAnalyticsTab({ activeList }) {
   const { activeBranch, auth } = useAuth();
   const { getService, getCancelReasonLabel } = useMasterData();
 
-  const isMaster = auth?.role === "master";
+  const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
   const defaultBranch = isMaster ? activeBranch || "all" : auth?.branchId || activeBranch || "branch-sby-timur";
 
   const [search, setSearch] = useState("");

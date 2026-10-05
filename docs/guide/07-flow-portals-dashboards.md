@@ -18,7 +18,7 @@ Semua data difilter berdasarkan `auth.therapistId`.
 `features/parent/pages/ClientDashboard.js`, data milik `auth.clientId`.
 - Kartu tagihan: invoice **Paket Sesi** terbaru + status. **Upload bukti transfer** (drag & drop, JPG/PNG/PDF ≤ 5 MB, re-upload maks 3x) → lihat 06.
 - Sisa kredit total + per paket (`remainingCredit / totalCredit`).
-- Kartu **Kuesioner Asesmen Ananda**: daftar kode kuesioner yang belum diisi (nama, kode, masa berlaku opsional). Tombol "Isi Kuesioner" membuka `/assessment?code=...` (kode terisi otomatis). Tombol **terkunci** bila ada **invoice Assessment belum lunas** (kartu menampilkan invoice-nya + tombol upload bukti) atau kode **kedaluwarsa**. Kuesioner hanya bisa diisi sekali.
+- **Tidak ada** kartu/daftar kode kuesioner di portal ortu dan tidak ada upload bukti bayar: admin mengirim kode kuesioner lewat WhatsApp, ortu mengisinya di `/assessment` (kode diketik manual). Banner tagihan hanya menampilkan status Lunas / Menunggu Pembayaran; Finance yang menandai lunas.
 - Riwayat terapi: **hanya sesi `completed`**. Tombol **View Report nonaktif** bila laporan belum diisi terapis (`isReportEmpty`: label "Laporan belum tersedia"); modal laporan tidak lagi memakai teks placeholder. **Export laporan** per sesi dan "Export Laporan" (sesuai filter) membuka dokumen cetak (`shared/lib/reportExport.js`, simpan sebagai PDF lewat dialog cetak). Filter tanggal "Dari–Sampai" (`DateFilterPicker`, `filterSessionsByDate`) + reset; list dibatasi tinggi `min(520px, 60vh)`, pagination 10/20/50.
 - Login dengan **kode client** (`clientCode`, mis. `AE-00006`) di `/roles` atau `/login` (demo; backend: kode + tanggal lahir anak).
 - Target utama: **mobile** (ortu membuka dari HP).

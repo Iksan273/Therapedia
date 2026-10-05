@@ -10,6 +10,7 @@ const CHIP_STYLES = {
   scheduled: "bg-sky-50 border-sky-200/90 text-sky-900 hover:border-sky-300",
   completed: "bg-emerald-50 border-emerald-200/90 text-emerald-900 hover:border-emerald-300",
   cancelled: "bg-rose-50 border-rose-200/90 text-rose-600 hover:border-rose-300",
+  off: "bg-violet-50 border-violet-200/90 text-violet-700 hover:border-violet-300",
   rescheduled: "bg-amber-50 border-amber-200/90 text-amber-900 hover:border-amber-300",
   reschedule_pending: "bg-orange-50 border-dashed border-orange-300 text-orange-950 hover:border-orange-400",
   frozen: "bg-cyan-50 border-cyan-300 text-cyan-950 ring-1 ring-cyan-400 shadow-2xs",
@@ -90,7 +91,7 @@ function SessionChip({ s, name, therapistName, isFrozen, isConflict, isSelected,
               <input type="checkbox" checked={isSelected} onChange={() => {}} className="w-3 h-3 shrink-0 accent-sky-600 cursor-pointer" aria-label="Pilih sesi" />
             )}
             <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", TYPE_DOT[s.type] || TYPE_DOT.therapy)} />
-            <span className={cn("font-bold truncate min-w-0", s.status === "cancelled" && "line-through text-rose-500")}>{name}</span>
+            <span className={cn("font-bold truncate min-w-0", (s.status === "cancelled" || s.status === "off") && "line-through text-rose-500")}>{name}</span>
             {hasReport(s) && <FileText className="w-2.5 h-2.5 shrink-0 ml-auto text-emerald-700" aria-label="Laporan terisi" />}
           </span>
           <span className="flex items-center gap-1 mt-0.5 min-w-0 tabular-nums">

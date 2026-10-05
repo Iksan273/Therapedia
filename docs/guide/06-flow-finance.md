@@ -1,27 +1,25 @@
-# 06 — Flow Finance (Invoice, Bukti Bayar, Renewal)
+# 06 — Flow Finance (Invoice, Pembayaran, Renewal)
 
 > Keputusan klien 3 Okt 2026 yang menyentuh dokumen ini sudah diimplementasi di frontend; register keputusan + status: [12-keputusan-klien.md](12-keputusan-klien.md).
 
 ## Tujuan & role
-Menerbitkan tagihan (jenis **Paket Sesi** atau **Assessment**), menerima bukti transfer dari orang tua, memverifikasinya, dan menambah kredit sesi client (Paket Sesi).
-Role dengan akses modul `finance` (Finance, Master): void, renewal langsung, dan koreksi saldo = aksi modul finance. **Orang tua** mengunggah bukti di `/client`. Admin Inquiry melihat invoice di Client Detail (read-only).
+Menerbitkan tagihan (jenis **Paket Sesi** atau **Assessment**), menandai lunas setelah pembayaran diterima (orang tua **tidak** mengunggah bukti), dan menambah kredit sesi client (Paket Sesi).
+Role dengan akses modul `finance` (Finance, Master): void, renewal langsung, dan koreksi saldo = aksi modul finance. **Orang tua** hanya melihat status tagihan di `/client` (tanpa upload). Admin Inquiry melihat invoice di Client Detail (read-only).
 
 ## Alur utama
 
 ```mermaid
 sequenceDiagram
   participant F as Finance (/finance)
-  participant P as Ortu (/client)
   participant C as creditsStore
   F->>C: issueInvoice({ type: package | assessment }) → invoice status "unpaid"
-  P->>C: uploadPaymentProof() → proofUrl (dataURL), fileName/type/size
-  F->>C: verifyPaymentProof(status "paid", creditsToAdd)
+  F->>C: verifyPaymentProof(status "paid", creditsToAdd) — "Tandai Lunas" setelah dana diterima
   C-->>C: invoice paid; jenis Paket Sesi → paket baru di records[].packages (+N kredit dari SNAPSHOT invoice, history "renewed"); jenis Assessment → hanya lunas (membuka kuesioner ortu)
-  Note over F,C: Reject = verifyPaymentProof(status "unpaid") → invoice tetap unpaid, kredit tidak berubah
+  Note over F,C: Atau langsung lunas dari Create Invoice (switch "Langsung lunas", paket pertama): paket → renewClientCredit({ isRenewal: false }); assessment → issueInvoice({ paidDirect: true })
 ```
 **Renewal punya 2 jalur** (`RenewalDialog`, pilih di bagian atas dialog; `RENEWAL_MODES` di `domain/credit.js`):
-1. **Terbitkan invoice baru** (default): memanggil `issueInvoice` jenis paket + `isRenewal: true` → invoice `unpaid`, masuk antrean Verifikasi, alur upload → verifikasi seperti biasa.
-2. **Langsung lunas** (`renewClientCredit`): invoice `paid` + paket kredit sekaligus, tanpa upload/verifikasi (ortu sudah bayar, mis. tunai di kasir). **Wajib alasan** (teks bebas, min. `MIN_RENEWAL_REASON` = 3 karakter) **dan justifikasi** (teks, min. `MIN_RENEWAL_JUSTIFICATION` = 10 karakter; `validateDirectRenewal`). Disimpan di invoice (`renewalReason`, `renewalJustification`) dan tampil di log `renewal_paid`. Kedua jalur menandai invoice `isRenewal = true`; tab Semua Tagihan menampilkan badge **Renewal** di samping nama paket.
+1. **Terbitkan invoice baru** (default): memanggil `issueInvoice` jenis paket + `isRenewal: true` → invoice `unpaid`, masuk tab **Menunggu Pembayaran**; Finance menandai lunas setelah dana diterima.
+2. **Langsung lunas** (`renewClientCredit`): invoice `paid` + paket kredit sekaligus, (pembayaran sudah diterima, mis. tunai/transfer). Hanya **catatan Finance opsional** (`reason` → `renewalReason`, tampil di log `renewal_paid`); alasan & justifikasi wajib sudah dihapus (`validateDirectRenewal` dihapus). Kedua jalur menandai invoice `isRenewal = true`; tab Semua Tagihan menampilkan badge **Renewal** di samping nama paket.
 
 ## Efek aktivasi paket ke jadwal (approve / renewal langsung)
 Frozen itu **turunan** (kredit client 0), jadi begitu paket baru aktif, sesi otomatis tidak Frozen lagi. Agar sesi juga memakai paket yang sedang aktif, `usePackageActivationActions` (`features/finance/hooks`) menjalankan setelah approve pembayaran paket / renewal langsung: sesi terapi **mendatang** (`scheduled`/`rescheduled`/`reschedule_pending`, tanggal ≥ hari ini) yang `creditPackageId`-nya kosong atau menunjuk paket habis dipindah ke paket aktif tertua (atau paket baru bila belum ada yang bersisa); `planSessionRelink` di `domain/credit.js`. Sesi riwayat tidak disentuh. Saat complete / cancel, paket sesi juga di-resolve lewat `resolveSessionPackage` (pilihan awal bila masih bersisa, selain itu paket aktif tertua). Toast menyebut jumlah jadwal yang dipindah.
@@ -32,17 +30,14 @@ Satu kotak **pencarian** di atas tab (nama anak, nama ortu, kode client, atau no
 
 | Tab | Komponen | Isi / aksi |
 |---|---|---|
-| `verification` | `VerificationTab.js` | Antrean semua invoice yang belum `paid` (`pendingInvoices`, dengan atau tanpa bukti). Lihat bukti (`shared/components/PaymentProofViewerModal.js`, mendukung gambar/PDF), lalu Approve (`handleApprovePayment`) atau Reject (`handleRejectPayment`) |
-| `billing` | `BillingTab.js` + `CreateInvoiceDialog.js` + `RenewalDialog.js` | Daftar invoice (badge jenis). Terbitkan invoice: pilih **jenis** Paket Sesi (pilih paket) atau Assessment (nominal bebas, tanpa paket) → `issueInvoice`. Renewal langsung (`renewClientCredit`). Tombol hapus invoice (juga di antrean `verification`; hanya role `canDelete` dan **hanya invoice belum lunas**: dihapus permanen beserta bukti bayar & lognya, saldo lebihan yang dipakai kembali ke client). Invoice **lunas** tidak bisa dihapus: tombol **Void** (`VoidInvoiceDialog`, lihat bagian Void). Kolom **Aksi**: **Log** (`InvoiceLogDialog`, log milik invoice) dan **Konversi** (`ConvertPackageDialog`, hanya invoice paket lunas yang paketnya masih punya sisa sesi) |
+| `verification` | `VerificationTab.js` | Label tab **Menunggu Pembayaran**: semua invoice yang belum `paid` (`pendingInvoices`), tombol **Tandai Lunas** (`handleApprovePayment`) dan hapus. Tanpa kolom bukti & tanpa Tolak. Bukti lama (data legacy) masih bisa dilihat dari tab Semua Tagihan lewat `PaymentProofViewerModal` |
+| `billing` | `BillingTab.js` + `CreateInvoiceDialog.js` + `RenewalDialog.js` | Daftar invoice (badge jenis). Terbitkan invoice: pilih client lewat **combobox pencarian** (`shared/components/ClientCombobox.js`: nama anak, ortu, atau kode; dipakai juga di Renewal, Jadwal, filter client terapis, dll.), pilih **jenis** Paket Sesi (pilih paket) atau Assessment (nominal bebas, tanpa paket) → `issueInvoice`. Switch **Langsung lunas** (+ catatan opsional): paket → `renewClientCredit({ isRenewal: false })` (paket aktif), assessment → `issueInvoice({ paidDirect: true })`. Renewal langsung (`renewClientCredit`). Tombol hapus invoice (juga di antrean `verification`; hanya role `canDelete` dan **hanya invoice belum lunas**: dihapus permanen beserta bukti bayar & lognya, saldo lebihan yang dipakai kembali ke client). Invoice **lunas** tidak bisa dihapus: tombol **Void** (`VoidInvoiceDialog`, lihat bagian Void). Kolom **Aksi**: **Log** (`InvoiceLogDialog`, log milik invoice) dan **Konversi** (`ConvertPackageDialog`, hanya invoice paket lunas yang **belum pernah dikonversi** dan paketnya masih punya sisa sesi; konversi hanya 1x per invoice, tombol hilang setelah dikonversi) |
 | `history` | `HistoryTab.js` | Gabungan semua `records[].history` dari semua client, diurutkan berdasarkan tanggal, dengan pagination 10 |
 | `leftover` | `LeftoverTab.js` (+ `leftoverSummaryByClient` di `domain/credit.js`) | **Saldo Lebihan**: client dengan saldo lebihan konversi (default saldo > 0; tombol "Termasuk saldo 0"), kolom **Sisa Saldo** (masuk/terpakai), **Sumber Lebihan** (invoice asal konversi + paket tujuan + tanggal) dan **Sudah Dipakai di Invoice** (invoice yang terpotong saldo). Baris yang saldo tersimpannya beda dari hitungan masuk − terpakai diberi penanda *Tidak sinkron*. Dicari lewat kotak cari yang sama, pagination 10 |
-| `packages` | `PackagesTab.js` + `NewPackageDialog.js` | Master paket (`masterPackages`). Tambah paket (`addMasterPackage`) dengan **kode paket** (`invoiceCode`, unik, `ASM` dicadangkan) untuk nomor invoice. **Belum ada** edit/hapus |
+| `packages` | `PackagesTab.js` + `NewPackageDialog.js` | Master paket (`masterPackages`). Tambah (`addMasterPackage`) dan **edit** (`updateMasterPackage`, ikon pensil; invoice & paket lama memakai snapshot sehingga tidak berubah) dengan **kode paket** (`invoiceCode`, unik, `ASM` dicadangkan) untuk nomor invoice. Belum ada hapus |
 
-## Upload bukti (ortu): `/client`
-`features/parent/pages/ClientDashboard.js` → `handleUploadSubmit`
-- Target: invoice **Paket Sesi** terbaru (banner tagihan) atau invoice **Assessment** yang belum lunas (kartu Kuesioner Asesmen, `uploadInvoiceId`). Jika belum ada invoice → error toast.
-- Aturan klien (`domain/credit.js`): **JPG/PNG/PDF maks 5 MB** (`validateProofFile`, dipakai `processProofFile`), **upload sekali + re-upload maks 3x** (total `MAX_PROOF_UPLOADS = 4`; `proofUploadCount`, `canUploadProof`, tombol menampilkan sisa kesempatan). Gambar dikompres (`compressImage`), PDF dibaca sebagai dataURL.
-- Disimpan sebagai **dataURL di localStorage** (`proofUrl`). Batasan demo; di backend file ke storage privat (lihat 10).
+## Portal ortu: `/client`
+Ortu **tidak lagi mengunggah bukti bayar**. Banner tagihan hanya menampilkan status (Lunas / Menunggu Pembayaran) dari invoice Paket Sesi terbaru; Finance yang menandai lunas. Kartu daftar kode kuesioner juga dihapus dari portal: admin mengirim kode lewat WhatsApp dan ortu mengisinya di `/assessment` (lihat 04/07). Aksi/field upload (`uploadPaymentProof`, `proofUploadCount`, `canUploadProof`) masih ada di store/domain hanya untuk kompatibilitas data lama.
 
 ## Aturan bisnis
 - **Jenis invoice**: `package` (Paket Sesi) dan `assessment` (`invoiceType(inv)`; invoice lama tanpa `type` = paket). Tanpa diskon manual, DP, cicilan, refund, dan jatuh tempo (satu-satunya pengurang nominal = saldo lebihan konversi) (pengingat tagihan manual lewat WhatsApp oleh admin).
@@ -83,3 +78,7 @@ Setiap invoice punya **log sendiri** (`invoice.logs`, append-only, `appendInvoic
 
 ## File terkait
 `frontend/src/features/finance/pages/`, `frontend/src/stores/creditsStore.js`, `frontend/src/shared/lib/fileUpload.js`, `frontend/src/shared/components/PaymentProofViewerModal.js`, `frontend/src/features/parent/pages/ClientDashboard.js`
+
+> **Catatan konversi**: `ConvertPackageDialog` selalu punya kolom **Catatan Finance** (wajib untuk semua konversi, otomatis maupun manual). Tersimpan di `package_conversions.reason` dan tampil di log invoice `converted` sebagai "Catatan Finance: …".
+
+> **Tampilan setelah konversi**: nama paket di baris invoice (Semua Tagihan, kartu invoice client detail, header dialog konversi) menampilkan **paket tujuan** terakhir (`invoicePackageName` di `domain/credit.js`, diturunkan dari log `converted`), dengan keterangan "dari {paket asal}" dan riwayat lengkap di log invoice. Snapshot `packageName` invoice tidak diubah. Pratinjau di `ConvertPackageDialog` menampilkan baris **Paket client**: "{paket asal} (sisa N sesi) → {paket tujuan} (M sesi)". Sesi lama yang sudah lewat tetap menampilkan paket lama; sesi mendatang dihapus untuk dijadwalkan ulang. Kolom Paket Kredit di riwayat sesi client menampilkan nama paket tanpa jumlah sesi (`packageBaseName`).

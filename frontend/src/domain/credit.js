@@ -11,6 +11,9 @@ export const DEFAULT_MASTER_PACKAGES = [
   { id: "pkg-consult", invoiceCode: "KON", name: "Paket Konsultasi", credits: 1, price: 500000, description: "1 Sesi Konsultasi Klinis & Review" },
 ];
 
+// Nama paket tanpa jumlah sesi, mis. "Regular Therapist (10x)" -> "Regular Therapist" (riwayat sesi client).
+export const packageBaseName = (name) => formatPackageName(name).replace(/\s*\(\d+x\)\s*$/i, "").trim();
+
 export const formatPackageName = (name) => {
   if (!name) return "Regular Therapist";
   return name
@@ -59,7 +62,9 @@ export function newClientPackage({ id, packageId, packageName, credits, price = 
   };
 }
 
-const REVERTIBLE_ACTIONS = ["used", "cancel_excused", "cancel_penalty"];
+const REVERTIBLE_ACTIONS = ["used", "cancel_excused", "cancel_penalty", "off_excused", "off_penalty"];
+// Aksi ledger yang tidak mengubah kredit (kredit utuh)
+const KEEP_ACTIONS = ["cancel_excused", "off_excused"];
 
 // Mutasi sesi ini yang belum dibalik (belum ada baris `reversal` yang menunjuk id-nya).
 // Setelah revert lalu complete lagi, mutasi baru (id berbeda) menjadi mutasi aktif.
@@ -101,12 +106,14 @@ export function applySessionCompleted(record, { packageId, scheduleId, date }) {
 // Sesi dibatalkan. Kuota cancel dihitung PER PAKET (`cancelCount`, hanya penghitung). Admin yang menentukan apakah
 // kredit dipotong (`deductCredit` true → ledger `cancel_penalty` −1) atau tidak (`cancel_excused`, kredit utuh).
 // Tanpa paket / saldo 0, pemotongan tidak mungkin → dicatat `cancel_excused`.
-export function applySessionCancelled(record, { packageId, scheduleId, cancelReason, date, deductCredit = false }) {
+// `kind: "off"` = sesi Off (terapis/klinik off): aturan potong kredit sama, tetapi TIDAK menambah kuota cancel paket.
+export function applySessionCancelled(record, { packageId, scheduleId, cancelReason, date, deductCredit = false, kind = "cancel" }) {
   const packages = record.packages || [];
   const idx = findPackageIndex(packages, packageId);
   const target = idx !== -1 ? packages[idx] : null;
   const reason = cancelReason || "lainnya";
-  const cancelCount = (target?.cancelCount || 0) + 1;
+  const isOff = kind === "off";
+  const cancelCount = (target?.cancelCount || 0) + (isOff ? 0 : 1);
   const deduct = Boolean(deductCredit) && Boolean(target) && target.remainingCredit > 0;
 
   const nextPackages = [...packages];
@@ -122,11 +129,15 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
         scheduleId,
         packageId: target ? target.id : null,
         packageName: target ? target.packageName : "General",
-        action: deduct ? "cancel_penalty" : "cancel_excused",
+        action: isOff ? (deduct ? "off_penalty" : "off_excused") : deduct ? "cancel_penalty" : "cancel_excused",
         creditChange: deduct ? -1 : 0,
         cancelReason: reason,
         cancelCountAfter: target ? cancelCount : null,
-        note: deduct
+        note: isOff
+          ? deduct
+            ? `Sesi Off (${cancelReason || "Off"}) — admin memilih potong 1 kredit ${target.packageName}`
+            : `Sesi Off (${cancelReason || "Off"}) — admin memilih tidak potong kredit`
+          : deduct
           ? `Cancel ke-${cancelCount} pada paket — admin memilih potong 1 kredit ${target.packageName}`
           : `Cancel ke-${cancelCount} pada paket (${cancelReason || "Izin"}) — admin memilih tidak potong kredit`,
       }),
@@ -139,14 +150,16 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
 //   used           → +1 kredit ke paket asal
 //   cancel_penalty → +1 kredit, kuota cancel paket −1
 //   cancel_excused → kuota cancel paket −1 (kredit tidak berubah)
+//   off_penalty    → +1 kredit (kuota cancel tidak berubah)
+//   off_excused    → tidak ada perubahan kredit/kuota
 export function applySessionReverted(record, { scheduleId, date, reason }) {
   const entry = findLiveSessionEntry(record, scheduleId);
   if (!entry) return record;
 
   const packages = record.packages || [];
   const idx = packages.findIndex((p) => p.id === entry.packageId);
-  const refunds = entry.action !== "cancel_excused";
-  const isCancel = entry.action !== "used";
+  const refunds = !KEEP_ACTIONS.includes(entry.action);
+  const isCancel = entry.action === "cancel_penalty" || entry.action === "cancel_excused"; // hanya cancel yang memakai kuota
   let nextPackages = packages;
   if (idx !== -1 && (refunds || isCancel)) {
     const pkg = packages[idx];
@@ -423,9 +436,10 @@ export function resolveInvoicePackage(record, invoice) {
   return pkg;
 }
 
-// Invoice bisa dikonversi: paket lunas + paket hidup masih punya sisa sesi.
+// Invoice bisa dikonversi: lunas, BELUM pernah dikonversi (konversi hanya 1x per invoice; dilihat dari log `converted`)
+// dan paket hidup masih punya sisa sesi.
 export const isInvoiceConvertible = (record, invoice) => {
-  if (!invoice || invoice.status !== "paid") return false;
+  if (!invoice || invoice.status !== "paid" || isInvoiceConverted(invoice)) return false;
   const pkg = resolveInvoicePackage(record, invoice);
   return Boolean(pkg) && pkg.status === "active" && pkg.remainingCredit > 0;
 };
@@ -470,23 +484,12 @@ export function applyBalanceToAmount(balance, gross) {
 }
 
 // ---- Renewal: dua jalur ----
-// `invoice` = terbitkan invoice baru (unpaid → ortu upload → verifikasi); `direct` = langsung lunas (wajib alasan + justifikasi).
+// Ortu tidak mengunggah bukti bayar. `invoice` = terbitkan invoice baru (unpaid, Finance menandai lunas setelah dana diterima);
+// `direct` = langsung lunas (pembayaran sudah diterima; catatan Finance opsional).
 export const RENEWAL_MODES = {
-  invoice: { label: "Terbitkan invoice baru", hint: "Invoice belum lunas; ortu upload bukti, Finance verifikasi." },
+  invoice: { label: "Terbitkan invoice baru", hint: "Invoice belum lunas; Finance menandai lunas setelah pembayaran diterima." },
   direct: { label: "Langsung lunas", hint: "Pembayaran sudah diterima. Invoice langsung lunas dan paket aktif." },
 };
-
-export const MIN_RENEWAL_REASON = 3;
-export const MIN_RENEWAL_JUSTIFICATION = 10;
-
-// Renewal langsung lunas wajib punya alasan (teks singkat) + justifikasi (teks penjelasan). Mengembalikan pesan error atau null.
-export function validateDirectRenewal({ reason, justification } = {}) {
-  if ((reason || "").trim().length < MIN_RENEWAL_REASON) return "Alasan renewal langsung lunas wajib diisi.";
-  if ((justification || "").trim().length < MIN_RENEWAL_JUSTIFICATION) {
-    return `Justifikasi wajib diisi (minimal ${MIN_RENEWAL_JUSTIFICATION} karakter).`;
-  }
-  return null;
-}
 
 // ---- Hapus & Void invoice (ADR 0005) ----
 // Hapus (permanen) HANYA untuk invoice yang belum lunas / ditolak: belum punya paket, jadi hanya bukti bayar & log-nya yang
@@ -651,6 +654,9 @@ export const appendInvoiceLog = (invoice, { action, by = null, note = "", data =
 // Status "dikonversi" diturunkan dari log invoice (tidak disimpan). Mengembalikan log `converted` terbaru atau null.
 export const lastInvoiceConversion = (invoice) => [...(invoice?.logs || [])].reverse().find((l) => l.action === "converted") || null;
 export const isInvoiceConverted = (invoice) => Boolean(lastInvoiceConversion(invoice));
+// Nama paket invoice yang ditampilkan: setelah dikonversi = paket tujuan terakhir (nama paket asal tetap ada di log
+// invoice `converted`: `data.fromPackage`). Snapshot `packageName` invoice tidak diubah (dipakai penelusuran paket).
+export const invoicePackageName = (invoice) => lastInvoiceConversion(invoice)?.data?.toPackage || invoice?.packageName || "";
 export const invoiceConversionCount = (invoice) => (invoice?.logs || []).filter((l) => l.action === "converted").length;
 
 // Log untuk tampilan. Invoice lama tanpa `logs` dibuatkan baris dasar dari createdAt / paidAt.

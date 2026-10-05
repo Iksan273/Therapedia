@@ -11,6 +11,7 @@ const STATUS_BAR = {
   scheduled: "bg-sky-500",
   completed: "bg-emerald-500",
   cancelled: "bg-rose-500",
+  off: "bg-violet-500",
   rescheduled: "bg-amber-500",
   reschedule_pending: "bg-orange-400",
 };
@@ -74,7 +75,7 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
                 </div>
                 <div className={cn("w-1.5 rounded-full self-stretch shrink-0", STATUS_BAR[s.status] || STATUS_BAR.scheduled)} />
                 <div className="flex-1 min-w-0">
-                  <p className={cn("text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate", s.status === "cancelled" && "line-through text-slate-400")}>
+                  <p className={cn("text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate", (s.status === "cancelled" || s.status === "off") && "line-through text-slate-400")}>
                     {getClientName(s.clientId)}
                   </p>
                   <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
@@ -102,7 +103,7 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
                         <FileText className="w-3 h-3 text-emerald-600" /> Laporan Terisi
                       </span>
-                    ) : s.status !== "cancelled" ? (
+                    ) : (s.status !== "cancelled" && s.status !== "off") ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                         <FileText className="w-3 h-3 text-slate-400" /> Belum Ada Laporan
                       </span>

@@ -59,10 +59,12 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `serviceType` | string | *opsional* |
 | `date` | `yyyy-MM-dd` | |
 | `startTime`, `endTime` | `HH:mm` | jam kalender 08:00–17:00 (`CALENDAR_HOURS`) |
-| `status` | enum | `scheduled`, `completed`, `cancelled`, `rescheduled`, `reschedule_pending` |
+| `status` | enum | `scheduled`, `completed`, `cancelled`, `off`, `rescheduled`, `reschedule_pending` |
+| `offReason` / `offNote` | string \| null | alasan Off (string: kode pilihan cepat OL/S/SCA/MCU/FM/TI/H dari Master Data Layanan → tab Alasan Off, atau teks bebas) + catatan; hanya terisi bila `status = off` |
 | `creditPackageId` | string \| null | id item paket di `credits.records[].packages[]` |
 | `isRecurring`, `recurrenceRule` | bool, string | `none`, `weekly`, `weekly_Monday,Thursday`, `single_week` |
 | `cancelReason` | string \| null | **string bebas**: `value` pilihan cepat (Master Data), teks custom, atau `RESCHEDULE_DROPPED` (alasan sistem); `pendingReason` sama |
+| `historyNote` / `historyNoteBy` | string \| null | catatan riwayat per sesi (kolom **Catatan** riwayat sesi detail client (diubah lewat tombol **Tambah/Ubah Catatan** di kolom **Aksi**)), bisa ditimpa siapa pun yang punya akses modul schedule |
 | `bookingNote` | string \| null | catatan penjadwalan oleh admin saat membuat jadwal (tampil di kolom "Catatan Penjadwalan" riwayat sesi). Dipisah dari `cancelNote` / `pendingNote`; data lama memakai satu field `notes` (dibaca lewat `bookingNoteOf` / `cancelNoteOf`) |
 | `cancelNote` | string \| null | catatan saat cancel (bersama `cancelReason`); hanya tampil di kalender / detail sesi, bukan di riwayat client |
 | `pendingNote` | string \| null | catatan reschedule menggantung (bersama `pendingReason`) |

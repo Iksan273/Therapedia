@@ -8,6 +8,7 @@ import { usePackageConversionActions } from "@/features/finance/hooks/usePackage
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useAuth } from "@/stores/authStore";
+import { invoicePackageName, packageBaseName } from "@/domain/credit";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -53,7 +54,7 @@ test("konversi otomatis: paket lama converted, paket baru + saldo, log invoice, 
   const upcoming = ctx.conv.upcomingSchedules(invoice.clientId).length;
 
   let res;
-  await act(async () => { res = ctx.conv.convertInvoicePackage({ invoice, target }); });
+  await act(async () => { res = ctx.conv.convertInvoicePackage({ invoice, target, reason: "Ortu minta pindah paket" }); });
   expect(res).toMatchObject({ ok: true, deletedSchedules: upcoming });
 
   const after = ctx.credits.getRawRecord(invoice.clientId);
@@ -67,7 +68,7 @@ test("konversi otomatis: paket lama converted, paket baru + saldo, log invoice, 
   expect(log).toMatchObject({ action: "converted", by: "Finance Uji" });
 });
 
-test("konversi manual wajib alasan dan tidak boleh melebihi nilai sisa", async () => {
+test("konversi wajib catatan dan manual tidak boleh melebihi nilai sisa", async () => {
   const { invoice, target } = pickCase();
   const max = ctx.conv.previewConversion({ invoice, target }).maxSessions;
   let res;
@@ -98,4 +99,35 @@ test("saldo lebihan memotong invoice paket berikutnya dan dikembalikan bila invo
 
   await act(async () => ctx.credits.deleteInvoices([issued.id], "Finance Uji"));
   expect(ctx.credits.getCreditBalance(invoice.clientId)).toBe(balance);
+});
+
+test("catatan Finance (wajib) tercatat di log invoice dan data konversi", async () => {
+  const { invoice, target } = pickCase();
+  let res;
+  await act(async () => { res = ctx.conv.convertInvoicePackage({ invoice, target, reason: "  Ortu minta pindah ke Regular  " }); });
+  expect(res.ok).toBe(true);
+  const log = ctx.credits.getAllInvoices().find((i) => i.id === invoice.id).logs.at(-1);
+  expect(log.note).toContain("Catatan Finance: Ortu minta pindah ke Regular");
+  expect(log.data.reason).toBe("Ortu minta pindah ke Regular");
+});
+
+test("invoice assessment langsung lunas oleh Finance (tanpa bukti bayar ortu)", async () => {
+  await act(async () =>
+    ctx.credits.issueInvoice({ clientId: "c-asm", clientName: "Uji", branchId: "branch-sby-timur", type: "assessment", typeCode: "ASM", packageName: "Assessment", credits: 0, amount: 350000, paidDirect: true, note: "Tunai", by: "Finance Uji" })
+  );
+  const inv = ctx.credits.getAllInvoices().find((i) => i.clientId === "c-asm");
+  expect(inv.status).toBe("paid");
+  expect(inv.logs.at(-1)).toMatchObject({ action: "verified" });
+  expect(inv.logs.at(-1).note).toContain("Catatan: Tunai");
+});
+
+test("setelah konversi, nama paket invoice = paket tujuan; paket asal tetap di log", async () => {
+  const { invoice, target } = pickCase();
+  const source = ctx.conv.sourceInfo(invoice);
+  expect(invoicePackageName(invoice)).toBe(invoice.packageName);
+  await act(async () => { ctx.conv.convertInvoicePackage({ invoice, target, reason: "uji tampilan" }); });
+  const after = ctx.credits.getAllInvoices().find((i) => i.id === invoice.id);
+  expect(invoicePackageName(after)).toContain(target.name);
+  expect(after.logs.at(-1).data.fromPackage).toBe(source.name);
+  expect(packageBaseName("Regular Therapist (10x)")).toBe("Regular Therapist");
 });

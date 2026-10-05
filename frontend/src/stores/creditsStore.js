@@ -90,6 +90,9 @@ function creditsReducer(state, action) {
     case "ADD_MASTER_PACKAGE":
       return { ...state, masterPackages: [...(state.masterPackages || []), { id: `pkg-${Date.now()}`, ...action.packageData }] };
 
+    case "UPDATE_MASTER_PACKAGE": // invoice lama memakai snapshot paket, jadi tidak ikut berubah
+      return { ...state, masterPackages: (state.masterPackages || []).map((p) => (p.id === action.id ? { ...p, ...action.patch } : p)) };
+
     case "ADD_RECORD": {
       const exists = state.records.some((r) => r.clientId === action.record.clientId);
       return {
@@ -156,11 +159,16 @@ function creditsReducer(state, action) {
       };
 
     case "ISSUE_INVOICE": {
-      const base = appendInvoiceLog(newInvoice(state, action, { amount: action.amount, status: "unpaid", proofOfPaymentUrl: null, paidAt: null }), {
+      // `paidDirect` (invoice assessment): Finance langsung menandai lunas, tanpa bukti bayar dari ortu.
+      const paidDirect = Boolean(action.paidDirect);
+      const issued = appendInvoiceLog(newInvoice(state, action, { amount: action.amount, status: paidDirect ? "paid" : "unpaid", proofOfPaymentUrl: null, paidAt: paidDirect ? todayStr() : null }), {
         action: "issued",
         by: action.by,
         note: `Invoice ${action.isRenewal ? "renewal " : ""}diterbitkan (${action.packageName || "Assessment"})${action.replacesInvoiceId ? `, menggantikan ${(state.invoices || []).find((i) => i.id === action.replacesInvoiceId)?.invoiceNumber || "invoice void"}` : ""}`,
       });
+      const base = paidDirect
+        ? appendInvoiceLog(issued, { action: "verified", by: action.by, note: `Langsung ditandai lunas oleh Finance.${action.note ? ` Catatan: ${action.note}` : ""}` })
+        : issued;
       const { invoice, records } = withBalanceApplied(state, base, action.by);
       return { ...state, records, invoices: [invoice, ...(state.invoices || [])] };
     }
@@ -226,22 +234,21 @@ function creditsReducer(state, action) {
       const pkg = newClientPackage({ id: action.newPackageId, packageId: action.packageId, packageName: action.packageName, credits: action.credits, price: action.amount || null });
       const hasRecord = state.records.some((r) => r.clientId === action.clientId);
       const note = hasRecord
-        ? `Renewal kredit oleh Finance (+${action.credits} sesi)`
+        ? `${action.isRenewal === false ? "Paket baru langsung lunas oleh Finance" : "Renewal kredit oleh Finance"} (+${action.credits} sesi)`
         : `Aktivasi paket awal oleh Finance (+${action.credits} sesi)`;
       const base = appendInvoiceLog(
-        newInvoice(state, { ...action, invoiceType: "package", isRenewal: true, replacesInvoiceId: action.replacesInvoiceId }, {
+        newInvoice(state, { ...action, invoiceType: "package", isRenewal: action.isRenewal !== false, replacesInvoiceId: action.replacesInvoiceId }, {
           amount: action.amount || 2500000,
           status: "paid",
           proofOfPaymentUrl: "verified-by-finance.png",
           paidAt: todayStr(),
           renewalReason: action.reason || null,
-          renewalJustification: action.justification || null,
         }),
         {
           action: "renewal_paid",
           by: action.by,
-          note: `Renewal langsung oleh Finance (${action.replacesInvoiceId ? "menggantikan invoice void, paket lama dipakai ulang" : `+${action.credits} sesi`}). Alasan: ${action.reason || "—"}. Justifikasi: ${action.justification || "—"}`,
-          data: { reason: action.reason || null, justification: action.justification || null },
+          note: `${action.isRenewal === false ? "Invoice paket langsung lunas oleh Finance" : "Renewal langsung oleh Finance"} (${action.replacesInvoiceId ? "menggantikan invoice void, paket lama dipakai ulang" : `+${action.credits} sesi`}).${action.reason ? ` Catatan: ${action.reason}` : ""}`,
+          data: { reason: action.reason || null },
         }
       );
       const { invoice, records } = withBalanceApplied(state, base, action.by);
@@ -283,7 +290,7 @@ function creditsReducer(state, action) {
           ? appendInvoiceLog(inv, {
               action: "converted",
               by: action.by,
-              note: `${action.sourceName} (sisa ${action.remainingCredit} sesi) → ${action.target.packageName} ${action.sessions} sesi. ${action.mode === "manual" ? `Manual: ${action.reason}` : "Dihitung otomatis"}${action.leftover > 0 ? `. Lebihan Rp${action.leftover} jadi saldo client` : ""}`,
+              note: `${action.sourceName} (sisa ${action.remainingCredit} sesi) → ${action.target.packageName} ${action.sessions} sesi. ${action.mode === "manual" ? "Manual" : "Dihitung otomatis"}${action.leftover > 0 ? `. Lebihan Rp${action.leftover} jadi saldo client` : ""}${action.reason ? `. Catatan Finance: ${action.reason}` : ""}`,
               data: {
                 conversionId,
                 mode: action.mode,
@@ -333,24 +340,25 @@ export const CreditsProvider = ({ children }) => {
   const deleteInvoices = (ids) => dispatch({ type: "DELETE_INVOICES", ids });
   const purgeClientCredit = (clientId) => dispatch({ type: "PURGE_CLIENT", clientId });
   const addMasterPackage = (packageData) => dispatch({ type: "ADD_MASTER_PACKAGE", packageData });
+  const updateMasterPackage = (id, patch) => dispatch({ type: "UPDATE_MASTER_PACKAGE", id, patch });
   const addRecord = (record) => dispatch({ type: "ADD_RECORD", record });
   const spendPackageCredit = ({ clientId, packageId, scheduleId, date }) =>
     dispatch({ type: "SPEND_PACKAGE_CREDIT", clientId, packageId, scheduleId, date });
-  const handleScheduleCancellation = ({ clientId, packageId, scheduleId, cancelReason, date, deductCredit }) =>
-    dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date, deductCredit });
+  const handleScheduleCancellation = ({ clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind }) =>
+    dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind });
   const revertSessionCredit = ({ clientId, scheduleId, date, reason }) =>
     dispatch({ type: "REVERT_SESSION_CREDIT", clientId, scheduleId, date, reason });
-  const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount, type, typeCode, credits, isRenewal, replacesInvoiceId, by }) =>
-    dispatch({ type: "ISSUE_INVOICE", clientId, clientName, branchId, packageId, packageName, amount, invoiceType: type, typeCode, credits, isRenewal, replacesInvoiceId, by });
+  const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount, type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, note, by }) =>
+    dispatch({ type: "ISSUE_INVOICE", clientId, clientName, branchId, packageId, packageName, amount, invoiceType: type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, note, by });
   // Void invoice lunas (alasan wajib; `creditAction` keep | revoke wajib bila invoice punya paket). Jadwal: lihat useInvoiceVoidActions.
   const voidInvoice = ({ invoiceId, reason, creditAction, by }) => dispatch({ type: "VOID_INVOICE", invoiceId, reason, creditAction, by });
   const uploadPaymentProof = ({ invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt }) =>
     dispatch({ type: "UPLOAD_PAYMENT_PROOF", invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt });
   const verifyPaymentProof = ({ invoiceId, status, proofUrl, creditsToAdd, newPackageId, by }) =>
     dispatch({ type: "VERIFY_PAYMENT_PROOF", invoiceId, status, proofUrl, creditsToAdd, newPackageId, by });
-  // Renewal langsung lunas: `reason` + `justification` wajib (divalidasi `validateDirectRenewal` oleh pemanggil)
-  const renewClientCredit = ({ clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, reason, justification, newPackageId, replacesInvoiceId, by }) =>
-    dispatch({ type: "RENEW_CREDIT", clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, reason, justification, newPackageId, replacesInvoiceId, by });
+  // Renewal / invoice paket langsung lunas: `reason` = catatan Finance (opsional); `isRenewal: false` untuk paket pertama
+  const renewClientCredit = ({ clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, reason, isRenewal, newPackageId, replacesInvoiceId, by }) =>
+    dispatch({ type: "RENEW_CREDIT", clientId, clientName, branchId, packageId, packageName, credits, amount, typeCode, reason, isRenewal, newPackageId, replacesInvoiceId, by });
   // Konversi paket (angka sudah divalidasi `computePackageConversion`): lihat usePackageConversionActions.
   const convertPackage = (payload) => dispatch({ type: "CONVERT_PACKAGE", ...payload });
 
@@ -385,6 +393,7 @@ export const CreditsProvider = ({ children }) => {
         getInvoicesForClient,
         getAllInvoices,
         getMasterPackages,
+        updateMasterPackage,
       }}
     >
       {children}

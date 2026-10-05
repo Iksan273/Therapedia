@@ -2,6 +2,7 @@ import { getClientServiceIds } from "@/domain/client";
 import { findHoliday, holidayDateSet, holidayMessage } from "@/domain/holiday";
 import { useHolidays } from "@/stores/holidaysStore";
 import React, { useEffect, useMemo, useState } from "react";
+import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { toast } from "sonner";
 import { AlertTriangle, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info, Snowflake } from "lucide-react";
 import {
@@ -57,7 +58,6 @@ export const AddScheduleModal = ({
 
   // Primary appointment state
   const [clientId, setClientId] = useState("");
-  const [clientOpen, setClientOpen] = useState(false);
   const [defaultTherapistId, setDefaultTherapistId] = useState("");
   const [date, setDate] = useState(todayStr());
   const [defaultStartTime, setDefaultStartTime] = useState("09:00");
@@ -99,7 +99,6 @@ export const AddScheduleModal = ({
 
     setDefaultType(defaultsType);
     setNotes("");
-    setClientOpen(false);
 
     if (defaultsType === "assessment") {
       setScheduleMode("single");
@@ -334,55 +333,7 @@ export const AddScheduleModal = ({
                 <span className="text-slate-500 font-normal ml-1.5">({lockedClient.parentName})</span>
               </div>
             ) : (
-              <Popover modal open={clientOpen} onOpenChange={setClientOpen}>
-                {/* modal: popover punya area scroll sendiri; tanpa ini wheel/touch scroll diblokir oleh Dialog induk */}
-                <PopoverTrigger asChild>
-                  <Button size="sm"
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between font-semibold border-slate-200 bg-slate-50 focus:bg-white"
-                    data-testid="add-schedule-client-select"
-                  >
-                    {selectedClient
-                      ? `${selectedClient.clientName} (${selectedClient.parentName})`
-                      : "Cari anak, ortu, atau kode client..."}
-                    <ChevronsUpDown className="w-4 h-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[var(--radix-popover-trigger-width)] min-w-[min(300px,calc(100vw-2rem))] p-0 rounded-2xl border-slate-200 shadow-xl overflow-hidden"
-                  align="start"
-                  collisionPadding={16}
-                >
-                  <Command>
-                    <CommandInput placeholder="Cari nama anak, ortu, atau kode client..." data-testid="add-schedule-client-search" />
-                    <CommandList
-                      className="max-h-[min(320px,calc(var(--radix-popover-content-available-height)-3.5rem))] overflow-y-auto overscroll-contain"
-                      data-testid="add-schedule-client-list"
-                    >
-                      <CommandEmpty className="p-3 text-xs text-slate-500 text-center">No matching client found.</CommandEmpty>
-                      <CommandGroup className="p-1.5">
-                        {selectableClients.map((c) => (
-                          <CommandItem
-                            key={c.id}
-                            value={`${c.clientName} ${c.parentName} ${c.clientCode}`}
-                            onSelect={() => {
-                              setClientId(c.id);
-                              setClientOpen(false);
-                            }}
-                            className="cursor-pointer py-2 px-3 rounded-lg"
-                            data-testid={`add-schedule-client-option-${c.id}`}
-                          >
-                            <Check className={cn("mr-2 w-4 h-4 text-sky-600", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                            <span className="font-bold text-xs text-slate-900 truncate min-w-0">{c.clientName}</span>
-                            <span className="ml-auto pl-2 text-[11px] text-slate-400 font-normal truncate max-w-[45%]">{c.parentName} • <span className="font-mono">{c.clientCode}</span></span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <ClientCombobox clients={selectableClients} value={clientId} onChange={setClientId} testId="add-schedule-client-select" />
             )}
           </div>
 
