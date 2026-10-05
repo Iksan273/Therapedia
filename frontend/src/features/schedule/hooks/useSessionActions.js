@@ -32,6 +32,7 @@ export function useSessionActions() {
   const { getClient, updateClient } = useClients();
   const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit } = useCredits();
   const { therapists } = useTherapists();
+  const by = auth?.staffName || auth?.role || null; // pelaku mutasi kredit (credit_ledger.created_by)
   const { holidays } = useHolidays();
 
   // Paket sesi: yang dipilih saat menjadwalkan bila masih bersisa, selain itu paket aktif tertua (otomatis setelah renewal)
@@ -48,7 +49,7 @@ export function useSessionActions() {
 
     if (schedule.type === "therapy" && creditRecord) {
       const pkg = findPackage(creditRecord, schedule);
-      spendPackageCredit({ clientId: client.id, packageId: pkg?.id, scheduleId: schedule.id, date: schedule.date });
+      spendPackageCredit({ clientId: client.id, packageId: pkg?.id, scheduleId: schedule.id, date: schedule.date, by });
       creditSpent = true;
     }
 
@@ -121,6 +122,7 @@ export function useSessionActions() {
       date: schedule.date,
       deductCredit,
       kind,
+      by,
     });
     return { cancelCount, deducted, quotaExceeded: kind !== "off" && cancelCount > CANCEL_QUOTA };
   };
@@ -231,7 +233,7 @@ export function useSessionActions() {
     if (toStatus === "reschedule_pending") Object.assign(patch, { pendingFrom: scheduleSlot(schedule), pendingAt: nowIso() });
     updateSchedule(schedule.id, patch);
 
-    if (entry) revertSessionCredit({ clientId: schedule.clientId, scheduleId: schedule.id, date: todayStr(), reason: note });
+    if (entry) revertSessionCredit({ clientId: schedule.clientId, scheduleId: schedule.id, date: todayStr(), reason: note, by });
     if (clientRestore) updateClient(client.id, { status: clientRestore.to });
 
     return { result: { kind, toStatus, toSlot, creditChange, quotaChange, clientStatusRestored: clientRestore?.to || null } };

@@ -46,8 +46,9 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | `/client` | client | index (tanpa modul) |
 
 ## Guard (`app/router/guards.js`)
-- **`RequireAccess({ roles, modules })`** — grup. Role sistem lolos bila ada di `roles`. Role kustom lolos bila punya permission **salah satu** `modules` grup (`groupModules(group)`). Gagal → redirect `/roles`.
-- **`RequireModule({ module })`** — per halaman. Role sistem selalu lolos (sudah dibatasi grup); role kustom wajib punya permission modul halaman.
+- **`RequireAccess({ roles, modules })`** — grup. Lolos bila role ada di `roles` grup (akses bawaan role sistem) **atau** role staf mana pun (sistem maupun kustom, selain client) punya permission **salah satu** `modules` grup (`groupModules(group)`). Jadi modul yang diberikan Master di `/master/rbac` ikut terbuka. Gagal → redirect `/roles`.
+- **`RequireModule({ module })`** — per halaman. Semua role wajib punya permission modul halaman itu (Master selalu lolos). Mencabut modul di RBAC menutup halamannya, bukan hanya menyembunyikan menu.
+- **Menu sidebar** (`buildNavConfig`): menu bawaan role disaring permission, lalu ditambah menu modul lain yang diizinkan RBAC (`CUSTOM_ROLE_ITEMS`, daftar semua menu per modul). **Master melihat semua modul** (termasuk Schedule Dashboard, Assessment Master Data, Finance, dan modul Terapis). Modul terapis untuk non-terapis = mode simulasi: `ViewAsTherapistBar` + `useActingTherapist` (pilih terapis yang dilihat; key `viewAsTherapistId`).
 - Hak **aksi** mengikuti **akses modul** (keputusan klien): punya akses modul = boleh semua aksi di modul itu kecuali hapus. Mis. `canManageSchedule(hasPermission)` (`domain/schedule.js`) = akses `weekly_calendar`, sehingga Manager yang diberi modul itu ikut boleh mengubah status sesi. Aksi **hapus** tambahan butuh flag `canDelete` pada role (`canDeleteIn` di `domain/rbac.js`).
 
 ## Navigasi (`app/layout/navConfig.js`)

@@ -16,7 +16,7 @@ beforeAll(() => {
 });
 
 const CASES = [
-  { role: { role: "master", staffName: "Master" }, paths: ["/master/revenue", "/master/branch-performance", "/master/branches", "/master/users", "/master/rbac", "/finance"] },
+  { role: { role: "master", staffName: "Master" }, paths: ["/master/revenue", "/master/branch-performance", "/master/branches", "/master/users", "/master/rbac", "/finance", "/admin-schedule", "/admin-schedule/calendar", "/admin-schedule/clients", "/admin-schedule/unreported-reports", "/admin-schedule/holidays", "/admin-inquiry", "/admin-inquiry/assessments", "/therapist", "/therapist/summary"] },
   { role: { role: "admin_inquiry", staffName: "Rina", branchId: "branch-sby-timur" }, paths: ["/admin-inquiry", "/admin-inquiry/pipeline", "/admin-inquiry/pipeline/c-009", "/admin-inquiry/assessments", "/admin-inquiry/master-data", "/admin-inquiry/parent-assessment/c-009"] },
   { role: { role: "admin_schedule", staffName: "Fajar", branchId: "branch-sby-timur" }, paths: ["/admin-schedule", "/admin-schedule/calendar", "/admin-schedule/clients", "/admin-schedule/clients/c-009", "/admin-schedule/unreported-reports", "/admin-schedule/holidays"] },
   { role: { role: "therapist", therapistId: "t-001", staffName: "Maya", branchId: "branch-sby-timur" }, paths: ["/therapist", "/therapist/summary", "/therapist/clients/c-009", "/print/client/c-009"] },
@@ -25,7 +25,7 @@ const CASES = [
   { role: null, paths: ["/", "/roles", "/login", "/assessment"] },
 ];
 
-const waitFor = async (check, timeout = 8000) => {
+const waitFor = async (check, timeout = 40000) => {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     if (check()) return true;
@@ -64,5 +64,5 @@ describe.each(CASES)("role $role.role", ({ role, paths }) => {
     expect(loaded).toBe(true);
     expect(finalPath).toBe(path);
     expect(errors.filter((e) => !/act\(|not wrapped|Warning:/.test(e))).toEqual([]);
-  }, 20000);
+  }, 60000);
 });

@@ -1090,7 +1090,7 @@ Setiap tabel transaksi/master punya `created_by` dan `updated_by` (FK `users`, n
 ### 5.2 Jejak khusus
 | Data | Jejak |
 |---|---|
-| Kredit (sesi completed/cancel/revert, renewal, konversi, koreksi) | `credit_ledger` append-only: `created_by`, `reverses_ledger_id` (undo = baris `reversal` yang menunjuk baris asal, hanya 1x), `batch_id`, `conversion_id` |
+| Kredit (sesi completed/cancel/revert, renewal, konversi, koreksi) | `credit_ledger` append-only: `created_by` (pelaku; frontend mengirim `history[].by` = nama staf pemicu: completed/cancel/off/revert oleh admin schedule, renewal/konversi/void oleh Finance), `reverses_ledger_id` (undo = baris `reversal` yang menunjuk baris asal, hanya 1x), `batch_id`, `conversion_id` |
 | Pipeline client (otomatis & manual, outcome, discharge, revert) | `client_status_histories` (from/to, `changed_by`, `trigger`, `note`) |
 | Invoice (terbit, upload bukti, verifikasi/tolak, renewal, pemakaian/pengembalian saldo, konversi, hapus) | `invoice_logs` (§F; pelaku, waktu, catatan, `data` JSON) |
 | Konversi paket | `package_conversions` (`created_by`, mode, alasan, sisa, sesi baru, lebihan, jumlah jadwal terhapus) |

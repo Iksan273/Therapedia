@@ -30,10 +30,10 @@ const CreditsContext = createContext(null);
 const mapClientRecord = (records, clientId, fn) => records.map((r) => (r.clientId === clientId ? fn(r) : r));
 
 // Tambah paket ke record client; buat record baru bila client belum punya
-const addPackageToClient = (records, { clientId, branchId }, pkg, note) =>
+const addPackageToClient = (records, { clientId, branchId }, pkg, note, by = null) =>
   records.some((r) => r.clientId === clientId)
-    ? mapClientRecord(records, clientId, (r) => applyPackageAdded(r, pkg, note))
-    : [...records, applyPackageAdded(newCreditRecord({ clientId, branchId: branchId || "branch-sby-timur" }), pkg, note)];
+    ? mapClientRecord(records, clientId, (r) => applyPackageAdded(r, pkg, note, by))
+    : [...records, applyPackageAdded(newCreditRecord({ clientId, branchId: branchId || "branch-sby-timur" }), pkg, note, by)];
 
 // Tambah/kurangi saldo lebihan (rupiah) client; record dibuat bila belum ada (hanya saat saldo bertambah).
 const adjustBalance = (records, { clientId, branchId }, delta) => {
@@ -145,7 +145,7 @@ function creditsReducer(state, action) {
         invoices: state.invoices.map((i) => (i.id === inv.id ? voided : i)),
         records:
           revoke && hasRecord
-            ? mapClientRecord(state.records, inv.clientId, (r) => applyVoidRevoke(r, inv, { note: `Void ${inv.invoiceNumber}: ${action.reason}` }))
+            ? mapClientRecord(state.records, inv.clientId, (r) => applyVoidRevoke(r, inv, { note: `Void ${inv.invoiceNumber}: ${action.reason}`, by: action.by }))
             : state.records,
       };
     }
@@ -227,7 +227,7 @@ function creditsReducer(state, action) {
       const credits = target.credits || action.creditsToAdd || 10;
       const pkg = { ...newClientPackage({ id: action.newPackageId, packageId: target.packageId, packageName: target.packageName, credits, price: target.grossAmount || target.amount }), invoiceId: target.id };
       const note = `Pembayaran ${target.invoiceNumber} diverifikasi Finance (+${credits} kredit)`;
-      return { ...state, invoices, records: addPackageToClient(state.records, target, pkg, note) };
+      return { ...state, invoices, records: addPackageToClient(state.records, target, pkg, note, action.by) };
     }
 
     case "RENEW_CREDIT": {
@@ -266,7 +266,7 @@ function creditsReducer(state, action) {
       return {
         ...state,
         invoices: [invoice, ...(state.invoices || [])],
-        records: addPackageToClient(records, action, withInvoiceId, note),
+        records: addPackageToClient(records, action, withInvoiceId, note, action.by),
       };
     }
 
@@ -283,6 +283,7 @@ function creditsReducer(state, action) {
           leftover: action.leftover,
           conversionId,
           note,
+          by: action.by,
         })
       );
       const invoices = (state.invoices || []).map((inv) =>
@@ -342,12 +343,12 @@ export const CreditsProvider = ({ children }) => {
   const addMasterPackage = (packageData) => dispatch({ type: "ADD_MASTER_PACKAGE", packageData });
   const updateMasterPackage = (id, patch) => dispatch({ type: "UPDATE_MASTER_PACKAGE", id, patch });
   const addRecord = (record) => dispatch({ type: "ADD_RECORD", record });
-  const spendPackageCredit = ({ clientId, packageId, scheduleId, date }) =>
-    dispatch({ type: "SPEND_PACKAGE_CREDIT", clientId, packageId, scheduleId, date });
-  const handleScheduleCancellation = ({ clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind }) =>
-    dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind });
-  const revertSessionCredit = ({ clientId, scheduleId, date, reason }) =>
-    dispatch({ type: "REVERT_SESSION_CREDIT", clientId, scheduleId, date, reason });
+  const spendPackageCredit = ({ clientId, packageId, scheduleId, date, by }) =>
+    dispatch({ type: "SPEND_PACKAGE_CREDIT", clientId, packageId, scheduleId, date, by });
+  const handleScheduleCancellation = ({ clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind, by }) =>
+    dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind, by });
+  const revertSessionCredit = ({ clientId, scheduleId, date, reason, by }) =>
+    dispatch({ type: "REVERT_SESSION_CREDIT", clientId, scheduleId, date, reason, by });
   const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount, type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, note, by }) =>
     dispatch({ type: "ISSUE_INVOICE", clientId, clientName, branchId, packageId, packageName, amount, invoiceType: type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, note, by });
   // Void invoice lunas (alasan wajib; `creditAction` keep | revoke wajib bila invoice punya paket). Jadwal: lihat useInvoiceVoidActions.

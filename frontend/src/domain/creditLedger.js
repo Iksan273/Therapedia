@@ -1,0 +1,142 @@
+import { bookingNoteOf } from "@/domain/schedule";
+import { packageBaseName, unitValueOf } from "@/domain/credit";
+
+// Buku besar kredit + uang per client (modul Finance "Log Kredit & Saldo"). Murni TURUNAN dari `record.history`
+// (ledger kredit) dan sesi: tidak ada data baru yang disimpan. Tiap perubahan kredit dinilai dengan harga per sesi
+// paketnya (harga bayar paket ÷ total sesi), jadi sesi completed mengurangi saldo rupiah sebesar harga per sesi.
+
+// Pelaku bawaan bila baris lama tidak mencatat `by`: Finance untuk mutasi paket/uang, Admin Schedule untuk mutasi sesi.
+const FINANCE_ACTIONS = ["renewed", "converted_in", "converted_out", "manual_adjust"];
+export const actorOf = (by, action) => by || (FINANCE_ACTIONS.includes(action) ? "Finance" : "Admin Schedule");
+
+const UPCOMING = ["scheduled", "rescheduled", "reschedule_pending"];
+
+const ACTION_DETAIL = {
+  renewed: "Top up paket",
+  used: "Sesi terpakai",
+  cancel_penalty: "Cancel (potong kredit)",
+  cancel_excused: "Cancel (kredit utuh)",
+  off_penalty: "Off (potong kredit)",
+  off_excused: "Off (kredit utuh)",
+  reversal: "Koreksi / revert",
+  manual_adjust: "Koreksi / pencabutan kredit",
+  converted_out: "Konversi keluar",
+  converted_in: "Konversi masuk",
+};
+
+// Harga per sesi sebuah paket client. Paket tanpa snapshot harga memakai harga master (bila ada), selain itu null.
+export const packageUnitValue = (pkg, masterPackages = []) => {
+  if (!pkg) return null;
+  const price = Number(pkg.price) > 0 ? pkg.price : masterPackages.find((m) => m.id === pkg.packageId)?.price;
+  return unitValueOf(price, pkg.totalCredit);
+};
+
+const packagePrice = (pkg, masterPackages) => {
+  const unit = packageUnitValue(pkg, masterPackages);
+  return unit == null ? null : Math.round(unit * pkg.totalCredit);
+};
+
+// Nilai rupiah sebuah baris ledger (+ menambah saldo, − mengurangi). null = harga paket tidak diketahui.
+function valueOfEntry(entry, ctx) {
+  const pkg = ctx.packages.find((p) => p.id === entry.packageId);
+  const unit = packageUnitValue(pkg, ctx.masterPackages);
+  switch (entry.action) {
+    case "renewed":
+    case "converted_in":
+      return packagePrice(pkg, ctx.masterPackages);
+    case "used":
+    case "cancel_penalty":
+    case "off_penalty":
+      return unit == null ? null : -Math.round(unit);
+    case "cancel_excused":
+    case "off_excused":
+      return 0;
+    case "reversal": {
+      const reversed = ctx.byId.get(entry.reversesId);
+      const v = reversed ? ctx.valueOf(reversed) : null;
+      return v == null ? null : -v;
+    }
+    case "manual_adjust":
+    case "converted_out":
+      return unit == null ? null : Math.round(unit * (entry.creditChange || 0));
+    default:
+      return entry.creditChange && unit != null ? Math.round(unit * entry.creditChange) : 0;
+  }
+}
+
+// Baris laporan per client, urut sesuai ledger. `schedules` = sesi milik client itu. `saldo` = saldo rupiah berjalan
+// (null bila ada baris yang nilainya tidak diketahui sejak titik itu).
+export function buildClientMoneyLedger(record, schedules = [], { masterPackages = [], getTherapistName = () => "" } = {}) {
+  const history = record?.history || [];
+  const packages = record?.packages || [];
+  const byId = new Map(history.map((h) => [h.id, h]));
+  const scheduleById = new Map(schedules.map((s) => [s.id, s]));
+  const cache = new Map();
+  const ctx = { packages, masterPackages, byId, valueOf: null };
+  ctx.valueOf = (entry) => {
+    if (!cache.has(entry.id)) cache.set(entry.id, valueOfEntry(entry, ctx));
+    return cache.get(entry.id);
+  };
+
+  let balance = 0;
+  let firstTopUpSeen = false;
+  const rows = history.map((h) => {
+    const amount = ctx.valueOf(h);
+    balance = balance == null || amount == null ? null : balance + amount;
+    const s = h.scheduleId ? scheduleById.get(h.scheduleId) : null;
+    const pkg = packages.find((p) => p.id === h.packageId);
+
+    let note = "";
+    if (h.action === "renewed") {
+      note = firstTopUpSeen ? "Renewal" : "Saldo awal";
+      firstTopUpSeen = true;
+    } else if (h.action === "converted_in" || h.action === "converted_out") note = "Konversi paket";
+    else if (s) note = bookingNoteOf(s) || "";
+    else note = h.note || "";
+
+    return {
+      id: h.id,
+      by: actorOf(h.by, h.action),
+      date: s?.date || h.date,
+      time: s ? `${s.startTime}–${s.endTime}` : "",
+      therapistName: s ? getTherapistName(s.therapistId) : "",
+      packageName: packageBaseName(pkg?.packageName || h.packageName),
+      status: s?.status || null,
+      note,
+      detail: ACTION_DETAIL[h.action] || h.action,
+      creditChange: h.creditChange || 0,
+      amount,
+      balance,
+    };
+  });
+
+  // Sesi terapi yang sudah dijadwalkan tetapi belum memotong kredit tampil di akhir (nilai 0, saldo tetap), urut tanggal
+  const ledgered = new Set(history.map((h) => h.scheduleId).filter(Boolean));
+  const upcoming = schedules
+    .filter((s) => s.type === "therapy" && UPCOMING.includes(s.status) && !ledgered.has(s.id))
+    .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
+    .map((s) => {
+      const pkg = packages.find((p) => p.id === s.creditPackageId);
+      return {
+        id: `sch-${s.id}`,
+        by: actorOf(s.createdBy, "scheduled"),
+        date: s.date,
+        time: `${s.startTime}–${s.endTime}`,
+        therapistName: getTherapistName(s.therapistId),
+        packageName: packageBaseName(pkg?.packageName || ""),
+        status: s.status,
+        note: bookingNoteOf(s) || "",
+        detail: "Terjadwal (belum memotong kredit)",
+        creditChange: 0,
+        amount: 0,
+        balance,
+      };
+    });
+  return [...rows, ...upcoming];
+}
+
+// Ringkasan satu client: saldo rupiah saat ini (baris terakhir) dan sisa sesi.
+export const summarizeMoneyLedger = (rows) => ({
+  balance: rows.length ? rows[rows.length - 1].balance : 0,
+  entries: rows.length,
+});

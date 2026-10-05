@@ -87,7 +87,7 @@ credits = {
     balance?: number,   // SALDO LEBIHAN (rupiah) hasil konversi paket; memotong invoice paket berikutnya (default 0)
     packages: [{ id /*cp-...*/, packageId /*pkg-...*/, packageName, price /*snapshot harga*/, totalCredit, remainingCredit, cancelCount /*kuota cancel PER PAKET*/, status /*active|depleted|converted*/,
                  invoiceId? /*invoice asal (verifikasi/renewal)*/, convertedFromId?, convertedToId?, conversionId? }],
-    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
+    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note, by }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
   }],
   conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
   invoices: [{ id, type /*package|assessment*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid|void*/,

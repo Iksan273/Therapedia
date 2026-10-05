@@ -5,6 +5,7 @@ import therapistsSeed from "@/data/therapists.seed.json";
 import schedulesSeed from "@/data/schedules.seed.json";
 import creditsSeed from "@/data/credits.seed.json";
 import categoriesSeed from "@/data/assessmentCategories.seed.json";
+import { reconcileDemoCredits } from "@/domain/creditSeed";
 
 export function loadBranchesSeed() {
   return branchesSeed;
@@ -36,7 +37,7 @@ export function loadClientsSeed() {
   });
 }
 
-export function loadSchedulesSeed() {
+function buildSchedulesSeed() {
   const now = new Date();
   const monday = startOfWeek(now, { weekStartsOn: 1 });
   const today = format(now, "yyyy-MM-dd");
@@ -68,10 +69,36 @@ export function loadSchedulesSeed() {
   });
 }
 
-// Tanggal invoice dan riwayat kredit dihitung relatif terhadap hari ini (lihat scripts/generate_demo_seed.py)
+// Paket + ledger kredit dibangun ulang dari jadwal (reconcileDemoCredits) agar sisa paket, log, saldo rupiah, dan paket tiap
+// sesi selalu sinkron, walau tanggal seed bergeser terhadap hari ini.
+function buildCreditPlan() {
+  const schedules = buildSchedulesSeed();
+  const credits = buildCreditsSeed(schedules);
+  const plan = reconcileDemoCredits({
+    records: credits.records,
+    schedules,
+    invoices: credits.invoices,
+    masterPackages: credits.masterPackages,
+    today: format(new Date(), "yyyy-MM-dd"),
+    financeBy: "Siti Rahmawati, S.E. (Finance)",
+    scheduleBy: "Fajar Prasetyo (Admin Schedule)",
+  });
+  return { schedules, credits: { ...credits, records: plan.records }, packageBySchedule: plan.packageBySchedule };
+}
+
+export function loadSchedulesSeed() {
+  const { schedules, packageBySchedule } = buildCreditPlan();
+  return schedules.map((s) => ({ ...s, createdBy: s.createdBy || "Fajar Prasetyo (Admin Schedule)", ...(packageBySchedule.has(s.id) ? { creditPackageId: packageBySchedule.get(s.id) } : {}) }));
+}
+
 export function loadCreditsSeed() {
+  return buildCreditPlan().credits;
+}
+
+// Tanggal invoice dan riwayat kredit dihitung relatif terhadap hari ini (lihat scripts/generate_demo_seed.py)
+function buildCreditsSeed(loadedSchedules) {
   const now = new Date();
-  const scheduleDates = new Map(loadSchedulesSeed().map((s) => [s.id, s.date]));
+  const scheduleDates = new Map(loadedSchedules.map((s) => [s.id, s.date]));
 
   const invoices = (creditsSeed.invoices || []).map((raw) => {
     const { _seq, _issuedDaysAgo, _paidDaysAgo, ...inv } = raw;

@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { useActingTherapist } from "@/features/therapist/hooks/useActingTherapist";
+import { ViewAsTherapistBar } from "@/features/therapist/components/ViewAsTherapistBar";
 import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { Link, useSearchParams } from "react-router-dom";
 import { FileCheck2, Clock, Users, CalendarDays } from "lucide-react";
@@ -6,7 +8,6 @@ import { Button } from "@/shared/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { SessionReportModal } from "@/features/therapist/components/SessionReportModal";
 import { ClientReportHistoryDrawer } from "@/features/therapist/components/ClientReportHistoryDrawer";
-import { useAuth } from "@/stores/authStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useClients } from "@/stores/clientsStore";
 import { matchesClientSearch } from "@/domain/client";
@@ -32,7 +33,6 @@ const DAY_NAMES_ID = {
 };
 
 export default function TherapistSummary() {
-  const { auth } = useAuth();
   const { schedules } = useSchedules();
   const { clients } = useClients();
   const { getTherapist } = useTherapists();
@@ -58,14 +58,15 @@ export default function TherapistSummary() {
   const [selectedClientForDrawer, setSelectedClientForDrawer] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const therapist = getTherapist(auth.therapistId);
+  const acting = useActingTherapist();
+  const therapist = getTherapist(acting.therapistId);
 
   // 1. All completed sessions for this therapist
   const completedSchedules = useMemo(() => {
     return schedules
-      .filter((s) => s.therapistId === auth.therapistId && s.status === "completed")
+      .filter((s) => s.therapistId === acting.therapistId && s.status === "completed")
       .sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime));
-  }, [schedules, auth.therapistId]);
+  }, [schedules, acting.therapistId]);
 
   // 2. Clients that this therapist has completed sessions with
   const myClients = useMemo(() => {
@@ -224,6 +225,7 @@ export default function TherapistSummary() {
 
   return (
     <div className="space-y-6" data-testid="therapist-summary-page">
+      <ViewAsTherapistBar acting={acting} />
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

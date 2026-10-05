@@ -27,7 +27,8 @@ export const formatPackageName = (name) => {
 // setelah kuota lewat UI hanya memberi peringatan.
 export const CANCEL_QUOTA = 3;
 
-const historyEntry = (fields) => ({ id: uid(), date: todayStr(), scheduleId: null, ...fields });
+// `by` = pelaku (nama staf / role) yang memicu mutasi kredit; kolom `credit_ledger.created_by` di backend.
+const historyEntry = ({ by = null, ...fields }) => ({ id: uid(), date: todayStr(), scheduleId: null, by, ...fields });
 
 // Paket target sesi; fallback ke paket pertama yang masih punya sisa kredit
 const findPackageIndex = (packages, packageId) => {
@@ -75,7 +76,7 @@ export function findLiveSessionEntry(record, scheduleId, actions = REVERTIBLE_AC
 }
 
 // Sesi therapy selesai: −1 kredit. Idempoten per scheduleId selama mutasi `used` belum dibalik.
-export function applySessionCompleted(record, { packageId, scheduleId, date }) {
+export function applySessionCompleted(record, { packageId, scheduleId, date, by = null }) {
   const packages = record.packages || [];
   if (packages.length === 0) return record;
   const idx = findPackageIndex(packages, packageId);
@@ -90,7 +91,7 @@ export function applySessionCompleted(record, { packageId, scheduleId, date }) {
     packages: nextPackages,
     history: [
       ...(record.history || []),
-      historyEntry({
+      historyEntry({ by,
         date: date || todayStr(),
         scheduleId,
         packageId: target.id,
@@ -107,7 +108,7 @@ export function applySessionCompleted(record, { packageId, scheduleId, date }) {
 // kredit dipotong (`deductCredit` true → ledger `cancel_penalty` −1) atau tidak (`cancel_excused`, kredit utuh).
 // Tanpa paket / saldo 0, pemotongan tidak mungkin → dicatat `cancel_excused`.
 // `kind: "off"` = sesi Off (terapis/klinik off): aturan potong kredit sama, tetapi TIDAK menambah kuota cancel paket.
-export function applySessionCancelled(record, { packageId, scheduleId, cancelReason, date, deductCredit = false, kind = "cancel" }) {
+export function applySessionCancelled(record, { packageId, scheduleId, cancelReason, date, deductCredit = false, kind = "cancel", by = null }) {
   const packages = record.packages || [];
   const idx = findPackageIndex(packages, packageId);
   const target = idx !== -1 ? packages[idx] : null;
@@ -124,7 +125,7 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
     packages: nextPackages,
     history: [
       ...(record.history || []),
-      historyEntry({
+      historyEntry({ by,
         date: date || todayStr(),
         scheduleId,
         packageId: target ? target.id : null,
@@ -152,7 +153,7 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
 //   cancel_excused → kuota cancel paket −1 (kredit tidak berubah)
 //   off_penalty    → +1 kredit (kuota cancel tidak berubah)
 //   off_excused    → tidak ada perubahan kredit/kuota
-export function applySessionReverted(record, { scheduleId, date, reason }) {
+export function applySessionReverted(record, { scheduleId, date, reason, by = null }) {
   const entry = findLiveSessionEntry(record, scheduleId);
   if (!entry) return record;
 
@@ -177,7 +178,7 @@ export function applySessionReverted(record, { scheduleId, date, reason }) {
     packages: nextPackages,
     history: [
       ...(record.history || []),
-      historyEntry({
+      historyEntry({ by,
         date: date || todayStr(),
         scheduleId,
         packageId: entry.packageId,
@@ -192,13 +193,13 @@ export function applySessionReverted(record, { scheduleId, date, reason }) {
 }
 
 // Tambah paket kredit baru (pembelian / renewal) ke record client
-export function applyPackageAdded(record, pkg, note) {
+export function applyPackageAdded(record, pkg, note, by = null) {
   return {
     ...record,
     packages: [...(record.packages || []), pkg],
     history: [
       ...(record.history || []),
-      historyEntry({ packageId: pkg.id, packageName: pkg.packageName, action: "renewed", creditChange: pkg.totalCredit, note }),
+      historyEntry({ by, packageId: pkg.id, packageName: pkg.packageName, action: "renewed", creditChange: pkg.totalCredit, note }),
     ],
   };
 }
@@ -447,7 +448,7 @@ export const isInvoiceConvertible = (record, invoice) => {
 // Terapkan konversi ke record client. Ledger append-only: `converted_out` (−sisa, paket lama jadi `converted`) dan
 // `converted_in` (+sesi, paket baru) berbagi `conversionId`. Kuota cancel paket lama pindah ke paket baru.
 // Saldo rupiah client (`balance`) bertambah sebesar lebihan.
-export function applyPackageConversion(record, { sourcePackageId, target, sessions, price, leftover = 0, conversionId, note, date }) {
+export function applyPackageConversion(record, { sourcePackageId, target, sessions, price, leftover = 0, conversionId, note, date, by = null }) {
   const packages = record.packages || [];
   const source = packages.find((p) => p.id === sourcePackageId);
   if (!source || source.status === "converted" || source.remainingCredit <= 0) return record;
@@ -468,8 +469,8 @@ export function applyPackageConversion(record, { sourcePackageId, target, sessio
     balance: (record.balance || 0) + Math.max(0, leftover),
     history: [
       ...(record.history || []),
-      historyEntry({ date: date || todayStr(), packageId: source.id, packageName: source.packageName, action: "converted_out", creditChange: -out, conversionId, note }),
-      historyEntry({ date: date || todayStr(), packageId: newPkg.id, packageName: newPkg.packageName, action: "converted_in", creditChange: sessions, conversionId, note, cancelCountAfter: newPkg.cancelCount }),
+      historyEntry({ by, date: date || todayStr(), packageId: source.id, packageName: source.packageName, action: "converted_out", creditChange: -out, conversionId, note }),
+      historyEntry({ by, date: date || todayStr(), packageId: newPkg.id, packageName: newPkg.packageName, action: "converted_in", creditChange: sessions, conversionId, note, cancelCountAfter: newPkg.cancelCount }),
     ],
   };
 }
@@ -547,7 +548,7 @@ export function voidSummary(record, invoice, schedules = [], today = "") {
 
 // Pilihan "cabut sisa kredit": paket hidup jadi `voided` (sisa 0, mutasi ledger `manual_adjust` bernilai −sisa) dan saldo
 // lebihan yang dipakai invoice kembali ke client. Sesi selesai & ledger lama tidak disentuh.
-export function applyVoidRevoke(record, invoice, { note = "", date } = {}) {
+export function applyVoidRevoke(record, invoice, { note = "", date, by = null } = {}) {
   const live = invoicePackageChain(record, invoice).slice(-1)[0] || null;
   const returned = invoice?.balanceApplied || 0;
   if (!live) return { ...record, balance: (record.balance || 0) + returned };
@@ -558,7 +559,7 @@ export function applyVoidRevoke(record, invoice, { note = "", date } = {}) {
     packages: (record.packages || []).map((p) => (p.id === live.id ? { ...p, remainingCredit: 0, status: "voided" } : p)),
     history: [
       ...(record.history || []),
-      historyEntry({ date: date || todayStr(), packageId: live.id, packageName: live.packageName, action: "manual_adjust", creditChange: -out, note }),
+      historyEntry({ by, date: date || todayStr(), packageId: live.id, packageName: live.packageName, action: "manual_adjust", creditChange: -out, note }),
     ],
   };
 }

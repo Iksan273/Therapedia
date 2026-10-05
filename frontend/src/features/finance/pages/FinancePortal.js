@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { usePagination } from "@/shared/components/TablePagination";
 import { SearchInput } from "@/shared/components/FilterBar";
 import { toast } from "sonner";
-import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package, Wallet } from "lucide-react";
+import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package, Wallet, ScrollText } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerModal";
@@ -13,6 +13,7 @@ import { VerificationTab } from "@/features/finance/components/VerificationTab";
 import { BillingTab } from "@/features/finance/components/BillingTab";
 import { HistoryTab } from "@/features/finance/components/HistoryTab";
 import { LeftoverTab } from "@/features/finance/components/LeftoverTab";
+import { ClientLedgerTab } from "@/features/finance/components/ClientLedgerTab";
 import { PackagesTab } from "@/features/finance/components/PackagesTab";
 import { CreateInvoiceDialog } from "@/features/finance/components/CreateInvoiceDialog";
 import { RenewalDialog } from "@/features/finance/components/RenewalDialog";
@@ -406,6 +407,9 @@ export default function FinancePortal() {
           <TabsTrigger value="history" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <History className="w-4 h-4 text-purple-600" /> Log Buku Besar Kredit
           </TabsTrigger>
+          <TabsTrigger value="ledger" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-ledger">
+            <ScrollText className="w-4 h-4 text-sky-600" /> Log Kredit & Saldo
+          </TabsTrigger>
           <TabsTrigger value="leftover" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-leftover">
             <Wallet className="w-4 h-4 text-amber-600" /> Saldo Lebihan ({leftoverRows.length})
           </TabsTrigger>
@@ -422,6 +426,9 @@ export default function FinancePortal() {
 
         {/* TAB 3: LOG BUKU BESAR KREDIT */}
         <HistoryTab allHistoryLogs={allHistoryLogs} historyPg={historyPg} />
+
+        {/* TAB: LOG KREDIT & SALDO PER CLIENT (rupiah) */}
+        <ClientLedgerTab clients={clients.filter((c) => matchesFinanceSearch({ clientName: c.clientName }, c, search))} search={search} />
 
         {/* TAB: SALDO LEBIHAN CLIENT */}
         <LeftoverTab rows={leftoverRows} leftoverPg={leftoverPg} includeZero={includeZeroLeftover} setIncludeZero={setIncludeZeroLeftover} />

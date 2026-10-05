@@ -2,6 +2,7 @@ import { getClientServiceIds } from "@/domain/client";
 import { findHoliday, holidayDateSet, holidayMessage } from "@/domain/holiday";
 import { useHolidays } from "@/stores/holidaysStore";
 import React, { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/stores/authStore";
 import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { toast } from "sonner";
 import { AlertTriangle, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info, Snowflake } from "lucide-react";
@@ -42,6 +43,7 @@ export const AddScheduleModal = ({
   const { therapists } = useTherapists();
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
+  const { auth } = useAuth();
   const sessionActions = useSessionActions();
   const { holidays } = useHolidays();
 
@@ -238,6 +240,7 @@ export const AddScheduleModal = ({
         isRecurring: false,
         recurrenceRule: "none",
         bookingNote: notes.trim() || null,
+        createdBy: auth?.staffName || auth?.role || null,
         activitySection: "",
         homeworkSection: "",
       };
@@ -265,6 +268,7 @@ export const AddScheduleModal = ({
         endTime: defaultEndTime,
         status: "scheduled",
         bookingNote: notes.trim() || null,
+        createdBy: auth?.staffName || auth?.role || null,
         activitySection: "",
         homeworkSection: "",
       };

@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { useActingTherapist } from "@/features/therapist/hooks/useActingTherapist";
+import { ViewAsTherapistBar } from "@/features/therapist/components/ViewAsTherapistBar";
 import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { Link } from "react-router-dom";
 import { addDays, addWeeks, format, startOfWeek, subDays, subWeeks } from "date-fns";
@@ -8,17 +10,16 @@ import { SearchInput } from "@/shared/components/FilterBar";
 import { matchesClientSearch } from "@/domain/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { CalendarLegend, DayAgenda, SessionDetailModal, WeeklyCalendar } from "@/features/schedule";
-import { useAuth } from "@/stores/authStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { cn } from "@/shared/lib/utils";
 
 export default function MySchedule() {
-  const { auth } = useAuth();
   const { schedules } = useSchedules();
   const { clients } = useClients();
   const { getTherapist } = useTherapists();
+  const acting = useActingTherapist();
 
   const [view, setView] = useState(() =>
     typeof window !== "undefined" && window.innerWidth < 768 ? "day" : "week"
@@ -31,23 +32,23 @@ export default function MySchedule() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionOpen, setSessionOpen] = useState(false);
 
-  const therapist = getTherapist(auth.therapistId);
+  const therapist = getTherapist(acting.therapistId);
 
   // Filter schedules exclusively for this therapist
   const mySchedules = useMemo(() => {
     return schedules.filter((s) => {
-      if (s.therapistId !== auth.therapistId) return false;
+      if (s.therapistId !== acting.therapistId) return false;
       if (clientFilter !== "all" && s.clientId !== clientFilter) return false;
       if (search.trim() && !matchesClientSearch(clients.find((c) => c.id === s.clientId), search)) return false;
       return true;
     });
-  }, [schedules, auth.therapistId, clientFilter, search, clients]);
+  }, [schedules, acting.therapistId, clientFilter, search, clients]);
 
   // Unique clients handled by this therapist
   const myClients = useMemo(() => {
-    const ids = new Set(schedules.filter((s) => s.therapistId === auth.therapistId).map((s) => s.clientId));
+    const ids = new Set(schedules.filter((s) => s.therapistId === acting.therapistId).map((s) => s.clientId));
     return clients.filter((c) => ids.has(c.id));
-  }, [schedules, auth.therapistId, clients]);
+  }, [schedules, acting.therapistId, clients]);
 
   // Report statistics (Activity, Note & Homework)
   const reportMetrics = useMemo(() => {
@@ -90,6 +91,7 @@ export default function MySchedule() {
 
   return (
     <div className="space-y-6" data-testid="my-schedule-page">
+      <ViewAsTherapistBar acting={acting} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

@@ -32,7 +32,9 @@ export const NAV_CONFIG = {
       { to: "/master/branch-performance", label: "Performa Inquiry All-Branch", icon: BarChart3, module: "revenue", testid: "nav-master-branch-performance" },
       { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, module: INQUIRY_ANY, testid: "nav-master-inquiry-dashboard" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, module: "inquiry_pipeline", testid: "nav-master-pipeline" },
+      { to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, module: INQUIRY_ANY, testid: "nav-master-assessment-master" },
       { to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, module: INQUIRY_ANY, testid: "nav-master-inquiry-master-data" },
+      { to: "/admin-schedule", label: "Schedule Dashboard", icon: LayoutDashboard, end: true, module: "schedule_dashboard", testid: "nav-master-schedule-dashboard" },
       { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, module: "weekly_calendar", testid: "nav-master-calendar" },
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, module: "active_clients", testid: "nav-master-clients" },
       { to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, module: "unreported_reports", testid: "nav-master-unreported" },
@@ -107,7 +109,8 @@ export const NAV_CONFIG = {
   },
 };
 
-// Menu untuk role kustom (dibuat di /master/rbac): dibangun dari permission modul.
+// Daftar SEMUA menu per modul RBAC. Dipakai role kustom sebagai menu utama, dan oleh role sistem (termasuk master) untuk
+// menambahkan menu modul yang diberikan lewat RBAC tetapi tidak ada di menu bawaan role itu.
 const CUSTOM_ROLE_ITEMS = [
   { module: "revenue", to: "/master/revenue", label: "Dashboard Revenue", icon: TrendingUp, end: true, testid: "nav-custom-revenue" },
   { module: "inquiry_dashboard", to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, end: true, testid: "nav-custom-inquiry-dash" },
@@ -119,7 +122,11 @@ const CUSTOM_ROLE_ITEMS = [
   { module: "branch_master", to: "/master/branches", label: "Master Cabang", icon: Building2, testid: "nav-custom-branches" },
   { module: "user_management", to: "/master/users", label: "User Management", icon: UserCog, testid: "nav-custom-users" },
   { module: "rbac", to: "/master/rbac", label: "RBAC Module Access", icon: ShieldCheck, testid: "nav-custom-rbac" },
-  { module: "therapist_module", to: "/therapist", label: "Therapist Module", icon: CalendarDays, testid: "nav-custom-therapist" },
+  { module: "therapist_module", to: "/therapist", label: "My Clinical Schedule", icon: CalendarDays, end: true, testid: "nav-custom-therapist" },
+  { module: "therapist_module", to: "/therapist/summary", label: "Summary & Laporan Sesi", icon: FileCheck2, testid: "nav-custom-therapist-summary" },
+  { module: "revenue", to: "/master/branch-performance", label: "Performa Inquiry All-Branch", icon: BarChart3, testid: "nav-custom-branch-performance" },
+  { module: "inquiry_pipeline", to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, testid: "nav-custom-assessments" },
+  { module: "inquiry_pipeline", to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, testid: "nav-custom-inquiry-master-data" },
   { module: "unreported_reports", to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, testid: "nav-custom-unreported" },
   { module: "holidays", to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, testid: "nav-custom-holidays" },
 ];
@@ -142,6 +149,9 @@ export function buildNavConfig({ role, roleObj, hasPermission }) {
       extras: [],
     };
   }
-  if (role === "master" || role === "client") return base;
-  return { ...base, items: base.items.filter((i) => itemAllowed(i, hasPermission)) };
+  if (role === "client") return base;
+  // Menu bawaan role (disaring permission) + menu modul lain yang diizinkan RBAC (master: semua modul).
+  const own = base.items.filter((i) => itemAllowed(i, hasPermission));
+  const granted = CUSTOM_ROLE_ITEMS.filter((i) => itemAllowed(i, hasPermission) && !base.items.some((b) => b.to === i.to));
+  return { ...base, items: [...own, ...granted] };
 }
