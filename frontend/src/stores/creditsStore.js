@@ -63,7 +63,7 @@ const withBalanceApplied = (state, invoice, by) => {
 // Invoice baru: jenis (package | assessment), kode jenis untuk nomor INV-{KODE}-{YYYYMMDD}-{NNN}, dan snapshot
 // nama/kredit/harga paket saat terbit (perubahan master paket tidak memengaruhi invoice ini).
 const newInvoice = (state, action, extra) => {
-  const type = action.invoiceType === "assessment" ? "assessment" : "package";
+  const type = action.invoiceType === "assessment" || action.invoiceType === "leave" ? action.invoiceType : "package";
   const typeCode = action.typeCode || invoiceTypeCode(type, null);
   return {
     id: `inv-${Date.now()}`,
@@ -75,9 +75,11 @@ const newInvoice = (state, action, extra) => {
     branchId: action.branchId || "branch-sby-timur",
     packageName: action.packageName,
     packageId: action.packageId,
-    credits: type === "assessment" ? 0 : action.credits ?? null,
+    credits: type !== "package" ? 0 : action.credits ?? null,
     isRenewal: type === "package" && Boolean(action.isRenewal), // invoice perpanjangan paket (jalur renewal)
     replacesInvoiceId: type === "package" ? action.replacesInvoiceId || null : null, // invoice void yang digantikan (paket lama dipakai ulang)
+    assessmentCode: type === "assessment" ? action.assessmentCode || null : null, // kode kuesioner pemicu (invoice assessment otomatis)
+    leaveScheduleId: type === "leave" ? action.leaveScheduleId || null : null, // sesi Off pemicu (invoice cuti)
     createdAt: todayStr(),
     proofUploadCount: 0,
     ...extra,
@@ -178,7 +180,8 @@ function creditsReducer(state, action) {
         ...state,
         invoices: (state.invoices || []).map((inv) => {
           const matches = action.invoiceId ? inv.id === action.invoiceId : inv.clientId === action.clientId;
-          if (!matches || !canUploadProof(inv)) return inv; // upload sekali + re-upload maks 3x
+          // Ortu: upload sekali + re-upload maks 3x. Finance (`byFinance`): boleh unggah/ganti kapan pun (juga invoice lunas), tanpa batas, kecuali void
+          if (!matches || (action.byFinance ? inv.status === "void" : !canUploadProof(inv))) return inv;
           return appendInvoiceLog({
             ...inv,
             proofUploadCount: proofUploadsUsed(inv) + 1,
@@ -188,7 +191,7 @@ function creditsReducer(state, action) {
             proofFileType: action.fileType || inv.proofFileType || "image/jpeg",
             proofFileSize: action.fileSize != null ? action.fileSize : inv.proofFileSize,
             proofUploadedAt: action.uploadedAt || new Date().toISOString(),
-          }, { action: "proof_uploaded", by: action.by || "Orang tua", note: `Bukti bayar diunggah (upload ke-${proofUploadsUsed(inv) + 1})` });
+          }, { action: "proof_uploaded", by: action.by || (action.byFinance ? "Finance" : "Orang tua"), note: action.byFinance ? `Bukti bayar ${proofUploadsUsed(inv) > 0 ? "diganti" : "diunggah"} oleh Finance (upload ke-${proofUploadsUsed(inv) + 1})` : `Bukti bayar diunggah (upload ke-${proofUploadsUsed(inv) + 1})` });
         }),
       };
 
@@ -219,7 +222,7 @@ function creditsReducer(state, action) {
           : inv
       );
       // Invoice assessment tidak membuat paket/kredit: hanya lunas (membuka kuesioner ortu).
-      if (!isApproving || !target || invoiceType(target) === "assessment") return { ...state, invoices };
+      if (!isApproving || !target || invoiceType(target) !== "package") return { ...state, invoices };
       if (adoption.adopted) return { ...state, invoices, records: state.records.map((r) => (r.clientId === target.clientId ? adoption.record : r)) };
 
       // Pembayaran disetujui → paket kredit baru untuk client (record dibuat bila belum ada).
@@ -349,12 +352,12 @@ export const CreditsProvider = ({ children }) => {
     dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind, by });
   const revertSessionCredit = ({ clientId, scheduleId, date, reason, by }) =>
     dispatch({ type: "REVERT_SESSION_CREDIT", clientId, scheduleId, date, reason, by });
-  const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount, type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, note, by }) =>
-    dispatch({ type: "ISSUE_INVOICE", clientId, clientName, branchId, packageId, packageName, amount, invoiceType: type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, note, by });
+  const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount, type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, assessmentCode, leaveScheduleId, note, by }) =>
+    dispatch({ type: "ISSUE_INVOICE", clientId, clientName, branchId, packageId, packageName, amount, invoiceType: type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, assessmentCode, leaveScheduleId, note, by });
   // Void invoice lunas (alasan wajib; `creditAction` keep | revoke wajib bila invoice punya paket). Jadwal: lihat useInvoiceVoidActions.
   const voidInvoice = ({ invoiceId, reason, creditAction, by }) => dispatch({ type: "VOID_INVOICE", invoiceId, reason, creditAction, by });
-  const uploadPaymentProof = ({ invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt }) =>
-    dispatch({ type: "UPLOAD_PAYMENT_PROOF", invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt });
+  const uploadPaymentProof = ({ invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt, byFinance, by }) =>
+    dispatch({ type: "UPLOAD_PAYMENT_PROOF", invoiceId, clientId, proofUrl, fileName, fileType, fileSize, uploadedAt, byFinance, by });
   const verifyPaymentProof = ({ invoiceId, status, proofUrl, creditsToAdd, newPackageId, by }) =>
     dispatch({ type: "VERIFY_PAYMENT_PROOF", invoiceId, status, proofUrl, creditsToAdd, newPackageId, by });
   // Renewal / invoice paket langsung lunas: `reason` = catatan Finance (opsional); `isRenewal: false` untuk paket pertama

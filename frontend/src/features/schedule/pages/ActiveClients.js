@@ -3,7 +3,7 @@ import { hasAllBranchAccess } from "@/domain/auth";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Users, Cake, BarChart3, CalendarPlus, MessageCircle, Snowflake, RotateCcw } from "lucide-react";
+import { Users, Cake, BarChart3, CalendarPlus, CalendarDays, MessageCircle, Snowflake, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
@@ -19,6 +19,7 @@ import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { useUrlFilters } from "@/shared/hooks/useUrlFilters";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
+import { ClientRoutineDialog } from "@/features/schedule/components/clientDetail/ClientRoutineDialog";
 import { useClientOutcomeActions } from "@/features/inquiry";
 
 // Tab analitik (beserta pustaka grafik) baru diunduh saat tab dibuka
@@ -65,6 +66,7 @@ export default function ActiveClients() {
   // Quick schedule modal
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState(null);
+  const [routineClientId, setRoutineClientId] = useState(null); // client yang jadwal rutinnya sedang diganti
 
 
   // Active clients (birthday & analytics) dan roster penuh (active + discharged + discontinued)
@@ -344,6 +346,17 @@ export default function ActiveClients() {
                                   <CalendarPlus className="w-3.5 h-3.5 text-sky-600" /> Sesi
                                 </Button>
                               )}
+                              {isActive && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="px-3 gap-1.5 font-bold border-slate-200 hover:bg-sky-50 hover:text-sky-700 shrink-0 whitespace-nowrap cursor-pointer"
+                                  onClick={() => setRoutineClientId(c.id)}
+                                  data-testid={`replace-routine-${c.id}`}
+                                >
+                                  <CalendarDays className="w-3.5 h-3.5 text-sky-600" /> Ganti Rutin
+                                </Button>
+                              )}
                               {canReactivateClient(c) && (
                                 <Button
                                   size="sm"
@@ -463,6 +476,9 @@ export default function ActiveClients() {
           </Suspense>
         </TabsContent>
       </Tabs>
+
+      {/* Ganti jadwal rutin client */}
+      <ClientRoutineDialog clientId={routineClientId} open={Boolean(routineClientId)} onOpenChange={(o) => !o && setRoutineClientId(null)} />
 
       {/* Add Schedule Modal */}
       <AddScheduleModal

@@ -98,13 +98,13 @@ export function buildSessionReportsHtml(items, meta = {}) {
   </header>
 
   <div class="info">
-    <div><small>Nama Ananda</small><b>${esc(meta.clientName || "—")}</b></div>
+    <div><small>Nama Anak</small><b>${esc(meta.clientName || "—")}</b></div>
     <div><small>Kode Client</small><b>${esc(meta.clientCode || "—")}</b></div>
     <div><small>Cabang</small><b>${esc(branch)}</b></div>
     <div><small>Ringkasan</small><b>${items.length} sesi · ${therapistCount || 1} terapis</b></div>
   </div>
 
-  <p class="intro">Berikut ringkasan kegiatan, observasi, dan latihan di rumah dari setiap sesi terapi ananda, disusun oleh terapis yang menangani.</p>
+  <p class="intro">Berikut ringkasan kegiatan, observasi, dan latihan di rumah dari setiap sesi terapi anak, disusun oleh terapis yang menangani.</p>
 
   ${sessions || '<p class="empty">Tidak ada sesi.</p>'}
 

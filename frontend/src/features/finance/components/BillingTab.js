@@ -8,6 +8,7 @@ import { BRANCHES } from "@/domain/branch";
 import { fmtCurrency, fmtDate } from "@/shared/lib/format";
 import { Button } from "@/shared/ui/button";
 import { getProofFileType } from "@/shared/lib/fileUpload";
+import { ProofFileButton } from "@/shared/components/ProofFileButton";
 import { ArrowRightLeft, Ban, Eye, FileText, History } from "lucide-react";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { TablePagination } from "@/shared/components/TablePagination";
@@ -16,7 +17,7 @@ import { InvoiceLogDialog } from "@/features/finance/components/InvoiceLogDialog
 import { VoidInvoiceDialog } from "@/features/finance/components/VoidInvoiceDialog";
 import { usePackageConversionActions } from "@/features/finance/hooks/usePackageConversionActions";
 
-export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoice }) {
+export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoice, onUploadProof }) {
   const { canConvert } = usePackageConversionActions();
   const [convertInvoice, setConvertInvoice] = useState(null);
   const [logInvoice, setLogInvoice] = useState(null);
@@ -106,6 +107,13 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                                 </>
                               )}
                             </Button>
+                          ) : inv.status !== "void" && onUploadProof ? (
+                            <ProofFileButton
+                              label="Upload Bukti"
+                              className="px-2.5 text-[11px] font-semibold text-slate-700 border-slate-200 hover:bg-sky-50 gap-1.5 cursor-pointer"
+                              onFile={(file) => onUploadProof(inv, file)}
+                              testId={`upload-proof-${inv.id}`}
+                            />
                           ) : (
                             <span className="text-slate-400 italic text-[11px]">—</span>
                           )}

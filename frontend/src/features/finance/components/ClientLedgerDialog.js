@@ -11,7 +11,7 @@ import { cn } from "@/shared/lib/utils";
 const money = (v) => (v == null ? "—" : fmtCurrency(v));
 
 // Isi laporan: satu baris per perubahan kredit, dengan nilai rupiah (Per Sesi) dan saldo berjalan.
-function LedgerTable({ rows }) {
+function LedgerTable({ rows, onEditNote }) {
   // Urut dari yang terlama sampai yang terbaru (sesuai saldo berjalan)
   const pg = usePagination(rows, 10);
   // Buka di halaman terakhir agar saldo terbaru langsung terlihat (sama dengan Saldo di daftar client)
@@ -28,7 +28,7 @@ function LedgerTable({ rows }) {
         Saldo saat ini: <span className="font-extrabold text-slate-900 tabular-nums">{money(current)}</span>
       </p>
       <div className="overflow-x-auto">
-        <Table stackOnMobile className="min-w-[1080px] w-full" data-testid="client-ledger-table">
+        <Table stackOnMobile className="min-w-[1280px] w-full" data-testid="client-ledger-table">
           <TableHeader>
             <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
               <TableHead className="font-bold text-slate-700 text-xs py-3 pl-4 whitespace-nowrap">Oleh</TableHead>
@@ -37,6 +37,7 @@ function LedgerTable({ rows }) {
               <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Paket Kredit</TableHead>
               <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Status</TableHead>
               <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Catatan Penjadwalan</TableHead>
+              <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Catatan</TableHead>
               <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Detail</TableHead>
               <TableHead className="font-bold text-slate-700 text-xs text-right whitespace-nowrap">Per Sesi</TableHead>
               <TableHead className="font-bold text-slate-700 text-xs text-right pr-4 whitespace-nowrap">Saldo</TableHead>
@@ -54,6 +55,16 @@ function LedgerTable({ rows }) {
                 <TableCell data-label="Paket Kredit" className="text-slate-700 whitespace-nowrap">{r.packageName}</TableCell>
                 <TableCell data-label="Status" className="whitespace-nowrap">{r.status ? <StatusBadge status={r.status} /> : "—"}</TableCell>
                 <TableCell data-label="Catatan Penjadwalan" className="text-slate-600">{r.note || "—"}</TableCell>
+                <TableCell data-label="Catatan" className="min-w-[200px] text-slate-700" data-testid={`ledger-note-${r.id}`}>
+                  {r.historyNote && <p className="whitespace-pre-wrap">{r.historyNote}</p>}
+                  {r.scheduleId ? (
+                    <button type="button" className="min-h-10 text-[11px] font-bold text-sky-700 hover:underline cursor-pointer" onClick={() => onEditNote(r.scheduleId)} data-testid={`ledger-note-edit-${r.id}`}>
+                      {r.historyNote ? "Ubah Catatan" : "Tambah Catatan"}
+                    </button>
+                  ) : (
+                    !r.historyNote && "—"
+                  )}
+                </TableCell>
                 <TableCell data-label="Detail" className="text-slate-600 whitespace-nowrap">{r.detail}</TableCell>
                 <TableCell
                   data-label="Per Sesi"
@@ -73,19 +84,19 @@ function LedgerTable({ rows }) {
 }
 
 // Laporan log kredit + uang satu client (turunan dari ledger kredit; tidak ada data baru yang disimpan).
-export function ClientLedgerDialog({ client, rows, open, onOpenChange }) {
+export function ClientLedgerDialog({ client, packageLabel, rows, open, onOpenChange, onEditNote }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[calc(100dvh-2.5rem)] overflow-y-auto rounded-2xl p-5 sm:p-6 border-slate-200" data-testid="client-ledger-dialog">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <ScrollText className="w-5 h-5 text-sky-600" /> Log Kredit & Saldo — {client?.clientName}
+            <ScrollText className="w-5 h-5 text-sky-600" /> Log Kredit & Saldo — {client?.clientName}{packageLabel ? ` • ${packageLabel}` : ""}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            {client?.clientCode}. Tiap sesi yang memotong kredit mengurangi saldo sebesar harga per sesi paketnya (harga paket ÷ jumlah sesi); top up / renewal menambah saldo sebesar harga paket. Kolom Oleh = staf yang memicu mutasi.
+            {client?.clientCode}. Log ini khusus satu paket. Tiap sesi yang memotong kredit mengurangi saldo sebesar harga per sesi paketnya (harga paket ÷ jumlah sesi); top up / renewal menambah saldo sebesar harga paket. Kolom Oleh = staf yang memicu mutasi.
           </DialogDescription>
         </DialogHeader>
-        {open && <LedgerTable key={client?.id} rows={rows} />}
+        {open && <LedgerTable key={`${client?.id}:${packageLabel}`} rows={rows} onEditNote={onEditNote} />}
       </DialogContent>
     </Dialog>
   );

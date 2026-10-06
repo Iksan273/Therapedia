@@ -1,5 +1,5 @@
 import { bookingNoteOf } from "@/domain/schedule";
-import { packageBaseName, unitValueOf } from "@/domain/credit";
+import { activePackageOf, packageBaseName, unitValueOf } from "@/domain/credit";
 
 // Buku besar kredit + uang per client (modul Finance "Log Kredit & Saldo"). Murni TURUNAN dari `record.history`
 // (ledger kredit) dan sesi: tidak ada data baru yang disimpan. Tiap perubahan kredit dinilai dengan harga per sesi
@@ -96,6 +96,8 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
 
     return {
       id: h.id,
+      scheduleId: s?.id || null,
+      historyNote: s?.historyNote || "", // catatan sesi (sama dengan Catatan di detail client)
       by: actorOf(h.by, h.action),
       date: s?.date || h.date,
       time: s ? `${s.startTime}–${s.endTime}` : "",
@@ -119,6 +121,8 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
       const pkg = packages.find((p) => p.id === s.creditPackageId);
       return {
         id: `sch-${s.id}`,
+        scheduleId: s.id,
+        historyNote: s.historyNote || "",
         by: actorOf(s.createdBy, "scheduled"),
         date: s.date,
         time: `${s.startTime}–${s.endTime}`,
@@ -133,6 +137,26 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
       };
     });
   return [...rows, ...upcoming];
+}
+
+// Laporan per PAKET: satu entri = satu paket milik satu client, dengan ledger & saldo rupiahnya sendiri. Paket tanpa
+// mutasi kredit dilewati. Sesi terjadwal yang belum terhubung ke paket mana pun ikut paket yang sedang aktif.
+export function buildPackageMoneyLedgers(record, schedules = [], opts = {}) {
+  const packages = record?.packages || [];
+  const history = record?.history || [];
+  const fallbackId = activePackageOf(record)?.id;
+  return packages
+    .map((pkg) => {
+      const pkgHistory = history.filter((h) => h.packageId === pkg.id);
+      if (pkgHistory.length === 0) return null; // paket tanpa mutasi kredit tidak punya log
+      const ledgered = new Set(pkgHistory.map((h) => h.scheduleId).filter(Boolean));
+      const pkgSchedules = schedules.filter(
+        (s) => ledgered.has(s.id) || s.creditPackageId === pkg.id || (pkg.id === fallbackId && !packages.some((p) => p.id === s.creditPackageId))
+      );
+      const ledger = buildClientMoneyLedger({ ...record, packages: [pkg], history: pkgHistory }, pkgSchedules, opts);
+      return { pkg, ledger, balance: ledger.length ? ledger[ledger.length - 1].balance : 0 };
+    })
+    .filter(Boolean);
 }
 
 // Ringkasan satu client: saldo rupiah saat ini (baris terakhir) dan sisa sesi.

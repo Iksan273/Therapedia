@@ -11,6 +11,7 @@ import {
 } from "@/shared/ui/sheet";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
+import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { Textarea } from "@/shared/ui/textarea";
@@ -42,22 +43,26 @@ import {
   timeToMin,
 } from "@/domain/schedule";
 import { CANCEL_QUOTA, resolveSessionPackage } from "@/domain/credit";
-import { fmtDate } from "@/shared/lib/format";
+import { SessionHistoryNoteDialog } from "@/shared/components/SessionHistoryNoteDialog";
+import { fmtCurrency, fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 
 export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBase, readOnly = false }) => {
   const { auth, hasPermission } = useAuth();
   const { clients } = useClients();
   const { therapists, getTherapist } = useTherapists();
-  const { schedules } = useSchedules();
+  const { schedules, updateSchedule } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { holidays } = useHolidays();
   const sessionActions = useSessionActions();
   const { activeCancelReasons, getCancelReasonLabel, activeOffReasons, getOffReasonLabel } = useMasterData();
 
+  const [noteOpen, setNoteOpen] = useState(false); // dialog catatan sesi (sama dengan Catatan di detail client & log kredit)
   const [mode, setMode] = useState("view"); // view | cancel | off | reschedule | drop
   const [offReason, setOffReason] = useState("");
   const [offNote, setOffNote] = useState("");
+  const [offInvoice, setOffInvoice] = useState(false); // terbitkan invoice cuti saat Off
+  const [offInvoiceAmount, setOffInvoiceAmount] = useState("");
   const [rescheduleKind, setRescheduleKind] = useState("move"); // move = pindah sekarang, pending = jadwal pengganti menyusul
   const [pendingReason, setPendingReason] = useState("");
   const [pendingNote, setPendingNote] = useState("");
@@ -88,6 +93,8 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       setCancelReason(schedule.cancelReason || "");
       setOffReason(schedule.offReason || "");
       setOffNote(schedule.offNote || "");
+      setOffInvoice(false);
+      setOffInvoiceAmount("");
       setCancelNote(cancelNoteOf(schedule) || "");
       setActivitySection(schedule.activitySection || "");
       setNoteSection(schedule.noteSection || schedule.progressNote || "");
@@ -121,6 +128,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const client = clients.find((c) => c.id === schedule.clientId);
   const therapist = getTherapist(schedule.therapistId);
   const record = client ? getRecordForClient(client.id) : null;
+  const liveSchedule = schedules.find((s) => s.id === schedule.id) || schedule; // snapshot prop bisa basi setelah catatan disimpan
   const isPending = schedule.status === "reschedule_pending";
   const actionable = schedule.status === "scheduled" || schedule.status === "rescheduled" || isPending;
   // Slot asal: untuk sesi menggantung = slot saat ini; untuk sesi yang sudah dipindah = jejak yang tersimpan
@@ -247,8 +255,13 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       toast.error("Pilih dulu: potong 1 kredit atau jangan potong kredit.");
       return;
     }
-    const { deducted } = sessionActions.offSession(schedule, { offReason: reason, note: offNote, deductCredit: deductChoice === "deduct" });
-    toast.info(`Sesi ditandai Off (${getOffReasonLabel(reason)}). ${deducted ? "1 kredit dipotong." : "Kredit tidak dipotong."} Kuota cancel tidak berubah.`);
+    const leaveInvoiceAmount = offInvoice ? Number(offInvoiceAmount) : null;
+    if (offInvoice && !(leaveInvoiceAmount > 0)) {
+      toast.error("Isi nominal invoice cuti (lebih dari 0) atau matikan penerbitan invoice.");
+      return;
+    }
+    const { deducted, leaveInvoiced } = sessionActions.offSession(schedule, { offReason: reason, note: offNote, deductCredit: deductChoice === "deduct", leaveInvoiceAmount });
+    toast.info(`Sesi ditandai Off (${getOffReasonLabel(reason)}). ${deducted ? "1 kredit dipotong." : "Kredit tidak dipotong."} Kuota cancel tidak berubah.${leaveInvoiced ? ` Invoice cuti ${fmtCurrency(leaveInvoiceAmount)} diterbitkan (Menunggu Pembayaran).` : ""}`);
     onOpenChange(false);
   };
 
@@ -377,6 +390,17 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                   : `Sisa Saldo: ${record?.remainingCredit ?? 0} Sesi`}
               </p>
             </div>
+          </div>
+
+          {/* Catatan sesi: sama dengan kolom Catatan di detail client & Log Kredit Finance; semua peran boleh mengubah */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200/80 space-y-2" data-testid="session-history-note-section">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold uppercase text-slate-400 flex items-center gap-1.5"><StickyNote className="w-3.5 h-3.5" /> Catatan</span>
+              <Button size="sm" variant="ghost" className="h-8 font-bold text-sky-700 hover:bg-sky-50 cursor-pointer" onClick={() => setNoteOpen(true)} data-testid="session-history-note-edit">
+                {liveSchedule.historyNote ? "Ubah Catatan" : "Tambah Catatan"}
+              </Button>
+            </div>
+            <p className="whitespace-pre-wrap text-slate-700" data-testid="session-history-note-text">{liveSchedule.historyNote || <span className="text-slate-400 italic">Belum ada catatan.</span>}</p>
           </div>
 
           {/* Penanda status reschedule (terlihat oleh semua peran) */}
@@ -729,6 +753,21 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     <Input className="border-slate-200 bg-white text-xs" placeholder="e.g. Terapis cuti sampai Jumat..." value={offNote} onChange={(e) => setOffNote(e.target.value)} />
                   </div>
                   <DeductCreditChoice value={deductChoice} onChange={setDeductChoice} pkg={targetPackage} kind="off" testId="off-deduct" />
+                  <div className="p-3 rounded-xl bg-white border border-violet-200 space-y-2" data-testid="off-invoice-section">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label className="font-bold text-slate-800 text-xs cursor-pointer">Terbitkan invoice cuti</Label>
+                        <p className="text-[11px] text-slate-500">Opsional. Invoice masuk ke Menunggu Pembayaran Finance; tidak memengaruhi pilihan potong kredit.</p>
+                      </div>
+                      <Switch checked={offInvoice} onCheckedChange={setOffInvoice} data-testid="off-invoice-toggle" />
+                    </div>
+                    {offInvoice && (
+                      <div className="space-y-1">
+                        <Label className="font-bold text-slate-700 text-xs">Nominal invoice cuti (Rp) *</Label>
+                        <Input type="number" min={0} inputMode="numeric" className="border-slate-200 bg-white text-xs" placeholder="mis. 250000" value={offInvoiceAmount} onChange={(e) => setOffInvoiceAmount(e.target.value)} data-testid="off-invoice-amount" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2.5 pt-1">
                     <Button variant="outline" className="font-bold flex-1" onClick={() => setMode("view")}>
                       Batal
@@ -937,6 +976,16 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
             />
           )}
         </div>
+        <SessionHistoryNoteDialog
+          session={liveSchedule}
+          open={noteOpen}
+          onOpenChange={setNoteOpen}
+          onSave={(text) => {
+            updateSchedule(schedule.id, { historyNote: text, historyNoteBy: auth?.staffName || auth?.role || null });
+            toast.success("Catatan sesi disimpan.");
+            setNoteOpen(false);
+          }}
+        />
       </SheetContent>
     </Sheet>
   );

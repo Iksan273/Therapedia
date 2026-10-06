@@ -63,6 +63,7 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `offReason` / `offNote` | string \| null | alasan Off (string: kode pilihan cepat OL/S/SCA/MCU/FM/TI/H dari Master Data Layanan → tab Alasan Off, atau teks bebas) + catatan; hanya terisi bila `status = off` |
 | `creditPackageId` | string \| null | id item paket di `credits.records[].packages[]` |
 | `isRecurring`, `recurrenceRule` | bool, string | `none`, `weekly`, `weekly_Monday,Thursday`, `single_week` |
+| `seriesId` | string? | id seri berulang (satu pola/masa berlaku; = `schedules.series_id`). Kosong pada data lama/sesi tunggal |
 | `cancelReason` | string \| null | **string bebas**: `value` pilihan cepat (Master Data), teks custom, atau `RESCHEDULE_DROPPED` (alasan sistem); `pendingReason` sama |
 | `historyNote` / `historyNoteBy` | string \| null | catatan riwayat per sesi (kolom **Catatan** riwayat sesi detail client (diubah lewat tombol **Tambah/Ubah Catatan** di kolom **Aksi**)), bisa ditimpa siapa pun yang punya akses modul schedule |
 | `bookingNote` | string \| null | catatan penjadwalan oleh admin saat membuat jadwal (tampil di kolom "Catatan Penjadwalan" riwayat sesi). Dipisah dari `cancelNote` / `pendingNote`; data lama memakai satu field `notes` (dibaca lewat `bookingNoteOf` / `cancelNoteOf`) |
@@ -90,7 +91,7 @@ credits = {
     history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note, by }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
   }],
   conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
-  invoices: [{ id, type /*package|assessment*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid|void*/,
+  invoices: [{ id, type /*package|assessment|leave*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid|void*/, assessmentCode? /*invoice assessment otomatis: kode kuesioner pemicu*/, leaveScheduleId? /*invoice cuti (type leave): sesi Off pemicu*/,
                proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt,
                isRenewal? /*true = invoice perpanjangan paket (kedua jalur renewal)*/, voidReason?, voidedAt?, voidedBy?, voidCreditAction? /*keep|revoke*/, replacesInvoiceId? /*invoice void yang digantikan: paket lama dipakai ulang*/, renewalReason? /*teks bebas, wajib, hanya renewal langsung lunas*/, renewalJustification? /*teks wajib, min. 10 karakter*/,
                grossAmount? /*sebelum saldo lebihan*/, balanceApplied? /*saldo lebihan yang dipakai; amount = gross − balanceApplied*/,
@@ -124,7 +125,7 @@ Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `Assessme
 | `domain/schedule.js` | `deriveRecurringRoutines`, `upcomingActiveSessions`, `reportFilledCount`, `isReportEmpty`, `isUnreportedSession`, `getPrevSlot`, `DEFAULT_CANCEL_REASONS` (seed pilihan cepat), `RESCHEDULE_DROPPED`, `SYSTEM_CANCEL_REASONS`, `cancelReasonLabel(val, list?)`, `isCreditNeutralCancel`, `scheduleSlot`, `getOriginSlot`, `buildReportPatch`, `CLEAR_PENDING_PATCH`, `CALENDAR_DAYS`, `CALENDAR_HOURS`, `TIME_OPTIONS`, `WEEKDAY_OPTIONS`, `timeToMin`, `rangesOverlap`, `checkConflicts`, `findTherapistClashIds`, `buildRecurringSchedules`, `SCHEDULE_MANAGER_ROLES`, `canManageSchedule`, `canRevertSession`, `restoreStatusOf` |
 | `domain/credit.js` | `DEFAULT_MASTER_PACKAGES`, `formatPackageName`, `CANCEL_QUOTA` + aturan mutasi kredit (lihat di atas) |
 | `domain/rbac.js` | `ACCESS_MODULES`, `DEFAULT_ROLES`, `DEFAULT_PERMISSIONS`, `SYSTEM_ROLE_IDS`, `isSystemRole`, `roleHasPermission`, `withDefaultPermissions`, `roleCanDelete`, `canDeleteIn`, `DEFAULT_CAN_DELETE` |
-| `domain/assessment.js` | `buildQuestionnaireCode`, `categoryTypeCode`, `normalizeTypeCode`, `isTypeCodeTaken`, `CODE_VALIDITY_OPTIONS`, `buildExpiresAt`, `isQuestionnaireCodeExpired`, `hasPendingAssessmentInvoice`, `checkQuestionnaireAccess` |
+| `domain/assessment.js` | `buildQuestionnaireCode`, `categoryTypeCode`, `normalizeTypeCode`, `isTypeCodeTaken`, `CODE_VALIDITY_OPTIONS`, `buildExpiresAt`, `isQuestionnaireCodeExpired`, `assessmentInvoiceNeedingProof`, `checkQuestionnaireAccess` |
 | `domain/auth.js` | `DEMO_PASSWORD`, `validateNewPassword`, OTP (`generateOtp`, `makeOtpRequest`, `verifyOtp`), `checkStaffCredentials`, `validateStaffBranch` |
 | `domain/holiday.js` | `DEFAULT_HOLIDAYS`, `makeHoliday`, `findHoliday`, `isHoliday`, `holidayDateSet`, `validateHoliday` |
 | `shared/lib/id.js` | `uid`, `nowIso`, `todayStr` |

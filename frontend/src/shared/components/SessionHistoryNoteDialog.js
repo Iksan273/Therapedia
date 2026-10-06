@@ -5,7 +5,8 @@ import { Textarea } from "@/shared/ui/textarea";
 import { Button } from "@/shared/ui/button";
 import { fmtDate } from "@/shared/lib/format";
 
-// Catatan riwayat per sesi: siapa pun yang punya akses halaman ini boleh menimpa isinya.
+// Catatan riwayat per sesi (`schedule.historyNote`): dipakai di detail client, detail sesi kalender, dan log kredit Finance.
+// Siapa pun yang punya akses halaman boleh menimpa isinya; simpan lewat updateSchedule(id, { historyNote, historyNoteBy }).
 export function SessionHistoryNoteDialog({ session, open, onOpenChange, onSave }) {
   const [text, setText] = useState("");
   useEffect(() => {

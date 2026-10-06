@@ -19,8 +19,10 @@ import { StatusBadge } from "@/shared/components/StatusBadge";
 import { EmptyState } from "@/shared/components/EmptyState";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { ClientReportMonitoringCard } from "@/features/schedule/components/clientDetail/ClientReportMonitoringCard";
-import { SessionHistoryNoteDialog } from "@/features/schedule/components/clientDetail/SessionHistoryNoteDialog";
+import { SessionHistoryNoteDialog } from "@/shared/components/SessionHistoryNoteDialog";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
+import { ClientRoutineDialog } from "@/features/schedule/components/clientDetail/ClientRoutineDialog";
+import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
 import { useClientOutcomeActions, useClientDeleteActions } from "@/features/inquiry";
 import { DeleteButton } from "@/shared/components/DeleteControls";
@@ -36,7 +38,7 @@ import { BRANCHES } from "@/domain/branch";
 import { distinctActivePackages, packageBaseName } from "@/domain/credit";
 import { CancelQuotaList } from "@/shared/components/CancelQuotaList";
 import { isActiveClient, canReactivateClient, dischargeReasonLabel } from "@/domain/client";
-import { bookingNoteOf, cancelNoteOf, deriveRecurringRoutines, upcomingActiveSessions } from "@/domain/schedule";
+import { bookingNoteOf, cancelNoteOf, deriveRecurringRoutines, seriesPeriod, routineKeyOfRow, routineSessionsToRemove, upcomingActiveSessions } from "@/domain/schedule";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
 
@@ -54,6 +56,8 @@ export default function ActiveClientDetail() {
   const { confirm, confirmDialog } = useConfirm();
 
   const [addOpen, setAddOpen] = useState(false);
+  const [routineOpen, setRoutineOpen] = useState(false); // dialog ganti jadwal rutin
+  const sessionActions = useSessionActions();
   const [selectedSession, setSelectedSession] = useState(null);
   const [noteSession, setNoteSession] = useState(null); // sesi yang catatan riwayatnya sedang diedit
   const [sessionOpen, setSessionOpen] = useState(false);
@@ -84,7 +88,8 @@ export default function ActiveClientDetail() {
     () =>
       deriveRecurringRoutines(clientSchedules, today).map((g) => {
         const th = getTherapist(g.therapistId);
-        return { ...g, time: `${g.startTime} – ${g.endTime}`, therapistName: th ? th.name : "Terapis", specialty: th ? th.specialty : "Clinical OT" };
+        const period = seriesPeriod(clientSchedules, g.seriesId); // semua hari satu seri berbagi masa berlaku
+        return { ...g, periodStart: period?.start || g.nextDate, periodEnd: period?.end || g.lastDate, time: `${g.startTime} – ${g.endTime}`, therapistName: th ? th.name : "Terapis", specialty: th ? th.specialty : "Clinical OT" };
       }),
     [clientSchedules, getTherapist, today]
   );
@@ -312,14 +317,21 @@ export default function ActiveClientDetail() {
       {/* JADWAL AKTIF DI KALENDER: tepat di bawah jadwal rutin (lihat blok berikutnya) */}
       {/* JADWAL RUTIN MINGGUAN (HARI APA SAJA & SAMA SIAPA TERAPISNYA) */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-        <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
-          <CardTitle className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-sky-600" />
-            Jadwal Rutin Mingguan Client (Hari & Terapis Pendamping)
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-500 mt-0.5">
-            Rangkuman jadwal mingguan anak: hari apa saja, jam berapa, dan terapis yang menangani
-          </CardDescription>
+        <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <CardTitle className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-sky-600" />
+              Jadwal Rutin Mingguan Client (Hari & Terapis Pendamping)
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500 mt-0.5">
+              Rangkuman jadwal mingguan anak: hari apa saja, jam berapa, dan terapis yang menangani
+            </CardDescription>
+          </div>
+          {isActive && (
+            <Button size="sm" variant="outline" className="gap-1.5 font-bold border-sky-200 text-sky-700 hover:bg-sky-50 shrink-0 cursor-pointer min-h-10 md:min-h-0" onClick={() => setRoutineOpen(true)} data-testid="replace-routine-button">
+              <CalendarDays className="w-3.5 h-3.5" /> Ganti Jadwal Rutin
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="p-5 sm:p-6">
           {weeklyRoutines.length === 0 ? (
@@ -339,11 +351,27 @@ export default function ActiveClientDetail() {
                       {routine.time}
                     </span>
                   </div>
+                  <p className="text-[11px] font-semibold text-slate-600" data-testid={`routine-validity-${idx}`}>
+                    Berlaku {fmtDate(routine.periodStart)} – {fmtDate(routine.periodEnd)} <span className="text-slate-400">({routine.count} sesi)</span>
+                  </p>
                   <div className="pt-2 border-t border-sky-200/60 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-slate-900">{routine.therapistName}</p>
                       <p className="text-[11px] text-slate-500 font-medium">{routine.specialty}</p>
                     </div>
+                    <DeleteButton
+                      module="active_clients"
+                      iconOnly
+                      label={`Hapus jadwal rutin ${routine.day} ${routine.time}`}
+                      title={`Hapus jadwal rutin ${routine.day} ${routine.time}?`}
+                      description={`Semua sesi terjadwal pada pola ini mulai hari ini (${routineSessionsToRemove(clientSchedules, [routineKeyOfRow(routine)], today).length} sesi) DIHAPUS PERMANEN dari kalender. Sesi yang sudah selesai, dibatalkan, atau dipindah tidak ikut terhapus.`}
+                      onConfirm={() => {
+                        const ids = routineSessionsToRemove(clientSchedules, [routineKeyOfRow(routine)], today).map((s) => s.id);
+                        const { removed } = sessionActions.deleteRoutineSessions(ids);
+                        toast.success(`Jadwal rutin ${routine.day} ${routine.time} dihapus (${removed} sesi).`);
+                      }}
+                      testId={`delete-routine-${idx}`}
+                    />
                   </div>
                 </div>
               ))}
@@ -570,6 +598,7 @@ export default function ActiveClientDetail() {
           setNoteSession(null);
         }}
       />
+      <ClientRoutineDialog clientId={client.id} open={routineOpen} onOpenChange={setRoutineOpen} />
       <AddScheduleModal
         open={addOpen}
         onOpenChange={setAddOpen}

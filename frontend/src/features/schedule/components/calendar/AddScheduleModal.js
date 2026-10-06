@@ -276,7 +276,8 @@ export const AddScheduleModal = ({
       // Jadwal berulang melewati tanggal libur (tidak dibuatkan sesi)
       const holidayDates = holidayDateSet(holidays, selectedClient?.branchId);
       const rawCount = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs).length;
-      const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs, holidayDates);
+      const seriesId = uid(); // semua hari pada pola ini = satu seri (satu masa berlaku)
+      const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs, holidayDates).map((s) => ({ ...s, seriesId }));
       if (schedulesList.length === 0) {
         toast.error("Semua tanggal pada pola ini jatuh di hari libur. Pilih tanggal atau hari lain.");
         return;

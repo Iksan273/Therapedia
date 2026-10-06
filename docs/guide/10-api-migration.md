@@ -40,6 +40,8 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | buka kuesioner (publik; cek sekali isi, expiry, invoice assessment) *(baru)* | `GET publicAssessment.show(code)` | `assessment_access_codes`, `invoices` | — |
 | submit kuesioner (publik, consent wajib) | `POST publicAssessment.submit(code)` | `assessment_responses/answers/quadrant_scores` | — |
 | CRUD kategori/section/soal | `assessmentCategories.*` | `assessment_categories/sections/questions` | — |
+| `offSession` + `leaveInvoiceAmount` (Off + invoice cuti opsional, nominal manual; satu transaksi dengan ledger `off_*`) | `POST schedules.off` | `schedules`, `credit_ledger`, `invoices` (`invoice_type=leave`, `leave_schedule_id`), `invoice_counters`, `invoice_logs` | `invoice_logs` |
+| `replaceRoutine` (ganti jadwal rutin: hapus sesi `scheduled` pola lama + buat pola baru, 1 transaksi, cek bentrok ulang di server; memakai `series_id` bila ada) / `deleteRoutineSessions` | `POST clients.routineReplace` / `DELETE clients.routine` | `schedule_series`, `schedules` | `updated_by` |
 | `addSchedule` / `addSchedules` | `POST schedules.list` / `POST schedules.bulkCreate` | `schedules`, `schedule_series` | `updated_by` |
 | `useSessionActions.saveReport` | `PUT schedules.report(id)` | `session_reports` | `updated_by` |
 | `useSessionActions.completeSession` | `POST schedules.complete(id)` | `schedules`, `client_packages`, `credit_ledger`, `clients` | `credit_ledger` (`used` / `cancel_*`) |
@@ -50,6 +52,11 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | cek bentrok (preview) | `GET schedules.conflicts` | `schedules`, `holidays` | — |
 | hari libur *(baru)* | `holidays.*` (CRUD) | `holidays` | — |
 | monitoring sesi completed tanpa report *(baru)* | `GET schedules.unreported` | view `v_unreported_sessions` | — |
+| `issueCode` (kode kuesioner + invoice assessment otomatis, satu transaksi) / `deleteCode` (hapus kode + invoice belum lunas) | `POST clients.assessmentCodes` / `DELETE` | `assessment_access_codes`, `invoices` (`assessment_access_code_id`), `invoice_counters`, `invoice_logs` | `invoice_logs` |
+| `uploadPaymentProof({ byFinance })` Finance upload/ganti bukti manual (tanpa batas 4x, tidak untuk void) | `POST invoices.proof` (role finance) | `payment_proofs`, `invoices.proof_upload_count`, `invoice_logs` | `invoice_logs` |
+| `uploadPaymentProof` dari `/assessment` (publik, dikunci kode kuesioner; wajib sebelum isi) | `POST invoices.proof` | `payment_proofs`, `invoices.proof_upload_count`, `invoice_logs` | `invoice_logs` |
+| `issueInvoice` renewal cepat tab Perlu Renewal (paket sama, kredit < 3) | `POST invoices.list` | `invoices`, `invoice_counters`, `invoice_logs` | `invoice_logs` |
+| `updateSchedule({ historyNote })` dari Log Kredit / detail sesi | `PATCH schedules.detail` | `schedules.history_note`, `history_note_by` | — |
 | `issueInvoice` (jenis `package` / `assessment`; saldo lebihan otomatis memotong invoice paket) | `POST invoices.list` | `invoices` (`gross_amount`, `balance_applied`), `invoice_counters`, `invoice_logs`, `clients.leftover_balance` | `invoice_logs` |
 | `uploadPaymentProof` (LEGACY: ortu tidak lagi upload; hanya data lama) | `POST invoices.proof(id)` (multipart, `api.upload`) | `payment_proofs`, `invoices` | `invoice_logs` |
 | `verifyPaymentProof` | `POST invoices.verify(id)` | `invoices`, `client_packages`, `credit_ledger` | `invoice_logs` |

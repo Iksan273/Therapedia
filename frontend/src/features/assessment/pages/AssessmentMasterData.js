@@ -3,9 +3,10 @@ import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useClients } from "@/stores/clientsStore";
+import { useCredits } from "@/stores/creditsStore";
 import { useMasterData } from "@/stores/masterDataStore";
 import { uid } from "@/shared/lib/id";
-import { CODE_VALIDITY_OPTIONS, isTypeCodeTaken, normalizeTypeCode } from "@/domain/assessment";
+import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isTypeCodeTaken, normalizeTypeCode } from "@/domain/assessment";
 import { useQuestionnaireCodeActions } from "@/features/inquiry";
 
 import { getQuadrantCounts, isOptionBasedType, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
@@ -25,6 +26,7 @@ export default function AssessmentMasterData() {
   const { categories, addCategory, updateCategory, deleteCategory } = useAssessments();
   const { clients } = useClients();
   const codeActions = useQuestionnaireCodeActions();
+  const { getMasterPackages } = useCredits();
   const { quadrants, quadrantMap } = useMasterData();
 
   // Active category selection tab
@@ -71,6 +73,7 @@ export default function AssessmentMasterData() {
     selectedCategoryId: "",
     generatedCode: "",
     validity: "none",
+    servicePackageId: "",
   });
 
   // Calculate active category
@@ -215,6 +218,7 @@ export default function AssessmentMasterData() {
       selectedCategoryId: catId,
       generatedCode: codeActions.previewCode(cat),
       validity: "none",
+      servicePackageId: "",
     });
   };
 
@@ -231,14 +235,23 @@ export default function AssessmentMasterData() {
       return;
     }
 
+    const servicePackage = getMasterPackages().find((m) => m.id === genDialog.servicePackageId);
+    if (!servicePackage) {
+      toast.error("Pilih layanan dulu: harganya dipakai untuk invoice assessment.");
+      return;
+    }
     const option = CODE_VALIDITY_OPTIONS.find((o) => o.value === genDialog.validity);
     codeActions.issueCode(targetClient, targetCat, {
+      servicePackage,
       code: genDialog.generatedCode,
       validityDays: option?.days ?? null,
       targetStatus: "service_selected",
     });
 
-    toast.success(`Kode kuesioner ${genDialog.generatedCode} berhasil diterbitkan untuk ${targetClient.clientName}!`);
+    const link = buildQuestionnaireLink(genDialog.generatedCode, window.location.origin);
+    toast.success(`Kode kuesioner ${genDialog.generatedCode} berhasil diterbitkan untuk ${targetClient.clientName}!`, {
+      action: { label: "Salin Link", onClick: () => { navigator.clipboard.writeText(link); toast.success("Link kuesioner disalin."); } },
+    });
     setGenDialog((prev) => ({ ...prev, open: false }));
   };
 
@@ -615,7 +628,7 @@ export default function AssessmentMasterData() {
       {/* ========================================================================= */}
       {/* MODAL: TERBITKAN KODE KUESIONER (MULTI-CODE ENGINE)                       */}
       {/* ========================================================================= */}
-      <GenerateCodeDialog categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} previewCode={codeActions.previewCode} setGenDialog={setGenDialog} />
+      <GenerateCodeDialog masterPackages={getMasterPackages()} categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} previewCode={codeActions.previewCode} setGenDialog={setGenDialog} />
 
       {/* ========================================================================= */}
       {/* MODAL: TAMBAH / EDIT KATEGORI                                             */}

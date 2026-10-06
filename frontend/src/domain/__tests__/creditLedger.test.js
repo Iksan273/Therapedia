@@ -1,4 +1,4 @@
-import { buildClientMoneyLedger, packageUnitValue } from "@/domain/creditLedger";
+import { buildClientMoneyLedger, buildPackageMoneyLedgers, packageUnitValue } from "@/domain/creditLedger";
 
 // Contoh dari Finance: paket 5 sesi Rp1.375.000 (Rp275.000/sesi) → 4 sesi completed → renewal 10 sesi Rp2.750.000.
 const h = (id, action, packageId, creditChange, extra = {}) => ({ id, date: "2026-10-01", scheduleId: null, packageId, packageName: "Regular Therapist (5x)", action, creditChange, ...extra });
@@ -78,4 +78,23 @@ test("kolom Oleh selalu terisi: baris lama tanpa `by` memakai pelaku bawaan; ses
   const rows = buildClientMoneyLedger(rec, [{ id: "s9", type: "therapy", status: "scheduled", date: "2026-11-01", startTime: "09:00", endTime: "10:00", therapistId: "t", createdBy: "Fajar" }]);
   expect(rows.map((r) => r.by)).toEqual(["Finance", "Admin Schedule", "Fajar"]);
   expect(rows.every((r) => r.by)).toBe(true);
+});
+
+describe("buildPackageMoneyLedgers", () => {
+  test("satu entri per paket dengan saldo & log sendiri; paket tanpa mutasi dilewati", () => {
+    const rec = { ...record, packages: [...record.packages, { id: "cp-3", packageId: "pkg-reguler", packageName: "Regular Therapist (10x)", totalCredit: 10, remainingCredit: 10, price: 2750000 }] };
+    const res = buildPackageMoneyLedgers(rec, schedules, opts);
+    expect(res.map((r) => r.pkg.id)).toEqual(["cp-1", "cp-2"]);
+    expect(res[0].ledger.map((r) => r.id)).toEqual(["h1", "h2", "h3", "h4", "h5"]);
+    expect(res[0].balance).toBe(1375000 - 4 * 275000);
+    expect(res[1].balance).toBe(2750000);
+  });
+
+  test("baris sesi membawa scheduleId & historyNote untuk kolom Catatan", () => {
+    const withNote = schedules.map((s) => (s.id === "s1" ? { ...s, historyNote: "Anak kooperatif" } : s));
+    const [first] = buildPackageMoneyLedgers(record, withNote, opts);
+    const row = first.ledger.find((r) => r.id === "h2");
+    expect(row.scheduleId).toBe("s1");
+    expect(row.historyNote).toBe("Anak kooperatif");
+  });
 });

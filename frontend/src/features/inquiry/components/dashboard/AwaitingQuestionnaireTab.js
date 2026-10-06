@@ -90,7 +90,7 @@ export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, tota
                               {c.parentContact && (
                                 <a
                                   href={`https://wa.me/${c.parentContact.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                                    `Halo ${c.parentName}, mohon mengisi kuesioner asesmen Therapedia untuk ananda ${c.clientName} dengan kode akses: ${codes}. Buka di: ${window.location.origin}/assessment`
+                                    `Halo ${c.parentName}, mohon mengisi kuesioner asesmen Therapedia untuk ${c.clientName} dengan kode akses: ${codes}. Buka di: ${window.location.origin}/assessment`
                                   )}`}
                                   target="_blank"
                                   rel="noreferrer"

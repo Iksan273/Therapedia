@@ -209,11 +209,15 @@ export const INVOICE_TYPES = [
   { value: "package", label: "Paket Sesi" },
   { value: "assessment", label: "Assessment" },
 ];
+export const DEFAULT_ASSESSMENT_FEE = 500000; // nominal invoice assessment yang terbit otomatis saat kode kuesioner dibuat (sementara; Finance bisa membuat invoice manual dengan nominal lain)
 export const ASSESSMENT_INVOICE_CODE = "ASM"; // kode jenis invoice assessment (dicadangkan; tidak boleh dipakai paket)
+export const LEAVE_INVOICE_CODE = "CUT"; // kode jenis invoice cuti (dicadangkan; terbit dari sesi Off oleh Admin Schedule)
+export const RESERVED_INVOICE_CODES = [ASSESSMENT_INVOICE_CODE, LEAVE_INVOICE_CODE];
 
 // Invoice lama tanpa `type` = Paket Sesi.
-export const invoiceType = (inv) => (inv?.type === "assessment" ? "assessment" : "package");
-export const invoiceTypeLabel = (inv) => INVOICE_TYPES.find((t) => t.value === invoiceType(inv))?.label || "Paket Sesi";
+// Invoice cuti (`leave`): nominal manual dari Admin Schedule saat sesi di-Off; tanpa paket/kredit (seperti assessment).
+export const invoiceType = (inv) => (inv?.type === "assessment" ? "assessment" : inv?.type === "leave" ? "leave" : "package");
+export const invoiceTypeLabel = (inv) => (invoiceType(inv) === "leave" ? "Cuti" : INVOICE_TYPES.find((t) => t.value === invoiceType(inv))?.label || "Paket Sesi");
 
 const normalizeInvoiceCode = (v) =>
   String(v || "")
@@ -224,10 +228,10 @@ const normalizeInvoiceCode = (v) =>
 // Kode jenis invoice paket: `invoiceCode` master paket; paket lama tanpa kode memakai 3 huruf pertama nama.
 export const packageInvoiceCode = (pkg) => {
   const code = normalizeInvoiceCode(pkg?.invoiceCode) || normalizeInvoiceCode(pkg?.name).slice(0, 3) || "PKT";
-  return code === ASSESSMENT_INVOICE_CODE ? "PKT" : code;
+  return RESERVED_INVOICE_CODES.includes(code) ? "PKT" : code;
 };
 
-export const invoiceTypeCode = (type, pkg) => (type === "assessment" ? ASSESSMENT_INVOICE_CODE : packageInvoiceCode(pkg));
+export const invoiceTypeCode = (type, pkg) => (type === "assessment" ? ASSESSMENT_INVOICE_CODE : type === "leave" ? LEAVE_INVOICE_CODE : packageInvoiceCode(pkg));
 
 const ymd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 
@@ -668,3 +672,53 @@ export function invoiceLogsOf(invoice) {
   if (invoice.paidAt) base.push({ id: `${invoice.id}-paid`, at: invoice.paidAt, by: null, action: "verified", note: "", data: null });
   return base;
 }
+
+// ---- Renewal cepat (Finance): client aktif dengan sisa kredit < 3 ----
+export const RENEWAL_CREDIT_THRESHOLD = 3;
+
+// Client perlu renewal bila punya paket dan total sisa kredit < RENEWAL_CREDIT_THRESHOLD (0 = Frozen ikut).
+export const needsRenewal = (record) => {
+  const pkgs = (record?.packages || []).filter((p) => p.status !== "voided");
+  if (pkgs.length === 0) return false;
+  return pkgs.reduce((acc, p) => acc + (p.remainingCredit || 0), 0) < RENEWAL_CREDIT_THRESHOLD;
+};
+
+// Data invoice renewal dengan paket yang SAMA dengan paket yang sedang dipakai client (nama, jumlah sesi, harga).
+// null bila client belum punya paket. Harga: snapshot paket, fallback harga master.
+export function buildSamePackageRenewal(record, masterPackages = []) {
+  const pkg = activePackageOf(record);
+  if (!pkg) return null;
+  const master = masterPackages.find((m) => m.id === pkg.packageId) || null;
+  const credits = Number(pkg.totalCredit) || master?.credits || 0;
+  const amount = Number(pkg.price) > 0 ? Number(pkg.price) : Number(master?.price) || 0;
+  return {
+    packageId: pkg.packageId || master?.id || null,
+    packageName: master ? `${master.name} (${credits}x)` : pkg.packageName,
+    typeCode: packageInvoiceCode(master || { name: pkg.packageName }),
+    credits,
+    amount,
+  };
+}
+
+// Sudah ada invoice paket yang belum lunas (menunggu pembayaran) → tidak perlu renewal lagi.
+export const hasOpenPackageInvoice = (invoices = [], clientId) =>
+  invoices.some((i) => i.clientId === clientId && invoiceType(i) === "package" && i.status !== "paid" && i.status !== "void");
+
+// ---- Riwayat invoice di portal ortu ----
+// Status versi ortu: belum ada bukti → menunggu pembayaran; bukti terunggah tapi belum lunas → menunggu verifikasi Finance.
+export const PARENT_INVOICE_STATUS = {
+  unpaid: { label: "Menunggu Pembayaran", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
+  proof_received: { label: "Bukti Diterima, Menunggu Verifikasi", cls: "bg-amber-50 text-amber-800 border border-amber-200/70" },
+  paid: { label: "Lunas", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
+};
+
+export const parentInvoiceStatus = (inv) => {
+  if (inv?.status === "paid") return "paid";
+  return Number(inv?.proofUploadCount) > 0 || inv?.proofUrl || inv?.proofOfPaymentUrl ? "proof_received" : "unpaid";
+};
+
+// Invoice milik satu client untuk ditampilkan ke ortu: semua jenis (paket, assessment, cuti), tanpa invoice void, terbaru dulu.
+export const invoicesForParent = (invoices = [], clientId) =>
+  invoices
+    .filter((i) => i.clientId === clientId && i.status !== "void")
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "") || (b.invoiceNumber || "").localeCompare(a.invoiceNumber || ""));

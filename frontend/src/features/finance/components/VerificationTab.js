@@ -2,15 +2,16 @@ import React from "react";
 import { TabsContent } from "@/shared/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { EmptyState } from "@/shared/components/EmptyState";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { BRANCHES } from "@/domain/branch";
 import { fmtCurrency } from "@/shared/lib/format";
 import { Button } from "@/shared/ui/button";
 import { DeleteButton } from "@/shared/components/DeleteControls";
+import { ProofFileButton } from "@/shared/components/ProofFileButton";
 import { TablePagination } from "@/shared/components/TablePagination";
 
-export function VerificationTab({ handleApprovePayment, pendingInvoices, pendingPg, onDeleteInvoice }) {
+export function VerificationTab({ handleApprovePayment, pendingInvoices, pendingPg, onDeleteInvoice, setSelectedProofInvoice, onUploadProof }) {
   return (
     <TabsContent value="verification" className="space-y-4">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -19,7 +20,7 @@ export function VerificationTab({ handleApprovePayment, pendingInvoices, pending
                 Tagihan Menunggu Pembayaran ({pendingInvoices.length})
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Orang tua tidak mengunggah bukti bayar. Setelah pembayaran diterima, tandai lunas; paket kredit langsung aktif.
+                Invoice Assessment: ortu wajib mengunggah bukti transfer sebelum mengisi kuesioner. Klik Lihat Bukti untuk memeriksanya, lalu tandai lunas setelah pembayaran diterima; invoice paket langsung mengaktifkan kredit.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
@@ -57,6 +58,25 @@ export function VerificationTab({ handleApprovePayment, pendingInvoices, pending
                           </TableCell>
                           <TableCell data-nolabel className="text-right pr-6 py-4 min-w-[240px] whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                              {!(inv.proofOfPaymentUrl || inv.proofUrl) && onUploadProof && (
+                                <ProofFileButton
+                                  label="Upload Bukti"
+                                  className="px-3 font-bold gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 whitespace-nowrap cursor-pointer"
+                                  onFile={(file) => onUploadProof(inv, file)}
+                                  testId={`upload-proof-${inv.id}`}
+                                />
+                              )}
+                              {(inv.proofOfPaymentUrl || inv.proofUrl) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="px-3 font-bold gap-1.5 border-sky-200 text-sky-700 hover:bg-sky-50 whitespace-nowrap cursor-pointer"
+                                  onClick={() => setSelectedProofInvoice?.(inv)}
+                                  data-testid={`view-proof-${inv.id}`}
+                                >
+                                  <Eye className="w-3.5 h-3.5" /> Lihat Bukti
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 className="px-3.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs whitespace-nowrap cursor-pointer"

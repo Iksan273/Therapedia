@@ -4,7 +4,8 @@ import {
   buildExpiresAt,
   categoryTypeCode,
   checkQuestionnaireAccess,
-  hasPendingAssessmentInvoice,
+  assessmentInvoiceNeedingProof,
+  buildQuestionnaireLink,
   isQuestionnaireCodeExpired,
   isTypeCodeTaken,
   normalizeTypeCode,
@@ -98,8 +99,21 @@ describe("kode kuesioner (kode jenis + acak) dan akses ortu", () => {
     expect(checkQuestionnaireAccess({ client, codeItem: open, now })).toEqual({ ok: true });
     expect(checkQuestionnaireAccess({ client, codeItem: { ...open, status: "submitted" }, now })).toEqual({ ok: false, reason: "submitted" });
     expect(checkQuestionnaireAccess({ client, codeItem: { ...open, expiresAt: "2026-10-01T00:00:00Z" }, now })).toEqual({ ok: false, reason: "expired" });
-    const unpaid = [{ type: "assessment", status: "unpaid" }];
-    expect(checkQuestionnaireAccess({ client, codeItem: open, invoices: unpaid, now })).toEqual({ ok: false, reason: "invoice_unpaid" });
-    expect(hasPendingAssessmentInvoice([{ type: "assessment", status: "paid" }, { type: "package", status: "unpaid" }])).toBe(false);
+    const noProof = { id: "i1", type: "assessment", status: "unpaid", assessmentCode: "SP2-AAAAAA" };
+    expect(checkQuestionnaireAccess({ client, codeItem: open, invoices: [noProof], now })).toEqual({ ok: false, reason: "proof_required", invoice: noProof });
+    // bukti sudah diunggah (belum diverifikasi) → akses terbuka
+    expect(checkQuestionnaireAccess({ client, codeItem: open, invoices: [{ ...noProof, proofUploadCount: 1 }], now })).toEqual({ ok: true });
+    // invoice milik kode lain / lunas / void / bukan assessment tidak memblokir
+    expect(assessmentInvoiceNeedingProof([{ ...noProof, assessmentCode: "SP2-BBBBBB" }], "SP2-AAAAAA")).toBeNull();
+    expect(assessmentInvoiceNeedingProof([{ ...noProof, status: "paid" }, { ...noProof, status: "void" }, { type: "package", status: "unpaid" }], "SP2-AAAAAA")).toBeNull();
+    // invoice lama tanpa assessmentCode berlaku untuk semua kode client
+    expect(assessmentInvoiceNeedingProof([{ type: "assessment", status: "unpaid" }], "SP2-AAAAAA")).toBeTruthy();
+  });
+});
+
+describe("tautan kuesioner", () => {
+  test("link membuka /assessment dengan kode terisi (huruf besar, aman di URL)", () => {
+    expect(buildQuestionnaireLink("sp2-k7m4qx", "https://app.therapedia.id/")).toBe("https://app.therapedia.id/assessment?code=SP2-K7M4QX");
+    expect(buildQuestionnaireLink("ASM-2016")).toBe("/assessment?code=ASM-2016");
   });
 });

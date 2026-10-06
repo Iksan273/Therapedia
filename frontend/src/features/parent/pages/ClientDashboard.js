@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CalendarHeart, Wallet, HeartHandshake, CheckCircle2, Receipt, BookOpen, StickyNote, Home, ExternalLink, FileText, RefreshCw, Download } from "lucide-react";
+import { CalendarHeart, Wallet, HeartHandshake, CheckCircle2, BookOpen, StickyNote, Home, ExternalLink, FileText, RefreshCw, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import {
@@ -19,12 +19,12 @@ import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useTherapists } from "@/stores/therapistsStore";
-import { fmtDate, fmtCurrency } from "@/shared/lib/format";
+import { fmtDate } from "@/shared/lib/format";
 import { BRANCHES } from "@/domain/branch";
 import { filterSessionsByDate, isReportEmpty } from "@/domain/schedule";
-import { distinctActivePackages, invoiceType } from "@/domain/credit";
+import { distinctActivePackages, invoicesForParent } from "@/domain/credit";
+import { InvoiceHistoryCard } from "@/features/parent/components/InvoiceHistoryCard";
 import { buildSessionReportsHtml, printHtmlDocument } from "@/shared/lib/reportExport";
-import { cn } from "@/shared/lib/utils";
 
 export default function ClientDashboard() {
   const { auth } = useAuth();
@@ -39,9 +39,8 @@ export default function ClientDashboard() {
   const client = getClient(auth.clientId);
   const record = client ? getRecordForClient(client.id) : null;
   const activePackages = distinctActivePackages(record?.packages, { fallbackLast: true });
-  const invoices = client ? getInvoicesForClient(client.id) : [];
-  // Banner tagihan = invoice Paket Sesi terbaru. Kode kuesioner tidak ditampilkan di portal: admin mengirim kode lewat WhatsApp.
-  const latestInvoice = invoices.find((i) => invoiceType(i) === "package" && i.status !== "void") || null; // invoice void tidak ditagihkan ke ortu
+
+  const parentInvoices = useMemo(() => invoicesForParent(client ? getInvoicesForClient(client.id) : [], client?.id), [client, getInvoicesForClient]); // riwayat invoice (semua jenis, tanpa void)
 
   // RULE: Only COMPLETED sessions appear in parent history!
   const completedHistory = useMemo(() => {
@@ -101,7 +100,6 @@ export default function ClientDashboard() {
   }
 
   const br = BRANCHES.find((b) => b.id === client.branchId);
-  const isInvoicePaid = latestInvoice && latestInvoice.status === "paid";
 
   return (
     <div className="max-w-4xl mx-auto space-y-6" data-testid="client-dashboard-page">
@@ -118,7 +116,7 @@ export default function ClientDashboard() {
               Halo, Orang Tua {client.clientName}!
             </h1>
             <p className="text-xs sm:text-sm text-blue-100 font-medium">
-              Pantau perkembangan ananda di <strong>Therapedia ({br ? br.name : "—"})</strong>.
+              Pantau perkembangan {client.clientName} di <strong>Therapedia ({br ? br.name : "—"})</strong>.
             </p>
           </div>
           <div className="shrink-0 bg-white/15 backdrop-blur-xs px-4 py-2.5 rounded-xl border border-white/25 text-right shadow-xs">
@@ -127,33 +125,6 @@ export default function ClientDashboard() {
           </div>
         </div>
       </div>
-
-      {/* STATUS TAGIHAN INVOICE: pembayaran dikonfirmasi langsung oleh Finance (ortu tidak mengunggah bukti) */}
-      <Card
-        className={cn(
-          "rounded-2xl border-2 shadow-2xs overflow-hidden transition-all",
-          isInvoicePaid ? "bg-emerald-50/70 border-emerald-400 text-emerald-950" : "bg-rose-50/70 border-rose-400 text-rose-950"
-        )}
-        data-testid="parent-invoice-banner"
-      >
-        <CardContent className="p-5 sm:p-6">
-          <div className="flex items-start gap-3.5">
-            <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center font-bold shrink-0 shadow-xs", isInvoicePaid ? "bg-emerald-600 text-white" : "bg-rose-600 text-white")}>
-              {isInvoicePaid ? <CheckCircle2 className="w-6 h-6" /> : <Receipt className="w-6 h-6" />}
-            </div>
-            <div>
-              <h3 className="font-extrabold text-base sm:text-lg">{isInvoicePaid ? "Status Tagihan: LUNAS" : "Status Tagihan: MENUNGGU PEMBAYARAN"}</h3>
-              <p className="text-xs mt-1 leading-relaxed opacity-90">
-                {isInvoicePaid
-                  ? `Terima kasih! Pembayaran untuk ${latestInvoice.packageName} sebesar ${fmtCurrency(latestInvoice.amount)} telah dikonfirmasi lunas oleh tim Finance.`
-                  : latestInvoice
-                  ? `Tagihan ${latestInvoice.invoiceNumber} (${latestInvoice.packageName}) sebesar ${fmtCurrency(latestInvoice.amount)} belum lunas. Silakan lakukan pembayaran sesuai arahan klinik; tim Finance akan mengonfirmasi pembayaran Anda.`
-                  : "Belum ada tagihan invoice yang diterbitkan untuk ananda. Tim admin/finance akan menghubungi via WhatsApp untuk konfirmasi paket."}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Saldo Kredit Sesi */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -192,7 +163,7 @@ export default function ClientDashboard() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-              Akses folder Google Drive khusus ananda untuk melihat rekaman video observasi dan salinan dokumen laporan asesmen klinis.
+              Akses folder Google Drive khusus {client.clientName} untuk melihat rekaman video observasi dan salinan dokumen laporan asesmen klinis.
             </p>
           </div>
           {client.gdriveClientLink ? (
@@ -202,13 +173,16 @@ export default function ClientDashboard() {
               rel="noreferrer"
               className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs"
             >
-              <ExternalLink className="w-3.5 h-3.5" /> Buka Google Drive Ananda
+              <ExternalLink className="w-3.5 h-3.5" /> Buka Google Drive {client.clientName}
             </a>
           ) : (
             <span className="text-xs text-slate-400 italic text-center py-2">Link folder sedang dipersiapkan tim klinik.</span>
           )}
         </Card>
       </div>
+
+      {/* RIWAYAT INVOICE anak (semua jenis, tanpa void) */}
+      <InvoiceHistoryCard invoices={parentInvoices} />
 
       {/* RIWAYAT SESI HANYA YANG COMPLETED */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">

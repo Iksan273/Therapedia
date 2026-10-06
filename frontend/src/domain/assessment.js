@@ -55,16 +55,31 @@ export const buildExpiresAt = (days, now = new Date()) => {
 export const isQuestionnaireCodeExpired = (codeItem, now = new Date()) =>
   Boolean(codeItem?.expiresAt) && new Date(codeItem.expiresAt).getTime() < now.getTime();
 
-// Invoice assessment yang belum dibayar memblokir akses kuesioner ortu (invoice dibuat Finance, jenis "assessment").
-export const UNPAID_INVOICE_STATUSES = ["unpaid", "pending_verification", "rejected"];
+// Invoice assessment terbit otomatis saat kode kuesioner dibuat (`assessmentCode` = kode pemicunya). Sebelum membuka
+// kuesioner, ortu WAJIB mengunggah bukti transfer (cukup terunggah; lunas diverifikasi Finance terpisah).
+// Invoice lama tanpa `assessmentCode` (dibuat manual oleh Finance) berlaku untuk semua kode client itu.
+const hasProof = (inv) => Number(inv?.proofUploadCount) > 0 || Boolean(inv?.proofUrl || inv?.proofOfPaymentUrl);
 
-export const hasPendingAssessmentInvoice = (invoices = []) =>
-  invoices.some((i) => i.type === "assessment" && UNPAID_INVOICE_STATUSES.includes(i.status || "unpaid"));
+// Invoice assessment yang masih menuntut bukti transfer untuk `code`; null bila tidak ada.
+export const assessmentInvoiceNeedingProof = (invoices = [], code) =>
+  invoices.find(
+    (i) =>
+      i.type === "assessment" &&
+      i.status !== "paid" &&
+      i.status !== "void" &&
+      (!i.assessmentCode || String(i.assessmentCode).toUpperCase() === String(code || "").toUpperCase()) &&
+      !hasProof(i)
+  ) || null;
 
-// Hasil akses kode kuesioner oleh ortu: { ok } atau { ok:false, reason: submitted | expired | invoice_unpaid }.
+// Hasil akses kode kuesioner oleh ortu: { ok } atau { ok:false, reason: submitted | expired | proof_required, invoice? }.
 export const checkQuestionnaireAccess = ({ client, codeItem, invoices = [], now = new Date() }) => {
   if (isQuestionnaireCodeFilled(client, codeItem)) return { ok: false, reason: "submitted" };
   if (isQuestionnaireCodeExpired(codeItem, now)) return { ok: false, reason: "expired" };
-  if (hasPendingAssessmentInvoice(invoices)) return { ok: false, reason: "invoice_unpaid" };
+  const invoice = assessmentInvoiceNeedingProof(invoices, codeItem?.code);
+  if (invoice) return { ok: false, reason: "proof_required", invoice };
   return { ok: true };
 };
+
+// Tautan kuesioner yang dikirim admin ke ortu: membuka /assessment dengan kode terisi otomatis.
+export const buildQuestionnaireLink = (code, origin = "") =>
+  `${String(origin).replace(/\/$/, "")}/assessment?code=${encodeURIComponent(String(code || "").trim().toUpperCase())}`;

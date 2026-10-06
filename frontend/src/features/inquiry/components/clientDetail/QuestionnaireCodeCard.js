@@ -2,14 +2,15 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Button } from "@/shared/ui/button";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { Copy, Link2, Plus, Trash2 } from "lucide-react";
 import { isQuestionnaireCodeFilled } from "@/domain/client";
-import { CODE_VALIDITY_OPTIONS, isQuestionnaireCodeExpired } from "@/domain/assessment";
+import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionnaireCodeExpired } from "@/domain/assessment";
 import { fmtDate } from "@/shared/lib/format";
 import { Link } from "react-router-dom";
+import { AssessmentServiceSelect } from "@/shared/components/AssessmentServiceSelect";
 import { IfCanDelete } from "@/shared/components/DeleteControls";
 
-export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory, newQuestionnaireValidity = "none", setNewQuestionnaireValidity }) {
+export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory, newQuestionnaireValidity = "none", setNewQuestionnaireValidity, masterPackages = [], newQuestionnaireService = "", setNewQuestionnaireService }) {
   return (
     <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -20,7 +21,7 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
               <div>
                 <CardTitle className="text-sm font-bold text-slate-900">Questionnaire Code Generator</CardTitle>
                 <CardDescription className="text-xs text-slate-500">
-                  Generate lebih dari 1 kode kuesioner unik (misal Asesmen Utama + School Companion Profile)
+                  Generate lebih dari 1 kode kuesioner unik (misal Asesmen Utama + School Companion Profile). Pilih layanan: harganya jadi nominal invoice assessment yang otomatis terbit
                 </CardDescription>
               </div>
             </div>
@@ -42,6 +43,7 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                   ))}
                 </SelectContent>
               </Select>
+              <AssessmentServiceSelect packages={masterPackages} value={newQuestionnaireService} onChange={setNewQuestionnaireService} testId="questionnaire-service-select" />
               <Select value={newQuestionnaireValidity} onValueChange={setNewQuestionnaireValidity}>
                 <SelectTrigger className="w-44 text-xs border-slate-200 bg-slate-50 font-semibold" data-testid="questionnaire-validity-select">
                   <SelectValue />
@@ -80,6 +82,11 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                           {isQuestionnaireCodeExpired(item) ? "Kedaluwarsa" : "Berlaku s.d."} {fmtDate(item.expiresAt)}
                         </p>
                       )}
+                      {!isQuestionnaireCodeFilled(client, item) && (
+                        <p className="mt-1 max-w-[260px] truncate font-mono text-[11px] text-sky-700" title={buildQuestionnaireLink(item.code, window.location.origin)} data-testid={`code-link-${item.code}`}>
+                          {buildQuestionnaireLink(item.code, window.location.origin)}
+                        </p>
+                      )}
                       {isQuestionnaireCodeFilled(client, item) ? (
                         <span className="inline-block mt-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md" data-testid={`code-status-${item.code}`}>
                           Sudah diisi
@@ -100,8 +107,20 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </Button>
+                      {!isQuestionnaireCodeFilled(client, item) && (
+                        <Button aria-label="Salin Link"
+                          size="icon"
+                          variant="ghost"
+                          className="text-slate-500 hover:text-sky-700"
+                          onClick={() => copyToClipboard(buildQuestionnaireLink(item.code, window.location.origin), `Link kuesioner ${item.name}`)}
+                          title="Salin link untuk dikirim ke ortu"
+                          data-testid={`copy-link-${item.code}`}
+                        >
+                          <Link2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                       <Link
-                        to="/assessment"
+                        to={`/assessment?code=${encodeURIComponent(item.code)}`}
                         className="inline-flex items-center justify-center h-8 px-2.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-sky-700 hover:bg-sky-50"
                       >
                         Buka Form

@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { CODE_VALIDITY_OPTIONS } from "@/domain/assessment";
+import { AssessmentServiceSelect } from "@/shared/components/AssessmentServiceSelect";
 
-export function GenerateCodeDialog({ categories, clients, genDialog, handleConfirmGenerateCode, previewCode, setGenDialog }) {
+export function GenerateCodeDialog({ masterPackages = [], categories, clients, genDialog, handleConfirmGenerateCode, previewCode, setGenDialog }) {
   return (
     <Dialog open={genDialog.open} onOpenChange={(open) => setGenDialog((prev) => ({ ...prev, open }))}>
         <DialogContent className="max-w-md rounded-3xl p-6 sm:p-7 border-slate-200 shadow-xl">
@@ -60,6 +61,17 @@ export function GenerateCodeDialog({ categories, clients, genDialog, handleConfi
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">Layanan (harga invoice assessment)</Label>
+              <AssessmentServiceSelect
+                packages={masterPackages}
+                value={genDialog.servicePackageId}
+                onChange={(val) => setGenDialog((prev) => ({ ...prev, servicePackageId: val }))}
+                className="w-full border-slate-200 text-xs font-semibold"
+                testId="generate-code-service"
+              />
             </div>
 
             <div className="space-y-1.5">

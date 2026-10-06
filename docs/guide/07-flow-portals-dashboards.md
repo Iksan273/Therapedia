@@ -16,9 +16,10 @@ Semua data difilter berdasarkan `auth.therapistId`.
 
 ## B. Portal Orang Tua (`/client`, role `client`)
 `features/parent/pages/ClientDashboard.js`, data milik `auth.clientId`.
-- Kartu tagihan: invoice **Paket Sesi** terbaru + status. **Upload bukti transfer** (drag & drop, JPG/PNG/PDF ≤ 5 MB, re-upload maks 3x) → lihat 06.
+- Banner status tagihan (Lunas / Menunggu Pembayaran) **dihapus** (6 Okt 2026); pemantauan tagihan lewat kartu **Riwayat Invoice** di bawah.
+- **Riwayat Invoice** (`features/parent/components/InvoiceHistoryCard.js`, `invoicesForParent`): semua invoice milik anak itu (Paket Sesi, Assessment, Cuti; invoice void disembunyikan), terbaru dulu, pagination 10. Kolom No. Invoice, Jenis & Keterangan, Tanggal Terbit, Nominal, Status versi ortu (`parentInvoiceStatus`): **Menunggu Pembayaran** (belum ada bukti), **Bukti Diterima, Menunggu Verifikasi** (bukti terunggah, belum lunas), **Lunas** (+ tanggal lunas). Hanya baca; ortu tidak mengunggah bukti dari portal. Backend: `GET invoices` difilter `client_id` dari token portal.
 - Sisa kredit total + per paket (`remainingCredit / totalCredit`).
-- **Tidak ada** kartu/daftar kode kuesioner di portal ortu dan tidak ada upload bukti bayar: admin mengirim kode kuesioner lewat WhatsApp, ortu mengisinya di `/assessment` (kode diketik manual). Banner tagihan hanya menampilkan status Lunas / Menunggu Pembayaran; Finance yang menandai lunas.
+- **Tidak ada** kartu/daftar kode kuesioner di portal ortu dan tidak ada upload bukti bayar: admin mengirim kode kuesioner lewat WhatsApp, ortu mengisinya di `/assessment` (kode diketik manual). Finance yang menandai lunas.
 - Riwayat terapi: **hanya sesi `completed`**. Tombol **View Report nonaktif** bila laporan belum diisi terapis (`isReportEmpty`: label "Laporan belum tersedia"); modal laporan tidak lagi memakai teks placeholder. **Export laporan** per sesi dan "Export Laporan" (sesuai filter) membuka dokumen cetak (`shared/lib/reportExport.js`, simpan sebagai PDF lewat dialog cetak). Filter tanggal "Dari–Sampai" (`DateFilterPicker`, `filterSessionsByDate`) + reset; list dibatasi tinggi `min(520px, 60vh)`, pagination 10/20/50.
 - Login dengan **kode client** (`clientCode`, mis. `AE-00006`) di `/roles` atau `/login` (demo; backend: kode + tanggal lahir anak).
 - Target utama: **mobile** (ortu membuka dari HP).

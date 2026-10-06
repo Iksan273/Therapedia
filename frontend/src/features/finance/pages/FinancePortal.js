@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { usePagination } from "@/shared/components/TablePagination";
 import { SearchInput } from "@/shared/components/FilterBar";
 import { toast } from "sonner";
-import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package, Wallet, ScrollText } from "lucide-react";
+import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package, Wallet, ScrollText, Flame } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerModal";
@@ -14,18 +14,21 @@ import { BillingTab } from "@/features/finance/components/BillingTab";
 import { HistoryTab } from "@/features/finance/components/HistoryTab";
 import { LeftoverTab } from "@/features/finance/components/LeftoverTab";
 import { ClientLedgerTab } from "@/features/finance/components/ClientLedgerTab";
+import { RenewalNeededTab } from "@/features/finance/components/RenewalNeededTab";
 import { PackagesTab } from "@/features/finance/components/PackagesTab";
 import { CreateInvoiceDialog } from "@/features/finance/components/CreateInvoiceDialog";
 import { RenewalDialog } from "@/features/finance/components/RenewalDialog";
 import { usePackageActivationActions } from "@/features/finance/hooks/usePackageActivationActions";
 import { NewPackageDialog } from "@/features/finance/components/NewPackageDialog";
-import { ASSESSMENT_INVOICE_CODE, canDeleteInvoice, invoiceTypeCode, replacementCandidates, resolveInvoicePackage, leftoverSummaryByClient, matchesFinanceSearch, packageInvoiceCode } from "@/domain/credit";
+import { isActiveClient } from "@/domain/client";
+import { RESERVED_INVOICE_CODES, invoiceType, buildSamePackageRenewal, hasOpenPackageInvoice, needsRenewal, canDeleteInvoice, invoiceTypeCode, replacementCandidates, resolveInvoicePackage, leftoverSummaryByClient, matchesFinanceSearch, packageInvoiceCode } from "@/domain/credit";
 
 export default function FinancePortal() {
   const {
     credits,
     getAllInvoices,
     verifyPaymentProof,
+    uploadPaymentProof,
     issueInvoice,
     addMasterPackage,
     updateMasterPackage,
@@ -38,8 +41,10 @@ export default function FinancePortal() {
   const rawInvoices = getAllInvoices();
   const { approvePackagePayment, renewDirect } = usePackageActivationActions();
 
-  const [activeTab, setActiveTab] = useState("verification"); // verification | billing | history | leftover | packages
-  const [selectedProofInvoice, setSelectedProofInvoice] = useState(null);
+  const [activeTab, setActiveTab] = useState("verification"); // verification | renewal | billing | history | ledger | leftover | packages
+  const [selectedProofId, setSelectedProofId] = useState(null);
+  const selectedProofInvoice = rawInvoices.find((i) => i.id === selectedProofId) || null; // selalu versi terbaru (bukti bisa diganti saat viewer terbuka)
+  const setSelectedProofInvoice = (inv) => setSelectedProofId(inv?.id || null);
 
   // Issue Invoice Modal State
   const [issueOpen, setIssueOpen] = useState(false);
@@ -126,10 +131,33 @@ export default function FinancePortal() {
   );
   const leftoverPg = usePagination(leftoverRows, 10, `${search}|${includeZeroLeftover}`);
 
+  // Tab Perlu Renewal: client aktif dengan sisa kredit < 3 (sama dengan aturan domain), dicari lewat kotak cari yang sama
+  const renewalRows = useMemo(
+    () =>
+      (credits.records || [])
+        .filter(needsRenewal)
+        .map((r) => ({ client: clientById.get(r.clientId), record: r }))
+        .filter(({ client }) => client && isActiveClient(client) && matchesFinanceSearch({ clientName: client.clientName }, client, search))
+        .map(({ client, record }) => ({
+          client,
+          remaining: (record.packages || []).reduce((acc, p) => acc + (p.status === "voided" ? 0 : p.remainingCredit || 0), 0),
+          plan: buildSamePackageRenewal(record, masterPackages),
+          hasOpenInvoice: hasOpenPackageInvoice(rawInvoices, client.id),
+        }))
+        .sort((a, b) => a.remaining - b.remaining || a.client.clientName.localeCompare(b.client.clientName)),
+    [credits.records, clientById, search, masterPackages, rawInvoices]
+  );
+  const renewalPg = usePagination(renewalRows, 10, search);
+
   // Handle Verify Payment Proof
   const by = auth?.staffName || auth?.role || null;
 
   const handleApprovePayment = (invoice) => {
+    if (invoiceType(invoice) === "leave") {
+      verifyPaymentProof({ invoiceId: invoice.id, status: "paid", by });
+      toast.success(`Pembayaran ${invoice.invoiceNumber} (Cuti) ditandai lunas.`);
+      return;
+    }
     if (invoice.type === "assessment") {
       verifyPaymentProof({ invoiceId: invoice.id, status: "paid", by });
       toast.success(`Pembayaran ${invoice.invoiceNumber} (Assessment) ditandai lunas. Akses kuesioner ortu terbuka.`);
@@ -140,6 +168,44 @@ export default function FinancePortal() {
     const credits = invoice.credits || pkg.credits || 10;
     const { relinked } = approvePackagePayment(invoice, { creditsToAdd: credits });
     toast.success(`Pembayaran ${invoice.invoiceNumber} ditandai lunas! (+${credits} kredit aktif)${relinked ? ` ${relinked} jadwal mendatang dipindah ke paket aktif.` : ""}`);
+  };
+
+  // Renewal cepat: terbitkan invoice paket yang sama (unpaid) → langsung muncul di Menunggu Pembayaran
+  const handleQuickRenew = (client, plan) => {
+    if (!plan) {
+      toast.error(`${client.clientName} belum punya paket untuk diperpanjang.`);
+      return;
+    }
+    issueInvoice({
+      clientId: client.id,
+      clientName: client.clientName,
+      branchId: client.branchId,
+      type: "package",
+      isRenewal: true,
+      typeCode: plan.typeCode,
+      packageId: plan.packageId,
+      packageName: plan.packageName,
+      credits: plan.credits,
+      amount: plan.amount,
+      by,
+    });
+    toast.success(`Invoice renewal ${client.clientName} (${plan.packageName}) diterbitkan. Menunggu pembayaran.`);
+    setActiveTab("verification");
+  };
+
+  // Finance mengunggah / mengganti bukti manual (mis. bukti mutasi). Tidak mengubah status invoice; tercatat di log invoice.
+  const handleUploadProof = (invoice, file) => {
+    const replacing = Boolean(invoice.proofOfPaymentUrl || invoice.proofUrl);
+    uploadPaymentProof({
+      invoiceId: invoice.id,
+      proofUrl: file.dataUrl,
+      fileName: file.fileName,
+      fileType: file.fileType,
+      fileSize: file.fileSize,
+      byFinance: true,
+      by,
+    });
+    toast.success(`Bukti ${invoice.invoiceNumber} ${replacing ? "diganti" : "diunggah"}.`);
   };
 
   const handleRejectPayment = (invoice) => {
@@ -315,7 +381,7 @@ export default function FinancePortal() {
       toast.error("Kode paket untuk nomor invoice wajib diisi (mis. REG).");
       return;
     }
-    if (invoiceCode === ASSESSMENT_INVOICE_CODE || masterPackages.some((m) => m.id !== editingPkgId && packageInvoiceCode(m) === invoiceCode)) {
+    if (RESERVED_INVOICE_CODES.includes(invoiceCode) || masterPackages.some((m) => m.id !== editingPkgId && packageInvoiceCode(m) === invoiceCode)) {
       toast.error(`Kode paket "${invoiceCode}" sudah dipakai. Pilih kode lain.`);
       return;
     }
@@ -401,6 +467,9 @@ export default function FinancePortal() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="renewal" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-renewal">
+            <Flame className="w-4 h-4 text-amber-600" /> Perlu Renewal ({renewalRows.length})
+          </TabsTrigger>
           <TabsTrigger value="billing" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <Receipt className="w-4 h-4 text-sky-600" /> Semua Tagihan ({allInvoices.length})
           </TabsTrigger>
@@ -419,10 +488,13 @@ export default function FinancePortal() {
         </TabsList>
 
         {/* TAB 1: VERIFIKASI TRANSFER */}
-        <VerificationTab handleApprovePayment={handleApprovePayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} onDeleteInvoice={handleDeleteInvoice} />
+        <VerificationTab handleApprovePayment={handleApprovePayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} onDeleteInvoice={handleDeleteInvoice} setSelectedProofInvoice={setSelectedProofInvoice} onUploadProof={handleUploadProof} />
+
+        {/* TAB: PERLU RENEWAL (kredit < 3) */}
+        <RenewalNeededTab rows={renewalRows} renewalPg={renewalPg} onRenew={handleQuickRenew} />
 
         {/* TAB 2: SEMUA TAGIHAN */}
-        <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} />
+        <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} onUploadProof={handleUploadProof} />
 
         {/* TAB 3: LOG BUKU BESAR KREDIT */}
         <HistoryTab allHistoryLogs={allHistoryLogs} historyPg={historyPg} />
@@ -444,6 +516,7 @@ export default function FinancePortal() {
         invoice={selectedProofInvoice}
         onApprove={handleApprovePayment}
         onReject={handleRejectPayment}
+        onReplaceProof={handleUploadProof}
         isFinanceView={true}
       />
 

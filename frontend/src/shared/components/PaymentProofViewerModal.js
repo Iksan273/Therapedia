@@ -11,6 +11,7 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { fmtCurrency, fmtDate } from "@/shared/lib/format";
+import { ProofFileButton } from "@/shared/components/ProofFileButton";
 import { formatFileSize, getProofFileType } from "@/shared/lib/fileUpload";
 
 export function PaymentProofViewerModal({
@@ -19,6 +20,7 @@ export function PaymentProofViewerModal({
   invoice,
   onApprove,
   onReject,
+  onReplaceProof, // Finance: ganti bukti (re-upload); menerima file hasil processProofFile
   isFinanceView = false,
 }) {
   const [zoom, setZoom] = useState(1);
@@ -292,6 +294,10 @@ export function PaymentProofViewerModal({
             >
               Tutup
             </Button>
+
+            {isFinanceView && onReplaceProof && invoice.status !== "void" && proofUrl && (
+              <ProofFileButton label="Ganti Bukti" className="px-4 font-bold gap-1.5 cursor-pointer" onFile={(file) => onReplaceProof(invoice, file)} testId="replace-proof-button" />
+            )}
 
             {/* Quick Action for Finance in Pending status */}
             {isFinanceView && !isPaid && invoice.status !== "void" && proofUrl && (

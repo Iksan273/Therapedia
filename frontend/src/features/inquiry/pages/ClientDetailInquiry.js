@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { fmtCurrency } from "@/shared/lib/format";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { AddScheduleModal } from "@/features/schedule";
@@ -26,7 +27,7 @@ import { DiscontinueDialog } from "@/features/inquiry/components/clientDetail/Di
 import { DischargeDialog } from "@/features/inquiry/components/clientDetail/DischargeDialog";
 import { advanceStatus } from "@/domain/client";
 import { STATUS_META } from "@/domain/status";
-import { CODE_VALIDITY_OPTIONS } from "@/domain/assessment";
+import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink } from "@/domain/assessment";
 import { useClientOutcomeActions } from "@/features/inquiry/hooks/useClientOutcomeActions";
 import { useQuestionnaireCodeActions } from "@/features/inquiry/hooks/useQuestionnaireCodeActions";
 import { useClientDeleteActions } from "@/features/inquiry/hooks/useClientDeleteActions";
@@ -38,7 +39,8 @@ export default function ClientDetailInquiry() {
   const navigate = useNavigate();
   const { clients, updateClient } = useClients();
   const { schedules } = useSchedules();
-  const { getInvoicesForClient, getRecordForClient } = useCredits();
+  const { getInvoicesForClient, getRecordForClient, getMasterPackages } = useCredits();
+  const masterPackages = getMasterPackages();
   const outcomeActions = useClientOutcomeActions();
   const codeActions = useQuestionnaireCodeActions();
   const deleteActions = useClientDeleteActions();
@@ -58,6 +60,7 @@ export default function ClientDetailInquiry() {
   const [dischargeNote, setDischargeNote] = useState("");
   const [newQuestionnaireCategory, setNewQuestionnaireCategory] = useState("cat-001");
   const [newQuestionnaireValidity, setNewQuestionnaireValidity] = useState("none");
+  const [newQuestionnaireService, setNewQuestionnaireService] = useState(""); // id master paket (harga invoice assessment)
 
   // Invoices & Credits
   const invoices = client ? getInvoicesForClient(client.id) : [];
@@ -171,9 +174,16 @@ export default function ClientDetailInquiry() {
   const handleGenerateQuestionnaireCode = () => {
     const selectedCat = categories.find((c) => c.id === newQuestionnaireCategory) || categories[0];
     const option = CODE_VALIDITY_OPTIONS.find((o) => o.value === newQuestionnaireValidity);
-    const item = codeActions.issueCode(client, selectedCat, { validityDays: option?.days ?? null });
+    const servicePackage = masterPackages.find((m) => m.id === newQuestionnaireService);
+    if (!servicePackage) {
+      toast.error("Pilih layanan dulu: harganya dipakai untuk invoice assessment.");
+      return;
+    }
+    const item = codeActions.issueCode(client, selectedCat, { validityDays: option?.days ?? null, servicePackage });
 
-    toast.success(`Kode kuesioner baru '${item.code}' (${selectedCat.categoryName}) berhasil dibuat${item.expiresAt ? ` — berlaku ${option.label}` : ""}!`);
+    toast.success(`Kode kuesioner baru '${item.code}' (${selectedCat.categoryName}) berhasil dibuat${item.expiresAt ? ` — berlaku ${option.label}` : ""}! Invoice assessment ${fmtCurrency(servicePackage.price)} diterbitkan.`, {
+      action: { label: "Salin Link", onClick: () => copyToClipboard(buildQuestionnaireLink(item.code, window.location.origin), "Link kuesioner") },
+    });
   };
 
   // STEP 3b: Hapus kode kuesioner yang belum diisi ortu (tanpa revert)
@@ -288,7 +298,7 @@ export default function ClientDetailInquiry() {
         <ServiceSelectionCard getService={getService} handleToggleService={handleToggleService} selectedServices={selectedServices} services={services} />
 
         {/* STEP 3: QUESTIONNAIRE CODE GENERATOR (MULTI-CODE) */}
-        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
+        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} masterPackages={masterPackages} newQuestionnaireService={newQuestionnaireService} setNewQuestionnaireService={setNewQuestionnaireService} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
 
         {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
         <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={setScheduleModalOpen} />

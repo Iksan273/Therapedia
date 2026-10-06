@@ -5,7 +5,7 @@ import { useTherapists } from "@/stores/therapistsStore";
 import { useHolidays } from "@/stores/holidaysStore";
 import { useAuth } from "@/stores/authStore";
 import { advanceStatus } from "@/domain/client";
-import { CANCEL_QUOTA, findLiveSessionEntry, resolveSessionPackage } from "@/domain/credit";
+import { CANCEL_QUOTA, findLiveSessionEntry, invoiceTypeCode, resolveSessionPackage } from "@/domain/credit";
 import { nowIso, todayStr } from "@/shared/lib/id";
 import {
   CLEAR_PENDING_PATCH,
@@ -30,7 +30,7 @@ export function useSessionActions() {
   const { schedules, addSchedule, addSchedules, updateSchedule, updateSchedulesMany, rescheduleSchedulesBulk, deleteSchedules } = useSchedules();
   const { auth } = useAuth();
   const { getClient, updateClient } = useClients();
-  const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit } = useCredits();
+  const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit, issueInvoice } = useCredits();
   const { therapists } = useTherapists();
   const by = auth?.staffName || auth?.role || null; // pelaku mutasi kredit (credit_ledger.created_by)
   const { holidays } = useHolidays();
@@ -137,11 +137,30 @@ export function useSessionActions() {
 
   // Off (terapis/klinik off): status `off` + alasan. Seperti cancel, admin WAJIB memilih potong kredit atau tidak;
   // bedanya TIDAK menambah kuota cancel paket.
-  const offSession = (schedule, { offReason, note, deductCredit }) => {
+  // `leaveInvoiceAmount` (opsional, rupiah manual dari admin): sekaligus menerbitkan invoice cuti (type `leave`, unpaid →
+  // Menunggu Pembayaran Finance), tidak memengaruhi pilihan potong kredit.
+  const offSession = (schedule, { offReason, note, deductCredit, leaveInvoiceAmount = null }) => {
     requireDeductChoice(deductCredit);
     updateSchedule(schedule.id, { status: "off", previousStatus: schedule.status, revertedAt: null, offReason, offNote: note?.trim() || null });
     const { deducted } = applyCancelCredit(schedule, offReason, deductCredit, "off");
-    return { deducted };
+    let leaveInvoiced = false;
+    const amount = Number(leaveInvoiceAmount);
+    if (amount > 0) {
+      const client = getClient(schedule.clientId);
+      issueInvoice({
+        clientId: schedule.clientId,
+        clientName: client?.clientName || "",
+        branchId: schedule.branchId || client?.branchId,
+        type: "leave",
+        typeCode: invoiceTypeCode("leave", null),
+        packageName: `Cuti ${schedule.date} ${schedule.startTime}–${schedule.endTime}`,
+        amount,
+        leaveScheduleId: schedule.id,
+        by,
+      });
+      leaveInvoiced = true;
+    }
+    return { deducted, leaveInvoiced };
   };
 
   // Pindah ke slot baru. Validasi bentrok dilakukan pemanggil (checkConflicts) sebelum memanggil ini.
@@ -248,6 +267,20 @@ export function useSessionActions() {
     return { deleted: true };
   };
 
+  // Ganti jadwal rutin client: sesi lama (hasil `planRoutineChange`) dihapus lalu sesi baru dibuat dalam satu langkah.
+  // Fase API: POST /clients/{id}/routine-replace (satu transaksi; cek bentrok ulang di server).
+  const replaceRoutine = ({ removeIds = [], createList = [] }) => {
+    if (removeIds.length > 0) deleteSchedules(removeIds);
+    if (createList.length > 0) createSessions(createList);
+    return { removed: removeIds.length, created: createList.length };
+  };
+
+  // Hapus jadwal rutin (sesi `scheduled` pada pola itu); tombol hanya untuk role `canDelete`.
+  const deleteRoutineSessions = (ids) => {
+    if (ids.length > 0) deleteSchedules(ids);
+    return { removed: ids.length };
+  };
+
   const pick = (ids) => schedules.filter((s) => ids.includes(s.id));
 
   // Bulk complete: aturan sama dengan complete tunggal (kredit idempoten per sesi)
@@ -336,6 +369,8 @@ export function useSessionActions() {
 
   return {
     createSessions,
+    replaceRoutine,
+    deleteRoutineSessions,
     saveReport,
     completeSession,
     cancelSession,

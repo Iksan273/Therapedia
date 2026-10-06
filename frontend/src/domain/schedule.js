@@ -312,12 +312,90 @@ export function deriveRecurringRoutines(sessions = [], today) {
     .forEach((s) => {
       const weekday = new Date(`${s.date}T00:00:00`).getDay();
       const key = `${weekday}|${s.startTime}|${s.endTime}|${s.therapistId}`;
-      const g = groups.get(key) || { weekday, day: WEEKDAY_ID[weekday], startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId, creditPackageId: s.creditPackageId, count: 0, nextDate: s.date, flagged: false };
+      const g = groups.get(key) || { weekday, day: WEEKDAY_ID[weekday], startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId, creditPackageId: s.creditPackageId, count: 0, nextDate: s.date, lastDate: s.date, seriesId: s.seriesId || null, flagged: false };
       g.count += 1;
+      g.lastDate = s.date; // sesi diurutkan menaik: nextDate = sesi terjadwal pertama (tanggal mulai), lastDate = terakhir (tanggal akhir)
       g.flagged = g.flagged || Boolean(s.isRecurring) || String(s.recurrenceRule || "").startsWith("weekly");
       groups.set(key, g);
     });
   return [...groups.values()]
     .filter((g) => g.flagged || g.count >= 2)
     .sort((a, b) => ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7) || a.startTime.localeCompare(b.startTime));
+}
+
+// ---- Ganti / hapus jadwal rutin (recurring) ----
+// Tidak ada id seri: sebuah rutinitas dikenali dari polanya (hari + jam + terapis, `routineKeyOf`). Yang diganti/dihapus
+// HANYA sesi terapi berstatus `scheduled` (belum disentuh) pada pola itu mulai tanggal tertentu; sesi completed, cancelled,
+// off, rescheduled, dan reschedule_pending tidak pernah diubah.
+const WEEKDAY_NAME_BY_INDEX = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+export const weekdayNameOf = (weekdayIndex) => WEEKDAY_NAME_BY_INDEX[weekdayIndex];
+
+export const routineKeyOf = (s) => `${new Date(`${s.date}T00:00:00`).getDay()}|${s.startTime}|${s.endTime}|${s.therapistId}`;
+export const routineKeyOfRow = (r) => `${r.weekday}|${r.startTime}|${r.endTime}|${r.therapistId}`;
+
+// Sesi yang akan terhapus bila rutinitas `keys` diganti/dihapus mulai `from` (yyyy-MM-dd, inklusif).
+export const routineSessionsToRemove = (sessions = [], keys = [], from) => {
+  const set = new Set(keys);
+  return sessions.filter((s) => s.type === "therapy" && s.status === "scheduled" && s.date >= from && set.has(routineKeyOf(s)));
+};
+
+// Jumlah minggu bawaan penggantian: dari `from` sampai sesi terjadwal terakhir pada rutinitas client (min 4, maks 52; 12 bila kosong).
+export function defaultRoutineWeeks(sessions = [], from) {
+  const dates = sessions.filter((s) => s.type === "therapy" && s.status === "scheduled" && s.date >= from).map((s) => s.date).sort();
+  if (dates.length === 0) return 12;
+  const days = Math.round((new Date(`${dates[dates.length - 1]}T00:00:00`) - new Date(`${from}T00:00:00`)) / 86400000);
+  return Math.min(52, Math.max(4, Math.floor(days / 7) + 1));
+}
+
+// Rencana mengganti rutinitas satu client (pure; belum menyimpan apa pun).
+//   rows: [{ originalKey|null, weekday(0-6), startTime, endTime, therapistId, creditPackageId?, originalPackageId?, removed }] — originalKey = kunci rutinitas lama
+//         (null = hari baru). Baris tak berubah dibiarkan; baris berubah/dihapus → sesi lamanya dihapus; baris berubah/baru →
+//         sesi baru dibuat mingguan sebanyak `weeks` mulai `from`, melewati hari libur (`holidayDates`).
+//   template: field tetap sesi baru { clientId, branchId, creditPackageId, serviceType, createdBy, ... }.
+// Mengembalikan { removeIds, createList, conflicts, skippedHoliday }. Bentrok terapis dicek terhadap jadwal lain (sesi yang
+// dihapus tidak dihitung) dan antar sesi baru; pemanggil tidak boleh menyimpan bila `conflicts` tidak kosong.
+export function planRoutineChange({ sessions = [], rows = [], from, weeks = 12, holidayDates = null, template = {}, therapists = [] }) {
+  // Berubah = hari/jam/terapis beda, atau paket kredit beda dari pola lama (creditPackageId undefined = ikut template)
+  const packageChanged = (r) => r.creditPackageId !== undefined && r.originalPackageId !== undefined && r.creditPackageId !== r.originalPackageId;
+  const isChanged = (r) => r.originalKey == null || r.removed || routineKeyOfRow(r) !== r.originalKey || packageChanged(r);
+  const replacedKeys = rows.filter((r) => r.originalKey != null && isChanged(r)).map((r) => r.originalKey);
+  const removed = routineSessionsToRemove(sessions, replacedKeys, from);
+  const removeIds = removed.map((s) => s.id);
+
+  const createList = [];
+  const seriesId = uid(); // pola baru = satu seri baru (satu masa berlaku)
+  let skippedHoliday = 0;
+  rows
+    .filter((r) => !r.removed && isChanged(r))
+    .forEach((r) => {
+      const day = weekdayNameOf(Number(r.weekday));
+      const creditPackageId = r.creditPackageId !== undefined ? r.creditPackageId : template.creditPackageId ?? null;
+      const base = { activitySection: "", homeworkSection: "", ...template, creditPackageId, id: uid(), type: "therapy", status: "scheduled", date: from, startTime: r.startTime, endTime: r.endTime, therapistId: r.therapistId };
+      const raw = buildRecurringSchedules(base, weeks, [day], { [day]: { startTime: r.startTime, endTime: r.endTime, therapistId: r.therapistId, creditPackageId } }).filter((s) => s.date >= from);
+      const kept = holidayDates && holidayDates.size > 0 ? raw.filter((s) => !holidayDates.has(s.date)) : raw;
+      skippedHoliday += raw.length - kept.length;
+      kept.forEach((s) => createList.push({ ...s, seriesId, isRecurring: true, recurrenceRule: `weekly_${day}` }));
+    });
+
+  const gone = new Set(removeIds);
+  const working = sessions.filter((s) => !gone.has(s.id));
+  const conflicts = [];
+  createList.forEach((s) => {
+    checkConflicts({ therapistId: s.therapistId, date: s.date, startTime: s.startTime, endTime: s.endTime, schedules: working, therapists }).forEach((m) =>
+      conflicts.push(`${s.date} ${s.startTime}–${s.endTime}: ${m}`)
+    );
+    working.push(s);
+  });
+  return { removeIds, createList, conflicts, skippedHoliday };
+}
+
+// Masa berlaku SATU seri (semua hari/jam pada seri yang sama berbagi tanggal mulai & akhir): dari sesi paling awal sampai paling akhir
+// seri itu, semua status (termasuk yang sudah lewat). `seriesId` null = data lama tanpa id seri: semua sesi terapi berulang tanpa
+// `seriesId` dianggap satu seri. Backend: `schedule_series.starts_on` / `ends_on`.
+export function seriesPeriod(sessions = [], seriesId = null) {
+  const dates = sessions
+    .filter((s) => s.type !== "assessment" && (seriesId ? s.seriesId === seriesId : !s.seriesId && (s.isRecurring || String(s.recurrenceRule || "").startsWith("weekly"))))
+    .map((s) => s.date)
+    .sort();
+  return dates.length ? { start: dates[0], end: dates[dates.length - 1] } : null;
 }

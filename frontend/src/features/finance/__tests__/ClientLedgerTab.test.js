@@ -57,12 +57,17 @@ test("Sisa Sesi di daftar dihitung dari paket client (bukan 0 untuk semua)", () 
   expect(remaining.some((n) => n > 0)).toBe(true);
 });
 
-test("laporan log kredit & saldo diurutkan dari yang terlama ke terbaru (baris pertama = top up awal)", async () => {
-  const open = [...container.querySelectorAll('[data-testid^="ledger-open-"]')].pop();
+test("laporan log kredit & saldo diurutkan dari yang terlama ke terbaru dan punya kolom Catatan", async () => {
+  // Dialog terbuka di halaman terakhir; urutan tanggal di dalam halaman harus menaik
+  const open = container.querySelector('[data-testid^="ledger-open-"]');
   await act(async () => open.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-  const rows = [...document.body.querySelectorAll('[data-testid^="ledger-by-"]')].map((el) => el.closest("tr"));
-  expect(rows.length).toBeGreaterThan(1);
-  expect(rows[0].textContent).toMatch(/Top up paket/);
+  const dialog = document.body.querySelector('[data-testid="client-ledger-dialog"]');
+  expect(dialog.textContent).toMatch(/Catatan/);
+  const rows = [...dialog.querySelectorAll('[data-testid^="ledger-by-"]')].map((el) => el.closest("tr"));
+  expect(rows.length).toBeGreaterThan(0);
+  const dates = rows.map((tr) => tr.querySelectorAll("td")[1].textContent.slice(0, 10).split("/").reverse().join("-"));
+  expect([...dates].sort()).toEqual(dates);
+  expect(dialog.querySelector('[data-testid^="ledger-note-edit-"]')).toBeTruthy();
 });
 
 test("saldo saat ini di laporan sama dengan Saldo di daftar client, dan laporan terbuka di halaman terakhir", async () => {
@@ -72,6 +77,6 @@ test("saldo saat ini di laporan sama dengan Saldo di daftar client, dan laporan 
   await act(async () => container.querySelector(`[data-testid="ledger-open-${id}"]`).dispatchEvent(new MouseEvent("click", { bubbles: true })));
   const dialog = document.body.querySelector('[data-testid="client-ledger-dialog"]');
   expect(dialog.querySelector('[data-testid="client-ledger-current-balance"]').textContent).toContain(listBalance);
-  const balances = [...dialog.querySelectorAll("tbody tr")].map((tr) => tr.querySelectorAll("td")[8]?.textContent.trim());
+  const balances = [...dialog.querySelectorAll("tbody tr")].map((tr) => tr.querySelectorAll("td")[9]?.textContent.trim());
   expect(balances[balances.length - 1]).toBe(listBalance);
 });

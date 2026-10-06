@@ -22,12 +22,10 @@ import {
   Activity,
   CalendarClock,
   Wallet,
-  Flame,
   CheckCircle2,
   Download,
   Snowflake,
   AlertCircle,
-  ChevronRight,
   TrendingUp,
   Baby,
   Layers,
@@ -220,7 +218,6 @@ export default function ClientAnalyticsTab({ activeList }) {
       upcoming,
       utilization: total > 0 ? Math.round(((total - remaining) / total) * 100) : null,
       remaining,
-      needRenewal: rows.filter((r) => r.remaining <= 2).length,
       frozen: rows.filter((r) => r.remaining === 0).length,
     };
   }, [scopeSchedules, rows, today, getRecordForClient]);
@@ -338,8 +335,6 @@ export default function ClientAnalyticsTab({ activeList }) {
 
   const tablePg = usePagination(sortedRows, 10, `${branch}|${search}|${effectiveTherapist}|${period}|${customStart}|${customEnd}|${sort}`);
 
-  const renewal = useMemo(() => rows.filter((r) => r.remaining <= 2).sort((a, b) => a.remaining - b.remaining), [rows]);
-  const renewalPg = usePagination(renewal, 6, `${branch}|${search}|${effectiveTherapist}|${period}|${customStart}|${customEnd}`);
 
   const exportCsv = () => {
     const header = ["Nama", "Kode", "Cabang", "Kehadiran (%)", "Hadir (Selesai)", "Tidak Hadir (Cancel Potong Kredit)", "Sesi Berikutnya"];
@@ -472,7 +467,7 @@ export default function ClientAnalyticsTab({ activeList }) {
       </FilterBar>
 
       {/* KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard icon={Users} tone="bg-sky-50 text-sky-700" label="Client Aktif" value={kpi.clients} sub={`${kpi.withNext} punya jadwal berikutnya`} />
         <KpiCard
           icon={Activity}
@@ -489,7 +484,6 @@ export default function ClientAnalyticsTab({ activeList }) {
           value={kpi.utilization === null ? "—" : `${kpi.utilization}%`}
           sub={`${kpi.remaining} sesi tersisa`}
         />
-        <KpiCard icon={Flame} tone="bg-amber-50 text-amber-700" label="Perlu Renewal" value={kpi.needRenewal} sub={`${kpi.frozen} Frozen (0 kredit)`} />
       </div>
 
       {insights.length > 0 && (
@@ -684,70 +678,6 @@ export default function ClientAnalyticsTab({ activeList }) {
           )}
         </ChartCard>
       </div>
-
-      {/* Renewal */}
-      {renewal.length > 0 && (
-        <Card className="rounded-2xl border border-amber-200 bg-amber-50/40 shadow-xs overflow-hidden">
-          <CardHeader className="pb-3 border-b border-amber-200/70 bg-amber-100/50">
-            <CardTitle className="text-sm font-bold text-amber-950 flex items-center gap-2">
-              <Flame className="w-4 h-4 text-amber-600" />
-              Perlu Renewal ({renewal.length} client)
-            </CardTitle>
-            <CardDescription className="text-xs text-amber-800/80">
-              Saldo kredit ≤ 2 sesi — urut dari yang paling sedikit. Teruskan ke Finance.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table stackOnMobile className="w-full min-w-[520px]">
-              <TableHeader>
-                <TableRow className="bg-amber-100/30 hover:bg-amber-100/30 border-b border-amber-200/60">
-                  <TableHead className="font-bold text-amber-950 text-xs pl-6 whitespace-nowrap">Client</TableHead>
-                  <TableHead className="font-bold text-amber-950 text-xs whitespace-nowrap hidden md:table-cell">Orang Tua</TableHead>
-                  <TableHead className="font-bold text-amber-950 text-xs whitespace-nowrap">Sisa Kredit</TableHead>
-                  <TableHead className="font-bold text-amber-950 text-xs text-right pr-6 whitespace-nowrap">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {renewalPg.pageItems.map((r) => (
-                  <TableRow key={r.id} className="border-b border-amber-200/40 hover:bg-amber-100/40 text-xs">
-                    <TableCell data-nolabel className="pl-6 font-bold text-slate-900 whitespace-nowrap">{r.client.clientName}</TableCell>
-                    <TableCell data-label="Orang Tua" className="text-slate-600 whitespace-nowrap hidden md:table-cell">
-                      {r.client.parentName} ({r.client.parentContact})
-                    </TableCell>
-                    <TableCell data-label="Sisa Kredit" className="whitespace-nowrap">
-                      {r.remaining === 0 ? (
-                        <span className="inline-flex items-center gap-1 font-extrabold text-cyan-800">
-                          <Snowflake className="w-3.5 h-3.5" /> Frozen
-                        </span>
-                      ) : (
-                        <span className="font-black text-amber-700">{r.remaining} sesi</span>
-                      )}
-                    </TableCell>
-                    <TableCell data-nolabel className="text-right pr-6 whitespace-nowrap">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1 border-amber-300 text-amber-900 hover:bg-amber-200 font-bold cursor-pointer"
-                        onClick={() => navigate(`/admin-schedule/clients/${r.id}`)}
-                      >
-                        Tinjau <ChevronRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <TablePagination
-            {...renewalPg}
-            onPageChange={renewalPg.setPage}
-            onPageSizeChange={renewalPg.setPageSize}
-            pageSizeOptions={[6, 12, 24]}
-            noun="client"
-            className="border-amber-200/50 bg-amber-50/40"
-          />
-        </Card>
-      )}
 
       {/* Tabel performa */}
       <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">

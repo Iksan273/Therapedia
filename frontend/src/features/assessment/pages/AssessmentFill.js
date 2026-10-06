@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, MessageCircle } from "lucide-react";
@@ -18,22 +18,22 @@ import { useAssessments } from "@/stores/assessmentsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { cn } from "@/shared/lib/utils";
 import { advanceStatus } from "@/domain/client";
+import { AssessmentProofCard } from "@/features/assessment/components/AssessmentProofCard";
 import { checkQuestionnaireAccess } from "@/domain/assessment";
 
-// Pesan penolakan akses kuesioner (aturan klien: sekali isi, masa berlaku opsional dicek saat dibuka, invoice assessment lunas).
+// Pesan penolakan akses kuesioner (aturan klien: sekali isi, masa berlaku opsional dicek saat dibuka, bukti transfer invoice assessment wajib diunggah sebelum mengisi)..
 const ACCESS_ERRORS = {
   submitted: "Kuesioner dengan kode ini sudah diisi dan tidak dapat diisi ulang. Hubungi Admin Therapedia bila perlu bantuan.",
   expired: "Kode kuesioner sudah kedaluwarsa. Hubungi Admin Therapedia untuk meminta kode baru.",
-  invoice_unpaid:
-    "Kuesioner belum dapat dibuka karena ada tagihan asesmen yang belum dibayar. Selesaikan pembayaran melalui Portal Orang Tua (masuk dengan kode client) atau hubungi Admin Therapedia.",
 };
 
 export default function AssessmentFill() {
   const { clients, updateClient } = useClients();
   const { getCategory } = useAssessments();
-  const { getInvoicesForClient } = useCredits();
+  const { getInvoicesForClient, uploadPaymentProof } = useCredits();
 
-  const [stage, setStage] = useState("code"); // code | form | done
+  const [stage, setStage] = useState("code"); // code | proof | form | done
+  const [proofTarget, setProofTarget] = useState(null); // { client, category, invoice } menunggu unggah bukti
   const [searchParams] = useSearchParams();
   const [codeInput, setCodeInput] = useState((searchParams.get("code") || "").toUpperCase()); // dari tautan portal ortu
   const [codeError, setCodeError] = useState("");
@@ -46,7 +46,12 @@ export default function AssessmentFill() {
 
   const handleCodeSubmit = (e) => {
     e.preventDefault();
-    const input = codeInput.trim().toUpperCase();
+    lookupCode(codeInput);
+  };
+
+  // Cari kode (dari form atau tautan `?code=`), cek akses, lalu buka unggah bukti / kuesioner
+  const lookupCode = (rawCode) => {
+    const input = String(rawCode || "").trim().toUpperCase();
     let foundClient = null;
     let foundCat = null;
     let foundItem = null;
@@ -75,21 +80,54 @@ export default function AssessmentFill() {
     }
 
     const access = checkQuestionnaireAccess({ client: foundClient, codeItem: foundItem, invoices: getInvoicesForClient(foundClient.id) });
-    if (!access.ok) {
-      setCodeError(ACCESS_ERRORS[access.reason]);
-      return;
-    }
     if (!foundCat) {
       // Fallback to first category if not found
       foundCat = getCategory("cat-001");
     }
+    if (!access.ok && access.reason === "proof_required") {
+      setCodeError("");
+      setProofTarget({ client: foundClient, category: foundCat, invoice: access.invoice });
+      setStage("proof");
+      return;
+    }
+    if (!access.ok) {
+      setCodeError(ACCESS_ERRORS[access.reason]);
+      return;
+    }
 
+    openForm(foundClient, foundCat);
+  };
+
+  const openForm = (foundClient, foundCat) => {
     setAnswers({});
     setConsent(false);
     setCategory(foundCat);
     setClient(foundClient);
     setStage("form");
   };
+
+  // Simpan bukti transfer ke invoice assessment, lalu buka kuesioner
+  const handleProofSubmit = (file) => {
+    uploadPaymentProof({
+      invoiceId: proofTarget.invoice.id,
+      proofUrl: file.dataUrl,
+      fileName: file.fileName,
+      fileType: file.fileType,
+      fileSize: file.fileSize,
+    });
+    toast.success("Bukti transfer terkirim. Silakan lanjut mengisi kuesioner.");
+    openForm(proofTarget.client, proofTarget.category);
+    setProofTarget(null);
+  };
+
+  // Tautan dari admin (`/assessment?code=XXX`): kode terisi dan langsung diproses, ortu tidak perlu mengetik
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current || !searchParams.get("code") || clients.length === 0) return;
+    autoOpened.current = true;
+    lookupCode(searchParams.get("code"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clients.length]);
 
   const [filterMode, setFilterMode] = useState("all"); // "all" | "unanswered"
 
@@ -318,6 +356,10 @@ export default function AssessmentFill() {
           </Card>
         )}
 
+        {stage === "proof" && proofTarget && (
+          <AssessmentProofCard invoice={proofTarget.invoice} onSubmit={handleProofSubmit} onBack={() => { setProofTarget(null); setStage("code"); }} />
+        )}
+
         {stage === "form" && client && category && (
           <div className="space-y-6" data-testid="assessment-question-form">
             {/* STICKY PROGRESS HEADER (RESPONSIVE) */}
@@ -328,7 +370,7 @@ export default function AssessmentFill() {
                     {category.categoryName}
                   </h2>
                   <p className="text-xs text-slate-500 font-medium">
-                    Kuesioner untuk Ananda: <strong className="text-slate-800">{client.clientName}</strong> • Kode: <span className="font-mono text-sky-700 font-bold">{codeInput || client.assessmentAccessCode}</span>
+                    Kuesioner untuk: <strong className="text-slate-800">{client.clientName}</strong> • Kode: <span className="font-mono text-sky-700 font-bold">{codeInput || client.assessmentAccessCode}</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -791,7 +833,7 @@ export default function AssessmentFill() {
               <div className="space-y-2">
                 <h2 className="text-2xl font-black text-slate-900">Kuesioner Berhasil Dikirimkan</h2>
                 <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-                  Terima kasih Ayah / Bunda atas pengisian kuesioner observasi perkembangan untuk ananda{" "}
+                  Terima kasih Ayah / Bunda atas pengisian kuesioner observasi perkembangan untuk{" "}
                   <strong className="text-slate-900 font-bold">{client?.clientName || "anak"}</strong>.
                 </p>
               </div>
@@ -812,7 +854,7 @@ export default function AssessmentFill() {
               {client && (
                 <a
                   href={`https://wa.me/6281234567890?text=${encodeURIComponent(
-                    `Halo Admin Therapedia, saya orang tua dari ananda ${client.clientName} (Kode Klien: ${client.clientCode || "-"}). Saya sudah selesai mengisi kuesioner asesmen. Mohon bantuan untuk konfirmasi dan proses selanjutnya ya. Terima kasih!`
+                    `Halo Admin Therapedia, saya orang tua dari ${client.clientName} (Kode Klien: ${client.clientCode || "-"}). Saya sudah selesai mengisi kuesioner asesmen. Mohon bantuan untuk konfirmasi dan proses selanjutnya ya. Terima kasih!`
                   )}`}
                   target="_blank"
                   rel="noreferrer"

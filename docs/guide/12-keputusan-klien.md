@@ -44,7 +44,7 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 - Pilihan potong/tidak hanya pada **cancel** (termasuk drop pending); reschedule/pending tidak memotong kredit. Cancel sesi asesmen: "potong" memotong paket aktif client (bila ada).
 - Kode login ortu berurutan (mudah ditebak) → diamankan throttle/lockout (backend); tanggal lahir satu-satunya faktor kedua.
 - **Hapus client (diputuskan 4 Okt 2026)**: seluruh data client hilang dari semua modul (client dihapus permanen, ADR 0005). Tanpa syarat revert sesi `completed`; sesi, invoice, riwayat kredit, jadwal, kuesioner, dan angka dashboard client itu tidak tampil lagi; invoice `paid` keluar dari omzet. Pemulihan client terhapus & data lama go-live (G1) dibahas setelah development selesai.
-- Gating kuesioner dihitung per **client**: selama ada invoice Assessment belum lunas, semua kuesioner client itu terkunci.
+- Gating kuesioner (diubah 6 Okt 2026): invoice Assessment terbit **otomatis saat kode dibuat**; ortu wajib **upload bukti transfer** sebelum mengisi kuesioner (cukup terunggah, tidak menunggu lunas). Nominal otomatis = harga layanan (master paket) yang **dipilih admin saat generate kode** (wajib); Finance bisa melihat bukti upload di Menunggu Pembayaran & Semua Tagihan.
 - Renewal **langsung lunas** (4 Okt 2026, permintaan tim): wajib alasan (teks bebas) + justifikasi (min. 10 karakter). Alasan berupa string, bukan enum, jadi tidak perlu daftar kategori.
 - Invoice yang pernah dikonversi diberi badge **Dikonversi** di Semua Tagihan (diturunkan dari log, tanpa kolom baru); tetap 1 invoice.
 - **Retensi & backup (F1)**: rencana backup arsip berkala **tiap 6 bulan atau 1 tahun** (di samping backup harian); tanpa hapus permanen otomatis. Interval final dan lama simpan minimum menunggu keputusan klien/regulasi.
@@ -68,3 +68,35 @@ Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflo
 | Finance: modul **Log Kredit & Saldo** per client dalam rupiah (sesi completed mengurangi saldo sebesar harga per sesi) | Selesai: tab `ledger` di `/finance`, `domain/creditLedger.js`. Kolom "Oleh" pada contoh Excel belum ada karena ledger tidak mencatat pelaku per sesi |
 | Master melihat semua modul; role lain mengikuti RBAC (menu + akses halaman); kolom **Oleh** di Log Kredit & Saldo (`history[].by`) | Selesai: `guards.js`, `navConfig.js`, `useActingTherapist`; test `navConfig.test.js` |
 | Data dummy log kredit & saldo sinkron dengan jadwal, top up/renewal, dan penjadwalan baru | Selesai: `reconcileDemoCredits`, baris Terjadwal di ledger, `SEED_VERSION` v10 |
+
+## Revisi 6 Okt 2026
+| # | Permintaan | Status FE |
+|---|---|---|
+| R1 | Generate kode kuesioner otomatis membuat invoice assessment; ortu wajib upload bukti transfer sebelum isi kuesioner | ✅ |
+| R2 | Hapus menu Perlu Renewal di Advanced Analytics Active Client | ✅ |
+| R3 | Finance: tab baru Perlu Renewal (kredit < 3) + tombol Add Renewal (invoice paket sama → Menunggu Pembayaran) | ✅ |
+| R4 | Finance: Log Kredit & Saldo per paket (1 baris = 1 paket + 1 client) | ✅ |
+| R5 | Log Kredit: kolom Catatan (= catatan sesi di detail client), bisa diedit semua peran termasuk Finance, tampil juga di detail sesi kalender | ✅ |
+
+Dikonfirmasi klien: batas renewal "kurang dari 3" dihitung dari **total** sisa kredit semua paket client aktif (sudah benar).
+
+Tambahan 6 Okt 2026: generate kode wajib memilih layanan (master paket) → harganya jadi nominal invoice assessment; Finance bisa melihat bukti upload assessment.
+
+Tambahan 6 Okt 2026 (3): setelah generate, admin mendapat tautan kuesioner (`/assessment?code=XXX`) yang membuka kuesioner dengan kode terisi otomatis; bisa dikirim sebagai kode atau tautan.
+
+Tambahan 6 Okt 2026 (2): Finance bisa upload bukti manual per invoice (yang belum punya bukti) dan mengganti bukti yang sudah ada (re-upload/replace).
+
+## Revisi 6 Okt 2026 (lanjutan)
+| # | Permintaan | Status FE |
+|---|---|---|
+| R6 | Admin Schedule: ganti / hapus jadwal recurring (per hari atau ganti keseluruhan) dari detail client dan list Active Client; sesi lama yang tersambung otomatis terhapus dan terganti jadwal baru | ✅ |
+
+Tafsir: hanya sesi `scheduled` (belum disentuh) pada pola lama yang diganti; sesi yang sudah selesai/dibatalkan/dipindah dibiarkan. Mengganti pola cukup akses modul; hapus rutin permanen hanya role `canDelete`.
+
+| # | Permintaan | Status FE |
+|---|---|---|
+| R7 | Schedule: Off/cuti bisa langsung menerbitkan invoice cuti (opsional) dengan nominal manual oleh Admin Schedule; pilihan potong kredit tetap | ✅ |
+
+| # | Permintaan | Status FE |
+|---|---|---|
+| R8 | Portal ortu: riwayat invoice anak untuk tracking pembayaran (semua jenis, hanya invoice anak itu) | ✅ |

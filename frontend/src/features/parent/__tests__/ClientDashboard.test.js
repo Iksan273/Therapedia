@@ -77,5 +77,30 @@ test("kode kuesioner tidak ditampilkan di portal ortu (admin kirim kode lewat Wh
   expect(container.textContent).not.toContain("SP2-ABC234");
   expect(q("reupload-proof-button")).toBeNull();
   expect(container.textContent).not.toMatch(/Upload Bukti/);
-  expect(q("parent-invoice-banner")).toBeTruthy();
+  expect(q("parent-invoice-banner")).toBeNull(); // banner status tagihan dihapus; tagihan dipantau lewat Riwayat Invoice
+  expect(q("parent-invoice-history")).toBeTruthy();
+});
+
+test("riwayat invoice: semua jenis invoice anak ini tampil dengan status versi ortu, invoice anak lain & void tidak", async () => {
+  const [client, other] = ctx.clients.clients.filter((c) => c.status === "service_selected" || c.status === "assessment_scheduled");
+  const base = { clientName: client.clientName, branchId: client.branchId, amount: 100000 };
+  await act(async () => ctx.credits.issueInvoice({ ...base, clientId: client.id, type: "package", typeCode: "REG", packageName: "Paket Reguler", credits: 10 }));
+  await act(async () => ctx.credits.issueInvoice({ ...base, clientId: client.id, type: "assessment", typeCode: "ASM", packageName: "Assessment SP2", assessmentCode: "SP2-XYZ234" }));
+  await act(async () => ctx.credits.issueInvoice({ ...base, clientId: client.id, type: "leave", typeCode: "CUT", packageName: "Cuti 2026-10-12", leaveScheduleId: "s-x" }));
+  await act(async () => ctx.credits.issueInvoice({ ...base, clientId: other.id, clientName: other.clientName, type: "package", typeCode: "REG", packageName: "Paket Anak Lain", credits: 10 }));
+  const mine = ctx.credits.getInvoicesForClient(client.id);
+  const assessment = mine.find((i) => i.type === "assessment");
+  await act(async () => ctx.credits.uploadPaymentProof({ invoiceId: assessment.id, proofUrl: "data:image/jpeg;base64,x", fileName: "b.jpg", fileType: "image/jpeg", fileSize: 1 }));
+  await act(async () => ctx.credits.verifyPaymentProof({ invoiceId: mine.find((i) => i.type === "leave").id, status: "paid", by: "Finance" }));
+  await act(async () => ctx.auth.login({ role: "client", clientId: client.id }));
+
+  const card = q("parent-invoice-history");
+  expect(card).toBeTruthy();
+  expect(card.textContent).toMatch(/Paket Reguler/);
+  expect(card.textContent).toMatch(/Assessment SP2/);
+  expect(card.textContent).toMatch(/Cuti 2026-10-12/);
+  expect(card.textContent).not.toMatch(/Paket Anak Lain/);
+  expect(q(`parent-invoice-status-${assessment.id}`).textContent).toMatch(/Bukti Diterima/);
+  expect(q(`parent-invoice-status-${mine.find((i) => i.type === "leave").id}`).textContent).toBe("Lunas");
+  expect(q(`parent-invoice-status-${mine.find((i) => i.type === "package").id}`).textContent).toBe("Menunggu Pembayaran");
 });
