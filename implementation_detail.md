@@ -71,7 +71,7 @@ Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md
 | M3 Master data | layanan, kuadran, alasan, paket, hari libur | `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays` | S1 |
 | M4 Inquiry & Client | intake, pipeline, layanan, status, dokumen | `clients`, `client_code_counters`, `client_services`, `client_documents`, `client_status_histories` | S2 |
 | M5 Asesmen | mesin kuesioner, kode, isi publik, hasil | `assessment_*` | S2 |
-| M6 Penjadwalan | kalender, sesi, aksi, revert, bulk, laporan, monitoring | `schedules`, `schedule_series`, `session_reports` (+ kredit) | S3 |
+| M6 Penjadwalan | kalender, sesi, aksi, revert, bulk, laporan, monitoring, cuti client (jatah 30 hari/tahun, §8.6) | `schedules`, `schedule_series`, `session_reports`, `client_leaves` (+ kredit) | S3 |
 | M7 Finance & kredit | invoice, bukti, verifikasi, void, pengganti, renewal, konversi, ledger, saldo lebihan | `invoices`, `payment_proofs`, `invoice_logs`, `client_packages`, `credit_ledger`, `package_conversions`, `invoice_counters` | S3 |
 | M8 Active client | roster, detail, birthday, analitik | `clients`, `client_packages`, `schedules`, `credit_ledger` | S3–S4 |
 | M9 Portal terapis | jadwal sendiri, summary, laporan, cetak | `schedules`, `session_reports`, view | S4 |
@@ -265,6 +265,19 @@ Layar: `/admin-schedule/calendar` (Weekly Calendar), Client Detail (jadwal asesm
 ### 8.5 Efek jadwal dari modul lain
 - Aktivasi paket / renewal (M7) memindahkan sesi mendatang ke paket aktif: `UPDATE schedules SET client_package_id` (§9 langkah relink).
 - Konversi paket menghapus sesi terapi mendatang client; Void dengan "cabut kredit" memindahkan atau membekukan sesi mendatang (§9).
+
+### 8.6 Cuti client (jatah 30 hari sesi per tahun kalender, dihitung per sesi) ✚
+Layar: tab **Cuti** di `/finance`, kartu Jatah Cuti di detail client Admin Schedule, switch "Hitung sebagai cuti" di panel Off kalender. **Cuti = Off** (tanpa status baru). Akses: modul `finance` (log cuti), `weekly_calendar` (Off manual). Alur rinci: `schema.md` §6.8.
+| # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
+|---|---|---|---|---|---|---|
+| 6.19 ✚ | `POST /schedules/{id}/off` | `OffSessionAction` (Off manual; sudah ada di FE) | `weekly_calendar` | `reason`, `deduct_credit` (wajib), `note?`, `counts_as_leave?` (default false), `leave_invoice_amount?`, `version` | `schedules` U (`off`, `off_*`, `counts_as_leave`); `credit_ledger` C (`off_penalty`/`off_excused`; **tanpa** `cancel_count`); opsional `invoices` C (`leave`) | `{ deducted, leave_invoiced, leave_quota }`. Jatah lewat 30 = peringatan, tidak ditolak |
+| 6.19b ✚ | `POST /schedules` (+ `leave_id?`, `deduct_credit`) dan `POST /schedules/bulk` | Sesi baru di masa cuti | `weekly_calendar` | `leave_id` bila admin memilih "Jadwalkan sebagai Off (cuti)" | `schedules` C (langsung `off`, `leave_id`) + `credit_ledger` C; bulk/routine-replace melewati hari efektif cuti `active` client (`client_leaves` R) | 422 `leave_mismatch` bila log bukan milik client / tanggal di luar rentang efektif |
+| 6.20 ✚ | `GET /leaves` | tab Cuti Finance | `finance` | `branch_id,client_id,status,q,page` | `client_leaves` R (`idx_leave_branch`) + `clients` R (nama/kode/ortu); jumlah sesi Off per log: `schedules` R (`idx_sch_leave`) | Q24; fase (`upcoming/ongoing/done/early/voided`) diturunkan dari tanggal |
+| 6.21 ✚ | `POST /leaves` | `CreateLeaveAction` | `finance` | `client_id,start_date,end_date,reason?,note?,deduct_credit` (wajib bila ada sesi di rentang) | `client_leaves` C; `schedules` U (sesi terapi `scheduled/rescheduled` di rentang → `off`, `off_reason=OL`, `leave_id`); `credit_ledger` C; `client_packages` U / `clients` U (bila potong) | 422 `leave_overlap`. Respons: `days` (hari kalender rentang, info), `sessions_off, deducted, byYear[{year,used,adding,after,remaining,over}]` (dari sesi yang di-Off-kan; kosong bila tanpa sesi), `warnings[]`. Satu transaksi + `lockForUpdate` (client → sesi) |
+| 6.22 ✚ | `POST /leaves/{id}/end` | `EndLeaveEarlyAction` (anak masuk lebih awal) | `finance` | `return_date`, `reason?`, `version` | `client_leaves` U (`return_date`, `return_note`); `schedules` U (Off ber-`leave_id` pada/sesudah tanggal → `previous_status`, `leave_id` NULL, `reverted_at` tetap NULL); `credit_ledger` C (`reversal` bila ada baris `off_*`) | `{ days_returned (hari sesi yang kembali ke jatah), released, conflicted }`; slot terisi (§6.4) dilewati: tetap Off, `leave_id` NULL. 422 bila `return_date` di luar rentang efektif |
+| 6.23 ✚ | `POST /leaves/{id}/void` | `VoidLeaveAction` (akhiri sejak hari pertama) | `finance` | `reason` (wajib), `version` | seperti 6.22 + `client_leaves` U (`status=voided`, `void_*`) | Tidak bisa dibatalkan; 409 bila sudah void |
+| 6.24 ✚ | `DELETE /leaves/{id}` | hapus log (permanen) | `finance` + hapus | | `client_leaves` D; `schedules.leave_id` SET NULL (sesi tetap Off biasa) | |
+| 6.25 ✚ | `GET /clients/{id}/leave-quota?year=` | jatah cuti (kartu client, pratinjau dialog) | `finance`, `active_clients`, `weekly_calendar` | `year` | `client_leaves` R (`idx_leave_client`), `schedules` R (`idx_sch_client`, filter `counts_as_leave`) | `{ year, quota:30, used, remaining, over }` (`used` = `COUNT(DISTINCT session_date)` sesi Off dengan `leave_id` atau `counts_as_leave`; rentang log tidak dihitung) |
 
 ---
 

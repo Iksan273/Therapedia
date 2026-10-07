@@ -6,7 +6,10 @@
       "name": "Regular Therapist",
       "credits": 10,
       "price": 2500000,
-      "description": "10 Sesi Terapi Regular Therapist (Occupational / Sensory / Speech Therapy)"
+      "description": "10 Sesi Terapi Regular Therapist (Occupational / Sensory / Speech Therapy)",
+      "leaveQuota": 3,
+      "isSatuan": false,
+      "isAssessment": false
     },
     {
       "id": "pkg-vip",
@@ -14,7 +17,10 @@
       "name": "Senior Therapist",
       "credits": 10,
       "price": 3500000,
-      "description": "10 Sesi Terapi Bersama Senior Therapist (1-on-1 Senior Clinical Practitioner + Priority Room)"
+      "description": "10 Sesi Terapi Bersama Senior Therapist (1-on-1 Senior Clinical Practitioner + Priority Room)",
+      "leaveQuota": 3,
+      "isSatuan": false,
+      "isAssessment": false
     },
     {
       "id": "pkg-consult",
@@ -22,7 +28,10 @@
       "name": "Paket Konsultasi",
       "credits": 1,
       "price": 500000,
-      "description": "1 Sesi Konsultasi Klinis Lanjutan & Review Evaluasi Program Terapi"
+      "description": "1 Sesi Konsultasi Klinis Lanjutan & Review Evaluasi Program Terapi",
+      "leaveQuota": 1,
+      "isSatuan": true,
+      "isAssessment": false
     },
     {
       "id": "pkg-sensory-intensive",
@@ -30,7 +39,10 @@
       "name": "Paket Sensori Intensif",
       "credits": 15,
       "price": 4200000,
-      "description": "15 Sesi Stimulasi Sensori & Motor Planning Intensif"
+      "description": "15 Sesi Stimulasi Sensori & Motor Planning Intensif",
+      "leaveQuota": 4,
+      "isSatuan": false,
+      "isAssessment": false
     }
   ],
   "records": [
@@ -358,7 +370,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-2 (Izin Keluarga)"
         },
         {
@@ -368,7 +380,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-3 (Izin Keluarga)"
         },
         {
@@ -414,7 +426,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_penalty",
           "creditChange": -1,
-          "cancelReason": "bentrok_sekolah",
+          "cancelReason": "SCA",
           "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
         },
         {
@@ -488,7 +500,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-1 (Izin Keluarga)"
         },
         {
@@ -643,7 +655,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-2 (Sakit)"
         },
         {
@@ -662,7 +674,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-3 (Izin Keluarga)"
         },
         {
@@ -764,7 +776,7 @@
           "packageName": "Senior Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "bentrok_sekolah",
+          "cancelReason": "SCA",
           "note": "Cancel ke-1 (Bentrok Sekolah)"
         },
         {
@@ -792,7 +804,7 @@
           "packageName": "Senior Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-2 (Sakit)"
         },
         {
@@ -857,7 +869,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-2 (Izin Keluarga)"
         },
         {
@@ -867,7 +879,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "bentrok_sekolah",
+          "cancelReason": "SCA",
           "note": "Cancel ke-3 (Bentrok Sekolah)"
         },
         {
@@ -1059,7 +1071,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "tanpa_kabar",
+          "cancelReason": "NS",
           "note": "Cancel ke-2 (Tanpa Kabar)"
         },
         {
@@ -1352,7 +1364,7 @@
           "packageName": "Senior Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-2 (Izin Keluarga)"
         },
         {
@@ -1389,7 +1401,7 @@
           "packageName": "Senior Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-3 (Izin Keluarga)"
         },
         {
@@ -1555,7 +1567,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-1 (Sakit)"
         },
         {
@@ -1574,7 +1586,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-2 (Izin Keluarga)"
         },
         {
@@ -1584,7 +1596,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-3 (Sakit)"
         },
         {
@@ -1630,7 +1642,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_penalty",
           "creditChange": -1,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
         },
         {
@@ -1860,7 +1872,7 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "lainnya",
+          "cancelReason": "LN",
           "note": "Cancel ke-3 (Lainnya)"
         },
         {
@@ -1897,7 +1909,7 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "action": "cancel_penalty",
           "creditChange": -1,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
         },
         {
@@ -1970,7 +1982,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_penalty",
           "creditChange": -1,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-5 (>3x) - Penalti memotong 1 kredit"
         },
         {
@@ -2063,7 +2075,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-1 (Izin Keluarga)"
         },
         {
@@ -2273,7 +2285,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "tanpa_kabar",
+          "cancelReason": "NS",
           "note": "Cancel ke-1 (Tanpa Kabar)"
         },
         {
@@ -2328,7 +2340,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-2 (Sakit)"
         },
         {
@@ -2466,7 +2478,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "bentrok_sekolah",
+          "cancelReason": "SCA",
           "note": "Cancel ke-3 (Bentrok Sekolah)"
         },
         {
@@ -2604,7 +2616,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-1 (Izin Keluarga)"
         },
         {
@@ -2623,7 +2635,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-2 (Sakit)"
         },
         {
@@ -2715,7 +2727,7 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-2 (Sakit)"
         },
         {
@@ -2833,7 +2845,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-3 (Sakit)"
         },
         {
@@ -2962,7 +2974,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-3 (Sakit)"
         },
         {
@@ -2972,7 +2984,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_penalty",
           "creditChange": -1,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-4 (>3x) - Penalti memotong 1 kredit"
         },
         {
@@ -3072,7 +3084,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_penalty",
           "creditChange": -1,
-          "cancelReason": "bentrok_sekolah",
+          "cancelReason": "SCA",
           "note": "Cancel ke-5 (>3x) - Penalti memotong 1 kredit"
         },
         {
@@ -3156,7 +3168,7 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "izin_keluarga",
+          "cancelReason": "FM",
           "note": "Cancel ke-1 (Izin Keluarga)"
         },
         {
@@ -3175,7 +3187,7 @@
           "packageName": "Paket Sensori Intensif (15x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-2 (Sakit)"
         },
         {
@@ -3322,7 +3334,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "tanpa_kabar",
+          "cancelReason": "NS",
           "note": "Cancel ke-1 (Tanpa Kabar)"
         },
         {
@@ -3469,7 +3481,7 @@
           "packageName": "Regular Therapist (10x)",
           "action": "cancel_excused",
           "creditChange": 0,
-          "cancelReason": "sakit",
+          "cancelReason": "S",
           "note": "Cancel ke-3 (Sakit)"
         },
         {
@@ -3546,6 +3558,108 @@
           "_daysAgo": 127
         }
       ]
+    },
+    {
+      "id": "cr-h041",
+      "clientId": "c-041",
+      "branchId": "branch-sby-timur",
+      "packages": [
+        {
+          "id": "cp-041-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 2,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "history": []
+    },
+    {
+      "id": "cr-h050",
+      "clientId": "c-050",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-050-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 2,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "history": []
+    },
+    {
+      "id": "cr-h059",
+      "clientId": "c-059",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-059-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 2,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "history": []
+    },
+    {
+      "id": "cr-h062",
+      "clientId": "c-062",
+      "branchId": "branch-sby-barat",
+      "packages": [
+        {
+          "id": "cp-062-1",
+          "packageId": "pkg-reguler",
+          "packageName": "Regular Therapist (10x)",
+          "totalCredit": 10,
+          "remainingCredit": 2,
+          "cancelCount": 0,
+          "status": "active"
+        }
+      ],
+      "history": []
+    },
+    {
+      "id": "cr-h023",
+      "clientId": "c-023",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-023-1",
+          "packageId": "pkg-consult",
+          "packageName": "Paket Konsultasi (1x)",
+          "totalCredit": 1,
+          "remainingCredit": 0,
+          "cancelCount": 0,
+          "status": "depleted"
+        }
+      ],
+      "history": []
+    },
+    {
+      "id": "cr-h049",
+      "clientId": "c-049",
+      "branchId": "branch-citraland",
+      "packages": [
+        {
+          "id": "cp-049-1",
+          "packageId": "pkg-consult",
+          "packageName": "Paket Konsultasi (1x)",
+          "totalCredit": 1,
+          "remainingCredit": 0,
+          "cancelCount": 0,
+          "status": "depleted"
+        }
+      ],
+      "history": []
     }
   ],
   "invoices": [
@@ -4373,6 +4487,404 @@
       "proofUrl": null,
       "_issuedDaysAgo": 1,
       "_paidDaysAgo": null
+    },
+    {
+      "id": "inv-h041",
+      "_seq": 201,
+      "clientId": "c-041",
+      "clientName": "Hanif Ramadhan",
+      "branchId": "branch-sby-timur",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 155,
+      "_paidDaysAgo": 154
+    },
+    {
+      "id": "inv-h050",
+      "_seq": 202,
+      "clientId": "c-050",
+      "clientName": "Joshua Kurniawan",
+      "branchId": "branch-citraland",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 127,
+      "_paidDaysAgo": 126
+    },
+    {
+      "id": "inv-h059",
+      "_seq": 203,
+      "clientId": "c-059",
+      "clientName": "Samuel Tjahjadi",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 155,
+      "_paidDaysAgo": 154
+    },
+    {
+      "id": "inv-h062",
+      "_seq": 204,
+      "clientId": "c-062",
+      "clientName": "Keisha Anindya",
+      "branchId": "branch-sby-barat",
+      "packageId": "pkg-reguler",
+      "packageName": "Regular Therapist (10 Sesi)",
+      "credits": 10,
+      "amount": 2500000,
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_issuedDaysAgo": 197,
+      "_paidDaysAgo": 196
+    },
+    {
+      "id": "inv-a-asm-2015",
+      "_seq": 205,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-009",
+      "clientName": "Kenzo Wirawan",
+      "branchId": "branch-sby-timur",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2015",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 33,
+      "_issuedDaysAgo": 34
+    },
+    {
+      "id": "inv-a-asm-2011",
+      "_seq": 206,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-010",
+      "clientName": "Ayla Khansa",
+      "branchId": "branch-sby-timur",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2011",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 18,
+      "_issuedDaysAgo": 19
+    },
+    {
+      "id": "inv-a-asm-1003",
+      "_seq": 207,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-011",
+      "clientName": "Bima Wicaksono",
+      "branchId": "branch-sby-timur",
+      "packageName": "Assessment ",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-1003",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 11,
+      "_issuedDaysAgo": 12
+    },
+    {
+      "id": "inv-a-asm-1004",
+      "_seq": 208,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-012",
+      "clientName": "Zahra Farzana",
+      "branchId": "branch-sby-timur",
+      "packageName": "Assessment ",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-1004",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 89,
+      "_issuedDaysAgo": 90
+    },
+    {
+      "id": "inv-a-asm-2014",
+      "_seq": 209,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-015",
+      "clientName": "Davin Pratama",
+      "branchId": "branch-sby-timur",
+      "packageName": "Assessment Fine Motor & Visual Motor Integration Profile",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2014",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 48,
+      "_issuedDaysAgo": 49
+    },
+    {
+      "id": "inv-a-asm-2001",
+      "_seq": 210,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-017",
+      "clientName": "Gibran Al-Farisi",
+      "branchId": "branch-citraland",
+      "packageName": "Assessment ",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2001",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 17,
+      "_issuedDaysAgo": 18
+    },
+    {
+      "id": "inv-a-asm-2002",
+      "_seq": 211,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-017",
+      "clientName": "Gibran Al-Farisi",
+      "branchId": "branch-citraland",
+      "packageName": "Assessment ",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2002",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 17,
+      "_issuedDaysAgo": 18
+    },
+    {
+      "id": "inv-a-asm-2016",
+      "_seq": 212,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-019",
+      "clientName": "Mikaela Chandra",
+      "branchId": "branch-citraland",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2016",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 5,
+      "_issuedDaysAgo": 6
+    },
+    {
+      "id": "inv-a-asm-4011",
+      "_seq": 213,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-025",
+      "clientName": "Kenzie Bramantyo",
+      "branchId": "branch-sby-barat",
+      "packageName": "Assessment ",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4011",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 101,
+      "_issuedDaysAgo": 102
+    },
+    {
+      "id": "inv-a-asm-4012",
+      "_seq": 214,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-025",
+      "clientName": "Kenzie Bramantyo",
+      "branchId": "branch-sby-barat",
+      "packageName": "Assessment ",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4012",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 101,
+      "_issuedDaysAgo": 102
+    },
+    {
+      "id": "inv-a-asm-2012",
+      "_seq": 215,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-026",
+      "clientName": "Alea Natasha",
+      "branchId": "branch-sby-barat",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2012",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 15,
+      "_issuedDaysAgo": 16
+    },
+    {
+      "id": "inv-a-asm-2013",
+      "_seq": 216,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-026",
+      "clientName": "Alea Natasha",
+      "branchId": "branch-sby-barat",
+      "packageName": "Assessment School Companion Profile",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2013",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 15,
+      "_issuedDaysAgo": 16
+    },
+    {
+      "id": "inv-a-asm-2017",
+      "_seq": 217,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-029",
+      "clientName": "Rayyan Daniswara",
+      "branchId": "branch-sby-barat",
+      "packageName": "Assessment School Companion Profile",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-2017",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 5,
+      "_issuedDaysAgo": 6
+    },
+    {
+      "id": "inv-a-asm-4006",
+      "_seq": 218,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-039",
+      "clientName": "Zidane Alfarizi",
+      "branchId": "branch-sby-timur",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4006",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 9,
+      "_issuedDaysAgo": 10
+    },
+    {
+      "id": "inv-a-asm-4007",
+      "_seq": 219,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-040",
+      "clientName": "Ghea Anindya",
+      "branchId": "branch-sby-timur",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4007",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 28,
+      "_issuedDaysAgo": 29
+    },
+    {
+      "id": "inv-a-asm-4014",
+      "_seq": 220,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-047",
+      "clientName": "Gladys Maharani",
+      "branchId": "branch-citraland",
+      "packageName": "Assessment School Companion Profile",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4014",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 10,
+      "_issuedDaysAgo": 11
+    },
+    {
+      "id": "inv-a-asm-4015",
+      "_seq": 221,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-048",
+      "clientName": "Harvey Wijaya",
+      "branchId": "branch-citraland",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4015",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 12,
+      "_issuedDaysAgo": 13
+    },
+    {
+      "id": "inv-a-asm-4016",
+      "_seq": 222,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-049",
+      "clientName": "Isabella Sutanto",
+      "branchId": "branch-citraland",
+      "packageName": "Assessment Child Sensory Profile 2",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4016",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 45,
+      "_issuedDaysAgo": 46
+    },
+    {
+      "id": "inv-a-asm-4023",
+      "_seq": 223,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-056",
+      "clientName": "Pandu Wibowo",
+      "branchId": "branch-sby-barat",
+      "packageName": "Assessment School Companion Profile",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4023",
+      "status": "unpaid",
+      "_issuedDaysAgo": 7
+    },
+    {
+      "id": "inv-a-asm-4024",
+      "_seq": 224,
+      "type": "assessment",
+      "typeCode": "ASM",
+      "clientId": "c-057",
+      "clientName": "Qiana Rahmawati",
+      "branchId": "branch-sby-barat",
+      "packageName": "Assessment School Companion Profile",
+      "credits": 0,
+      "amount": 500000,
+      "assessmentCode": "ASM-4024",
+      "status": "paid",
+      "proofUrl": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400",
+      "_paidDaysAgo": 11,
+      "_issuedDaysAgo": 12
     }
   ]
 }

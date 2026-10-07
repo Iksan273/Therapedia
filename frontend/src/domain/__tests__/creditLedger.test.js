@@ -98,3 +98,31 @@ describe("buildPackageMoneyLedgers", () => {
     expect(row.historyNote).toBe("Anak kooperatif");
   });
 });
+
+describe("sambungan jadwal ↔ log kredit (cancel / revert)", () => {
+  test("cancel memakai credit leave: baris log memuat CODE alasan + credit leave −1; revert menampilkan alasannya", async () => {
+    const { applySessionCancelled, applySessionReverted, applyPackageAdded, newClientPackage, newCreditRecord } = await import("@/domain/credit");
+    let rec = applyPackageAdded(newCreditRecord({ clientId: "c1", branchId: "b" }), newClientPackage({ id: "cp", packageId: "pkg-reguler", packageName: "Regular Therapist (10x)", credits: 10, price: 2500000, leaveTotal: 3 }), "x", "Finance");
+    rec = applySessionCancelled(rec, { packageId: "cp", scheduleId: "s2", cancelReason: "sakit", date: "2026-10-08", deductCredit: true, by: "Rina" });
+    const sch = [{ id: "s2", date: "2026-10-08", startTime: "09:00", endTime: "10:00", therapistId: "t1", status: "cancelled", cancelReason: "S", cancelNote: "demam", type: "therapy", creditPackageId: "cp" }];
+    let rows = buildPackageMoneyLedgers(rec, sch)[0].ledger;
+    expect(rows[1]).toMatchObject({ detail: "Cancel / Off (pakai credit leave)", reasonCode: "S", leaveChange: -1, creditChange: 0, note: "demam", status: "cancelled" });
+
+    rec = applySessionReverted(rec, { scheduleId: "s2", date: "2026-10-09", reason: "salah klik", by: "Rina" });
+    rows = buildPackageMoneyLedgers(rec, [{ ...sch[0], status: "scheduled", cancelReason: null }])[0].ledger;
+    expect(rows[2]).toMatchObject({ detail: "Koreksi / revert", note: "Dibatalkan (revert) — salah klik" });
+  });
+
+  test("mutasi tanpa paket tidak hilang dari log (ikut paket fallback)", () => {
+    const rec = {
+      packages: [{ id: "cp", packageId: "pkg-reguler", packageName: "Regular Therapist (10x)", totalCredit: 10, remainingCredit: 10, price: 2500000 }],
+      history: [
+        { id: "1", action: "renewed", packageId: "cp", creditChange: 10, date: "2026-10-01" },
+        { id: "2", action: "cancel_excused", packageId: null, creditChange: 0, cancelReason: "OL", scheduleId: "s9", date: "2026-10-04" },
+      ],
+    };
+    const ledger = buildPackageMoneyLedgers(rec, [])[0].ledger;
+    expect(ledger.map((r) => r.id)).toEqual(["1", "2"]);
+    expect(ledger[1].reasonCode).toBe("OL");
+  });
+});

@@ -44,3 +44,15 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 ## Repo hygiene
 - Sisa Emergent: `backend/server.py`, `tests/`, `.emergent/`, `memory/`, `test_reports/`, `frontend/plugins/health-check/`, devDependency `@emergentbase/visual-edits`, folder `frontend/build/`.
 - `docs/` sudah bersih (4 Okt 2026): file temp Office dan `generate_requirement.py` (generator `.docx`, tak direferensikan) dihapus. Sisa non-guide hanya `Therapedia_Final_Requirement_v1.0.docx` (dokumen bisnis, jangan diedit tanpa diminta).
+
+## Catatan revisi 7 Okt 2026
+- **Sesi cuti susulan di luar jendela hitung**: hari cuti yang dipotong dari saldo ditetapkan saat log dicatat (`countedStart–countedEnd` = sesi pertama–terakhir). Cuti di Finance hanya bisa bila ada sesi di rentang; sesi yang dijadwalkan belakangan lalu dibatalkan sebagai cuti dan jatuh di luar jendela itu **tidak menambah hari** (keputusan klien 7 Okt 2026: cukup mengikuti aturan "harus ada sesi pada rentang yang dipilih").
+- **Saldo cuti data lama**: client tanpa `leaveGranted` (belum pernah membeli paket berjatah) memakai jatah bawaan 30 hari (`LEAVE_QUOTA_DAYS`).
+- **Diperbaiki (di luar permintaan, tetapi satu fungsi dengan perubahan revenue)**: Dashboard Revenue sebelumnya memasukkan invoice `void` ke *Gross Invoiced* dan *Pending Settlements*; sekarang void keluar dari semua angka (`revenueMetrics`).
+- **Refund & invoice pengganti**: invoice yang sudah direfund tidak bisa di-void maupun direfund lagi; paket yang direfund berstatus `voided` + `refunded` sehingga tidak muncul sebagai kandidat paket aktif.
+
+## Seed demo saling tersambung (7 Okt 2026)
+- **Satu seed untuk semua orang**: data demo ada di `frontend/src/data/*.seed.json` (+ `leaves.seed.json`) dan dibangun relatif ke hari ini oleh `seedLoader.js`; semua pengunjung (termasuk di Vercel) memulai dari data yang **sama**. Perubahan yang dibuat user tetap tersimpan **per browser** (localStorage) — belum ada data bersama antar orang sampai backend Laravel + MySQL jadi. `SEED_VERSION` (`data/seedRegistry.js`) dinaikkan setiap seed berubah agar browser lama memakai seed baru.
+- **Keterkaitan antar modul dijaga test** `data/__tests__/seedIntegrity.test.js`: client ↔ sesi ↔ terapis ↔ cabang ↔ akun staf ↔ record kredit ↔ invoice ↔ kode kuesioner ↔ log cuti, status pipeline ↔ tanggal/alasan/sesi, saldo paket ↔ ledger, credit leave, discharge, dan utilisasi terapis. Ubah seed → test ini wajib tetap lolos.
+- **Generator lama tertinggal**: `frontend/scripts/generate_demo_seed.py` belum memuat data baru (riwayat client discharged, paket konsultasi client done_consult, invoice assessment per kode + 1 kode gratis + 1 belum bayar, log cuti seed, `maxSessionsPerMonth` terapis). JANGAN dijalankan menimpa JSON sekarang; ubah JSON langsung (atau perbarui generator lebih dulu).
+- Tidak ada contoh refund / void di seed (fitur ada dan teruji di unit test), jadi kartu Refund/void di Dashboard Revenue awalnya 0.

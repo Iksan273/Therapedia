@@ -1,10 +1,10 @@
 import React from "react";
 import { Card } from "@/shared/ui/card";
-import { CalendarCheck, ClipboardList, Clock, FileCheck2, UserCheck, UserX } from "lucide-react";
+import { CalendarCheck, ClipboardList, Clock, FileCheck2, LogOut, UserCheck, UserX } from "lucide-react";
 
-export function KpiCards({ admittedCount, assessmentDoneCount, assessmentScheduledCount, awaitingQuestionnaires, conversionRate, discontinuedCount, totalInquiries }) {
+export function KpiCards({ admittedCount, assessmentDoneCount, assessmentScheduledCount, awaitingQuestionnaires, conversionRate, discontinuedCount, dischargedCount = 0, totalInquiries }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
         <Card className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase text-slate-400">Total Inquiry</span>
@@ -57,6 +57,15 @@ export function KpiCards({ admittedCount, assessmentDoneCount, assessmentSchedul
           </div>
           <p className="text-2xl font-black text-rose-800 tabular-nums">{discontinuedCount}</p>
           <p className="text-[11px] text-rose-600 font-medium">Batal / Tidak lanjut</p>
+        </Card>
+
+        <Card className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs space-y-1" data-testid="kpi-discharged">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-slate-400">Total Discharge</span>
+            <span className="p-1.5 rounded-lg bg-slate-100 text-slate-700"><LogOut className="w-4 h-4" /></span>
+          </div>
+          <p className="text-2xl font-black text-slate-800 tabular-nums">{dischargedCount}</p>
+          <p className="text-[11px] text-slate-500 font-medium">Selesai / keluar terapi</p>
         </Card>
       </div>
   );

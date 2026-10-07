@@ -16,7 +16,8 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-2015",
-        "status": "completed"
+        "status": "completed",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -640,7 +641,8 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-2011",
-        "status": "completed"
+        "status": "completed",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -1262,7 +1264,8 @@
       {
         "code": "ASM-1003",
         "categoryId": "cat-001",
-        "name": "Sensory & Developmental Profile"
+        "name": "Sensory & Developmental Profile",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [],
@@ -1289,7 +1292,8 @@
       {
         "code": "ASM-1004",
         "categoryId": "cat-001",
-        "name": "Sensory & Developmental Profile"
+        "name": "Sensory & Developmental Profile",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -1412,7 +1416,8 @@
         "categoryId": "cat-003",
         "categoryName": "Fine Motor & Visual Motor Integration Profile",
         "code": "ASM-2014",
-        "status": "completed"
+        "status": "completed",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -2047,12 +2052,14 @@
       {
         "code": "ASM-2001",
         "categoryId": "cat-001",
-        "name": "Sensory Profile"
+        "name": "Sensory Profile",
+        "invoiceRequired": true
       },
       {
         "code": "ASM-2002",
         "categoryId": "cat-002",
-        "name": "School Companion Profile"
+        "name": "School Companion Profile",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -2145,7 +2152,8 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-2016",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -2324,12 +2332,14 @@
       {
         "code": "ASM-4011",
         "categoryId": "cat-001",
-        "name": "Sensory & Developmental Profile"
+        "name": "Sensory & Developmental Profile",
+        "invoiceRequired": true
       },
       {
         "code": "ASM-4012",
         "categoryId": "cat-002",
-        "name": "School Companion Profile"
+        "name": "School Companion Profile",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -2449,13 +2459,15 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-2012",
-        "status": "completed"
+        "status": "completed",
+        "invoiceRequired": true
       },
       {
         "categoryId": "cat-002",
         "categoryName": "School Companion Profile (School / Classroom Function)",
         "code": "ASM-2013",
-        "status": "completed"
+        "status": "completed",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -3687,7 +3699,8 @@
         "categoryId": "cat-002",
         "categoryName": "School Companion Profile (School / Classroom Function)",
         "code": "ASM-2017",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [],
@@ -3886,7 +3899,8 @@
         "categoryId": "cat-002",
         "categoryName": "School Companion Profile (School / Classroom Function)",
         "code": "ASM-4005",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": false
       }
     ],
     "assessmentAnswers": [],
@@ -3915,7 +3929,8 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-4006",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [],
@@ -3944,7 +3959,8 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-4007",
-        "status": "completed"
+        "status": "completed",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -4694,7 +4710,8 @@
         "categoryId": "cat-002",
         "categoryName": "School Companion Profile (School / Classroom Function)",
         "code": "ASM-4014",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [],
@@ -4723,7 +4740,8 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-4015",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [],
@@ -4752,7 +4770,8 @@
         "categoryId": "cat-001",
         "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
         "code": "ASM-4016",
-        "status": "completed"
+        "status": "completed",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [
@@ -5504,7 +5523,8 @@
         "categoryId": "cat-002",
         "categoryName": "School Companion Profile (School / Classroom Function)",
         "code": "ASM-4023",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [],
@@ -5534,7 +5554,8 @@
         "categoryId": "cat-002",
         "categoryName": "School Companion Profile (School / Classroom Function)",
         "code": "ASM-4024",
-        "status": "ready"
+        "status": "ready",
+        "invoiceRequired": true
       }
     ],
     "assessmentAnswers": [],

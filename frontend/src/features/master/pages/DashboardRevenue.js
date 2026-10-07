@@ -1,5 +1,5 @@
 import { SearchInput } from "@/shared/components/FilterBar";
-import { matchesFinanceSearch } from "@/domain/credit";
+import { matchesFinanceSearch, netPaidAmount, revenueMetrics } from "@/domain/credit";
 import React, { useEffect, useMemo, useState } from "react";
 import { TrendingUp, Building2, Receipt, CheckCircle2, AlertCircle, Layers, ChevronLeft, ChevronRight, Users, UserCog, CalendarDays, Activity, BarChart3 } from "lucide-react";
 import {
@@ -171,34 +171,8 @@ export default function DashboardRevenue() {
     return tableInvoices.slice(start, start + invoicesPageSize);
   }, [tableInvoices, invoicesPage, invoicesPageSize]);
 
-  // Aggregate KPI metrics
-  const metrics = useMemo(() => {
-    let totalRevenue = 0;
-    let verifiedRevenue = 0;
-    let pendingRevenue = 0;
-    let totalInvoices = filteredInvoices.length;
-    let paidCount = 0;
-
-    filteredInvoices.forEach((inv) => {
-      const amt = Number(inv.amount) || 0;
-      totalRevenue += amt;
-      if (inv.status === "paid") {
-        verifiedRevenue += amt;
-        paidCount++;
-      } else {
-        pendingRevenue += amt;
-      }
-    });
-
-    return {
-      totalRevenue,
-      verifiedRevenue,
-      pendingRevenue,
-      totalInvoices,
-      paidCount,
-      collectionRate: totalRevenue > 0 ? Math.round((verifiedRevenue / totalRevenue) * 100) : 0,
-    };
-  }, [filteredInvoices]);
+  // Aggregate KPI metrics (domain/credit.js: void keluar; refund tetap di Gross tapi keluar dari Verified)
+  const metrics = useMemo(() => revenueMetrics(filteredInvoices), [filteredInvoices]);
 
   // Branch omzet comparison data
   const branchRevenueData = useMemo(() => {
@@ -209,7 +183,7 @@ export default function DashboardRevenue() {
 
     allInvoices.forEach((inv) => {
       if (inv.status === "paid" && map[inv.branchId]) {
-        map[inv.branchId].total += Number(inv.amount) || 0;
+        map[inv.branchId].total += netPaidAmount(inv);
       }
     });
 
@@ -222,7 +196,7 @@ export default function DashboardRevenue() {
     filteredInvoices.forEach((inv) => {
       if (inv.status === "paid") {
         const name = inv.packageName || "Other Services";
-        counts[name] = (counts[name] || 0) + (Number(inv.amount) || 0);
+        counts[name] = (counts[name] || 0) + netPaidAmount(inv);
       }
     });
 
@@ -353,6 +327,7 @@ export default function DashboardRevenue() {
             </p>
             <p className="text-[11px] font-medium text-slate-500">
               {metrics.paidCount} dari {metrics.totalInvoices} tagihan lunas
+              {metrics.refundTotal > 0 ? ` • setelah refund ${fmtCurrency(metrics.refundTotal)}` : ""}
             </p>
           </div>
 
@@ -378,7 +353,7 @@ export default function DashboardRevenue() {
               {fmtCurrency(metrics.totalRevenue)}
             </p>
             <p className="text-[11px] font-medium text-slate-500">
-              Total nilai tagihan terbit
+              Total nilai tagihan terbit (refund tetap termasuk{metrics.refundTotal > 0 ? `: ${fmtCurrency(metrics.refundTotal)}` : ""})
             </p>
           </div>
 

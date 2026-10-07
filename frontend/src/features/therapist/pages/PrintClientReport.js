@@ -69,7 +69,6 @@ export default function PrintClientReport() {
   const completed = history.filter((s) => s.status === "completed").length;
   const cancelled = history.filter((s) => s.status === "cancelled").length;
   const rescheduled = history.filter((s) => s.status === "rescheduled").length;
-  const off = history.filter((s) => s.status === "off").length;
 
   return (
     <div className="min-h-screen bg-slate-100/70 print:bg-white py-8 print:py-0 px-4 print:px-0" data-testid="print-client-report-page">
@@ -183,19 +182,19 @@ export default function PrintClientReport() {
           {/* Credit summary */}
           <Section title="Package & Attendance Metrics">
             {!record ? (
-              <p className="text-xs text-slate-400 italic">No therapy package ledger on record.</p>
+              <p className="text-xs text-slate-400 italic">Belum ada riwayat paket terapi.</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3.5 bg-slate-50/70 p-4 rounded-xl border border-slate-200/70">
                 <InfoItem label="Package Plan" value={record.packageName} />
                 <InfoItem label="Remaining Credits" value={`${record.remainingCredit} / ${record.totalCredit} sessions`} />
-                <InfoItem label="Leave Allotment" value={cancelQuotaByPackage(record).rows.map((r) => `${r.label}: ${r.cancelCount}/${r.quota} used${r.over ? " (Over quota)" : ""}`).join(" • ") || "-"} />
+                <InfoItem label="Credit Leave" value={cancelQuotaByPackage(record).rows.map((r) => `${r.label}: ${r.remaining}/${r.quota} tersisa`).join(" • ") || "-"} />
                 <InfoItem label="Purchase Date" value={fmtDate(record.purchaseDate)} />
               </div>
             )}
           </Section>
 
           {/* Session history */}
-          <Section title={`Clinical Session Log (${history.length} total · ${completed} completed · ${cancelled} cancelled · ${off} off · ${rescheduled} rescheduled)`}>
+          <Section title={`Clinical Session Log (${history.length} total · ${completed} completed · ${cancelled} cancelled/off · ${rescheduled} rescheduled)`}>
             {history.length === 0 ? (
               <p className="text-xs text-slate-400 italic">No therapy sessions recorded yet.</p>
             ) : (

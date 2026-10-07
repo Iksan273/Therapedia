@@ -63,12 +63,21 @@ export const ENDPOINTS = {
     report: (id) => `/schedules/${id}/report`,
     complete: (id) => `/schedules/${id}/complete`,
     cancel: (id) => `/schedules/${id}/cancel`,
+    off: (id) => `/schedules/${id}/off`,
     reschedule: (id) => `/schedules/${id}/reschedule`,
     markPending: (id) => `/schedules/${id}/mark-pending`,
     dropPending: (id) => `/schedules/${id}/drop-pending`,
     revert: (id) => `/schedules/${id}/revert`,
     bulkAction: (action) => `/schedules/bulk/${action}`,
     conflicts: "/schedules/conflicts",
+  },
+  // Cuti client (jatah 30 hari/tahun kalender): log Finance + sesi Off; jatah dihitung live
+  leaves: {
+    list: "/leaves",
+    detail: (id) => `/leaves/${id}`,
+    end: (id) => `/leaves/${id}/end`,
+    void: (id) => `/leaves/${id}/void`,
+    quota: (clientId) => `/clients/${clientId}/leave-quota`,
   },
   invoices: {
     list: "/invoices",

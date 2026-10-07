@@ -5,7 +5,8 @@ import { useTherapists } from "@/stores/therapistsStore";
 import { useHolidays } from "@/stores/holidaysStore";
 import { useAuth } from "@/stores/authStore";
 import { advanceStatus } from "@/domain/client";
-import { CANCEL_QUOTA, findLiveSessionEntry, invoiceTypeCode, resolveSessionPackage } from "@/domain/credit";
+import { findLiveSessionEntry, leaveRemainingOf, resolveSessionPackage } from "@/domain/credit";
+import { LEAVE_OFF_REASON } from "@/domain/leave";
 import { nowIso, todayStr } from "@/shared/lib/id";
 import {
   CLEAR_PENDING_PATCH,
@@ -18,6 +19,7 @@ import {
   restoreSlotOf,
   restoreStatusOf,
   scheduleSlot,
+  OTHER_REASON,
 } from "@/domain/schedule";
 
 // Use-case sesi terapi/asesmen. Satu-satunya tempat yang merangkai perubahan lintas store
@@ -30,7 +32,7 @@ export function useSessionActions() {
   const { schedules, addSchedule, addSchedules, updateSchedule, updateSchedulesMany, rescheduleSchedulesBulk, deleteSchedules } = useSchedules();
   const { auth } = useAuth();
   const { getClient, updateClient } = useClients();
-  const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit, issueInvoice } = useCredits();
+  const { getRecordForClient, spendPackageCredit, handleScheduleCancellation, revertSessionCredit } = useCredits();
   const { therapists } = useTherapists();
   const by = auth?.staffName || auth?.role || null; // pelaku mutasi kredit (credit_ledger.created_by)
   const { holidays } = useHolidays();
@@ -112,7 +114,10 @@ export function useSessionActions() {
     const client = getClient(schedule.clientId);
     const creditRecord = client ? getRecordForClient(client.id) : null;
     const pkg = findPackage(creditRecord, schedule);
-    const deducted = deductCredit && Boolean(pkg) && pkg.remainingCredit > 0;
+    // Pilihan potong: credit leave paket dipakai lebih dulu (kredit sesi utuh); bila habis baru 1 kredit sesi dipotong
+    const wantsCut = Boolean(deductCredit) && Boolean(pkg) && kind !== "off";
+    const usedLeave = wantsCut && leaveRemainingOf(pkg) > 0;
+    const deducted = wantsCut && !usedLeave && pkg.remainingCredit > 0;
     const cancelCount = (pkg?.cancelCount || 0) + (kind === "off" ? 0 : 1);
     handleScheduleCancellation({
       clientId: schedule.clientId,
@@ -124,43 +129,32 @@ export function useSessionActions() {
       kind,
       by,
     });
-    return { cancelCount, deducted, quotaExceeded: kind !== "off" && cancelCount > CANCEL_QUOTA };
+    return { cancelCount, deducted, usedLeave, leaveLeft: pkg ? leaveRemainingOf(pkg) - (usedLeave ? 1 : 0) : 0 };
   };
 
-  // Cancel: admin memilih potong kredit atau tidak. Kuota 3 per paket hanya penghitung (UI memberi peringatan bila lewat).
+  // Cancel / Off: admin memilih potong atau tidak. Potong = pakai credit leave paket (kredit sesi utuh); credit leave habis = potong 1 kredit sesi.
   const cancelSession = (schedule, { cancelReason, note, deductCredit }) => {
     requireDeductChoice(deductCredit);
     updateSchedule(schedule.id, { status: "cancelled", previousStatus: schedule.status, revertedAt: null, cancelReason, cancelNote: note?.trim() || null });
-    const { cancelCount, deducted, quotaExceeded } = applyCancelCredit(schedule, cancelReason, deductCredit);
-    return { cancelCount, deducted, penalized: deducted, quotaExceeded };
+    const { cancelCount, deducted, usedLeave, leaveLeft } = applyCancelCredit(schedule, cancelReason, deductCredit);
+    return { cancelCount, deducted, usedLeave, leaveLeft, penalized: deducted };
   };
 
-  // Off (terapis/klinik off): status `off` + alasan. Seperti cancel, admin WAJIB memilih potong kredit atau tidak;
-  // bedanya TIDAK menambah kuota cancel paket.
-  // `leaveInvoiceAmount` (opsional, rupiah manual dari admin): sekaligus menerbitkan invoice cuti (type `leave`, unpaid →
-  // Menunggu Pembayaran Finance), tidak memengaruhi pilihan potong kredit.
-  const offSession = (schedule, { offReason, note, deductCredit, leaveInvoiceAmount = null }) => {
+  // Cancel dan Off adalah SATU mekanisme (revisi 7 Okt 2026): `cancelSession` dengan alasan dari daftar gabungan. Pembatalan
+  // karena CUTI dari Finance memakai fungsi ini: status `cancelled`, alasan OL, `leaveId` = log cuti. Admin/Finance tetap
+  // WAJIB memilih potong kredit atau tidak; pembatalan cuti TIDAK menambah kuota cancel paket (ledger `off_*`).
+  const cancelForLeave = (schedule, { note, deductCredit, leaveId }) => {
     requireDeductChoice(deductCredit);
-    updateSchedule(schedule.id, { status: "off", previousStatus: schedule.status, revertedAt: null, offReason, offNote: note?.trim() || null });
-    const { deducted } = applyCancelCredit(schedule, offReason, deductCredit, "off");
-    let leaveInvoiced = false;
-    const amount = Number(leaveInvoiceAmount);
-    if (amount > 0) {
-      const client = getClient(schedule.clientId);
-      issueInvoice({
-        clientId: schedule.clientId,
-        clientName: client?.clientName || "",
-        branchId: schedule.branchId || client?.branchId,
-        type: "leave",
-        typeCode: invoiceTypeCode("leave", null),
-        packageName: `Cuti ${schedule.date} ${schedule.startTime}–${schedule.endTime}`,
-        amount,
-        leaveScheduleId: schedule.id,
-        by,
-      });
-      leaveInvoiced = true;
-    }
-    return { deducted, leaveInvoiced };
+    updateSchedule(schedule.id, {
+      status: "cancelled",
+      previousStatus: schedule.status,
+      revertedAt: null,
+      cancelReason: LEAVE_OFF_REASON,
+      cancelNote: note?.trim() || null,
+      leaveId: leaveId || null,
+    });
+    const { deducted } = applyCancelCredit(schedule, LEAVE_OFF_REASON, deductCredit, "off");
+    return { deducted };
   };
 
   // Pindah ke slot baru. Validasi bentrok dilakukan pemanggil (checkConflicts) sebelum memanggil ini.
@@ -203,14 +197,14 @@ export function useSessionActions() {
       cancelNote: note?.trim() || null,
       ...CLEAR_PENDING_PATCH,
     });
-    const { cancelCount, deducted, quotaExceeded } = applyCancelCredit(schedule, RESCHEDULE_DROPPED, deductCredit);
-    return { cancelCount, deducted, quotaExceeded };
+    const { cancelCount, deducted, usedLeave, leaveLeft } = applyCancelCredit(schedule, RESCHEDULE_DROPPED, deductCredit);
+    return { cancelCount, deducted, usedLeave, leaveLeft };
   };
 
-  // ---- Revert: batalkan completed / cancel / off (salah klik) ----
+  // ---- Revert: batalkan completed / cancel (salah klik) ----
   // Efek revert yang akan terjadi (dipakai pratinjau di UI dan oleh revertSession itu sendiri)
   const previewRevert = (schedule) => {
-    const kind = { completed: "completion", cancelled: "cancellation", off: "off", rescheduled: "reschedule", reschedule_pending: "pending" }[schedule.status];
+    const kind = { completed: "completion", cancelled: "cancellation", rescheduled: "reschedule", reschedule_pending: "pending" }[schedule.status];
     const client = getClient(schedule.clientId);
     const creditRecord = client ? getRecordForClient(client.id) : null;
     // Reschedule dan tandai pending tidak punya efek kredit (netral), jadi tidak ada mutasi ledger yang dibalik
@@ -230,18 +224,20 @@ export function useSessionActions() {
       toStatus: restoreStatusOf(schedule),
       toSlot: restoreSlotOf(schedule),
       creditChange: entry && !["cancel_excused", "off_excused"].includes(entry.action) ? 1 : 0,
-      quotaChange: entry && ["cancel_excused", "cancel_penalty"].includes(entry.action) ? -1 : 0,
+      quotaChange: entry && ["cancel_excused", "cancel_penalty", "cancel_leave"].includes(entry.action) ? -1 : 0,
     };
   };
 
   // Terapkan revert satu sesi ke store
-  const applyRevert = (schedule, note) => {
+  // `releaseFromLeave` = sesi Off cuti dikembalikan oleh Finance (akhiri cuti lebih awal / void): koreksi cuti, bukan revert
+  // sesi, sehingga `revertedAt` tetap kosong (tidak memakan jatah "revert 1x" sesi itu).
+  const applyRevert = (schedule, note, { releaseFromLeave = false } = {}) => {
     const { kind, client, entry, clientRestore, toStatus, toSlot, creditChange, quotaChange } = previewRevert(schedule);
 
     // revertedAt: revert hanya 1x; diblokir sampai ada transisi baru pada sesi ini
-    const patch = { status: toStatus, previousStatus: schedule.status, revertedAt: nowIso(), clientStatusFrom: null, clientStatusTo: null };
-    if (kind === "cancellation") Object.assign(patch, { cancelReason: null, cancelNote: null });
-    if (kind === "off") Object.assign(patch, { offReason: null, offNote: null });
+    const patch = { status: toStatus, previousStatus: schedule.status, revertedAt: releaseFromLeave ? null : nowIso(), clientStatusFrom: null, clientStatusTo: null };
+    // Kembali jadi jadwal aktif: bila sesi ini pembatalan cuti, hari cutinya otomatis berhenti dihitung (leaveId dilepas)
+    if (kind === "cancellation") Object.assign(patch, { cancelReason: null, cancelNote: null, leaveId: null });
     if (kind === "pending") Object.assign(patch, CLEAR_PENDING_PATCH);
     if (kind === "reschedule") {
       Object.assign(patch, { date: toSlot.date, startTime: toSlot.startTime, endTime: toSlot.endTime, therapistId: toSlot.therapistId, rescheduledPrev: null });
@@ -259,6 +255,17 @@ export function useSessionActions() {
   };
 
   const revertSession = (schedule, { reason }) => applyRevert(schedule, reason.trim()).result;
+
+  // Kembalikan sesi cuti (cancelled, alasan OL) ke jadwal aktif (dipanggil useLeaveActions; slot sudah dicek `planEarlyReturn`).
+  // Kredit: baris `reversal` bila Off tadi tercatat di ledger (penalty dibalik, excused netral).
+  const releaseFromLeave = (list, { reason }) => {
+    let creditChange = 0;
+    list.forEach((s) => {
+      if (s.status !== "cancelled") return;
+      creditChange += applyRevert(s, reason, { releaseFromLeave: true }).result.creditChange;
+    });
+    return { released: list.length, creditChange };
+  };
 
   // Hapus sesi (soft delete; tombol hanya untuk role `canDelete`). Sesi completed harus di-revert dulu agar kredit konsisten.
   const deleteSession = (schedule) => {
@@ -299,7 +306,7 @@ export function useSessionActions() {
     requireDeductChoice(deductCredit);
     const list = pick(ids);
     const cancelNote = note ? `Bulk Cancel: ${note}` : "Bulk Cancelled";
-    const cancelReason = mode === "leave" ? "izin_keluarga" : "lainnya";
+    const cancelReason = mode === "leave" ? "FM" : OTHER_REASON;
     list.forEach((s) => applyCancelCredit(s, cancelReason, deductCredit));
     updateSchedulesMany(ids, { status: "cancelled", cancelReason, cancelNote, revertedAt: null });
   };
@@ -374,13 +381,14 @@ export function useSessionActions() {
     saveReport,
     completeSession,
     cancelSession,
-    offSession,
+    cancelForLeave,
     rescheduleSession,
     markPending,
     dropPending,
     deleteSession,
     previewRevert,
     revertSession,
+    releaseFromLeave,
     bulkRevert,
     bulkComplete,
     bulkCancel,

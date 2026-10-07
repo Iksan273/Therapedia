@@ -6,7 +6,7 @@ const CUSTOM = "__custom__";
 
 // Pilihan cepat + opsi "Lainnya (ketik sendiri)". Nilai yang dikirim ke `onChange` selalu STRING:
 // `value` pilihan cepat, atau teks bebas yang diketik user (tanpa relasi ke daftar pilihan).
-export function ReasonPicker({ options, value, onChange, placeholder = "Pilih alasan...", customPlaceholder = "Tulis alasan sendiri...", testId, className }) {
+export function ReasonPicker({ options, value, onChange, placeholder = "Pilih alasan...", customPlaceholder = "Tulis alasan sendiri...", testId, className, showCode = false }) {
   const matchesOption = Boolean(value) && options.some((o) => o.value === value);
   const [forceCustom, setForceCustom] = useState(false);
 
@@ -36,7 +36,7 @@ export function ReasonPicker({ options, value, onChange, placeholder = "Pilih al
         <SelectContent className="rounded-xl border-slate-200">
           {options.map((r) => (
             <SelectItem key={r.value} value={r.value}>
-              {r.label}
+              {showCode ? `${r.value} - ${r.label}` : r.label}
             </SelectItem>
           ))}
           <SelectItem value={CUSTOM}>Lainnya (ketik sendiri)</SelectItem>

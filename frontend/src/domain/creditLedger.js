@@ -1,4 +1,4 @@
-import { bookingNoteOf } from "@/domain/schedule";
+import { bookingNoteOf, cancelNoteOf, cancelReasonCode } from "@/domain/schedule";
 import { activePackageOf, packageBaseName, unitValueOf } from "@/domain/credit";
 
 // Buku besar kredit + uang per client (modul Finance "Log Kredit & Saldo"). Murni TURUNAN dari `record.history`
@@ -6,22 +6,27 @@ import { activePackageOf, packageBaseName, unitValueOf } from "@/domain/credit";
 // paketnya (harga bayar paket ÷ total sesi), jadi sesi completed mengurangi saldo rupiah sebesar harga per sesi.
 
 // Pelaku bawaan bila baris lama tidak mencatat `by`: Finance untuk mutasi paket/uang, Admin Schedule untuk mutasi sesi.
-const FINANCE_ACTIONS = ["renewed", "converted_in", "converted_out", "manual_adjust"];
+const FINANCE_ACTIONS = ["renewed", "converted_in", "converted_out", "manual_adjust", "refund"];
 export const actorOf = (by, action) => by || (FINANCE_ACTIONS.includes(action) ? "Finance" : "Admin Schedule");
+
+// Aksi yang berasal dari pembatalan sesi (Cancel / Off): alasan (CODE) ikut tampil di log
+const CANCEL_ACTIONS = ["cancel_penalty", "cancel_leave", "cancel_excused", "off_penalty", "off_excused"];
 
 const UPCOMING = ["scheduled", "rescheduled", "reschedule_pending"];
 
 const ACTION_DETAIL = {
   renewed: "Top up paket",
   used: "Sesi terpakai",
-  cancel_penalty: "Cancel (potong kredit)",
-  cancel_excused: "Cancel (kredit utuh)",
-  off_penalty: "Off (potong kredit)",
-  off_excused: "Off (kredit utuh)",
+  cancel_penalty: "Cancel / Off (potong kredit)",
+  cancel_leave: "Cancel / Off (pakai credit leave)",
+  cancel_excused: "Cancel / Off (kredit utuh)",
+  off_penalty: "Cancel / Off cuti (potong kredit)",
+  off_excused: "Cancel / Off cuti (kredit utuh)",
   reversal: "Koreksi / revert",
   manual_adjust: "Koreksi / pencabutan kredit",
   converted_out: "Konversi keluar",
   converted_in: "Konversi masuk",
+  refund: "Refund (sisa kredit dikembalikan)",
 };
 
 // Harga per sesi sebuah paket client. Paket tanpa snapshot harga memakai harga master (bila ada), selain itu null.
@@ -91,6 +96,8 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
       note = firstTopUpSeen ? "Renewal" : "Saldo awal";
       firstTopUpSeen = true;
     } else if (h.action === "converted_in" || h.action === "converted_out") note = "Konversi paket";
+    else if (h.action === "reversal") note = h.note || ""; // alasan revert (jejak koreksi dari jadwal)
+    else if (CANCEL_ACTIONS.includes(h.action)) note = (s?.status === "cancelled" && cancelNoteOf(s)) || bookingNoteOf(s) || "";
     else if (s) note = bookingNoteOf(s) || "";
     else note = h.note || "";
 
@@ -106,6 +113,9 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
       status: s?.status || null,
       note,
       detail: ACTION_DETAIL[h.action] || h.action,
+      // CODE alasan cancel/off (dari ledger; bila kosong, dari sesi yang masih cancelled)
+      reasonCode: CANCEL_ACTIONS.includes(h.action) ? cancelReasonCode(h.cancelReason || (s?.status === "cancelled" ? s.cancelReason : null)) : "",
+      leaveChange: h.leaveChange || 0, // credit leave paket yang terpakai (−1) pada baris ini
       creditChange: h.creditChange || 0,
       amount,
       balance,
@@ -131,6 +141,8 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
         status: s.status,
         note: bookingNoteOf(s) || "",
         detail: "Terjadwal (belum memotong kredit)",
+        reasonCode: "",
+        leaveChange: 0,
         creditChange: 0,
         amount: 0,
         balance,
@@ -144,10 +156,11 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
 export function buildPackageMoneyLedgers(record, schedules = [], opts = {}) {
   const packages = record?.packages || [];
   const history = record?.history || [];
-  const fallbackId = activePackageOf(record)?.id;
+  const fallbackId = activePackageOf(record)?.id || packages[packages.length - 1]?.id;
   return packages
     .map((pkg) => {
-      const pkgHistory = history.filter((h) => h.packageId === pkg.id);
+      // Mutasi tanpa paket (mis. cancel saat client belum punya paket) ikut paket fallback agar tidak hilang dari log
+      const pkgHistory = history.filter((h) => h.packageId === pkg.id || (!h.packageId && pkg.id === fallbackId));
       if (pkgHistory.length === 0) return null; // paket tanpa mutasi kredit tidak punya log
       const ledgered = new Set(pkgHistory.map((h) => h.scheduleId).filter(Boolean));
       const pkgSchedules = schedules.filter(

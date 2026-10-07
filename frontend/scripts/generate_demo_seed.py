@@ -38,9 +38,9 @@ PKG = {
 }
 PROOF = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400"
 
-CANCEL_REASONS = (["sakit"] * 40 + ["izin_keluarga"] * 25 + ["bentrok_sekolah"] * 15 + ["tanpa_kabar"] * 12 + ["lainnya"] * 8)
-DROPPED = "reschedule_dibatalkan"  # dibatalkan dari reschedule menggantung (tanpa potong kredit)
-CANCEL_LABEL = {"sakit": "Sakit", "izin_keluarga": "Izin Keluarga", "bentrok_sekolah": "Bentrok Sekolah", "tanpa_kabar": "Tanpa Kabar", "lainnya": "Lainnya"}
+CANCEL_REASONS = (["S"] * 40 + ["FM"] * 25 + ["SCA"] * 15 + ["NS"] * 12 + ["LN"] * 8)
+DROPPED = "RD"  # dibatalkan dari reschedule menggantung (tanpa potong kredit)
+CANCEL_LABEL = {"S": "S", "FM": "FM", "SCA": "SCA", "NS": "NS", "LN": "LN"}
 
 ACTIVITY = [
     "Latihan integrasi sensori dengan tactile bin (beras warna dan sensory sand). Anak mulai mentoleransi tekstur basah selama 10-15 menit.",

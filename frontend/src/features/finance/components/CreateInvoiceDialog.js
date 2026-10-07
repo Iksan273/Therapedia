@@ -6,6 +6,8 @@ import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { fmtCurrency } from "@/shared/lib/format";
 import { INVOICE_TYPES } from "@/domain/credit";
+import { leaveOptionLabel, linkableLeaves } from "@/domain/leave";
+import { fmtDate } from "@/shared/lib/format";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
@@ -13,7 +15,10 @@ import { Textarea } from "@/shared/ui/textarea";
 import { BalanceHint } from "@/features/finance/components/BalanceHint";
 import { ReplacementChoice } from "@/features/finance/components/ReplacementChoice";
 
-export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, issueOpen, masterPackages, replacementOptions = [], setIssueForm, setIssueOpen }) {
+export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, issueOpen, masterPackages, replacementOptions = [], leaves = [], setIssueForm, setIssueOpen }) {
+  const isLeave = issueForm.type === "leave";
+  const isAssessment = issueForm.type === "assessment";
+  const leaveOptions = linkableLeaves(leaves, issueForm.clientId);
   return (
     <Dialog open={issueOpen} onOpenChange={setIssueOpen}>
         <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200">
@@ -22,13 +27,13 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
               <Receipt className="w-5 h-5 text-sky-600" /> Terbitkan Tagihan Invoice
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Pilih client, jenis invoice (Paket Sesi atau Assessment), dan nominal untuk menerbitkan tagihan.
+              Pilih client, jenis invoice (Paket Sesi, Assessment, atau Cuti), dan nominal untuk menerbitkan tagihan.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleIssueSubmit} className="space-y-3.5 pt-2">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Pilih Client *</Label>
-              <ClientCombobox clients={clients} value={issueForm.clientId} onChange={(val) => setIssueForm({ ...issueForm, clientId: val, replacesInvoiceId: "" })} placeholder="Cari client..." testId="invoice-client-select" />
+              <ClientCombobox clients={clients} value={issueForm.clientId} onChange={(val) => setIssueForm({ ...issueForm, clientId: val, replacesInvoiceId: "", leaveId: "" })} placeholder="Cari client..." testId="invoice-client-select" />
             </div>
 
             <div className="space-y-1">
@@ -39,7 +44,8 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
                   setIssueForm({
                     ...issueForm,
                     type: val,
-                    amount: val === "assessment" ? "" : masterPackages.find((p) => p.id === issueForm.packageId)?.price ?? issueForm.amount,
+                    leaveId: "",
+                    amount: val === "assessment" || val === "leave" ? "" : masterPackages.find((p) => p.id === issueForm.packageId)?.price ?? issueForm.amount,
                   })
                 }
               >
@@ -54,12 +60,33 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
                   ))}
                 </SelectContent>
               </Select>
-              {issueForm.type === "assessment" && (
+              {isAssessment && (
                 <p className="text-[11px] text-slate-500">Invoice assessment yang belum lunas menahan akses ortu ke kuesioner; Finance menandai lunas setelah pembayaran diterima.</p>
+              )}
+              {isLeave && (
+                <p className="text-[11px] text-slate-500">Invoice cuti: nominal diisi Finance, lunas tanpa efek ke kredit atau paket. Boleh disambungkan ke log cuti yang sudah dibuat bila diperlukan.</p>
               )}
             </div>
 
-            {issueForm.type !== "assessment" && (
+            {isLeave && (
+              <div className="space-y-1" data-testid="invoice-leave-link-section">
+                <Label className="text-xs font-bold text-slate-700">Hubungkan dengan log cuti <span className="font-normal text-slate-500">(opsional)</span></Label>
+                <Select value={issueForm.leaveId || "none"} onValueChange={(v) => setIssueForm({ ...issueForm, leaveId: v === "none" ? "" : v })} disabled={!issueForm.clientId}>
+                  <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold" data-testid="invoice-leave-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    <SelectItem value="none">Tidak dihubungkan (tagihan cuti mandiri)</SelectItem>
+                    {leaveOptions.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>{leaveOptionLabel(l, fmtDate)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {issueForm.clientId && leaveOptions.length === 0 && <p className="text-[11px] text-slate-500" data-testid="invoice-leave-empty">Client ini belum punya log cuti aktif. Invoice tetap bisa diterbitkan tanpa hubungan.</p>}
+              </div>
+            )}
+
+            {!isAssessment && !isLeave && (
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Pilih Paket Layanan *</Label>
               <Select
@@ -87,7 +114,7 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
             </div>
             )}
 
-            {issueForm.type !== "assessment" && (
+            {!isAssessment && !isLeave && (
               <ReplacementChoice options={replacementOptions} value={issueForm.replacesInvoiceId} onChange={(v) => setIssueForm({ ...issueForm, replacesInvoiceId: v })} />
             )}
 
@@ -100,13 +127,13 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
                 onChange={(e) => setIssueForm({ ...issueForm, amount: e.target.value })}
               />
             </div>
-            {issueForm.type !== "assessment" && <BalanceHint clientId={issueForm.clientId} amount={issueForm.amount} />}
+            {!isAssessment && !isLeave && <BalanceHint clientId={issueForm.clientId} amount={issueForm.amount} />}
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 space-y-2">
               <div className="flex items-center justify-between gap-3 min-h-10">
                 <div>
                   <Label htmlFor="invoice-paid-direct" className="text-xs font-bold text-slate-700 cursor-pointer">Langsung lunas</Label>
-                  <p className="text-[11px] text-slate-500">Pembayaran sudah diterima (mis. paket pertama). Invoice langsung lunas{issueForm.type === "assessment" ? "" : " dan paket aktif"}.</p>
+                  <p className="text-[11px] text-slate-500">Pembayaran sudah diterima (mis. paket pertama). Invoice langsung lunas{isAssessment || isLeave ? "" : " dan paket aktif"}.</p>
                 </div>
                 <Switch id="invoice-paid-direct" checked={Boolean(issueForm.paidDirect)} onCheckedChange={(v) => setIssueForm({ ...issueForm, paidDirect: v })} data-testid="invoice-paid-direct-switch" />
               </div>

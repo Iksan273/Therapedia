@@ -11,7 +11,6 @@ import {
 } from "@/shared/ui/sheet";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { Textarea } from "@/shared/ui/textarea";
@@ -42,7 +41,7 @@ import {
   isCreditNeutralCancel,
   timeToMin,
 } from "@/domain/schedule";
-import { CANCEL_QUOTA, resolveSessionPackage } from "@/domain/credit";
+import { leaveRemainingOf, leaveTotalOf, resolveSessionPackage } from "@/domain/credit";
 import { SessionHistoryNoteDialog } from "@/shared/components/SessionHistoryNoteDialog";
 import { fmtCurrency, fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
@@ -55,14 +54,10 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
   const { getRecordForClient } = useCredits();
   const { holidays } = useHolidays();
   const sessionActions = useSessionActions();
-  const { activeCancelReasons, getCancelReasonLabel, activeOffReasons, getOffReasonLabel } = useMasterData();
+  const { activeCancelReasons, getCancelReasonCode, getCancelReasonLabel } = useMasterData();
 
   const [noteOpen, setNoteOpen] = useState(false); // dialog catatan sesi (sama dengan Catatan di detail client & log kredit)
-  const [mode, setMode] = useState("view"); // view | cancel | off | reschedule | drop
-  const [offReason, setOffReason] = useState("");
-  const [offNote, setOffNote] = useState("");
-  const [offInvoice, setOffInvoice] = useState(false); // terbitkan invoice cuti saat Off
-  const [offInvoiceAmount, setOffInvoiceAmount] = useState("");
+  const [mode, setMode] = useState("view"); // view | cancel (Cancel / Off, satu mekanisme) | reschedule | drop
   const [rescheduleKind, setRescheduleKind] = useState("move"); // move = pindah sekarang, pending = jadwal pengganti menyusul
   const [pendingReason, setPendingReason] = useState("");
   const [pendingNote, setPendingNote] = useState("");
@@ -91,10 +86,6 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
       setDropNote("");
       setDeductChoice("");
       setCancelReason(schedule.cancelReason || "");
-      setOffReason(schedule.offReason || "");
-      setOffNote(schedule.offNote || "");
-      setOffInvoice(false);
-      setOffInvoiceAmount("");
       setCancelNote(cancelNoteOf(schedule) || "");
       setActivitySection(schedule.activitySection || "");
       setNoteSection(schedule.noteSection || schedule.progressNote || "");
@@ -207,7 +198,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     onOpenChange(false);
   };
 
-  // Cancel session with reason and penalty rule > CANCEL_QUOTA (Admin Schedule only)
+  // Cancel / Off dengan alasan; potong = credit leave paket dulu, habis baru kredit sesi (Admin Schedule only)
   const handleCancel = () => {
     if (!canCancel) {
       toast.error("Hanya Admin Schedule yang berhak membatalkan sesi.");
@@ -221,47 +212,24 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     }
 
     if (!deductChoice) {
-      toast.error("Pilih dulu: potong 1 kredit atau jangan potong kredit.");
+      toast.error("Pilih dulu: potong atau jangan potong.");
       return;
     }
 
-    const { cancelCount, deducted, quotaExceeded } = sessionActions.cancelSession(schedule, {
+    const { deducted, usedLeave, leaveLeft } = sessionActions.cancelSession(schedule, {
       cancelReason: reason,
       note: cancelNote,
       deductCredit: deductChoice === "deduct",
     });
-    const quotaText = `Cancel ke-${cancelCount} pada paket (kuota ${CANCEL_QUOTA}x${quotaExceeded ? ", sudah lewat" : ""}).`;
-    if (deducted) {
-      toast.warning(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). ${quotaText} 1 kredit dipotong.`);
+    const label = getCancelReasonCode(reason);
+    if (usedLeave) {
+      toast.warning(`Sesi dibatalkan (${label}). 1 credit leave paket dipakai (sisa ${leaveLeft}); kredit sesi utuh.`);
+    } else if (deducted) {
+      toast.warning(`Sesi dibatalkan (${label}). Credit leave habis, 1 kredit sesi dipotong.`);
     } else {
-      toast.info(`Sesi dibatalkan (${getCancelReasonLabel(reason)}). ${quotaText} Kredit tidak dipotong.`);
+      toast.info(`Sesi dibatalkan (${label}). Tidak ada yang dipotong.`);
     }
 
-    onOpenChange(false);
-  };
-
-  // Off: sesi tidak berjalan karena off (OL, S, SCA, MCU, FM, TI, H, atau teks bebas). Admin memilih potong kredit atau tidak.
-  const handleOff = () => {
-    if (!canCancel) {
-      toast.error("Hanya Admin Schedule yang berhak menandai sesi Off.");
-      return;
-    }
-    const reason = offReason.trim();
-    if (!reason) {
-      toast.error("Pilih atau tulis alasan Off.");
-      return;
-    }
-    if (!deductChoice) {
-      toast.error("Pilih dulu: potong 1 kredit atau jangan potong kredit.");
-      return;
-    }
-    const leaveInvoiceAmount = offInvoice ? Number(offInvoiceAmount) : null;
-    if (offInvoice && !(leaveInvoiceAmount > 0)) {
-      toast.error("Isi nominal invoice cuti (lebih dari 0) atau matikan penerbitan invoice.");
-      return;
-    }
-    const { deducted, leaveInvoiced } = sessionActions.offSession(schedule, { offReason: reason, note: offNote, deductCredit: deductChoice === "deduct", leaveInvoiceAmount });
-    toast.info(`Sesi ditandai Off (${getOffReasonLabel(reason)}). ${deducted ? "1 kredit dipotong." : "Kredit tidak dipotong."} Kuota cancel tidak berubah.${leaveInvoiced ? ` Invoice cuti ${fmtCurrency(leaveInvoiceAmount)} diterbitkan (Menunggu Pembayaran).` : ""}`);
     onOpenChange(false);
   };
 
@@ -412,7 +380,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               <p className="text-orange-900/90 leading-relaxed">
                 Jadwal asal: <strong>{slotText(originSlot)}</strong>
                 {originTherapist ? ` • ${originTherapist.name}` : ""}.
-                {schedule.pendingReason && <> Alasan: <strong>{getCancelReasonLabel(schedule.pendingReason)}</strong>.</>}
+                {schedule.pendingReason && <> Alasan: <strong title={getCancelReasonLabel(schedule.pendingReason)}>{getCancelReasonCode(schedule.pendingReason)}</strong>.</>}
                 {schedule.pendingAt && <> Ditandai {fmtDate(schedule.pendingAt.slice(0, 10))}.</>}
               </p>
               {schedule.pendingNote && <p className="text-orange-900/80 italic">"{schedule.pendingNote}"</p>}
@@ -431,13 +399,18 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               </p>
             </div>
           )}
-          {schedule.status === "off" && (
-            <div className="p-4 rounded-2xl bg-violet-50 border border-violet-200 space-y-1" data-testid="session-off-banner">
-              <p className="font-extrabold text-violet-950 flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-violet-600" /> Sesi Off: {getOffReasonLabel(schedule.offReason)}
+          {schedule.status === "cancelled" && !isCreditNeutralCancel(schedule) && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 space-y-1" data-testid="session-cancelled-banner">
+              <p className="font-extrabold text-rose-950 flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-rose-600" /> Sesi Dibatalkan (Cancel / Off): <span className="font-mono" title={getCancelReasonLabel(schedule.cancelReason)}>{getCancelReasonCode(schedule.cancelReason)}</span>
               </p>
-              {schedule.offNote && <p className="text-violet-900/80 italic">"{schedule.offNote}"</p>}
-              <p className="text-[11px] text-violet-800/80">Pemotongan kredit mengikuti pilihan admin (lihat riwayat kredit client). Tidak menambah kuota cancel.</p>
+              {cancelNoteOf(schedule) && <p className="text-rose-900/80 italic">"{cancelNoteOf(schedule)}"</p>}
+              {schedule.leaveId && (
+                <p className="text-[11px] font-bold text-violet-900" data-testid="session-leave-badge">
+                  Bagian dari log Cuti (Finance): hari cuti dihitung dari saldo jatah cuti client dan tidak menambah kuota cancel.
+                </p>
+              )}
+              <p className="text-[11px] text-rose-800/80">Pemotongan kredit mengikuti pilihan admin (lihat riwayat kredit client).</p>
             </div>
           )}
           {isCreditNeutralCancel(schedule) && (
@@ -653,15 +626,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                               onClick={() => setMode("cancel")}
                               data-testid="session-cancel-button"
                             >
-                              Batalkan Sesi (Cancel)
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="col-span-2 border-violet-200 text-violet-700 hover:bg-violet-50 font-bold"
-                              onClick={() => setMode("off")}
-                              data-testid="session-off-button"
-                            >
-                              Tandai Off
+                              Cancel / Off Sesi
                             </Button>
                           </div>
 
@@ -698,12 +663,12 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
               {mode === "cancel" && (
                 <div className="p-4 sm:p-5 rounded-2xl bg-rose-50/70 border border-rose-200 space-y-3.5">
                   <h4 className="font-extrabold text-sm text-rose-900 flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-rose-600" /> Pembatalan Sesi & Aturan Kuota
+                    <XCircle className="w-4 h-4 text-rose-600" /> Cancel / Off Sesi & Aturan Kuota
                   </h4>
 
                   <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700 text-xs">Pilih Alasan Pembatalan *</Label>
-                    <ReasonPicker options={activeCancelReasons} value={cancelReason} onChange={setCancelReason} testId="cancel-reason" />
+                    <Label className="font-bold text-slate-700 text-xs">Pilih Alasan Cancel / Off *</Label>
+                    <ReasonPicker showCode options={activeCancelReasons} value={cancelReason} onChange={setCancelReason} testId="cancel-reason" />
                   </div>
 
                   <div className="space-y-1.5">
@@ -717,11 +682,11 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-white border border-rose-200 text-xs text-rose-900 space-y-1.5 leading-relaxed">
-                    <p className="font-bold text-slate-900">Ketentuan Kuota Pembatalan:</p>
-                    <p>• Kuota cancel <strong>{CANCEL_QUOTA}x per paket</strong> hanya sebagai penghitung; tidak otomatis memotong kredit.</p>
-                    <p>• <strong>Admin yang menentukan</strong>: potong 1 kredit dari paket ({targetPackage?.packageName || "Paket Sesi"}) atau biarkan utuh.</p>
+                    <p className="font-bold text-slate-900">Ketentuan Credit Leave:</p>
+                    <p>• <strong>Admin yang menentukan</strong>: potong atau biarkan utuh. Bila potong, <strong>credit leave</strong> paket ({targetPackage?.packageName || "Paket Sesi"}) dipakai lebih dulu; kredit sesi utuh.</p>
+                    <p>• Credit leave habis → pilihan potong akan memotong 1 kredit sesi.</p>
                     <p className="font-bold text-slate-900 pt-1">
-                      Status Saat Ini: paket ini sudah dibatalkan {targetPackage?.cancelCount || 0} kali sebelumnya.
+                      Status Saat Ini: credit leave sisa {targetPackage ? leaveRemainingOf(targetPackage) : 0} dari {targetPackage ? leaveTotalOf(targetPackage) : 0}.
                     </p>
                   </div>
 
@@ -733,47 +698,6 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     </Button>
                     <Button className="bg-rose-600 hover:bg-rose-700 text-white font-bold flex-1" onClick={handleCancel} disabled={!deductChoice} data-testid="session-confirm-cancel-button">
                       Konfirmasi Pembatalan
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* OFF MODE */}
-              {mode === "off" && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-violet-50/70 border border-violet-200 space-y-3.5" data-testid="session-off-panel">
-                  <h4 className="font-extrabold text-sm text-violet-900 flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-violet-600" /> Tandai Sesi Off
-                  </h4>
-                  <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700 text-xs">Alasan Off *</Label>
-                    <ReasonPicker options={activeOffReasons} value={offReason} onChange={setOffReason} testId="off-reason" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-bold text-slate-700 text-xs">Catatan Tambahan</Label>
-                    <Input className="border-slate-200 bg-white text-xs" placeholder="e.g. Terapis cuti sampai Jumat..." value={offNote} onChange={(e) => setOffNote(e.target.value)} />
-                  </div>
-                  <DeductCreditChoice value={deductChoice} onChange={setDeductChoice} pkg={targetPackage} kind="off" testId="off-deduct" />
-                  <div className="p-3 rounded-xl bg-white border border-violet-200 space-y-2" data-testid="off-invoice-section">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <Label className="font-bold text-slate-800 text-xs cursor-pointer">Terbitkan invoice cuti</Label>
-                        <p className="text-[11px] text-slate-500">Opsional. Invoice masuk ke Menunggu Pembayaran Finance; tidak memengaruhi pilihan potong kredit.</p>
-                      </div>
-                      <Switch checked={offInvoice} onCheckedChange={setOffInvoice} data-testid="off-invoice-toggle" />
-                    </div>
-                    {offInvoice && (
-                      <div className="space-y-1">
-                        <Label className="font-bold text-slate-700 text-xs">Nominal invoice cuti (Rp) *</Label>
-                        <Input type="number" min={0} inputMode="numeric" className="border-slate-200 bg-white text-xs" placeholder="mis. 250000" value={offInvoiceAmount} onChange={(e) => setOffInvoiceAmount(e.target.value)} data-testid="off-invoice-amount" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2.5 pt-1">
-                    <Button variant="outline" className="font-bold flex-1" onClick={() => setMode("view")}>
-                      Batal
-                    </Button>
-                    <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold flex-1" onClick={handleOff} disabled={!deductChoice} data-testid="session-confirm-off-button">
-                      Konfirmasi Off
                     </Button>
                   </div>
                 </div>
@@ -816,7 +740,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     <>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700 text-xs">Alasan Reschedule *</Label>
-                        <ReasonPicker options={activeCancelReasons} value={pendingReason} onChange={setPendingReason} testId="pending-reason" />
+                        <ReasonPicker showCode options={activeCancelReasons} value={pendingReason} onChange={setPendingReason} testId="pending-reason" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="font-bold text-slate-700 text-xs">Catatan</Label>
@@ -933,7 +857,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                     />
                   </div>
                   <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-800 space-y-1 leading-relaxed">
-                    <p>• Sesi tercatat sebagai dibatalkan dengan alasan <strong>{getCancelReasonLabel(RESCHEDULE_DROPPED)}</strong>.</p>
+                    <p>• Sesi tercatat sebagai dibatalkan dengan alasan <strong>{getCancelReasonCode(RESCHEDULE_DROPPED)}</strong>.</p>
                     <p>• Seperti pembatalan biasa, <strong>admin memilih</strong> potong kredit atau tidak; kuota cancel paket (3x) hanya penghitung.</p>
                   </div>
                   <DeductCreditChoice value={deductChoice} onChange={setDeductChoice} pkg={targetPackage} testId="drop-deduct" />
@@ -957,7 +881,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
                 module="weekly_calendar"
                 label="Hapus Sesi"
                 title="Hapus sesi ini?"
-                description="Sesi disembunyikan dari kalender (soft delete; pelaku tercatat). Sesi Completed harus di-revert dulu."
+                description="Sesi dihapus dari kalender. Sesi Completed harus di-revert dulu."
                 onConfirm={handleDeleteSession}
                 testId="session-delete-button"
               />

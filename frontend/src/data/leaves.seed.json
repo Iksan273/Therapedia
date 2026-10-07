@@ -1,0 +1,66 @@
+[
+  {
+    "id": "lv-seed-1",
+    "clientId": "c-012",
+    "branchId": "branch-sby-timur",
+    "sessionIds": [
+      "sch-g0017",
+      "sch-g0018"
+    ],
+    "reason": "Liburan keluarga ke luar kota",
+    "note": "Ortu sudah konfirmasi via WhatsApp",
+    "createdBy": "Siti Rahmawati, S.E. (Finance)",
+    "_startWeekOffset": 1,
+    "_startDay": 3,
+    "_endWeekOffset": 2,
+    "_endDay": 6,
+    "status": "active",
+    "_createdDaysAgo": 3
+  },
+  {
+    "id": "lv-seed-2",
+    "clientId": "c-033",
+    "branchId": "branch-sby-timur",
+    "sessionIds": [
+      "sch-g0160",
+      "sch-g0161"
+    ],
+    "reason": "Anak sakit, rencana istirahat 2 minggu",
+    "note": "",
+    "createdBy": "Siti Rahmawati, S.E. (Finance)",
+    "_startWeekOffset": 1,
+    "_startDay": 3,
+    "_endWeekOffset": 2,
+    "_endDay": 5,
+    "status": "active",
+    "_returnWeekOffset": 2,
+    "_returnDay": 2,
+    "returnNote": "Anak sudah sehat, masuk lebih awal",
+    "_createdDaysAgo": 5,
+    "_returnedDaysAgo": 1,
+    "restoredSessionIds": [
+      "sch-g0161"
+    ]
+  },
+  {
+    "id": "lv-seed-3",
+    "clientId": "c-044",
+    "branchId": "branch-citraland",
+    "sessionIds": [
+      "sch-g0262",
+      "sch-g0263"
+    ],
+    "reason": "Rencana liburan sekolah",
+    "note": "",
+    "createdBy": "Siti Rahmawati, S.E. (Finance)",
+    "_startWeekOffset": 1,
+    "_startDay": 4,
+    "_endWeekOffset": 2,
+    "_endDay": 4,
+    "status": "voided",
+    "voidReason": "Liburan dibatalkan ortu",
+    "_createdDaysAgo": 6,
+    "_voidedDaysAgo": 2,
+    "voidedBy": "Siti Rahmawati, S.E. (Finance)"
+  }
+]

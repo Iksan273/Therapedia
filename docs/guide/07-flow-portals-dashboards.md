@@ -16,8 +16,8 @@ Semua data difilter berdasarkan `auth.therapistId`.
 
 ## B. Portal Orang Tua (`/client`, role `client`)
 `features/parent/pages/ClientDashboard.js`, data milik `auth.clientId`.
-- Banner status tagihan (Lunas / Menunggu Pembayaran) **dihapus** (6 Okt 2026); pemantauan tagihan lewat kartu **Riwayat Invoice** di bawah.
-- **Riwayat Invoice** (`features/parent/components/InvoiceHistoryCard.js`, `invoicesForParent`): semua invoice milik anak itu (Paket Sesi, Assessment, Cuti; invoice void disembunyikan), terbaru dulu, pagination 10. Kolom No. Invoice, Jenis & Keterangan, Tanggal Terbit, Nominal, Status versi ortu (`parentInvoiceStatus`): **Menunggu Pembayaran** (belum ada bukti), **Bukti Diterima, Menunggu Verifikasi** (bukti terunggah, belum lunas), **Lunas** (+ tanggal lunas). Hanya baca; ortu tidak mengunggah bukti dari portal. Backend: `GET invoices` difilter `client_id` dari token portal.
+- Banner status tagihan (Lunas / Menunggu Pembayaran) **dihapus** (6 Okt 2026) dan kartu **Riwayat Invoice** juga **dihapus** (7 Okt 2026): portal ortu tidak lagi menampilkan daftar invoice.
+- Fungsi `invoicesForParent` / `parentInvoiceStatus` ikut dihapus dari `domain/credit.js`.
 - Sisa kredit total + per paket (`remainingCredit / totalCredit`).
 - **Tidak ada** kartu/daftar kode kuesioner di portal ortu dan tidak ada upload bukti bayar: admin mengirim kode kuesioner lewat WhatsApp, ortu mengisinya di `/assessment` (kode diketik manual). Finance yang menandai lunas.
 - Riwayat terapi: **hanya sesi `completed`**. Tombol **View Report nonaktif** bila laporan belum diisi terapis (`isReportEmpty`: label "Laporan belum tersedia"); modal laporan tidak lagi memakai teks placeholder. **Export laporan** per sesi dan "Export Laporan" (sesuai filter) membuka dokumen cetak (`shared/lib/reportExport.js`, simpan sebagai PDF lewat dialog cetak). Filter tanggal "Dari–Sampai" (`DateFilterPicker`, `filterSessionsByDate`) + reset; list dibatasi tinggi `min(520px, 60vh)`, pagination 10/20/50.
@@ -56,3 +56,10 @@ Pola dashboard:
 
 ## File terkait
 `frontend/src/features/therapist/pages/`, `frontend/src/features/therapist/components/`, `frontend/src/features/parent/pages/`, `frontend/src/features/master/pages/`, `frontend/src/shared/lib/periods.js`, `frontend/src/shared/components/`
+
+## Dashboard Inquiry: Discharge (revisi 7 Okt 2026)
+- Kartu **Total Discharge** (`KpiCards`) dan **Report Discharge per Alasan** (`DischargeReport`: bar + daftar jumlah/persen) di `/admin-inquiry`. Dihitung `dischargeStats(clients, dischargeReasons)` (`domain/client.js`): hanya status `discharged` (discontinue tidak ikut walau juga mengisi `dischargeReason`); alasan teks bebas tetap dikelompokkan, kosong = *Tanpa alasan*. **Periode memakai tanggal discharge** (`dateOfDischarge`), ikut filter cabang & layanan tetapi tidak filter status. `BranchPerformance` menambah kolom **Discharged** per cabang. Utilisasi terapis & Kalender Tim: lihat 05.
+
+## Rekap Harian Sesi Selesai (report terapis, 7 Okt 2026)
+Halaman **Summary & Laporan Sesi** (`/therapist/summary`) punya tab ketiga **Rekap Harian** (`DailyReport`, `dailySessionReport` di `domain/schedule.js`): untuk sesi **completed** terapis pada filter yang sama dengan tab lain (Pencarian, Client, **Rentang Waktu** termasuk kustom; status laporan tidak berlaku), tampil per tanggal: hari, jumlah sesi, **total jam** (mis. "3 Hours"; 1 sesi = durasi jam–selesai) dan **daftar client** hari itu, terbaru dulu, pagination 10, plus ringkasan total (hari, sesi, jam, client berbeda). Dipakai sebagai bahan laporan terapis.
+- **Performa Inquiry & Intake All-Branch** (`/master/branch-performance`): ditambah kartu **Total Discharged** dan **Report Discharge per Alasan** (komponen bersama `shared/components/DischargeReport`, data `dischargeStats`) untuk seluruh cabang pada filter rentang waktu; periode discharge memakai **tanggal discharge** (intake tetap memakai tanggal dibuat). Kolom **Discharged** per cabang di matriks ikut aturan yang sama.

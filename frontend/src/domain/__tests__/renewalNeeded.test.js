@@ -1,4 +1,4 @@
-import { buildSamePackageRenewal, hasOpenPackageInvoice, invoicesForParent, needsRenewal, parentInvoiceStatus } from "@/domain/credit";
+import { buildSamePackageRenewal, hasOpenPackageInvoice, needsRenewal } from "@/domain/credit";
 
 const pkg = (remainingCredit, extra = {}) => ({ id: "cp-1", packageId: "pkg-reguler", packageName: "Regular Therapist (10x)", totalCredit: 10, remainingCredit, price: 2500000, ...extra });
 const master = [{ id: "pkg-reguler", name: "Regular Therapist", credits: 10, price: 2400000, invoiceCode: "REG" }];
@@ -28,22 +28,3 @@ describe("renewal cepat Finance", () => {
     expect(hasOpenPackageInvoice(inv, "c3")).toBe(false);
   });
 });
-
-describe("riwayat invoice portal ortu", () => {
-  test("status versi ortu: belum bayar, bukti diterima, lunas", () => {
-    expect(parentInvoiceStatus({ status: "unpaid" })).toBe("unpaid");
-    expect(parentInvoiceStatus({ status: "unpaid", proofUploadCount: 1 })).toBe("proof_received");
-    expect(parentInvoiceStatus({ status: "unpaid", proofUrl: "data:x" })).toBe("proof_received");
-    expect(parentInvoiceStatus({ status: "paid" })).toBe("paid");
-  });
-  test("hanya invoice anak ini, semua jenis, tanpa void, terbaru dulu", () => {
-    const inv = [
-      { id: "1", clientId: "c1", type: "package", status: "paid", createdAt: "2026-09-01", invoiceNumber: "A" },
-      { id: "2", clientId: "c1", type: "assessment", status: "unpaid", createdAt: "2026-10-01", invoiceNumber: "B" },
-      { id: "3", clientId: "c1", type: "leave", status: "void", createdAt: "2026-10-02", invoiceNumber: "C" },
-      { id: "4", clientId: "c2", type: "package", status: "paid", createdAt: "2026-10-03", invoiceNumber: "D" },
-    ];
-    expect(invoiceIds(invoicesForParent(inv, "c1"))).toEqual(["2", "1"]);
-  });
-});
-const invoiceIds = (l) => l.map((i) => i.id);

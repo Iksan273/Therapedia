@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { usePagination } from "@/shared/components/TablePagination";
 import { SearchInput } from "@/shared/components/FilterBar";
 import { toast } from "sonner";
-import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package, Wallet, ScrollText, Flame } from "lucide-react";
+import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package, Wallet, ScrollText, Flame, CalendarOff } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerModal";
@@ -16,6 +16,9 @@ import { LeftoverTab } from "@/features/finance/components/LeftoverTab";
 import { ClientLedgerTab } from "@/features/finance/components/ClientLedgerTab";
 import { RenewalNeededTab } from "@/features/finance/components/RenewalNeededTab";
 import { PackagesTab } from "@/features/finance/components/PackagesTab";
+import { LeaveTab } from "@/features/finance/components/leave/LeaveTab";
+import { useLeaves } from "@/stores/leavesStore";
+import { fmtDate } from "@/shared/lib/format";
 import { CreateInvoiceDialog } from "@/features/finance/components/CreateInvoiceDialog";
 import { RenewalDialog } from "@/features/finance/components/RenewalDialog";
 import { usePackageActivationActions } from "@/features/finance/hooks/usePackageActivationActions";
@@ -39,9 +42,10 @@ export default function FinancePortal() {
   const { auth } = useAuth();
   const { clients } = useClients();
   const rawInvoices = getAllInvoices();
+  const { leaves } = useLeaves();
   const { approvePackagePayment, renewDirect } = usePackageActivationActions();
 
-  const [activeTab, setActiveTab] = useState("verification"); // verification | renewal | billing | history | ledger | leftover | packages
+  const [activeTab, setActiveTab] = useState("verification"); // verification | renewal | billing | history | ledger | leftover | leave | packages
   const [selectedProofId, setSelectedProofId] = useState(null);
   const selectedProofInvoice = rawInvoices.find((i) => i.id === selectedProofId) || null; // selalu versi terbaru (bukti bisa diganti saat viewer terbuka)
   const setSelectedProofInvoice = (inv) => setSelectedProofId(inv?.id || null);
@@ -50,7 +54,8 @@ export default function FinancePortal() {
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueForm, setIssueForm] = useState({
     clientId: "",
-    type: "package", // package | assessment
+    type: "package", // package | assessment | leave
+    leaveId: "", // invoice cuti: log cuti yang disambungkan (opsional)
     packageId: "pkg-reguler",
     amount: 2500000,
     replacesInvoiceId: "", // "" belum dipilih | invoice void yang digantikan | "none" pembelian paket baru
@@ -68,6 +73,7 @@ export default function FinancePortal() {
     replacesInvoiceId: "", // "" belum dipilih | id invoice void yang digantikan | "none" paket baru
     mode: "invoice", // invoice | direct (langsung lunas)
     reason: "", // catatan Finance (opsional)
+    resetLeave: false, // isi ulang credit leave ke angka master (hanya berarti untuk paket satuan)
   });
 
   // Add Master Package Modal State
@@ -79,6 +85,9 @@ export default function FinancePortal() {
     credits: 10,
     price: 2500000,
     description: "",
+    leaveQuota: 0,
+    isSatuan: false,
+    isAssessment: false,
   });
 
   const [search, setSearch] = useState(""); // cari nama anak / ortu / kode client / no. invoice (semua tab tabel)
@@ -236,10 +245,23 @@ export default function FinancePortal() {
       return;
     }
     const isAssessment = issueForm.type === "assessment";
-    const pkg = isAssessment ? null : masterPackages.find((p) => p.id === issueForm.packageId) || { name: "Paket Terapi" };
-    const amount = Number(issueForm.amount) || (isAssessment ? 0 : pkg.price || 2500000);
-    if (isAssessment && amount <= 0) {
-      toast.error("Nominal invoice assessment wajib diisi.");
+    const isLeave = issueForm.type === "leave";
+    const isNonPackage = isAssessment || isLeave;
+    const linkedLeave = isLeave && issueForm.leaveId ? leaves.find((l) => l.id === issueForm.leaveId) : null;
+    const pkg = isNonPackage ? null : masterPackages.find((p) => p.id === issueForm.packageId) || { name: "Paket Terapi" };
+    const amount = Number(issueForm.amount) || (isNonPackage ? 0 : pkg.price || 2500000);
+    if (isNonPackage && amount <= 0) {
+      toast.error(`Nominal invoice ${isLeave ? "cuti" : "assessment"} wajib diisi.`);
+      return;
+    }
+
+    // Invoice cuti: nominal manual Finance, tanpa paket/kredit; opsional tertaut ke log cuti
+    if (isLeave) {
+      const label = linkedLeave ? `Cuti ${fmtDate(linkedLeave.startDate)} – ${fmtDate(linkedLeave.endDate)}` : "Cuti";
+      issueInvoice({ clientId: c.id, clientName: c.clientName, branchId: c.branchId, type: "leave", typeCode: invoiceTypeCode("leave", null), packageName: label, amount, leaveId: linkedLeave ? linkedLeave.id : null, paidDirect: Boolean(issueForm.paidDirect), note: (issueForm.note || "").trim(), by });
+      toast.success(`Invoice cuti ${c.clientName} diterbitkan${linkedLeave ? ` dan dihubungkan ke ${label}` : ""}${issueForm.paidDirect ? ", langsung lunas" : ". Menunggu pembayaran"}.`);
+      setIssueForm({ ...issueForm, leaveId: "", amount: "", paidDirect: false, note: "" });
+      setIssueOpen(false);
       return;
     }
 
@@ -324,11 +346,12 @@ export default function FinancePortal() {
         packageName,
         credits: snapshotCredits,
         amount,
+        resetLeave: Boolean(renewForm.resetLeave),
         by,
       });
       toast.success(`Invoice renewal ${c.clientName} diterbitkan${replaced ? `, menggantikan ${replaced.invoiceNumber}` : ""}. Menunggu pembayaran, lalu tandai lunas.`);
       setRenewOpen(false);
-      setRenewForm({ ...renewForm, replacesInvoiceId: "" });
+      setRenewForm({ ...renewForm, replacesInvoiceId: "", resetLeave: false });
       return;
     }
 
@@ -345,6 +368,7 @@ export default function FinancePortal() {
       amount,
       isRenewal: true,
       reason: (renewForm.reason || "").trim(),
+      resetLeave: Boolean(renewForm.resetLeave),
     });
 
     toast.success(
@@ -353,18 +377,18 @@ export default function FinancePortal() {
         : `Renewal kredit ${c.clientName} langsung lunas! (+${credits} sesi)${relinked ? ` ${relinked} jadwal mendatang dipindah ke paket aktif.` : ""}`
     );
     setRenewOpen(false);
-    setRenewForm({ ...renewForm, reason: "", replacesInvoiceId: "" });
+    setRenewForm({ ...renewForm, reason: "", replacesInvoiceId: "", resetLeave: false });
   };
 
   const closePackageDialog = () => {
     setNewPkgOpen(false);
     setEditingPkgId(null);
-    setNewPkgForm({ name: "", invoiceCode: "", credits: 10, price: 2500000, description: "" });
+    setNewPkgForm({ name: "", invoiceCode: "", credits: 10, price: 2500000, description: "", leaveQuota: 0, isSatuan: false, isAssessment: false });
   };
 
   const openEditPackage = (pkg) => {
     setEditingPkgId(pkg.id);
-    setNewPkgForm({ name: pkg.name, invoiceCode: packageInvoiceCode(pkg), credits: pkg.credits, price: pkg.price, description: pkg.description || "" });
+    setNewPkgForm({ name: pkg.name, invoiceCode: packageInvoiceCode(pkg), credits: pkg.credits, price: pkg.price, description: pkg.description || "", leaveQuota: pkg.leaveQuota || 0, isSatuan: Boolean(pkg.isSatuan), isAssessment: Boolean(pkg.isAssessment) });
     setNewPkgOpen(true);
   };
 
@@ -393,6 +417,9 @@ export default function FinancePortal() {
         credits: Number(newPkgForm.credits) || 10,
         price: Number(newPkgForm.price) || 2500000,
         description: newPkgForm.description.trim(),
+        leaveQuota: Math.max(0, Number(newPkgForm.leaveQuota) || 0),
+        isSatuan: Boolean(newPkgForm.isSatuan),
+        isAssessment: Boolean(newPkgForm.isAssessment),
       });
       toast.success(`Paket '${newPkgForm.name}' diperbarui.`);
       closePackageDialog();
@@ -405,6 +432,9 @@ export default function FinancePortal() {
       credits: Number(newPkgForm.credits) || 10,
       price: Number(newPkgForm.price) || 2500000,
       description: newPkgForm.description.trim(),
+      leaveQuota: Math.max(0, Number(newPkgForm.leaveQuota) || 0),
+      isSatuan: Boolean(newPkgForm.isSatuan),
+      isAssessment: Boolean(newPkgForm.isAssessment),
     });
 
     toast.success(`Paket baru '${newPkgForm.name}' berhasil ditambahkan ke Master Data!`);
@@ -482,6 +512,9 @@ export default function FinancePortal() {
           <TabsTrigger value="leftover" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-leftover">
             <Wallet className="w-4 h-4 text-amber-600" /> Saldo Lebihan ({leftoverRows.length})
           </TabsTrigger>
+          <TabsTrigger value="leave" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-leave">
+            <CalendarOff className="w-4 h-4 text-violet-600" /> Cuti
+          </TabsTrigger>
           <TabsTrigger value="packages" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <Package className="w-4 h-4 text-teal-600" /> Master Data Paket ({masterPackages.length})
           </TabsTrigger>
@@ -505,6 +538,9 @@ export default function FinancePortal() {
         {/* TAB: SALDO LEBIHAN CLIENT */}
         <LeftoverTab rows={leftoverRows} leftoverPg={leftoverPg} includeZero={includeZeroLeftover} setIncludeZero={setIncludeZeroLeftover} />
 
+        {/* TAB: CUTI CLIENT (jatah 30 hari/tahun; log berdiri sendiri) */}
+        <LeaveTab clients={clients} search={search} invoices={rawInvoices} onIssueInvoice={(leave) => { setIssueForm({ ...issueForm, type: "leave", clientId: leave.clientId, leaveId: leave.id, amount: "", paidDirect: false, note: "" }); setIssueOpen(true); }} />
+
         {/* TAB 4: MASTER DATA PAKET KREDIT */}
         <PackagesTab masterPackages={masterPackages} setNewPkgOpen={(o) => { setEditingPkgId(null); setNewPkgOpen(o); }} onEditPackage={openEditPackage} />
       </Tabs>
@@ -521,7 +557,7 @@ export default function FinancePortal() {
       />
 
       {/* Issue Invoice Modal */}
-      <CreateInvoiceDialog clients={clients} handleIssueSubmit={handleIssueSubmit} issueForm={issueForm} issueOpen={issueOpen} masterPackages={masterPackages} replacementOptions={replacementOptions} setIssueForm={setIssueForm} setIssueOpen={setIssueOpen} />
+      <CreateInvoiceDialog leaves={leaves} clients={clients} handleIssueSubmit={handleIssueSubmit} issueForm={issueForm} issueOpen={issueOpen} masterPackages={masterPackages} replacementOptions={replacementOptions} setIssueForm={setIssueForm} setIssueOpen={setIssueOpen} />
 
       {/* Renewal Modal (Exclusively in Role Finance) */}
       <RenewalDialog clients={clients} handleRenewSubmit={handleRenewSubmit} masterPackages={masterPackages} renewForm={renewForm} renewOpen={renewOpen} replacementOptions={renewReplacementOptions} setRenewForm={setRenewForm} setRenewOpen={setRenewOpen} />

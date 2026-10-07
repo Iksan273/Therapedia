@@ -8,6 +8,7 @@ import { fmtCurrency } from "@/shared/lib/format";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
+import { Switch } from "@/shared/ui/switch";
 import { cn } from "@/shared/lib/utils";
 import { RENEWAL_MODES } from "@/domain/credit";
 import { BalanceHint } from "@/features/finance/components/BalanceHint";
@@ -15,6 +16,8 @@ import { ReplacementChoice } from "@/features/finance/components/ReplacementChoi
 
 export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, renewForm, renewOpen, replacementOptions = [], setRenewForm, setRenewOpen }) {
   const isDirect = renewForm.mode === "direct";
+  const selectedMaster = masterPackages.find((p) => p.id === renewForm.packageId);
+  const isSatuanPackage = Boolean(selectedMaster?.isSatuan);
   return (
     <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
         <DialogContent className="max-w-md max-h-[calc(100dvh-2.5rem)] overflow-y-auto rounded-2xl p-6 border-slate-200">
@@ -107,6 +110,20 @@ export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, rene
             </div>
             <BalanceHint clientId={renewForm.clientId} amount={renewForm.amount} />
             <ReplacementChoice options={replacementOptions} value={renewForm.replacesInvoiceId} onChange={(v) => setRenewForm({ ...renewForm, replacesInvoiceId: v })} />
+
+            {isSatuanPackage ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/50 p-3" data-testid="renewal-reset-leave-section">
+                <div>
+                  <Label className="text-xs font-bold text-slate-800">Reset credit leave</Label>
+                  <p className="text-[11px] text-slate-500">Paket satuan: credit leave tidak reset otomatis tiap renewal (sisa dilanjutkan, bisa jadi 0). Aktifkan untuk mengisi ulang ke jumlah di master ({selectedMaster?.leaveQuota ?? 0}); sisa lama hangus. Biasanya sekali sebulan.</p>
+                </div>
+                <Switch checked={Boolean(renewForm.resetLeave)} onCheckedChange={(v) => setRenewForm({ ...renewForm, resetLeave: v })} data-testid="renewal-reset-leave" />
+              </div>
+            ) : (
+              <p className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[11px] text-slate-600" data-testid="renewal-leave-auto-note">
+                Paket reguler: credit leave otomatis baru ({selectedMaster?.leaveQuota ?? 0} sesi) di setiap paket, tidak perlu reset.
+              </p>
+            )}
 
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Catatan Finance <span className="font-normal text-slate-500">(opsional)</span></Label>

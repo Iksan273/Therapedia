@@ -51,7 +51,7 @@ export default function CalendarPage() {
   const { clients } = useClients();
   const { therapists } = useTherapists();
   const { getRecordForClient } = useCredits();
-  const { getCancelReasonLabel } = useMasterData();
+  const { getCancelReasonCode } = useMasterData();
 
   // Mobile defaults to day agenda, desktop to weekly grid
   const [view, setView] = useState(() =>
@@ -498,7 +498,7 @@ export default function CalendarPage() {
                     <span className="block text-xs font-bold text-slate-900 truncate">{getClientName(s.clientId)}</span>
                     <span className="block text-[11px] text-slate-500 truncate">
                       Asal {fmtDate(s.date)} • {s.startTime}–{s.endTime}
-                      {s.pendingReason ? ` • ${getCancelReasonLabel(s.pendingReason)}` : ""}
+                      {s.pendingReason ? ` • ${getCancelReasonCode(s.pendingReason)}` : ""}
                     </span>
                   </span>
                   <span className="shrink-0 text-[11px] font-extrabold text-orange-800">Tindak lanjuti</span>

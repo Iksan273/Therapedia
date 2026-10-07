@@ -85,7 +85,7 @@ export function ClientLedgerTab({ clients, search }) {
                       </TableCell>
                       <TableCell data-label="Paket" className="text-xs text-slate-700">
                         {packageBaseName(pkg.packageName)} ({pkg.totalCredit}x)
-                        {pkg.status === "voided" && <span className="ml-1.5 text-[10px] font-bold text-rose-600">Void</span>}
+                        {pkg.status === "voided" && <span className="ml-1.5 text-[10px] font-bold text-rose-600">{pkg.refunded ? "Refund" : "Void"}</span>}
                       </TableCell>
                       <TableCell data-label="Sisa Sesi" className="text-right tabular-nums font-bold text-slate-900">{pkg.remainingCredit ?? 0}</TableCell>
                       <TableCell data-label="Saldo" className="text-right tabular-nums font-extrabold text-slate-900">{balance == null ? "—" : fmtCurrency(balance)}</TableCell>

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CalendarOff,
   FileWarning,
+  Gauge,
   ClipboardList,
   Database,
   FileCheck2,
@@ -16,6 +17,7 @@ import {
   TrendingUp,
   UserCog,
   Users,
+  UsersRound,
 } from "lucide-react";
 
 // Konfigurasi menu sidebar per role sistem.
@@ -39,6 +41,7 @@ export const NAV_CONFIG = {
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, module: "active_clients", testid: "nav-master-clients" },
       { to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, module: "unreported_reports", testid: "nav-master-unreported" },
       { to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, module: "holidays", testid: "nav-master-holidays" },
+      { to: "/admin-schedule/therapist-utilization", label: "Utilisasi Terapis", icon: Gauge, module: "therapist_utilization", testid: "nav-master-utilization" },
       { to: "/finance", label: "Finance & Invoices", icon: Receipt, module: "finance", testid: "nav-master-finance" },
       { to: "/master/branches", label: "Master Cabang", icon: Building2, module: "branch_master", testid: "nav-master-branches" },
       { to: "/master/users", label: "User Management", icon: UserCog, module: "user_management", testid: "nav-master-users" },
@@ -57,6 +60,7 @@ export const NAV_CONFIG = {
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, module: "active_clients", testid: "nav-manager-clients" },
       { to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, module: "unreported_reports", testid: "nav-manager-unreported" },
       { to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, module: "holidays", testid: "nav-manager-holidays" },
+      { to: "/admin-schedule/therapist-utilization", label: "Utilisasi Terapis", icon: Gauge, module: "therapist_utilization", testid: "nav-manager-utilization" },
     ],
     extras: [ASSESSMENT_FILL],
   },
@@ -80,6 +84,7 @@ export const NAV_CONFIG = {
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, module: "active_clients", testid: "nav-active-clients" },
       { to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, module: "unreported_reports", testid: "nav-unreported-reports" },
       { to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, module: "holidays", testid: "nav-holidays" },
+      { to: "/admin-schedule/therapist-utilization", label: "Utilisasi Terapis", icon: Gauge, module: "therapist_utilization", testid: "nav-utilization" },
     ],
     extras: [],
   },
@@ -98,6 +103,7 @@ export const NAV_CONFIG = {
     items: [
       { to: "/therapist", label: "My Clinical Schedule", icon: CalendarDays, end: true, module: "therapist_module", testid: "nav-my-schedule" },
       { to: "/therapist/summary", label: "Summary & Laporan Sesi", icon: FileCheck2, end: false, module: "therapist_module", testid: "nav-therapist-summary" },
+      { to: "/therapist/team-calendar", label: "Kalender Tim Terapis", icon: UsersRound, end: false, module: "therapist_module", testid: "nav-team-calendar" },
     ],
     extras: [],
   },
@@ -129,6 +135,8 @@ const CUSTOM_ROLE_ITEMS = [
   { module: "inquiry_pipeline", to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, testid: "nav-custom-inquiry-master-data" },
   { module: "unreported_reports", to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, testid: "nav-custom-unreported" },
   { module: "holidays", to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, testid: "nav-custom-holidays" },
+  { module: "therapist_utilization", to: "/admin-schedule/therapist-utilization", label: "Utilisasi Terapis", icon: Gauge, testid: "nav-custom-utilization" },
+  { module: "therapist_module", to: "/therapist/team-calendar", label: "Kalender Tim Terapis", icon: UsersRound, testid: "nav-custom-team-calendar" },
 ];
 
 const itemAllowed = (item, hasPermission) => {

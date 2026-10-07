@@ -25,8 +25,10 @@ export function useQuestionnaireCodeActions() {
 
   // Terbitkan kode kuesioner: `{typeCode kategori}-{acak}`. `validityDays` null = tanpa masa berlaku (opsional per kode).
   // `servicePackage` = layanan (master paket) yang harganya jadi nominal invoice assessment (cadangan: DEFAULT_ASSESSMENT_FEE).
+  // `withInvoice` (default true): false untuk kode GRATIS (mis. School Companion): tidak ada invoice, jadi tidak ada form bayar
+  // untuk ortu; kode dicatat `invoiceRequired: false`.
   // `targetStatus` = tahap minimal client setelah kode terbit (hanya maju).
-  const issueCode = (client, category, { validityDays = null, code, targetStatus = "assessment_scheduled", servicePackage = null } = {}) => {
+  const issueCode = (client, category, { validityDays = null, code, targetStatus = "assessment_scheduled", servicePackage = null, withInvoice = true } = {}) => {
     const item = {
       code: code || buildQuestionnaireCode(category, allCodes()),
       categoryId: category.id,
@@ -35,12 +37,13 @@ export function useQuestionnaireCodeActions() {
       createdAt: todayStr(),
       issuedAt: nowIso(),
       expiresAt: buildExpiresAt(validityDays),
+      invoiceRequired: Boolean(withInvoice),
     };
     updateClient(client.id, {
       assessmentCodes: [...(client.assessmentCodes || []), item],
       status: advanceStatus(client.status, targetStatus),
     });
-    issueInvoice({
+    if (withInvoice) issueInvoice({
       clientId: client.id,
       clientName: client.clientName,
       branchId: client.branchId,

@@ -17,11 +17,12 @@ import { useAssessments } from "@/stores/assessmentsStore";
 import { useAuth } from "@/stores/authStore";
 import { useMasterData } from "@/stores/masterDataStore";
 import { branchName } from "@/domain/branch";
-import { getClientServiceIds, matchesClientSearch } from "@/domain/client";
+import { dischargeStats, getClientServiceIds, matchesClientSearch } from "@/domain/client";
 import { todayStr } from "@/shared/lib/id";
 import { KpiCards } from "@/features/inquiry/components/dashboard/KpiCards";
 import { FunnelServiceCharts } from "@/features/inquiry/components/dashboard/FunnelServiceCharts";
 import { TrendCharts } from "@/features/inquiry/components/dashboard/TrendCharts";
+import { DischargeReport } from "@/shared/components/DischargeReport";
 import { AwaitingQuestionnaireTab } from "@/features/inquiry/components/dashboard/AwaitingQuestionnaireTab";
 import { FilteredRosterTab } from "@/features/inquiry/components/dashboard/FilteredRosterTab";
 import { DiscontinuedTab } from "@/features/inquiry/components/dashboard/DiscontinuedTab";
@@ -45,7 +46,7 @@ export default function DashboardInquiry() {
   const navigate = useNavigate();
   const { clients } = useClients();
   const { categories, getCategory } = useAssessments();
-  const { services, activeServices, getService } = useMasterData();
+  const { services, activeServices, getService, dischargeReasons } = useMasterData();
   const { activeBranch, auth } = useAuth();
 
   const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
@@ -86,6 +87,19 @@ export default function DashboardInquiry() {
       return inPeriod(c.createdAt ? c.createdAt.slice(0, 10) : today);
     });
   }, [clients, branchFilter, serviceFilter, statusFilter, periodPreset, customStart, customEnd]);
+
+  // Discharge: periode memakai TANGGAL DISCHARGE (bukan tanggal intake) dan tidak ikut filter status pipeline.
+  const dischargeData = useMemo(() => {
+    const inPeriod = makePeriodMatcher(periodPreset, customStart, customEnd);
+    const today = todayStr();
+    const list = clients.filter((c) => {
+      if (c.status !== "discharged") return false;
+      if (branchFilter !== "all" && c.branchId !== branchFilter) return false;
+      if (serviceFilter !== "all" && !getClientServiceIds(c).includes(serviceFilter)) return false;
+      return inPeriod(c.dateOfDischarge ? c.dateOfDischarge.slice(0, 10) : today);
+    });
+    return dischargeStats(list, dischargeReasons);
+  }, [clients, branchFilter, serviceFilter, periodPreset, customStart, customEnd, dischargeReasons]);
 
   // Overall KPIs calculation
   const totalInquiries = filteredClients.length;
@@ -333,10 +347,13 @@ export default function DashboardInquiry() {
       </FilterBar>
 
       {/* KPI METRIC CARDS */}
-      <KpiCards admittedCount={admittedCount} assessmentDoneCount={assessmentDoneCount} assessmentScheduledCount={assessmentScheduledCount} awaitingQuestionnaires={awaitingQuestionnaires} conversionRate={conversionRate} discontinuedCount={discontinuedCount} totalInquiries={totalInquiries} />
+      <KpiCards admittedCount={admittedCount} assessmentDoneCount={assessmentDoneCount} assessmentScheduledCount={assessmentScheduledCount} awaitingQuestionnaires={awaitingQuestionnaires} conversionRate={conversionRate} discontinuedCount={discontinuedCount} dischargedCount={dischargeData.total} totalInquiries={totalInquiries} />
 
       {/* CHARTS ROW 1: FUNNEL & SERVICE DISTRIBUTION */}
       <FunnelServiceCharts conversionRate={conversionRate} funnelData={funnelData} serviceDistributionData={serviceDistributionData} />
+
+      {/* REPORT DISCHARGE PER ALASAN */}
+      <DischargeReport stats={dischargeData} />
 
       {/* CHARTS ROW 2: 6-MONTH TRENDS */}
       <TrendCharts monthlyIntakeTrends={monthlyIntakeTrends} />

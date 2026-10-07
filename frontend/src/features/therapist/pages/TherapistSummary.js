@@ -21,6 +21,8 @@ import { parseISO } from "date-fns";
 import { SummaryStats } from "@/features/therapist/components/summary/SummaryStats";
 import { SessionFeed } from "@/features/therapist/components/summary/SessionFeed";
 import { ClientRollup } from "@/features/therapist/components/summary/ClientRollup";
+import { DailyReport } from "@/features/therapist/components/summary/DailyReport";
+import { dailySessionReport } from "@/domain/schedule";
 
 const DAY_NAMES_ID = {
   1: "Senin",
@@ -38,7 +40,7 @@ export default function TherapistSummary() {
   const { getTherapist } = useTherapists();
   const [searchParams] = useSearchParams();
 
-  // Active View Tab: 'sessions' | 'clients'
+  // Active View Tab: 'sessions' | 'clients' | 'report' (rekap harian)
   const [activeTab, setActiveTab] = useState("sessions");
 
   // Filters
@@ -124,7 +126,7 @@ export default function TherapistSummary() {
       onRemove: () => setReportFilter("all"),
     });
   }
-  if (activeTab === "sessions" && dateFilter !== "all") {
+  if (activeTab !== "clients" && dateFilter !== "all") {
     const range = dateFilter === "custom" ? ` (${customStartDate || "…"} – ${customEndDate || "…"})` : "";
     summaryChips.push({
       key: "period",
@@ -160,8 +162,8 @@ export default function TherapistSummary() {
         Boolean(s.noteSection?.trim()) &&
         Boolean(s.homeworkSection?.trim());
 
-      if (reportFilter === "pending" && isComplete) return false;
-      if (reportFilter === "filled" && !isComplete) return false;
+      if (activeTab === "sessions" && reportFilter === "pending" && isComplete) return false; // status laporan hanya untuk tab daftar sesi
+      if (activeTab === "sessions" && reportFilter === "filled" && !isComplete) return false;
 
       // Filter by Date range
       if (s.date && !inPeriod(s.date)) return false;
@@ -182,7 +184,11 @@ export default function TherapistSummary() {
 
       return true;
     });
-  }, [completedSchedules, clientFilter, reportFilter, dateFilter, customStartDate, customEndDate, searchQuery, clients]);
+  }, [completedSchedules, clientFilter, reportFilter, dateFilter, customStartDate, customEndDate, searchQuery, clients, activeTab]);
+
+  // Rekap harian (tab Report): per tanggal total jam + client; memakai filter client / periode / pencarian yang sama
+  const dailyReport = useMemo(() => dailySessionReport(filteredSchedules, (id) => clients.find((c) => c.id === id)?.clientName), [filteredSchedules, clients]);
+  const reportPg = usePagination(dailyReport.rows, 10, [searchQuery, clientFilter, dateFilter, customStartDate, customEndDate].join("|"));
 
   // Pagination 10 data per halaman (feed tidak scroll tanpa batas); kembali ke halaman 1 saat filter berubah
   const filterKey = [searchQuery, clientFilter, reportFilter, dateFilter, customStartDate, customEndDate].join("|");
@@ -289,11 +295,23 @@ export default function TherapistSummary() {
             <Users className="w-3.5 h-3.5 text-purple-600" />
             Rangkuman Per Client ({myClients.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("report")}
+            className={cn(
+              "px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5",
+              activeTab === "report" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+            )}
+            data-testid="tab-daily-report"
+          >
+            <CalendarDays className="w-3.5 h-3.5 text-emerald-600" />
+            Rekap Harian ({dailyReport.rows.length})
+          </button>
         </div>
 
         {/* Global Filter Information */}
         <p className="text-xs text-slate-500 font-medium">
-          Menampilkan <strong className="text-slate-900">{activeTab === "sessions" ? filteredSchedules.length : filteredClients.length}</strong> data.
+          Menampilkan <strong className="text-slate-900">{activeTab === "clients" ? filteredClients.length : activeTab === "report" ? dailyReport.rows.length : filteredSchedules.length}</strong> data.
         </p>
       </div>
 
@@ -302,13 +320,13 @@ export default function TherapistSummary() {
         title="Cari & Filter"
         chips={summaryChips}
         onReset={resetSummaryFilters}
-        resultText={`${activeTab === "sessions" ? filteredSchedules.length : filteredClients.length} data`}
+        resultText={`${activeTab === "clients" ? filteredClients.length : activeTab === "report" ? dailyReport.rows.length : filteredSchedules.length} data`}
         gridClassName="lg:grid-cols-4"
       >
         <FilterField label="Pencarian">
           <SearchInput
             className="min-w-0"
-            placeholder={activeTab === "sessions" ? "Anak / ortu / kode client / catatan..." : "Nama client / ortu / kode client..."}
+            placeholder={activeTab !== "clients" ? "Anak / ortu / kode client / catatan..." : "Nama client / ortu / kode client..."}
             value={searchQuery}
             onChange={setSearchQuery}
             data-testid="summary-search-input"
@@ -327,8 +345,9 @@ export default function TherapistSummary() {
           />
         </FilterField>
 
-        {activeTab === "sessions" && (
+        {activeTab !== "clients" && (
           <>
+            {activeTab === "sessions" && (
             <FilterField label="Status Laporan">
               <Select value={reportFilter} onValueChange={setReportFilter}>
                 <SelectTrigger className="border-slate-200 bg-slate-50" aria-label="Status laporan">
@@ -341,6 +360,7 @@ export default function TherapistSummary() {
                 </SelectContent>
               </Select>
             </FilterField>
+            )}
 
             <PeriodFilter
               preset={dateFilter}
@@ -364,6 +384,14 @@ export default function TherapistSummary() {
         <>
         <SessionFeed clients={clients} filteredSchedules={sessionsPg.pageItems} getDayName={getDayName} handleOpenClientDrawer={handleOpenClientDrawer} handleOpenReportModal={handleOpenReportModal} setClientFilter={setClientFilter} setDateFilter={setDateFilter} setReportFilter={setReportFilter} setSearchQuery={setSearchQuery} />
         <TablePagination {...sessionsPg} onPageChange={sessionsPg.setPage} onPageSizeChange={sessionsPg.setPageSize} noun="sesi" className="rounded-2xl border" />
+        </>
+      )}
+
+      {/* TAB 3: REKAP HARIAN (report terapis: hari, total jam, client) */}
+      {activeTab === "report" && (
+        <>
+        <DailyReport rows={reportPg.pageItems} totals={dailyReport.totals} getDayName={getDayName} />
+        <TablePagination {...reportPg} onPageChange={reportPg.setPage} onPageSizeChange={reportPg.setPageSize} noun="hari" className="rounded-2xl border" />
         </>
       )}
 

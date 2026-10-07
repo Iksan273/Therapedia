@@ -2,7 +2,7 @@ import React from "react";
 import { cn } from "@/shared/lib/utils";
 import { cancelQuotaByPackage } from "@/domain/credit";
 
-// Kuota cancel dirinci PER PAKET (tiap paket punya penghitung sendiri, kuota 3x per paket). Satu baris per paket.
+// Credit leave dirinci PER PAKET (tiap paket punya sendiri, diatur di master paket). Satu baris per paket: sisa dari total.
 export function CancelQuotaList({ record, className, compact = false }) {
   const { rows } = cancelQuotaByPackage(record);
   if (rows.length === 0) {
@@ -22,7 +22,7 @@ export function CancelQuotaList({ record, className, compact = false }) {
           <span className="font-bold">{r.label}</span>
           {!compact && <span className="text-slate-500">sisa {r.remainingCredit}</span>}
           <span className="ml-auto font-mono font-bold tabular-nums">
-            {r.cancelCount}/{r.quota} cancel{r.over ? " (lewat kuota)" : ""}
+            leave {r.remaining}/{r.quota}
           </span>
         </li>
       ))}

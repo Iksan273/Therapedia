@@ -1,4 +1,4 @@
-import { buildActivationPatch, buildStatusChangePatch } from "@/domain/client";
+import { buildActivationPatch, buildStatusChangePatch, dischargeStats } from "@/domain/client";
 import { canDeleteIn, roleCanDelete } from "@/domain/rbac";
 
 describe("ubah status manual ke tahap mana pun", () => {
@@ -63,5 +63,31 @@ describe("hak hapus per role (akses modul = semua aksi kecuali hapus)", () => {
     expect(check("manager", "finance")).toBe(false); // flag ya, tapi tanpa akses modul finance
     expect(check("admin_inquiry", "inquiry_pipeline")).toBe(false); // akses modul ya, tapi flag tidak
     expect(check("master", "finance")).toBe(true);
+  });
+});
+
+describe("dischargeStats (dashboard Inquiry)", () => {
+  const reasons = [{ value: "moving", label: "Moving / Relocation" }, { value: "graduate", label: "Tercapai Target" }];
+  const clients = [
+    { id: "1", status: "discharged", dischargeReason: "moving" },
+    { id: "2", status: "discharged", dischargeReason: "moving" },
+    { id: "3", status: "discharged", dischargeReason: "graduate" },
+    { id: "4", status: "discharged", dischargeReason: "Anak pindah sekolah" }, // teks bebas
+    { id: "5", status: "discharged", dischargeReason: "" },
+    { id: "6", status: "discontinued", dischargeReason: "other" }, // discontinue tidak dihitung
+    { id: "7", status: "admitted" },
+  ];
+
+  it("menghitung total discharged dan pembagian per alasan (terbanyak dulu, persen dibulatkan)", () => {
+    const stats = dischargeStats(clients, reasons);
+    expect(stats.total).toBe(5);
+    expect(stats.rows[0]).toEqual({ key: "moving", label: "Moving / Relocation", count: 2, percent: 40 });
+    expect(stats.rows.map((r) => r.label).sort()).toEqual(["Anak pindah sekolah", "Moving / Relocation", "Tanpa alasan", "Tercapai Target"].sort());
+    expect(stats.rows.reduce((n, r) => n + r.count, 0)).toBe(5);
+  });
+
+  it("tanpa client discharged = total 0, baris kosong", () => {
+    expect(dischargeStats([{ status: "admitted" }], reasons)).toEqual({ total: 0, rows: [] });
+    expect(dischargeStats(undefined, reasons)).toEqual({ total: 0, rows: [] });
   });
 });

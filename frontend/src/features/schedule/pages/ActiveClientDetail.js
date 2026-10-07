@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarPlus, RotateCcw, Receipt, User, CalendarDays, Calendar, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ClipboardCheck, RotateCcw, Receipt, User, CalendarDays, Calendar, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
 import { Label } from "@/shared/ui/label";
@@ -37,6 +37,8 @@ import { calcAge, fmtDate } from "@/shared/lib/format";
 import { BRANCHES } from "@/domain/branch";
 import { distinctActivePackages, packageBaseName } from "@/domain/credit";
 import { CancelQuotaList } from "@/shared/components/CancelQuotaList";
+import { LeaveQuotaCard } from "@/shared/components/LeaveQuotaCard";
+import { ReassessmentCard } from "@/features/schedule/components/clientDetail/ReassessmentCard";
 import { isActiveClient, canReactivateClient, dischargeReasonLabel } from "@/domain/client";
 import { bookingNoteOf, cancelNoteOf, deriveRecurringRoutines, seriesPeriod, routineKeyOfRow, routineSessionsToRemove, upcomingActiveSessions } from "@/domain/schedule";
 import { todayStr } from "@/shared/lib/id";
@@ -49,7 +51,7 @@ export default function ActiveClientDetail() {
   const { schedules, updateSchedule } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { getTherapist } = useTherapists();
-  const { activeDischargeReasons, getCancelReasonLabel, getOffReasonLabel } = useMasterData();
+  const { activeDischargeReasons, getCancelReasonCode, getCancelReasonLabel } = useMasterData();
   const { auth } = useAuth();
   const { reactivate, discharge } = useClientOutcomeActions();
   const { deleteClientCascade } = useClientDeleteActions();
@@ -184,6 +186,17 @@ export default function ActiveClientDetail() {
 
           {isActive && (
             <Button
+              variant="outline"
+              className="border-teal-200 text-teal-700 hover:bg-teal-50 font-bold px-4 gap-2"
+              onClick={() => document.getElementById("reassessment-card")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              data-testid="goto-reassessment"
+            >
+              <ClipboardCheck className="w-4 h-4" /> Re-assessment
+            </Button>
+          )}
+
+          {isActive && (
+            <Button
               className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 gap-2 shadow-xs"
               onClick={() => setAddOpen(true)}
             >
@@ -194,7 +207,7 @@ export default function ActiveClientDetail() {
             module="active_clients"
             label="Hapus Client"
             title={`Hapus ${client.clientName}?`}
-            description="Client beserta sesi dan invoice-nya akan disembunyikan dari semua daftar dan client tidak bisa login portal ortu. Penghapusan bersifat soft delete."
+            description="Client beserta seluruh sesi, invoice, kredit, dan log cutinya akan DIHAPUS PERMANEN dan tidak bisa dikembalikan. Client juga tidak bisa lagi login ke portal ortu."
             onConfirm={() => {
               deleteClientCascade(client);
               toast.success(`Client ${client.clientName} dihapus.`);
@@ -222,6 +235,9 @@ export default function ActiveClientDetail() {
           {client.dischargeNote ? ` · ${client.dischargeNote}` : ""}
         </div>
       )}
+
+      {/* RE-ASSESSMENT: kode kuesioner baru + jadwal asesmen tanpa potong kredit */}
+      {isActive && <ReassessmentCard client={client} />}
 
       {/* Overview Demographics Card */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -380,6 +396,9 @@ export default function ActiveClientDetail() {
         </CardContent>
       </Card>
 
+      {/* SALDO JATAH CUTI (diisi per paket) */}
+      <LeaveQuotaCard clientId={client.id} />
+
       {/* JADWAL AKTIF DI KALENDER (mendatang) */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden" data-testid="active-calendar-sessions">
         <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 bg-slate-50/50">
@@ -487,14 +506,9 @@ export default function ActiveClientDetail() {
                         <StatusBadge status={s.status} />
                       </TableCell>
                       <TableCell data-label="Alasan Cancel / Off" className="text-slate-600 min-w-[200px]">
-                        {s.status === "off" && s.offReason ? (
+                        {s.status === "cancelled" && s.cancelReason ? (
                           <>
-                            <span className="font-semibold">Off: {getOffReasonLabel(s.offReason)}</span>
-                            {s.offNote && <span className="block text-[11px] text-slate-500">{s.offNote}</span>}
-                          </>
-                        ) : s.status === "cancelled" && s.cancelReason ? (
-                          <>
-                            <span className="font-semibold">{getCancelReasonLabel(s.cancelReason)}</span>
+                            <span className="font-semibold font-mono" title={getCancelReasonLabel(s.cancelReason)} data-testid={`cancel-reason-code-${s.id}`}>{getCancelReasonCode(s.cancelReason)}</span>
                             {cancelNoteOf(s) && <span className="block text-[11px] text-slate-500">{cancelNoteOf(s)}</span>}
                           </>
                         ) : (

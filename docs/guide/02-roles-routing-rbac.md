@@ -41,8 +41,8 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | `/manager` | manager | `revenue`→revenue |
 | `/finance` | master, finance | index→finance |
 | `/admin-inquiry` | master, manager, admin_inquiry, therapist | index/`dashboard`→inquiry_dashboard; `pipeline`, `pipeline/:id`, `clients/:id`, `assessments`, `master-data`, `parent-assessment/:id`→inquiry_pipeline |
-| `/admin-schedule` | master, manager, admin_schedule, finance | index→schedule_dashboard, `calendar`→weekly_calendar, `clients`, `clients/:id`→active_clients, `unreported-reports`→unreported_reports (monitoring laporan sesi), `holidays`→holidays |
-| `/therapist` | therapist | semua→therapist_module |
+| `/admin-schedule` | master, manager, admin_schedule, finance | index→schedule_dashboard, `calendar`→weekly_calendar, `clients`, `clients/:id`→active_clients, `unreported-reports`→unreported_reports (monitoring laporan sesi), `holidays`→holidays, `therapist-utilization`→therapist_utilization (jam kerja & Availability/Utilization) |
+| `/therapist` | therapist | semua→therapist_module (index My Schedule, `summary`, `team-calendar` = Kalender Tim read-only, `clients/:id`, `parent-assessment/:id`) |
 | `/client` | client | index (tanpa modul) |
 
 ## Guard (`app/router/guards.js`)
@@ -65,7 +65,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | State: `rolesList`, `rbacPermissions`, CRUD role, `updateRolePermission`, `hasPermission(module)`, `canDelete(module)`, `setRoleCanDelete`; akun: `addStaffUser`, `setStaffActive`, `changeStaffPassword`, `resetStaffPassword`, `requestPasswordOtp`, `resetPasswordWithOtp` | `stores/authStore.js` |
 | UI matriks & role kustom (termasuk baris "Boleh menghapus data") | `features/master/pages/RoleModuleAccess.js` |
 | Tombol hapus per role: `DeleteButton` / `IfCanDelete` (tersembunyi bila tidak boleh) | `shared/components/DeleteControls.js` |
-| Modul baru: `unreported_reports` (monitoring laporan sesi), `holidays` (hari libur) | `domain/rbac.js` (`ACCESS_MODULES`, `DEFAULT_PERMISSIONS`) |
+| Modul baru: `unreported_reports` (monitoring laporan sesi), `holidays` (hari libur), `therapist_utilization` (utilisasi & jam kerja terapis; default master, manager, admin_schedule) | `domain/rbac.js` (`ACCESS_MODULES`, `DEFAULT_PERMISSIONS`) |
 | Tabel backend | `roles`, `access_modules`, `role_permissions` (`schema.md` §04-A) |
 
 ## Scoping cabang

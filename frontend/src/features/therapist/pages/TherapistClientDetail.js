@@ -71,7 +71,7 @@ export default function TherapistClientDetail() {
     const routinesMap = {};
 
     clientSchedules.forEach((s) => {
-      if (s.status !== "cancelled" && s.status !== "off") {
+      if (s.status !== "cancelled") {
         let dayNameEn = "";
         try {
           const d = new Date(s.date + "T00:00:00");

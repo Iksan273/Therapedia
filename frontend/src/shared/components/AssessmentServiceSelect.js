@@ -3,14 +3,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fmtCurrency } from "@/shared/lib/format";
 
 // Pilih layanan (master paket) yang harganya dipakai invoice assessment otomatis saat kode kuesioner dibuat.
+// Hanya paket berflag `isAssessment`; bila belum ada paket yang diflag, semua paket tampil (data lama).
 export function AssessmentServiceSelect({ packages, value, onChange, className, testId = "assessment-service-select" }) {
+  const flagged = packages.filter((p) => p.isAssessment);
+  const options = flagged.length > 0 ? flagged : packages;
   return (
     <Select value={value || undefined} onValueChange={onChange}>
       <SelectTrigger className={className || "w-72 text-xs border-slate-200 bg-slate-50 font-semibold"} data-testid={testId}>
         <SelectValue placeholder="Pilih layanan (harga invoice)..." />
       </SelectTrigger>
       <SelectContent className="rounded-xl border-slate-200">
-        {packages.map((p) => (
+        {options.map((p) => (
           <SelectItem key={p.id} value={p.id} className="text-xs font-medium">
             {p.name} ({p.credits}x) — {fmtCurrency(p.price)}
           </SelectItem>

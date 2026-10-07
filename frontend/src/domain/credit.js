@@ -1,15 +1,25 @@
 import { todayStr, uid } from "@/shared/lib/id";
 import { matchesClientSearch } from "./client";
+import { leavePolicyOf } from "./leave";
+import { OTHER_REASON } from "./schedule";
 
 // Domain kredit & paket terapi.
 // Aturan di file ini pure (tanpa React/storage). Dipakai reducer creditsStore sekarang,
 // dan menjadi acuan CreditService Laravel nanti (lihat docs/guide/05 & 10).
 
 export const DEFAULT_MASTER_PACKAGES = [
-  { id: "pkg-reguler", invoiceCode: "REG", name: "Regular Therapist", credits: 10, price: 2500000, description: "10 Sesi Terapi bersama Regular Therapist (OT / Sensori / Wicara)" },
-  { id: "pkg-vip", invoiceCode: "SNR", name: "Senior Therapist", credits: 10, price: 3500000, description: "10 Sesi Terapi bersama Senior Therapist (1-on-1 Specialist)" },
-  { id: "pkg-consult", invoiceCode: "KON", name: "Paket Konsultasi", credits: 1, price: 500000, description: "1 Sesi Konsultasi Klinis & Review" },
+  { id: "pkg-reguler", invoiceCode: "REG", name: "Regular Therapist", credits: 10, price: 2500000, description: "10 Sesi Terapi bersama Regular Therapist (OT / Sensori / Wicara)", leaveQuota: 3, isSatuan: false, isAssessment: false },
+  { id: "pkg-vip", invoiceCode: "SNR", name: "Senior Therapist", credits: 10, price: 3500000, description: "10 Sesi Terapi bersama Senior Therapist (1-on-1 Specialist)", leaveQuota: 3, isSatuan: false, isAssessment: false },
+  { id: "pkg-consult", invoiceCode: "KON", name: "Paket Konsultasi", credits: 1, price: 500000, description: "1 Sesi Konsultasi Klinis & Review", leaveQuota: 1, isSatuan: true, isAssessment: false },
 ];
+
+// Konfigurasi cuti sebuah paket master (default aman untuk data lama): jatah hari cuti, paket satuan (cuti maks 1x/bulan,
+// jatah tidak reset otomatis), dan penanda paket asesmen.
+export const packageLeaveConfig = (master) => ({
+  leaveQuota: Math.max(0, Number(master?.leaveQuota) || 0),
+  isSatuan: Boolean(master?.isSatuan),
+  isAssessment: Boolean(master?.isAssessment),
+});
 
 // Nama paket tanpa jumlah sesi, mis. "Regular Therapist (10x)" -> "Regular Therapist" (riwayat sesi client).
 export const packageBaseName = (name) => formatPackageName(name).replace(/\s*\(\d+x\)\s*$/i, "").trim();
@@ -23,9 +33,16 @@ export const formatPackageName = (name) => {
     .replace(/\bVIP\b/gi, "Senior Therapist");
 };
 
-// Kuota cancel PER PAKET (keputusan klien): hanya penghitung. Potong kredit atau tidak ditentukan admin di tiap cancel;
-// setelah kuota lewat UI hanya memberi peringatan.
-export const CANCEL_QUOTA = 3;
+// CREDIT LEAVE per paket (revisi 7 Okt 2026, menggantikan kuota cancel 3x): tiap paket membawa sejumlah credit leave (diatur di
+// master paket, `leaveQuota`; bawaan 3 untuk paket lama). Saat Admin Schedule membatalkan sesi dengan pilihan "Potong", yang
+// dipotong lebih dulu adalah credit leave paket itu (kredit sesi utuh); bila credit leave habis barulah 1 kredit sesi dipotong.
+// "Jangan potong" tidak memakai apa pun. Ini BERBEDA dari jatah cuti 30 hari/tahun (domain/leave.js, hanya diubah Finance).
+export const DEFAULT_LEAVE_CREDITS = 3;
+export const leaveTotalOf = (pkg) => (pkg?.leaveTotal != null ? Number(pkg.leaveTotal) : DEFAULT_LEAVE_CREDITS);
+export const leaveRemainingOf = (pkg) => Math.max(0, leaveTotalOf(pkg) - (Number(pkg?.leaveUsed) || 0));
+// Total credit leave client = jumlah sisa semua paket yang masih berlaku (turunan; di DB disimpan juga di tabel client)
+export const leaveCreditTotal = (record) =>
+  (record?.packages || []).filter((p) => p.status !== "voided" && p.status !== "converted").reduce((n, p) => n + leaveRemainingOf(p), 0);
 
 // `by` = pelaku (nama staf / role) yang memicu mutasi kredit; kolom `credit_ledger.created_by` di backend.
 const historyEntry = ({ by = null, ...fields }) => ({ id: uid(), date: todayStr(), scheduleId: null, by, ...fields });
@@ -50,7 +67,7 @@ export function newCreditRecord({ clientId, branchId, id }) {
 export const newClientPackageId = () => `cp-${uid().slice(-6)}`;
 
 // `price` = snapshot harga saat paket dibuat/diperpanjang (tidak ikut berubah bila harga master diedit).
-export function newClientPackage({ id, packageId, packageName, credits, price = null }) {
+export function newClientPackage({ id, packageId, packageName, credits, price = null, leaveTotal = DEFAULT_LEAVE_CREDITS }) {
   return {
     id: id || newClientPackageId(),
     packageId: packageId || "pkg-reguler",
@@ -59,13 +76,15 @@ export function newClientPackage({ id, packageId, packageName, credits, price = 
     totalCredit: credits,
     remainingCredit: credits,
     cancelCount: 0,
+    leaveTotal, // credit leave paket ini (snapshot master `leaveQuota`)
+    leaveUsed: 0,
     status: "active",
   };
 }
 
-const REVERTIBLE_ACTIONS = ["used", "cancel_excused", "cancel_penalty", "off_excused", "off_penalty"];
+const REVERTIBLE_ACTIONS = ["used", "cancel_excused", "cancel_penalty", "cancel_leave", "off_excused", "off_penalty"];
 // Aksi ledger yang tidak mengubah kredit (kredit utuh)
-const KEEP_ACTIONS = ["cancel_excused", "off_excused"];
+const KEEP_ACTIONS = ["cancel_excused", "cancel_leave", "off_excused"];
 
 // Mutasi sesi ini yang belum dibalik (belum ada baris `reversal` yang menunjuk id-nya).
 // Setelah revert lalu complete lagi, mutasi baru (id berbeda) menjadi mutasi aktif.
@@ -104,21 +123,39 @@ export function applySessionCompleted(record, { packageId, scheduleId, date, by 
   };
 }
 
-// Sesi dibatalkan. Kuota cancel dihitung PER PAKET (`cancelCount`, hanya penghitung). Admin yang menentukan apakah
-// kredit dipotong (`deductCredit` true → ledger `cancel_penalty` −1) atau tidak (`cancel_excused`, kredit utuh).
-// Tanpa paket / saldo 0, pemotongan tidak mungkin → dicatat `cancel_excused`.
-// `kind: "off"` = sesi Off (terapis/klinik off): aturan potong kredit sama, tetapi TIDAK menambah kuota cancel paket.
+// Sesi dibatalkan (Cancel / Off). `cancelCount` = jumlah pembatalan paket (statistik). Admin memilih potong atau tidak:
+//   • tidak potong (`deductCredit` false) → ledger `cancel_excused`, tidak ada yang berkurang.
+//   • potong dan paket masih punya CREDIT LEAVE → ledger `cancel_leave`: credit leave −1, kredit sesi UTUH.
+//   • potong tetapi credit leave habis → ledger `cancel_penalty`: 1 kredit sesi dipotong (CHECK sisa ≥ 0).
+// Tanpa paket / tanpa sisa apa pun, pemotongan tidak mungkin → `cancel_excused`.
+// `kind: "off"` = pembatalan karena CUTI dari Finance (`leaveId`): memotong jatah cuti 30 hari (bukan credit leave paket maupun kredit
+// sesi) dan TIDAK menambah `cancelCount`; ledger `off_excused`.
 export function applySessionCancelled(record, { packageId, scheduleId, cancelReason, date, deductCredit = false, kind = "cancel", by = null }) {
   const packages = record.packages || [];
   const idx = findPackageIndex(packages, packageId);
   const target = idx !== -1 ? packages[idx] : null;
-  const reason = cancelReason || "lainnya";
+  const reason = cancelReason || OTHER_REASON;
   const isOff = kind === "off";
   const cancelCount = (target?.cancelCount || 0) + (isOff ? 0 : 1);
-  const deduct = Boolean(deductCredit) && Boolean(target) && target.remainingCredit > 0;
+  const wantsCut = Boolean(deductCredit) && Boolean(target) && !isOff;
+  const useLeave = wantsCut && leaveRemainingOf(target) > 0;
+  const deduct = wantsCut && !useLeave && target.remainingCredit > 0;
 
   const nextPackages = [...packages];
-  if (target) nextPackages[idx] = deduct ? debitPackage(target, { cancelCount }) : { ...target, cancelCount };
+  if (target) {
+    nextPackages[idx] = deduct
+      ? debitPackage(target, { cancelCount })
+      : { ...target, cancelCount, leaveUsed: (target.leaveUsed || 0) + (useLeave ? 1 : 0) };
+  }
+
+  const action = isOff ? "off_excused" : useLeave ? "cancel_leave" : deduct ? "cancel_penalty" : "cancel_excused";
+  const note = isOff
+    ? `Sesi cuti (${cancelReason || "OL"}) memotong jatah cuti; kredit sesi tidak dipotong`
+    : useLeave
+    ? `Cancel ke-${cancelCount} pada paket (${cancelReason || "Izin"}) — memakai 1 credit leave ${target.packageName} (sisa ${leaveRemainingOf(target) - 1}); kredit sesi utuh`
+    : deduct
+    ? `Cancel ke-${cancelCount} pada paket — credit leave habis, dipotong 1 kredit ${target.packageName}`
+    : `Cancel ke-${cancelCount} pada paket (${cancelReason || "Izin"}) — admin memilih tidak potong kredit`;
 
   return {
     ...record,
@@ -130,17 +167,12 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
         scheduleId,
         packageId: target ? target.id : null,
         packageName: target ? target.packageName : "General",
-        action: isOff ? (deduct ? "off_penalty" : "off_excused") : deduct ? "cancel_penalty" : "cancel_excused",
+        action,
         creditChange: deduct ? -1 : 0,
+        leaveChange: useLeave ? -1 : 0,
         cancelReason: reason,
         cancelCountAfter: target ? cancelCount : null,
-        note: isOff
-          ? deduct
-            ? `Sesi Off (${cancelReason || "Off"}) — admin memilih potong 1 kredit ${target.packageName}`
-            : `Sesi Off (${cancelReason || "Off"}) — admin memilih tidak potong kredit`
-          : deduct
-          ? `Cancel ke-${cancelCount} pada paket — admin memilih potong 1 kredit ${target.packageName}`
-          : `Cancel ke-${cancelCount} pada paket (${cancelReason || "Izin"}) — admin memilih tidak potong kredit`,
+        note,
       }),
     ],
   };
@@ -149,10 +181,11 @@ export function applySessionCancelled(record, { packageId, scheduleId, cancelRea
 // Batalkan efek kredit satu sesi (revert completed / cancel). Ledger append-only: baris lama tidak diubah,
 // koreksi = baris `reversal` yang menunjuk id baris asal (`reversesId`); satu baris hanya bisa dibalik sekali.
 //   used           → +1 kredit ke paket asal
-//   cancel_penalty → +1 kredit, kuota cancel paket −1
-//   cancel_excused → kuota cancel paket −1 (kredit tidak berubah)
-//   off_penalty    → +1 kredit (kuota cancel tidak berubah)
-//   off_excused    → tidak ada perubahan kredit/kuota
+//   cancel_penalty → +1 kredit, penghitung cancel paket −1
+//   cancel_leave   → credit leave +1, penghitung cancel −1 (kredit sesi tidak berubah)
+//   cancel_excused → penghitung cancel −1 (kredit tidak berubah)
+//   off_penalty    → +1 kredit (penghitung cancel tidak berubah)
+//   off_excused    → tidak ada perubahan
 export function applySessionReverted(record, { scheduleId, date, reason, by = null }) {
   const entry = findLiveSessionEntry(record, scheduleId);
   if (!entry) return record;
@@ -160,7 +193,7 @@ export function applySessionReverted(record, { scheduleId, date, reason, by = nu
   const packages = record.packages || [];
   const idx = packages.findIndex((p) => p.id === entry.packageId);
   const refunds = !KEEP_ACTIONS.includes(entry.action);
-  const isCancel = entry.action === "cancel_penalty" || entry.action === "cancel_excused"; // hanya cancel yang memakai kuota
+  const isCancel = ["cancel_penalty", "cancel_excused", "cancel_leave"].includes(entry.action); // hanya cancel yang menambah penghitung
   let nextPackages = packages;
   if (idx !== -1 && (refunds || isCancel)) {
     const pkg = packages[idx];
@@ -171,6 +204,7 @@ export function applySessionReverted(record, { scheduleId, date, reason, by = nu
       remainingCredit: remaining,
       status: remaining > 0 ? "active" : pkg.status,
       cancelCount: isCancel ? Math.max(0, (pkg.cancelCount || 0) - 1) : pkg.cancelCount,
+      leaveUsed: entry.action === "cancel_leave" ? Math.max(0, (pkg.leaveUsed || 0) - 1) : pkg.leaveUsed,
     };
   }
   return {
@@ -192,6 +226,32 @@ export function applySessionReverted(record, { scheduleId, date, reason, by = nu
   };
 }
 
+// Credit leave paket baru (dipanggil sebelum paket ditambahkan ke record): mengembalikan { leaveTotal, packages }.
+//  • Paket reguler: tiap pembelian/renewal membawa credit leave BARU sebesar `leaveQuota` master (reset per paket).
+//  • Paket satuan (`isSatuan`): credit leave TIDAK reset otomatis. Paket pertama membawa `leaveQuota`; paket berikutnya
+//    MELANJUTKAN sisa paket sebelumnya (sisa lama dipindah, jadi total client tetap satu kumpulan). Finance memakai opsi
+//    "Reset credit leave" saat renewal (`reset`) untuk mengisi ulang ke `leaveQuota` (sisa lama dihanguskan).
+// Total credit leave client (`leaveCreditTotal`) selalu = jumlah sisa semua paket yang berlaku.
+export function prepareLeaveCredit(record, master, { reset = false } = {}) {
+  const quota = Math.max(0, Number(master?.leaveQuota) || 0);
+  const packages = record?.packages || [];
+  if (!master?.isSatuan) return { leaveTotal: quota, packages };
+  const live = packages.filter((p) => p.status !== "voided" && p.status !== "converted");
+  if (reset || live.length === 0) {
+    return { leaveTotal: quota, packages: reset ? packages.map((p) => (live.includes(p) ? { ...p, leaveTotal: p.leaveUsed || 0 } : p)) : packages };
+  }
+  const carried = live.reduce((n, p) => n + leaveRemainingOf(p), 0);
+  return { leaveTotal: carried, packages: packages.map((p) => (live.includes(p) ? { ...p, leaveTotal: p.leaveUsed || 0 } : p)) };
+}
+
+// Konteks cuti client dari record kredit + master paket: jatah (`granted`), tanggal reset (`since`), dan `isSatuan`
+// (paket aktif client = paket satuan → cuti maks 1x per bulan). Dipakai planLeave & form jadwal.
+export function clientLeaveContext(record, masterPackages = [], globalSince = null) {
+  const active = activePackageOf(record);
+  const master = active ? masterPackages.find((m) => m.id === active.packageId) : null;
+  return { ...leavePolicyOf(record, globalSince), isSatuan: Boolean(master?.isSatuan) };
+}
+
 // Tambah paket kredit baru (pembelian / renewal) ke record client
 export function applyPackageAdded(record, pkg, note, by = null) {
   return {
@@ -204,18 +264,20 @@ export function applyPackageAdded(record, pkg, note, by = null) {
   };
 }
 
-// ---- Invoice (keputusan klien): jenis Paket Sesi & Assessment ----
+// ---- Invoice (keputusan klien): jenis Paket Sesi, Assessment, dan Cuti ----
 export const INVOICE_TYPES = [
   { value: "package", label: "Paket Sesi" },
   { value: "assessment", label: "Assessment" },
+  { value: "leave", label: "Cuti" },
 ];
 export const DEFAULT_ASSESSMENT_FEE = 500000; // nominal invoice assessment yang terbit otomatis saat kode kuesioner dibuat (sementara; Finance bisa membuat invoice manual dengan nominal lain)
 export const ASSESSMENT_INVOICE_CODE = "ASM"; // kode jenis invoice assessment (dicadangkan; tidak boleh dipakai paket)
-export const LEAVE_INVOICE_CODE = "CUT"; // kode jenis invoice cuti (dicadangkan; terbit dari sesi Off oleh Admin Schedule)
+export const LEAVE_INVOICE_CODE = "CUT"; // kode jenis invoice cuti (dicadangkan; diterbitkan Finance, opsional tertaut ke log cuti `leaveId`)
 export const RESERVED_INVOICE_CODES = [ASSESSMENT_INVOICE_CODE, LEAVE_INVOICE_CODE];
 
 // Invoice lama tanpa `type` = Paket Sesi.
-// Invoice cuti (`leave`): nominal manual dari Admin Schedule saat sesi di-Off; tanpa paket/kredit (seperti assessment).
+// Invoice cuti (`leave`): diterbitkan FINANCE dengan nominal manual (tab Cuti / Buat Tagihan), opsional tertaut ke log cuti (`leaveId`);
+// lunas tanpa efek kredit/paket (seperti assessment). Invoice lama tertaut ke sesi lewat `leaveScheduleId`.
 export const invoiceType = (inv) => (inv?.type === "assessment" ? "assessment" : inv?.type === "leave" ? "leave" : "package");
 export const invoiceTypeLabel = (inv) => (invoiceType(inv) === "leave" ? "Cuti" : INVOICE_TYPES.find((t) => t.value === invoiceType(inv))?.label || "Paket Sesi");
 
@@ -340,9 +402,9 @@ export const isCreditedAbsence = (record, scheduleId) => Boolean(findLiveSession
 // Frozen (turunan, tidak disimpan): kredit client 0 ATAU belum punya record/paket sama sekali.
 export const isCreditZero = (record) => !record || !(record.remainingCredit > 0);
 
-// Rincian kuota cancel PER PAKET (penghitung ada di tiap paket, bukan per client). Paket yang dirinci = paket yang masih
-// punya sisa; bila tak ada yang bersisa, paket terakhir. Paket sejenis diberi nomor urut ("Regular Therapist #1", "#2")
-// agar tidak tertukar. `total` = jumlah cancel semua paket yang dirinci, `anyOver` = ada paket yang melewati kuota.
+// Rincian CREDIT LEAVE PER PAKET (tiap paket punya sendiri; `quota` = total, `cancelCount` = credit leave terpakai, `remaining` =
+// sisa). Paket yang dirinci = paket yang masih punya sisa kredit; bila tak ada yang bersisa, paket terakhir. Paket sejenis diberi
+// nomor urut ("Regular Therapist #1", "#2"). `total` = sisa credit leave semua paket yang dirinci.
 export function cancelQuotaByPackage(record) {
   const packages = record?.packages || [];
   const shown = packages.filter((p) => p.remainingCredit > 0);
@@ -351,34 +413,36 @@ export function cancelQuotaByPackage(record) {
   const sameName = (p) => list.filter((q) => baseName(q) === baseName(p));
   const rows = list.map((p) => {
     const peers = sameName(p);
-    const used = p.cancelCount || 0;
+    const quota = leaveTotalOf(p);
+    const used = Math.min(quota, p.leaveUsed || 0);
     return {
       id: p.id,
       label: peers.length > 1 ? `${baseName(p)} #${peers.indexOf(p) + 1}` : baseName(p),
       remainingCredit: p.remainingCredit || 0,
       cancelCount: used,
-      quota: CANCEL_QUOTA,
-      over: used > CANCEL_QUOTA,
+      quota,
+      remaining: leaveRemainingOf(p),
+      over: false,
     };
   });
-  return { rows, total: rows.reduce((a, r) => a + r.cancelCount, 0), anyOver: rows.some((r) => r.over) };
+  return { rows, total: rows.reduce((a, r) => a + r.remaining, 0), anyOver: false };
 }
 
-// Ringkasan record untuk UI: total sisa & total kredit semua paket + kuota cancel paket yang sedang dipakai.
+// Ringkasan record untuk UI: total sisa & total kredit semua paket + credit leave paket yang sedang dipakai.
 export function summarizeCreditRecord(record) {
   if (!record) return null;
   const packages = record.packages || [];
   const active = activePackageOf(record);
-  const cancelCount = active?.cancelCount || 0;
   return {
     ...record,
     remainingCredit: packages.reduce((acc, p) => acc + (p.remainingCredit || 0), 0),
     totalCredit: packages.reduce((acc, p) => acc + (p.totalCredit || 0), 0),
     packages,
-    cancelCount,
-    cancelQuota: CANCEL_QUOTA,
-    leaveUsed: cancelCount,
-    leaveQuota: CANCEL_QUOTA,
+    cancelCount: active?.cancelCount || 0,
+    leaveUsed: active?.leaveUsed || 0,
+    leaveQuota: active ? leaveTotalOf(active) : 0,
+    leaveRemaining: active ? leaveRemainingOf(active) : 0,
+    leaveCreditTotal: leaveCreditTotal(record),
   };
 }
 
@@ -502,15 +566,12 @@ export const RENEWAL_MODES = {
 export const canDeleteInvoice = (inv) => Boolean(inv) && inv.status !== "paid" && inv.status !== "void";
 export const canVoidInvoice = (inv) => Boolean(inv) && inv.status === "paid";
 
-export const VOID_CREDIT_ACTIONS = {
-  keep: { label: "Void invoice saja, pertahankan kredit", hint: "Salah input invoice (nominal salah / dobel) tetapi pembayaran client valid. Paket, sisa kredit, dan jadwal tidak berubah." },
-  revoke: { label: "Void dan cabut sisa kredit", hint: "Pembayaran batal / bukti tidak valid. Sisa kredit paket dicabut jadi 0; sesi selesai & laporannya tetap; sesi mendatang dipindah ke paket aktif lain atau menjadi Frozen." },
-};
-
-// Alasan wajib; pilihan kredit wajib bila invoice punya paket (tanpa nilai default, seperti pilihan potong kredit saat cancel).
-export function validateVoid({ reason, creditAction, hasPackage }) {
+// Void (keputusan klien Okt 2026): satu pilihan saja = void invoice dengan kredit/paket DIPERTAHANKAN (invoice keluar dari omzet).
+// Hanya untuk invoice yang kreditnya BELUM dipakai; bila sudah ada sesi terpakai / paket dikonversi / invoice sudah direfund,
+// void ditolak (koreksi lewat refund). Alasan wajib.
+export function validateVoid({ reason, blockedReason = null }) {
+  if (blockedReason) return blockedReason;
   if (!String(reason || "").trim()) return "Alasan void wajib diisi.";
-  if (hasPackage && !VOID_CREDIT_ACTIONS[creditAction]) return "Pilih perlakuan kredit: pertahankan atau cabut sisa kredit.";
   return null;
 }
 
@@ -532,41 +593,114 @@ export function invoicePackageChain(record, invoice) {
 
 const VOID_UPCOMING = ["scheduled", "rescheduled", "reschedule_pending"];
 
-// Ringkasan untuk dialog Void: paket hidup, sisa kredit, sesi selesai yang sudah memakai paket, sesi mendatang.
+// Ringkasan untuk dialog Void/Refund: paket hidup, sisa kredit, kredit & sesi yang sudah terpakai, sesi mendatang, dan
+// `voidBlocked` (alasan void tidak boleh; null = boleh). Kredit terpakai = totalCredit − sisa paket akar (sesi selesai,
+// cancel/off yang memotong kredit), paket yang sudah dikonversi dianggap terpakai.
 export function voidSummary(record, invoice, schedules = [], today = "") {
   const chain = invoicePackageChain(record, invoice);
   const live = chain[chain.length - 1] || null;
+  const rootPkg = chain[0] || null;
   const ids = new Set(chain.map((p) => p.id));
   const mine = schedules.filter((s) => s.creditPackageId && ids.has(s.creditPackageId));
+  const usedSessions = mine.filter((s) => s.status === "completed").length;
+  const converted = chain.length > 1;
+  const usedCredits = converted ? rootPkg.totalCredit || 0 : rootPkg ? Math.max(0, (rootPkg.totalCredit || 0) - (rootPkg.remainingCredit || 0)) : 0;
+  const refunded = Number(invoice?.refundAmount) > 0;
+  const voidBlocked = refunded
+    ? "Invoice ini sudah direfund, tidak bisa di-void."
+    : converted
+      ? "Paket invoice ini sudah dikonversi, jadi kreditnya sudah dipakai. Invoice tidak bisa di-void."
+      : usedCredits > 0 || usedSessions > 0
+        ? `Kredit invoice ini sudah terpakai (${Math.max(usedCredits, usedSessions)} sesi). Invoice tidak bisa di-void; gunakan Refund untuk sisa kredit.`
+        : null;
   return {
     hasPackage: Boolean(live),
     packageName: live ? live.packageName : null,
     livePackageId: live ? live.id : null,
     chainIds: [...ids],
     remaining: live ? live.remainingCredit || 0 : 0,
-    usedSessions: mine.filter((s) => s.status === "completed").length,
+    usedCredits,
+    usedSessions,
     upcomingSessions: mine.filter((s) => s.type === "therapy" && VOID_UPCOMING.includes(s.status) && (!today || s.date >= today)).length,
     balanceApplied: invoice?.balanceApplied || 0,
+    voidBlocked,
   };
 }
 
-// Pilihan "cabut sisa kredit": paket hidup jadi `voided` (sisa 0, mutasi ledger `manual_adjust` bernilai −sisa) dan saldo
-// lebihan yang dipakai invoice kembali ke client. Sesi selesai & ledger lama tidak disentuh.
-export function applyVoidRevoke(record, invoice, { note = "", date, by = null } = {}) {
+// ---- Refund (keputusan klien Okt 2026) ----
+// Refund pada invoice paket lunas: sisa kredit paket hidup dikembalikan sebagai uang. Nominal diusulkan otomatis = sisa kredit ×
+// harga per sesi (snapshot harga bayar ÷ total sesi); Finance boleh mengubahnya (maks nilai invoice). Bagian yang sudah
+// terpakai tetap Verified Revenue; nominal refund tetap masuk Gross Revenue tetapi dikeluarkan dari Verified Revenue.
+// Sisa kredit paket jadi 0 (paket `voided` + penanda `refunded`); invoice tetap `paid`, memegang `refundAmount`. Sekali per invoice.
+export const canRefundInvoice = (inv) => Boolean(inv) && inv.status === "paid" && invoiceType(inv) === "package" && !(Number(inv.refundAmount) > 0);
+
+export function buildRefundPlan(record, invoice, schedules = [], today = "") {
+  const sum = voidSummary(record, invoice, schedules, today);
   const live = invoicePackageChain(record, invoice).slice(-1)[0] || null;
-  const returned = invoice?.balanceApplied || 0;
-  if (!live) return { ...record, balance: (record.balance || 0) + returned };
+  const errors = [];
+  if (!canRefundInvoice(invoice)) errors.push("Invoice ini tidak bisa direfund (harus invoice paket lunas dan belum pernah direfund).");
+  else if (!live || (live.remainingCredit || 0) <= 0) errors.push("Tidak ada sisa kredit pada paket invoice ini untuk direfund.");
+  const maxAmount = Number(invoice?.amount) || 0;
+  const unit = live ? unitValueOf(Number(live.price) > 0 ? live.price : invoice?.grossAmount || invoice?.amount, live.totalCredit) : null;
+  const credits = live ? live.remainingCredit || 0 : 0;
+  const suggestedAmount = unit == null ? 0 : Math.min(maxAmount, Math.round(unit * credits));
+  return { ok: errors.length === 0, errors, summary: sum, livePackageId: live ? live.id : null, packageName: live ? live.packageName : null, credits, unit, suggestedAmount, maxAmount };
+}
+
+export function validateRefund({ amount, reason, plan }) {
+  if (!plan?.ok) return plan?.errors?.[0] || "Invoice tidak bisa direfund.";
+  const value = Number(amount);
+  if (!(value > 0)) return "Nominal refund harus lebih dari 0.";
+  if (value > plan.maxAmount) return "Nominal refund tidak boleh melebihi nilai invoice.";
+  if (!String(reason || "").trim()) return "Alasan refund wajib diisi.";
+  return null;
+}
+
+// Sisa kredit paket hidup jadi 0 (paket `voided` + `refunded`, ledger `refund` −sisa); saldo lebihan yang dipakai invoice TIDAK
+// dikembalikan (sudah menjadi bagian nilai invoice).
+export function applyRefund(record, invoice, { amount, note = "", date, by = null } = {}) {
+  const live = invoicePackageChain(record, invoice).slice(-1)[0] || null;
+  if (!live) return record;
   const out = live.remainingCredit || 0;
   return {
     ...record,
-    balance: (record.balance || 0) + returned,
-    packages: (record.packages || []).map((p) => (p.id === live.id ? { ...p, remainingCredit: 0, status: "voided" } : p)),
+    packages: (record.packages || []).map((p) => (p.id === live.id ? { ...p, remainingCredit: 0, status: "voided", refunded: true } : p)),
     history: [
       ...(record.history || []),
-      historyEntry({ by, date: date || todayStr(), packageId: live.id, packageName: live.packageName, action: "manual_adjust", creditChange: -out, note }),
+      historyEntry({ by, date: date || todayStr(), packageId: live.id, packageName: live.packageName, action: "refund", creditChange: -out, note: note || `Refund ${invoice.invoiceNumber} (${amount})` }),
     ],
   };
 }
+
+// Ringkasan omzet (dashboard Revenue). Invoice void keluar dari semua angka. `totalRevenue` (Gross Invoiced) = semua invoice
+// non-void termasuk bagian refund; `grossRevenue` = invoice lunas (refund tetap termasuk); `verifiedRevenue` = lunas dikurangi refund;
+// `pendingRevenue` = belum lunas.
+export function revenueMetrics(invoices = []) {
+  let totalRevenue = 0;
+  let grossRevenue = 0;
+  let refundTotal = 0;
+  let pendingRevenue = 0;
+  let paidCount = 0;
+  let totalInvoices = 0;
+  invoices.forEach((inv) => {
+    if (inv.status === "void") return;
+    const amt = Number(inv.amount) || 0;
+    totalInvoices += 1;
+    totalRevenue += amt;
+    if (inv.status === "paid") {
+      grossRevenue += amt;
+      refundTotal += Math.min(amt, Number(inv.refundAmount) || 0);
+      paidCount += 1;
+    } else {
+      pendingRevenue += amt;
+    }
+  });
+  const verifiedRevenue = grossRevenue - refundTotal;
+  return { totalRevenue, grossRevenue, verifiedRevenue, refundTotal, pendingRevenue, totalInvoices, paidCount, collectionRate: totalRevenue > 0 ? Math.round((grossRevenue / totalRevenue) * 100) : 0 };
+}
+
+// Omzet bersih (Verified) satu invoice lunas, dipakai grafik per cabang/paket.
+export const netPaidAmount = (inv) => (inv?.status === "paid" ? Math.max(0, (Number(inv.amount) || 0) - Math.min(Number(inv.amount) || 0, Number(inv.refundAmount) || 0)) : 0);
 
 // Invoice void (pilihan "pertahankan kredit") yang paketnya belum diambil alih invoice pengganti. Invoice baru bisa
 // "menggantikan" salah satunya agar paket lama dipakai ulang dan kredit tidak dobel.
@@ -646,6 +780,7 @@ export const INVOICE_LOG_ACTIONS = {
   balance_applied: { label: "Saldo lebihan dipakai", tone: "warning" },
   converted: { label: "Paket dikonversi", tone: "warning" },
   voided: { label: "Invoice di-void", tone: "danger" },
+  refunded: { label: "Refund", tone: "warning" },
 };
 
 export const invoiceLogMeta = (action) => INVOICE_LOG_ACTIONS[action] || { label: action, tone: "neutral" };
@@ -704,21 +839,6 @@ export function buildSamePackageRenewal(record, masterPackages = []) {
 export const hasOpenPackageInvoice = (invoices = [], clientId) =>
   invoices.some((i) => i.clientId === clientId && invoiceType(i) === "package" && i.status !== "paid" && i.status !== "void");
 
-// ---- Riwayat invoice di portal ortu ----
-// Status versi ortu: belum ada bukti → menunggu pembayaran; bukti terunggah tapi belum lunas → menunggu verifikasi Finance.
-export const PARENT_INVOICE_STATUS = {
-  unpaid: { label: "Menunggu Pembayaran", cls: "bg-rose-50 text-rose-700 border border-rose-200/70" },
-  proof_received: { label: "Bukti Diterima, Menunggu Verifikasi", cls: "bg-amber-50 text-amber-800 border border-amber-200/70" },
-  paid: { label: "Lunas", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200/70" },
-};
-
-export const parentInvoiceStatus = (inv) => {
-  if (inv?.status === "paid") return "paid";
-  return Number(inv?.proofUploadCount) > 0 || inv?.proofUrl || inv?.proofOfPaymentUrl ? "proof_received" : "unpaid";
-};
-
-// Invoice milik satu client untuk ditampilkan ke ortu: semua jenis (paket, assessment, cuti), tanpa invoice void, terbaru dulu.
-export const invoicesForParent = (invoices = [], clientId) =>
-  invoices
-    .filter((i) => i.clientId === clientId && i.status !== "void")
-    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "") || (b.invoiceNumber || "").localeCompare(a.invoiceNumber || ""));
+// Invoice cuti yang tertaut ke sebuah log cuti (urut terbaru dulu). Dipakai tab Cuti & Detail cuti.
+export const invoicesOfLeave = (invoices = [], leaveId) =>
+  invoices.filter((i) => invoiceType(i) === "leave" && i.leaveId === leaveId && i.status !== "void").sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));

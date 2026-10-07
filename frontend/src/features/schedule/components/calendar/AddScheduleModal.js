@@ -1,11 +1,14 @@
 import { getClientServiceIds } from "@/domain/client";
 import { findHoliday, holidayDateSet, holidayMessage } from "@/domain/holiday";
 import { useHolidays } from "@/stores/holidaysStore";
+import { useLeaves } from "@/stores/leavesStore";
+import { activeLeaveOn, clientLeaveDateSet } from "@/domain/leave";
+import { fmtDate } from "@/shared/lib/format";
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/stores/authStore";
 import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { toast } from "sonner";
-import { AlertTriangle, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info, Snowflake } from "lucide-react";
+import { AlertTriangle, CalendarOff, Check, ChevronsUpDown, CalendarPlus, UserCheck, Trash2, Settings2, Info, Snowflake } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +49,7 @@ export const AddScheduleModal = ({
   const { auth } = useAuth();
   const sessionActions = useSessionActions();
   const { holidays } = useHolidays();
+  const { leaves } = useLeaves();
 
   // Stable primitives extracted from defaults / props to prevent infinite re-render loops
   const defaultsClientId = defaults?.clientId || defaultClientId || "";
@@ -192,7 +196,12 @@ export const AddScheduleModal = ({
   };
 
   // Helper for bundle day config
-  const isAssessmentType = defaultsType === "assessment" || defaultTypeProp === "assessment" || defaultType === "assessment";
+  // Dikunci (alur lain, mis. inquiry) → ikut default; dari kalender Admin Schedule jenis sesi dipilih lewat toggle (state `defaultType`)
+  const isAssessmentType = defaultType === "assessment" || (defaultsLockType && (defaultsType === "assessment" || defaultTypeProp === "assessment"));
+  const changeSessionType = (type) => {
+    setDefaultType(type);
+    if (type === "assessment") setScheduleMode("single"); // asesmen selalu 1 tanggal
+  };
 
   // Check conflicts for single session mode
   const singleConflicts = useMemo(() => {
@@ -207,9 +216,19 @@ export const AddScheduleModal = ({
     });
   }, [scheduleMode, defaultTherapistId, date, defaultStartTime, defaultEndTime, schedules, therapists]);
 
+  // Client sedang cuti di tanggal sesi terapi (mode single): jadwal aktif DIBLOKIR. Finance harus menyelesaikan cuti lebih awal
+  // (Akhiri Lebih Awal / Void) lebih dulu. Jadwal berulang tidak bertanya: tanggal cuti dilewati seperti hari libur.
+  const leaveOnDate = scheduleMode === "single" && !isAssessmentType && clientId ? activeLeaveOn(leaves, clientId, date) : null;
+  const clientLeaveDates = useMemo(() => (clientId ? clientLeaveDateSet(leaves, clientId) : new Set()), [leaves, clientId]);
+
   const handleSubmit = () => {
     if (!clientId) {
       toast.error("Please select a child/client.");
+      return;
+    }
+
+    if (leaveOnDate) {
+      toast.error(`${selectedClient?.clientName || "Client"} sedang cuti di tanggal ini. Minta Finance menyelesaikan cuti lebih awal dulu (tab Cuti → Akhiri Lebih Awal).`);
       return;
     }
 
@@ -244,10 +263,12 @@ export const AddScheduleModal = ({
         activitySection: "",
         homeworkSection: "",
       };
-      const { assessmentScheduled } = sessionActions.createSessions([singleBase]);
-      createdList.push(singleBase);
-      if (assessmentScheduled) toast.info(`${selectedClient?.clientName || "Client"} otomatis beralih ke tahap "Asesmen Terjadwal".`);
-      toast.success(`${isAssessmentType ? "Sesi asesmen" : "Sesi terapi"} berhasil dijadwalkan untuk ${date}.`);
+      {
+        const { assessmentScheduled } = sessionActions.createSessions([singleBase]);
+        createdList.push(singleBase);
+        if (assessmentScheduled) toast.info(`${selectedClient?.clientName || "Client"} otomatis beralih ke tahap "Asesmen Terjadwal".`);
+        toast.success(`${isAssessmentType ? "Sesi asesmen" : "Sesi terapi"} berhasil dijadwalkan untuk ${date}.`);
+      }
     } else {
       // Multi-day pattern (therapy only)
       if (selectedDays.length === 0) {
@@ -273,16 +294,17 @@ export const AddScheduleModal = ({
         homeworkSection: "",
       };
 
-      // Jadwal berulang melewati tanggal libur (tidak dibuatkan sesi)
+      // Jadwal berulang melewati tanggal libur dan tanggal cuti client (tidak dibuatkan sesi)
       const holidayDates = holidayDateSet(holidays, selectedClient?.branchId);
+      const skipDates = new Set([...holidayDates, ...clientLeaveDates]);
       const rawCount = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs).length;
       const seriesId = uid(); // semua hari pada pola ini = satu seri (satu masa berlaku)
-      const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs, holidayDates).map((s) => ({ ...s, seriesId }));
+      const schedulesList = buildRecurringSchedules(baseSession, weeksCount, selectedDays, dayConfigs, skipDates).map((s) => ({ ...s, seriesId }));
       if (schedulesList.length === 0) {
-        toast.error("Semua tanggal pada pola ini jatuh di hari libur. Pilih tanggal atau hari lain.");
+        toast.error("Semua tanggal pada pola ini jatuh di hari libur atau masa cuti client. Pilih tanggal atau hari lain.");
         return;
       }
-      if (rawCount > schedulesList.length) toast.info(`${rawCount - schedulesList.length} tanggal dilewati karena hari libur.`);
+      if (rawCount > schedulesList.length) toast.info(`${rawCount - schedulesList.length} tanggal dilewati karena hari libur atau masa cuti client.`);
       sessionActions.createSessions(schedulesList);
       createdList.push(...schedulesList);
 
@@ -353,6 +375,32 @@ export const AddScheduleModal = ({
             </div>
           )}
 
+          {/* Jenis sesi: Admin Schedule bisa menjadwalkan asesmen awal / re-assessment langsung dari kalender (membantu Admin Inquiry) */}
+          {!defaultsLockType && (
+            <div className="space-y-1" data-testid="add-schedule-type-switch">
+              <Label className="text-xs font-bold text-slate-700">Jenis Sesi</Label>
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                {[
+                  { id: "therapy", label: "Sesi Terapi" },
+                  { id: "assessment", label: "Asesmen / Re-assessment" },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => changeSessionType(opt.id)}
+                    className={cn(
+                      "flex-1 min-h-10 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      (isAssessmentType ? "assessment" : "therapy") === opt.id ? "bg-white text-sky-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    )}
+                    data-testid={`add-schedule-type-${opt.id}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Scheduling Mode Switcher (Hanya untuk Sesi Terapi Rutin, Asesmen khusus Single Date) */}
           {!defaults.lockType && !isAssessmentType && (
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
@@ -409,7 +457,7 @@ export const AddScheduleModal = ({
                     <div>
                       <p className="font-bold text-sky-950">Sesi Asesmen Klinis (Tanpa Kuota Kredit)</p>
                       <p className="text-[11px] text-sky-700 leading-relaxed mt-0.5">
-                        Jadwal ini digunakan khusus untuk mengevaluasi dan meng-asses kondisi klien di awal (Pipeline Inquiry Step 4), sehingga tidak memotong saldo paket kredit terapi.
+                        Jadwal ini digunakan khusus untuk mengevaluasi dan meng-asses kondisi klien di awal (Pipeline Inquiry Step 4) maupun re-assessment, sehingga tidak memotong saldo paket kredit terapi.
                       </p>
                     </div>
                   </div>
@@ -707,6 +755,23 @@ export const AddScheduleModal = ({
             />
           </div>
 
+          {/* Client sedang cuti di tanggal ini (single): jadwal diblokir sampai Finance menyelesaikan cuti */}
+          {leaveOnDate && (
+            <div className="rounded-xl border border-violet-200 bg-violet-50/70 p-3 text-xs text-violet-950 space-y-1.5" data-testid="add-schedule-leave-panel">
+              <p className="flex items-center gap-1.5 font-bold">
+                <CalendarOff className="w-3.5 h-3.5 text-violet-600" /> Client sedang cuti {fmtDate(leaveOnDate.startDate)} – {fmtDate(leaveOnDate.endDate)}
+              </p>
+              <p className="leading-relaxed" data-testid="add-schedule-leave-warning">
+                Jadwal aktif <strong>tidak bisa ditambahkan</strong> di masa cuti. Bila anak memang akan masuk, <strong>infokan ke Finance</strong> untuk menyelesaikan cuti lebih awal (tab Cuti → Akhiri Lebih Awal) lebih dulu, lalu tambahkan jadwalnya.
+              </p>
+            </div>
+          )}
+          {scheduleMode === "multi_day" && clientLeaveDates.size > 0 && (
+            <p className="rounded-xl border border-violet-200 bg-violet-50/70 p-2.5 text-[11px] text-violet-900" data-testid="add-schedule-leave-skip-note">
+              Client punya cuti terdaftar: tanggal di masa cuti dilewati otomatis (seperti hari libur).
+            </p>
+          )}
+
           {/* Conflict warning */}
           {singleConflicts.length > 0 && (
             <div
@@ -736,6 +801,7 @@ export const AddScheduleModal = ({
           <Button
             className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 shadow-xs"
             onClick={handleSubmit}
+            disabled={Boolean(leaveOnDate)}
             data-testid="add-schedule-submit-button"
           >
             {singleConflicts.length > 0 ? "Schedule Anyway" : "Confirm Schedule"}

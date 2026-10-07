@@ -13,8 +13,8 @@ describe("menu sidebar mengikuti RBAC", () => {
     [
       "/master/revenue", "/master/branch-performance", "/admin-inquiry", "/admin-inquiry/pipeline", "/admin-inquiry/assessments",
       "/admin-inquiry/master-data", "/admin-schedule", "/admin-schedule/calendar", "/admin-schedule/clients",
-      "/admin-schedule/unreported-reports", "/admin-schedule/holidays", "/finance", "/master/branches", "/master/users",
-      "/master/rbac", "/therapist", "/therapist/summary",
+      "/admin-schedule/unreported-reports", "/admin-schedule/holidays", "/admin-schedule/therapist-utilization", "/finance", "/master/branches", "/master/users",
+      "/master/rbac", "/therapist", "/therapist/summary", "/therapist/team-calendar",
     ].forEach((to) => expect(tos).toContain(to));
   });
 
@@ -29,6 +29,14 @@ describe("menu sidebar mengikuti RBAC", () => {
     expect(navFor("admin_schedule")).toContain("/admin-schedule/holidays");
     expect(navFor("admin_schedule", { holidays: false })).not.toContain("/admin-schedule/holidays");
     expect(navFor("admin_inquiry", { finance: true })).toContain("/finance");
+  });
+
+  test("Utilisasi Terapis: default untuk master, manager, admin_schedule; terapis punya Kalender Tim lewat modul therapist_module", () => {
+    expect(navFor("admin_schedule")).toContain("/admin-schedule/therapist-utilization");
+    expect(navFor("manager")).toContain("/admin-schedule/therapist-utilization");
+    expect(navFor("finance")).not.toContain("/admin-schedule/therapist-utilization");
+    expect(navFor("finance", { therapist_utilization: true })).toContain("/admin-schedule/therapist-utilization");
+    expect(navFor("therapist")).toContain("/therapist/team-calendar");
   });
 
   test("default admin_inquiry tidak punya menu finance", () => {

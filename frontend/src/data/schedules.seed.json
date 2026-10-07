@@ -88,7 +88,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "tanpa_kabar"
+    "cancelReason": "NS"
   },
   {
     "id": "sch-g0345",
@@ -123,7 +123,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "tanpa_kabar"
+    "cancelReason": "NS"
   },
   {
     "id": "sch-g0265",
@@ -310,7 +310,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0007",
@@ -418,7 +418,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0222",
@@ -434,7 +434,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "tanpa_kabar"
+    "cancelReason": "NS"
   },
   {
     "id": "sch-g0288",
@@ -468,7 +468,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0201",
@@ -541,7 +541,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "reschedule_dibatalkan"
+    "cancelReason": "RD"
   },
   {
     "id": "sch-g0346",
@@ -646,7 +646,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0266",
@@ -851,7 +851,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "bentrok_sekolah"
+    "cancelReason": "SCA"
   },
   {
     "id": "sch-g0032",
@@ -867,7 +867,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0223",
@@ -1051,7 +1051,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0335",
@@ -1105,7 +1105,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "lainnya"
+    "cancelReason": "LN"
   },
   {
     "id": "sch-g0052",
@@ -1158,7 +1158,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0293",
@@ -1501,7 +1501,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0022",
@@ -1643,7 +1643,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0270",
@@ -1809,7 +1809,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "bentrok_sekolah"
+    "cancelReason": "SCA"
   },
   {
     "id": "sch-g0131",
@@ -1932,7 +1932,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0089",
@@ -2004,7 +2004,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0023",
@@ -2111,7 +2111,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0056",
@@ -2146,7 +2146,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0272",
@@ -2180,7 +2180,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0120",
@@ -2731,7 +2731,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "reschedule_dibatalkan"
+    "cancelReason": "RD"
   },
   {
     "id": "sch-g0184",
@@ -2856,7 +2856,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0090",
@@ -2983,7 +2983,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "bentrok_sekolah"
+    "cancelReason": "SCA"
   },
   {
     "id": "sch-g0093",
@@ -3182,7 +3182,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0156",
@@ -3305,7 +3305,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0210",
@@ -3431,7 +3431,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "bentrok_sekolah"
+    "cancelReason": "SCA"
   },
   {
     "id": "sch-g0001",
@@ -3485,7 +3485,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0322",
@@ -3783,7 +3783,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0157",
@@ -4238,8 +4238,8 @@
     "therapistId": "t-007",
     "_weekOffset": -1,
     "_dayOfWeek": 1,
-    "startTime": "10:00",
-    "endTime": "11:00",
+    "startTime": "09:00",
+    "endTime": "10:00",
     "status": "completed",
     "isRecurring": false,
     "recurrenceRule": null,
@@ -4394,7 +4394,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0064",
@@ -4540,7 +4540,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0214",
@@ -4794,7 +4794,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0099",
@@ -4956,7 +4956,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0193",
@@ -5009,7 +5009,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "sakit"
+    "cancelReason": "S"
   },
   {
     "id": "sch-g0282",
@@ -5133,7 +5133,7 @@
     "isRecurring": true,
     "recurrenceRule": "weekly",
     "cancelReason": null,
-    "pendingReason": "sakit",
+    "pendingReason": "S",
     "pendingNote": "Ortu minta jadwal pekan depan, menunggu konfirmasi hari.",
     "_markedDaysAgo": 0
   },
@@ -5224,7 +5224,7 @@
     "isRecurring": true,
     "recurrenceRule": "weekly",
     "cancelReason": null,
-    "pendingReason": "sakit",
+    "pendingReason": "S",
     "pendingNote": "Anak sedang kurang sehat, jadwal pengganti disepakati menyusul.",
     "_markedDaysAgo": 4
   },
@@ -5275,7 +5275,7 @@
     "isRecurring": true,
     "recurrenceRule": "weekly",
     "cancelReason": null,
-    "pendingReason": "bentrok_sekolah",
+    "pendingReason": "SCA",
     "pendingNote": "Menunggu kabar dari orang tua soal hari pengganti.",
     "_markedDaysAgo": 2
   },
@@ -5374,7 +5374,7 @@
     "isRecurring": true,
     "recurrenceRule": "weekly",
     "cancelReason": null,
-    "pendingReason": "sakit",
+    "pendingReason": "S",
     "pendingNote": null,
     "_markedDaysAgo": 0
   },
@@ -5952,7 +5952,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0308",
@@ -6001,7 +6001,7 @@
     "isRecurring": true,
     "recurrenceRule": "weekly",
     "cancelReason": null,
-    "pendingReason": "bentrok_sekolah",
+    "pendingReason": "SCA",
     "pendingNote": "Menunggu kabar dari orang tua soal hari pengganti.",
     "_markedDaysAgo": 1
   },
@@ -6172,7 +6172,7 @@
     "isRecurring": true,
     "recurrenceRule": "weekly",
     "cancelReason": null,
-    "pendingReason": "sakit",
+    "pendingReason": "S",
     "pendingNote": null,
     "_markedDaysAgo": 2
   },
@@ -6222,7 +6222,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "bentrok_sekolah"
+    "cancelReason": "SCA"
   },
   {
     "id": "sch-g0071",
@@ -6342,7 +6342,7 @@
     "status": "cancelled",
     "isRecurring": true,
     "recurrenceRule": "weekly",
-    "cancelReason": "izin_keluarga"
+    "cancelReason": "FM"
   },
   {
     "id": "sch-g0127",
@@ -6495,7 +6495,7 @@
     "isRecurring": true,
     "recurrenceRule": "weekly",
     "cancelReason": null,
-    "pendingReason": "bentrok_sekolah",
+    "pendingReason": "SCA",
     "pendingNote": "Ortu minta jadwal pekan depan, menunggu konfirmasi hari.",
     "_markedDaysAgo": 2
   },
@@ -6538,5 +6538,651 @@
       "endTime": "09:00",
       "therapistId": "t-007"
     }
+  },
+  {
+    "id": "sch-h0001",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -21,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0002",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -20,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0003",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -19,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0004",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -18,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0005",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -17,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0006",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -16,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0007",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -15,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0008",
+    "branchId": "branch-sby-timur",
+    "clientId": "c-041",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-001",
+    "_weekOffset": -14,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0009",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -17,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0010",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -16,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0011",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -15,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0012",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -14,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0013",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -13,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0014",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -12,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0015",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -11,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0016",
+    "branchId": "branch-citraland",
+    "clientId": "c-050",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-002",
+    "_weekOffset": -10,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0017",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -21,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0018",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -20,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0019",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -19,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0020",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -18,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0021",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -17,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0022",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -16,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0023",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -15,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0024",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-059",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-004",
+    "_weekOffset": -14,
+    "_dayOfWeek": 4,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0025",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -27,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0026",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -26,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0027",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -25,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0028",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -24,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0029",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -23,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0030",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -22,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0031",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -21,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
+  },
+  {
+    "id": "sch-h0032",
+    "branchId": "branch-sby-barat",
+    "clientId": "c-062",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-005",
+    "_weekOffset": -20,
+    "_dayOfWeek": 5,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Stimulasi bicara melalui bermain peran dan lagu anak.",
+    "noteSection": "Kosakata baru bertambah, kontak mata lebih stabil.",
+    "homeworkSection": "Ajak anak menamai benda saat makan bersama."
+  },
+  {
+    "id": "sch-h0033",
+    "branchId": "branch-citraland",
+    "clientId": "c-023",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-006",
+    "_weekOffset": -5,
+    "_dayOfWeek": 2,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Latihan motorik halus dengan manik dan tali; fokus koordinasi mata-tangan.",
+    "noteSection": "Anak kooperatif, perlu dorongan saat transisi aktivitas.",
+    "homeworkSection": "Latihan meremas playdough 10 menit setiap hari."
+  },
+  {
+    "id": "sch-h0034",
+    "branchId": "branch-citraland",
+    "clientId": "c-049",
+    "creditPackageId": null,
+    "type": "therapy",
+    "therapistId": "t-006",
+    "_weekOffset": -3,
+    "_dayOfWeek": 3,
+    "startTime": "09:00",
+    "endTime": "10:00",
+    "status": "completed",
+    "isRecurring": true,
+    "recurrenceRule": "weekly",
+    "cancelReason": null,
+    "activitySection": "Terapi sensori: ayunan, bola besar, dan circuit proprioseptif.",
+    "noteSection": "Regulasi emosi membaik setelah aktivitas berat.",
+    "homeworkSection": "Lanjutkan 'heavy work' ringan sebelum belajar di rumah."
   }
 ]

@@ -1,21 +1,22 @@
 // @vitest-environment jsdom
-// Void invoice lunas: keep/revoke kredit, nasib jadwal, invoice pengganti memakai ulang paket, hapus invoice belum lunas.
+// Void invoice lunas (hanya bila kredit belum terpakai, kredit selalu dipertahankan), refund sisa kredit, invoice pengganti memakai ulang paket, hapus invoice belum lunas.
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import AppProviders from "@/app/providers/AppProviders";
 import { ensureSeedsIfNeeded } from "@/data/seedRegistry";
 import { useInvoiceVoidActions } from "@/features/finance/hooks/useInvoiceVoidActions";
+import { useInvoiceRefundActions } from "@/features/finance/hooks/useInvoiceRefundActions";
 import { usePackageActivationActions } from "@/features/finance/hooks/usePackageActivationActions";
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useAuth } from "@/stores/authStore";
-import { newCreditRecord } from "@/domain/credit";
+import { newCreditRecord, revenueMetrics } from "@/domain/credit";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let ctx;
 function Probe() {
-  ctx = { void: useInvoiceVoidActions(), act: usePackageActivationActions(), credits: useCredits(), schedules: useSchedules(), auth: useAuth() };
+  ctx = { void: useInvoiceVoidActions(), refund: useInvoiceRefundActions(), act: usePackageActivationActions(), credits: useCredits(), schedules: useSchedules(), auth: useAuth() };
   return null;
 }
 
@@ -48,23 +49,23 @@ const session = (id, patch = {}) => ({
 const invoices = () => ctx.credits.getAllInvoices().filter((i) => i.clientId === CLIENT);
 const sessionOf = (id) => ctx.schedules.schedules.find((s) => s.id === id);
 
-test("void harus punya alasan, dan pilihan kredit wajib bila ada paket", async () => {
+test("void harus punya alasan", async () => {
   await act(async () => { renew(); });
   const inv = invoices()[0];
-  expect(ctx.void.voidInvoiceAction(inv, { reason: "", creditAction: "keep" }).ok).toBe(false);
-  expect(ctx.void.voidInvoiceAction(inv, { reason: "salah input", creditAction: "" }).ok).toBe(false);
+  expect(ctx.void.voidInvoiceAction(inv, { reason: "" }).ok).toBe(false);
   expect(invoices()[0].status).toBe("paid");
 });
 
-test("void + pertahankan kredit: invoice void, paket & jadwal utuh", async () => {
+test("void (kredit belum terpakai): invoice void, paket & jadwal utuh, kredit dipertahankan", async () => {
   await act(async () => { renew(); });
   const inv = invoices()[0];
   const pkg = ctx.credits.getRawRecord(CLIENT).packages[0];
   await act(async () => ctx.schedules.addSchedules([session("s-up", { creditPackageId: pkg.id })]));
+  expect(ctx.void.previewVoid(inv).voidBlocked).toBeNull();
 
   let res;
-  await act(async () => { res = ctx.void.voidInvoiceAction(inv, { reason: "Nominal salah ketik", creditAction: "keep" }); });
-  expect(res).toMatchObject({ ok: true, relinked: 0, frozen: 0, revoked: 0 });
+  await act(async () => { res = ctx.void.voidInvoiceAction(inv, { reason: "Nominal salah ketik" }); });
+  expect(res.ok).toBe(true);
 
   expect(invoices()[0]).toMatchObject({ status: "void", voidReason: "Nominal salah ketik", voidCreditAction: "keep" });
   const after = ctx.credits.getRawRecord(CLIENT).packages[0];
@@ -72,27 +73,50 @@ test("void + pertahankan kredit: invoice void, paket & jadwal utuh", async () =>
   expect(sessionOf("s-up").creditPackageId).toBe(pkg.id);
 });
 
-test("void + cabut kredit tanpa paket lain: sisa 0, jadwal mendatang Frozen (tanpa paket), sesi selesai utuh", async () => {
+test("void ditolak bila kredit invoice sudah terpakai", async () => {
   await act(async () => { renew(); });
   const inv = invoices()[0];
   const pkg = ctx.credits.getRawRecord(CLIENT).packages[0];
+  await act(async () => ctx.credits.spendPackageCredit({ clientId: CLIENT, packageId: pkg.id, scheduleId: "s-used", date: "2026-10-01", by: "Admin" }));
+  expect(ctx.void.previewVoid(inv).voidBlocked).toMatch(/sudah terpakai/);
+  let res;
+  await act(async () => { res = ctx.void.voidInvoiceAction(inv, { reason: "Salah input" }); });
+  expect(res.ok).toBe(false);
+  expect(invoices()[0].status).toBe("paid");
+});
+
+test("refund tanpa paket aktif lain: sisa kredit dinolkan, jadwal mendatang Frozen, nominal otomatis; revenue verified berkurang, gross tetap", async () => {
+  await act(async () => { renew(); });
+  const inv = invoices()[0];
+  const pkg = ctx.credits.getRawRecord(CLIENT).packages[0];
+  await act(async () => ctx.credits.spendPackageCredit({ clientId: CLIENT, packageId: pkg.id, scheduleId: "s-used", date: "2026-10-01", by: "Admin" }));
   await act(async () =>
     ctx.schedules.addSchedules([session("s-up", { creditPackageId: pkg.id }), session("s-done", { status: "completed", date: "2020-01-01", creditPackageId: pkg.id })])
   );
 
-  let res;
-  await act(async () => { res = ctx.void.voidInvoiceAction(inv, { reason: "Bukti tidak valid", creditAction: "revoke" }); });
-  expect(res).toMatchObject({ ok: true, relinked: 0, frozen: 1, revoked: 10 });
+  const plan = ctx.refund.previewRefund(inv);
+  expect(plan).toMatchObject({ ok: true, credits: 9, suggestedAmount: 2250000 });
+  expect(ctx.refund.refundInvoiceAction(inv, { amount: 0, reason: "x" }).ok).toBe(false);
+  expect(ctx.refund.refundInvoiceAction(inv, { amount: 2250000, reason: "" }).ok).toBe(false);
 
+  let res;
+  await act(async () => { res = ctx.refund.refundInvoiceAction(inv, { amount: 2000000, reason: "Pindah kota" }); }); // Finance menyesuaikan nominal
+  expect(res).toMatchObject({ ok: true, credits: 9, relinked: 0, frozen: 1 });
+
+  expect(invoices()[0]).toMatchObject({ status: "paid", refundAmount: 2000000, refundReason: "Pindah kota", refundCredits: 9 });
+  expect(invoices()[0].logs.at(-1)).toMatchObject({ action: "refunded" });
   const rec = ctx.credits.getRawRecord(CLIENT);
-  expect(rec.packages[0]).toMatchObject({ remainingCredit: 0, status: "voided" });
-  expect(rec.history.at(-1)).toMatchObject({ action: "manual_adjust", creditChange: -10 });
+  expect(rec.packages[0]).toMatchObject({ remainingCredit: 0, status: "voided", refunded: true });
+  expect(rec.history.at(-1)).toMatchObject({ action: "refund", creditChange: -9 });
   expect(sessionOf("s-up").creditPackageId).toBeNull();
   expect(sessionOf("s-done").creditPackageId).toBe(pkg.id);
-  expect(ctx.schedules.schedules.some((s) => s.id === "s-done")).toBe(true);
+
+  expect(revenueMetrics(invoices())).toMatchObject({ grossRevenue: 2500000, refundTotal: 2000000, verifiedRevenue: 500000 });
+  expect(ctx.refund.refundInvoiceAction(invoices()[0], { amount: 100, reason: "lagi" }).ok).toBe(false); // sekali per invoice
+  expect(ctx.void.previewVoid(invoices()[0]).voidBlocked).toMatch(/direfund/);
 });
 
-test("void + cabut kredit dengan paket aktif lain: jadwal mendatang pindah ke paket itu", async () => {
+test("refund dengan paket aktif lain: jadwal mendatang pindah ke paket itu", async () => {
   await act(async () => { renew(10); });
   await act(async () => { renew(5); });
   const [first, second] = ctx.credits.getRawRecord(CLIENT).packages;
@@ -100,7 +124,7 @@ test("void + cabut kredit dengan paket aktif lain: jadwal mendatang pindah ke pa
   await act(async () => ctx.schedules.addSchedules([session("s-up", { creditPackageId: first.id })]));
 
   let res;
-  await act(async () => { res = ctx.void.voidInvoiceAction(firstInvoice, { reason: "Pembayaran batal", creditAction: "revoke" }); });
+  await act(async () => { res = ctx.refund.refundInvoiceAction(firstInvoice, { amount: 2500000, reason: "Pembayaran batal" }); });
   expect(res).toMatchObject({ ok: true, relinked: 1, frozen: 0 });
   expect(sessionOf("s-up").creditPackageId).toBe(second.id);
   expect(ctx.credits.getRawRecord(CLIENT).packages.find((p) => p.id === second.id).remainingCredit).toBe(5);
@@ -110,7 +134,7 @@ test("invoice pengganti: paket lama dipakai ulang, kredit tidak dobel", async ()
   await act(async () => { renew(10); });
   const old = invoices()[0];
   const pkg = ctx.credits.getRawRecord(CLIENT).packages[0];
-  await act(async () => { ctx.void.voidInvoiceAction(old, { reason: "Nominal salah", creditAction: "keep" }); });
+  await act(async () => { ctx.void.voidInvoiceAction(old, { reason: "Nominal salah" }); });
 
   await act(async () =>
     ctx.credits.issueInvoice({
@@ -157,7 +181,7 @@ test("renewal langsung yang menggantikan invoice void: paket lama dipakai ulang,
   await act(async () => { renew(10); });
   const old = invoices()[0];
   const pkg = ctx.credits.getRawRecord(CLIENT).packages[0];
-  await act(async () => { ctx.void.voidInvoiceAction(old, { reason: "Nominal salah", creditAction: "keep" }); });
+  await act(async () => { ctx.void.voidInvoiceAction(old, { reason: "Nominal salah" }); });
 
   let res;
   await act(async () => {

@@ -5,48 +5,54 @@ import { findHoliday, holidayMessage } from "@/domain/holiday";
 // Domain penjadwalan: jam kalender, alasan cancel, deteksi bentrok, dan generator jadwal berulang.
 // Aturan di sini adalah acuan untuk Service Laravel (lihat docs/guide/05 & 10).
 
-// Seed pilihan cepat alasan cancel (bisa diubah di Master Data). Alasan yang tersimpan di sesi adalah STRING:
-// `value` pilihan cepat atau teks bebas yang diketik user, tanpa relasi ke daftar ini.
+// Cancel dan Off adalah SATU mekanisme (revisi 7 Okt 2026): satu daftar alasan, satu aksi "Cancel / Off". Setiap alasan punya
+// CODE singkat (`value`, mis. S, OL, SCA) yang menjadi STRING tersimpan di sesi/ledger dan yang TAMPIL di riwayat & detail
+// semua modul (label panjang hanya untuk pilihan di form). Teks bebas yang diketik user ("Lainnya") tetap boleh disimpan apa adanya.
 export const DEFAULT_CANCEL_REASONS = [
-  { value: "sakit", label: "Sakit / Kondisi Medis" },
-  { value: "izin_keluarga", label: "Izin / Keperluan Keluarga" },
-  { value: "bentrok_sekolah", label: "Bentrok Jadwal Sekolah" },
-  { value: "tanpa_kabar", label: "Tanpa Kabar (No Show)" },
+  { value: "OL", label: "On Leave (Cuti)" },
+  { value: "S", label: "Sick (Sakit / Kondisi Medis)" },
+  { value: "SCA", label: "School Activities (Kegiatan Sekolah)" },
+  { value: "MCU", label: "Medical Check Up" },
+  { value: "FM", label: "Family Matter (Keperluan Keluarga)" },
+  { value: "TI", label: "Transport Issue" },
+  { value: "H", label: "Holiday (Libur)" },
+  { value: "NS", label: "No Show (Tanpa Kabar)" },
 ];
-
-// Seed pilihan cepat alasan Off (sesi tidak berjalan karena terapis/klinik off; bisa ditambah di Master Data Layanan).
-// Sama seperti alasan cancel: yang tersimpan di sesi adalah STRING (`value` atau teks bebas), tanpa relasi ke daftar.
-export const DEFAULT_OFF_REASONS = [
-  { value: "OL", label: "OL - On Leave (Cuti)" },
-  { value: "S", label: "S - Sick" },
-  { value: "SCA", label: "SCA - School Activities" },
-  { value: "MCU", label: "MCU - Medical Check Up" },
-  { value: "FM", label: "FM - Family Matter" },
-  { value: "TI", label: "TI - Transport Issue" },
-  { value: "H", label: "H - Holiday" },
-];
-
-export const offReasonLabel = (val, list = DEFAULT_OFF_REASONS) => list.find((r) => r.value === val)?.label || val || "—";
 
 // Alasan sistem (tidak muncul di dropdown pembatalan biasa)
-export const RESCHEDULE_DROPPED = "reschedule_dibatalkan";
+export const RESCHEDULE_DROPPED = "RD";
+export const OTHER_REASON = "LN"; // alasan tidak diketahui / "Lainnya" (default aksi massal & data lama tanpa alasan)
 
 export const SYSTEM_CANCEL_REASONS = [
   { value: RESCHEDULE_DROPPED, label: "Reschedule tidak dilanjutkan" },
+  { value: OTHER_REASON, label: "Alasan Lainnya" },
 ];
 
-// Kode lama sebelum ada opsi "ketik sendiri"; tetap terbaca di data lama.
-const LEGACY_CANCEL_LABELS = { lainnya: "Alasan Lainnya" };
+// Nilai lama (sebelum alasan memakai CODE) dipetakan ke code baru agar data lama tetap terbaca.
+const LEGACY_CANCEL_CODES = {
+  sakit: "S",
+  izin_keluarga: "FM",
+  bentrok_sekolah: "SCA",
+  tanpa_kabar: "NS",
+  lainnya: OTHER_REASON,
+  reschedule_dibatalkan: RESCHEDULE_DROPPED,
+};
+export const normalizeCancelReason = (val) => (val && LEGACY_CANCEL_CODES[val]) || val || "";
 
-// `list` = daftar pilihan cepat dari Master Data. Tidak ditemukan → string apa adanya (teks custom).
+// CODE yang ditampilkan di riwayat/detail. Teks custom ditampilkan apa adanya; kosong → "—".
+export const cancelReasonCode = (val) => normalizeCancelReason(val) || "—";
+
+// Label panjang (untuk pilihan di form, tooltip, dan grafik). `list` = daftar pilihan cepat dari Master Data.
+// Tidak ditemukan → string apa adanya (teks custom).
 export const cancelReasonLabel = (val, list = DEFAULT_CANCEL_REASONS) => {
-  const found = list.find((r) => r.value === val) || SYSTEM_CANCEL_REASONS.find((r) => r.value === val);
-  return found ? found.label : LEGACY_CANCEL_LABELS[val] || val || "—";
+  const code = normalizeCancelReason(val);
+  const found = list.find((r) => r.value === code) || SYSTEM_CANCEL_REASONS.find((r) => r.value === code);
+  return found ? found.label : code || "—";
 };
 
 // Sesi yang dibatalkan dari status "reschedule menggantung" (alasan sistem). Potong kredit atau tidak tetap pilihan admin
 // seperti cancel biasa; penanda ini hanya dipakai statistik kehadiran (bukan kesalahan client).
-export const isCreditNeutralCancel = (s) => Boolean(s) && s.status === "cancelled" && s.cancelReason === RESCHEDULE_DROPPED;
+export const isCreditNeutralCancel = (s) => Boolean(s) && s.status === "cancelled" && normalizeCancelReason(s.cancelReason) === RESCHEDULE_DROPPED;
 
 // Slot waktu sebuah sesi (dipakai untuk jejak jadwal asal reschedule)
 export const scheduleSlot = (s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId });
@@ -59,14 +65,13 @@ export const getPrevSlot = (s) => s?.rescheduledPrev || s?.rescheduledFrom || nu
 
 // Revert HANYA 1x (keputusan klien): satu langkah mundur per aksi. Setelah revert, `revertedAt` terisi dan revert berikutnya
 // diblokir sampai ada transisi baru pada sesi itu (complete / cancel / reschedule / pending mengosongkan `revertedAt`).
-//   completed / cancelled / off → status sebelumnya; rescheduled → jadwal asal (1x reschedule) atau jadwal tersimpan terakhir
+//   completed / cancelled → status sebelumnya; rescheduled → jadwal asal (1x reschedule) atau jadwal tersimpan terakhir
 //   (sudah 2x reschedule); reschedule_pending → status sebelumnya (jadwal asal, slot tidak berubah).
 export const canRevertSession = (s) =>
   Boolean(s) &&
   !s.revertedAt &&
   (s.status === "completed" ||
     s.status === "cancelled" ||
-    s.status === "off" ||
     s.status === "reschedule_pending" ||
     (s.status === "rescheduled" && Boolean(getPrevSlot(s))));
 
@@ -112,11 +117,11 @@ export const timeToMin = (t) => {
 export const rangesOverlap = (s1, e1, s2, e2) =>
   timeToMin(s1) < timeToMin(e2) && timeToMin(s2) < timeToMin(e1);
 
-// Sesi yang ikut dihitung dalam bentrok: cancelled, off & reschedule_pending tidak memakai slot terapis.
-const occupiesTherapist = (s) => s.status !== "cancelled" && s.status !== "off" && s.status !== "reschedule_pending";
+// Sesi yang ikut dihitung dalam bentrok: cancelled & reschedule_pending tidak memakai slot terapis.
+export const occupiesTherapist = (s) => s.status !== "cancelled" && s.status !== "reschedule_pending";
 
 // Bentrok = terapis yang sama sudah handle client lain di jam yang overlap pada tanggal itu.
-// Tidak ada konsep jam kerja terapis.
+// Jam kerja terapis (domain/workHours) tidak memblokir penjadwalan; ia hanya menjadi kapasitas untuk Utilization Rate.
 export function checkConflicts({ therapistId, date, startTime, endTime, schedules, therapists, excludeId }) {
   const issues = [];
   if (!therapistId || !date || !startTime || !endTime) return issues;
@@ -326,7 +331,7 @@ export function deriveRecurringRoutines(sessions = [], today) {
 // ---- Ganti / hapus jadwal rutin (recurring) ----
 // Tidak ada id seri: sebuah rutinitas dikenali dari polanya (hari + jam + terapis, `routineKeyOf`). Yang diganti/dihapus
 // HANYA sesi terapi berstatus `scheduled` (belum disentuh) pada pola itu mulai tanggal tertentu; sesi completed, cancelled,
-// off, rescheduled, dan reschedule_pending tidak pernah diubah.
+// rescheduled, dan reschedule_pending tidak pernah diubah.
 const WEEKDAY_NAME_BY_INDEX = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 export const weekdayNameOf = (weekdayIndex) => WEEKDAY_NAME_BY_INDEX[weekdayIndex];
 
@@ -398,4 +403,37 @@ export function seriesPeriod(sessions = [], seriesId = null) {
     .map((s) => s.date)
     .sort();
   return dates.length ? { start: dates[0], end: dates[dates.length - 1] } : null;
+}
+
+// ---- Rekap harian sesi selesai (report terapis, revisi 7 Okt 2026) ----
+// Durasi sesi dalam jam (1 jam = 1 sesi standar), mis. 09:00–10:30 = 1.5.
+export const sessionHours = (s) => Math.max(0, (timeToMin(s.endTime) - timeToMin(s.startTime)) / 60);
+
+// "3 Hours" / "1.5 Hours" / "1 Hour"
+export const formatHours = (h) => {
+  const n = Math.round(h * 10) / 10;
+  return `${n} ${n === 1 ? "Hour" : "Hours"}`;
+};
+
+// Kelompokkan sesi per tanggal (terbaru dulu): jumlah sesi, total jam, dan client unik hari itu (urut jam mulai).
+// `getClientName` memberi nama client; sesi tanpa nama diberi "Client".
+export function dailySessionReport(sessions = [], getClientName = () => "Client") {
+  const byDate = new Map();
+  [...sessions]
+    .sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))
+    .forEach((s) => {
+      const row = byDate.get(s.date) || { date: s.date, sessions: 0, hours: 0, clients: [] };
+      row.sessions += 1;
+      row.hours += sessionHours(s);
+      if (!row.clients.some((c) => c.id === s.clientId)) row.clients.push({ id: s.clientId, name: getClientName(s.clientId) || "Client" });
+      byDate.set(s.date, row);
+    });
+  const rows = [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date));
+  const totals = {
+    days: rows.length,
+    sessions: rows.reduce((n, r) => n + r.sessions, 0),
+    hours: rows.reduce((n, r) => n + r.hours, 0),
+    clients: new Set(sessions.map((s) => s.clientId)).size,
+  };
+  return { rows, totals };
 }

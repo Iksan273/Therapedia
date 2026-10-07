@@ -61,6 +61,7 @@ export default function ClientDetailInquiry() {
   const [newQuestionnaireCategory, setNewQuestionnaireCategory] = useState("cat-001");
   const [newQuestionnaireValidity, setNewQuestionnaireValidity] = useState("none");
   const [newQuestionnaireService, setNewQuestionnaireService] = useState(""); // id master paket (harga invoice assessment)
+  const [newQuestionnaireInvoice, setNewQuestionnaireInvoice] = useState(true); // false = kode gratis (tanpa invoice)
 
   // Invoices & Credits
   const invoices = client ? getInvoicesForClient(client.id) : [];
@@ -175,13 +176,13 @@ export default function ClientDetailInquiry() {
     const selectedCat = categories.find((c) => c.id === newQuestionnaireCategory) || categories[0];
     const option = CODE_VALIDITY_OPTIONS.find((o) => o.value === newQuestionnaireValidity);
     const servicePackage = masterPackages.find((m) => m.id === newQuestionnaireService);
-    if (!servicePackage) {
+    if (newQuestionnaireInvoice && !servicePackage) {
       toast.error("Pilih layanan dulu: harganya dipakai untuk invoice assessment.");
       return;
     }
-    const item = codeActions.issueCode(client, selectedCat, { validityDays: option?.days ?? null, servicePackage });
+    const item = codeActions.issueCode(client, selectedCat, { validityDays: option?.days ?? null, servicePackage, withInvoice: newQuestionnaireInvoice });
 
-    toast.success(`Kode kuesioner baru '${item.code}' (${selectedCat.categoryName}) berhasil dibuat${item.expiresAt ? ` — berlaku ${option.label}` : ""}! Invoice assessment ${fmtCurrency(servicePackage.price)} diterbitkan.`, {
+    toast.success(`Kode kuesioner baru '${item.code}' (${selectedCat.categoryName}) berhasil dibuat${item.expiresAt ? ` — berlaku ${option.label}` : ""}! ${newQuestionnaireInvoice ? `Invoice assessment ${fmtCurrency(servicePackage.price)} diterbitkan.` : "Kode gratis: tanpa invoice."}`, {
       action: { label: "Salin Link", onClick: () => copyToClipboard(buildQuestionnaireLink(item.code, window.location.origin), "Link kuesioner") },
     });
   };
@@ -279,7 +280,7 @@ export default function ClientDetailInquiry() {
             module="inquiry_pipeline"
             label="Hapus Client"
             title={`Hapus ${client.clientName}?`}
-            description="Client (data intake/inquiry) beserta sesi dan invoice-nya akan disembunyikan dari semua daftar dan client tidak bisa login portal ortu. Penghapusan bersifat soft delete."
+            description="Client (data intake/inquiry) beserta seluruh sesi, invoice, kredit, dan log cutinya akan DIHAPUS PERMANEN dan tidak bisa dikembalikan. Client juga tidak bisa lagi login ke portal ortu."
             onConfirm={handleDeleteClient}
             testId="delete-client-button"
           />
@@ -298,7 +299,7 @@ export default function ClientDetailInquiry() {
         <ServiceSelectionCard getService={getService} handleToggleService={handleToggleService} selectedServices={selectedServices} services={services} />
 
         {/* STEP 3: QUESTIONNAIRE CODE GENERATOR (MULTI-CODE) */}
-        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} masterPackages={masterPackages} newQuestionnaireService={newQuestionnaireService} setNewQuestionnaireService={setNewQuestionnaireService} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
+        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} masterPackages={masterPackages} newQuestionnaireService={newQuestionnaireService} setNewQuestionnaireService={setNewQuestionnaireService} newQuestionnaireInvoice={newQuestionnaireInvoice} setNewQuestionnaireInvoice={setNewQuestionnaireInvoice} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
 
         {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
         <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={setScheduleModalOpen} />

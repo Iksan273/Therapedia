@@ -35,7 +35,7 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 | F7 | Landing page dua bahasa (EN/ID) | — | ✅ default Indonesia, pengalih ID/EN di header |
 | F8 | Integrasi Google Calendar — **paling akhir** | ✅ (fase akhir, migration ditunda) | ☐ belum dikerjakan (butuh OAuth + backend) |
 | F9 | Finance: konversi paket (Senior → Regular), otomatis/manual, lebihan jadi saldo pemotong invoice berikutnya, kuota cancel ikut pindah, jadwal mendatang dihapus, log invoice sendiri (ADR 0003) | ✅ (`package_conversions`, `invoice_logs`) | ✅ tab Billing: Konversi & Log |
-| F9b | Finance: **Void invoice lunas** (alasan wajib; pilih pertahankan kredit / cabut sisa kredit; sesi mendatang pindah ke paket aktif lain atau Frozen) + **invoice pengganti** memakai ulang paket void; hapus invoice hanya untuk yang belum lunas (4 Okt 2026, ADR 0005) | ✅ | ✅ tab Semua Tagihan: Void; Buat Tagihan: pilihan pengganti |
+| F9b | Finance: **Void invoice lunas** (alasan wajib; kredit dipertahankan, hanya bila kredit belum dipakai — 7 Okt 2026, lihat R17) + **Refund** (R16) + **invoice pengganti** memakai ulang paket void; hapus invoice hanya untuk yang belum lunas (4 Okt 2026, ADR 0005) | ✅ | ✅ tab Semua Tagihan: Void/Refund; Buat Tagihan: pilihan pengganti |
 | — | Master asesmen: tipe soal selengkap Google Form termasuk `birth_date`; Finance menerbitkan invoice assessment | ✅ | ✅ |
 
 ## C. Tafsir tim teknis yang perlu konfirmasi klien
@@ -63,7 +63,7 @@ Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflo
 | Tombol edit di data master | Selesai: paket master (Finance), hari libur, akun staff (+ yang sudah ada: layanan, kuadran, alasan, asesmen, cabang, role) |
 | Tanpa upload bukti ortu; Finance langsung lunas (renewal & create invoice paket pertama) | Selesai |
 | Portal ortu tidak menampilkan kode kuesioner | Selesai |
-| Status sesi **Off** (OL/S/SCA/MCU/FM/TI/H/manual; potong kredit atau tidak pilihan admin) + alasan Off di Master Data Layanan sebagai combo box cepat | Selesai: `offSession`, `masterDataStore` (`offReasons`), tab Alasan Off. Off **tidak** menambah kuota cancel (asumsi; konfirmasi ke klien bila kuota harus ikut dihitung) |
+| Status sesi **Off** (OL/S/SCA/MCU/FM/TI/H/manual; potong kredit atau tidak pilihan admin) + alasan Off di Master Data Layanan | **Digabung dengan Cancel (7 Okt 2026, R18)**: satu status `cancelled`, satu daftar alasan Cancel / Off |
 | Riwayat sesi: nama paket tanpa "(10x)"; konversi mengubah nama paket di invoice (log tetap memuat paket asal) + pratinjau paket client sebelum → sesudah | Selesai. Layanan client (BOT-A/FOT-A/dst) **tidak** diubah: tidak ada relasi paket Regular/Senior ke layanan intake di data |
 | Finance: modul **Log Kredit & Saldo** per client dalam rupiah (sesi completed mengurangi saldo sebesar harga per sesi) | Selesai: tab `ledger` di `/finance`, `domain/creditLedger.js`. Kolom "Oleh" pada contoh Excel belum ada karena ledger tidak mencatat pelaku per sesi |
 | Master melihat semua modul; role lain mengikuti RBAC (menu + akses halaman); kolom **Oleh** di Log Kredit & Saldo (`history[].by`) | Selesai: `guards.js`, `navConfig.js`, `useActingTherapist`; test `navConfig.test.js` |
@@ -95,8 +95,51 @@ Tafsir: hanya sesi `scheduled` (belum disentuh) pada pola lama yang diganti; ses
 
 | # | Permintaan | Status FE |
 |---|---|---|
-| R7 | Schedule: Off/cuti bisa langsung menerbitkan invoice cuti (opsional) dengan nominal manual oleh Admin Schedule; pilihan potong kredit tetap | ✅ |
+| R7 | Schedule: Off/cuti bisa langsung menerbitkan invoice cuti (opsional) — **dibatalkan 7 Okt 2026 (R19)**; diganti R26 (Finance yang menerbitkan) | ↩︎ |
 
 | # | Permintaan | Status FE |
 |---|---|---|
-| R8 | Portal ortu: riwayat invoice anak untuk tracking pembayaran (semua jenis, hanya invoice anak itu) | ✅ |
+| R8 | Portal ortu: riwayat invoice anak untuk tracking pembayaran — **dibatalkan 7 Okt 2026 (R15: Riwayat Invoice dihapus)** | ↩︎ |
+
+## Revisi 7 Okt 2026 — Cuti client
+| # | Keputusan / permintaan | Schema | FE |
+|---|---|---|---|
+| R9 | **Jatah cuti 30 hari per tahun kalender per client.** Finance mencatat cuti sebagai rentang tanggal (log berdiri sendiri, tab **Cuti** di `/finance`); sesi terapi terjadwal di rentang jadi **Off** (cuti = Off, tanpa status baru). **Satuan jatah = per sesi ("hari sesi")**: tanggal unik sesi Off-cuti (dari log Finance atau Off manual yang dipilih admin "Hitung sebagai cuti"), bukan panjang rentang; rentang hanya penampung (cuti tanpa sesi belum memakai jatah; dua sesi di hari sama = 1; cuti lintas tahun terpecah mengikuti tanggal sesi). Asumsi tim teknis: "30 hari" = 30 tanggal sesi (bukan 30 pertemuan) — konfirmasi klien | ✅ `client_leaves`, `schedules.leave_id/counts_as_leave`, §6.8 | ✅ `domain/leave.js`, `leavesStore`, `useLeaveActions`, tab Cuti, `LeaveQuotaCard` |
+| R9b | **Anak masuk lebih awal → akhiri/void cuti**: sisa sesi kembali **`scheduled`** (jadwal aktif) sehingga hari sesinya kembali ke jatah (tidak terbuang); slot terisi dilewati dan dilaporkan | ✅ | ✅ `endLeaveEarly` / `voidLeave` |
+| R9c | Jatah lewat 30 hari **tidak diblokir**: admin tetap bisa memilih opsi cuti dan potong kredit (hanya peringatan). **Kredit tetap keputusan admin/Finance** (potong atau tidak, wajib dipilih), tidak otomatis. Off manual **boleh memakai jatah atau tidak** (switch) agar fleksibel | ✅ | ✅ |
+| R9d | **Jadwal di masa cuti**: Admin Schedule **tidak bisa** menambah jadwal aktif di tanggal cuti (diblokir + peringatan); Finance harus **menyelesaikan cuti lebih awal** dulu (7 Okt 2026). Jadwal berulang / ganti rutin melewati tanggal cuti seperti hari libur | ✅ (422 `client_on_leave`, §6.8 butir 6) | ✅ |
+| — | Tafsir tim teknis (konfirmasi klien): Off alasan lain (Sick/MCU/Holiday) tidak memakai jatah kecuali switch dinyalakan; hanya sesi **terapi** yang otomatis jadi Off saat cuti dicatat (asesmen/konsultasi tidak disentuh); invoice cuti (`type = leave`) tetap terpisah dan tidak terhubung ke log cuti | — | — |
+
+## Revisi 7 Okt 2026 (lanjutan) — cuti per paket, dashboard, refund
+| # | Permintaan | Schema | FE |
+|---|---|---|---|
+| R10 | **Cuti range Finance**: hitung dari **sesi terapi pertama sampai terakhir** di rentang (rentang 07–14 Okt, sesi 08 & 12 Okt → **5 hari**); Finance **hanya bisa** input cuti bila client punya jadwal di rentang. Cuti satuan dari kalender tidak berubah | ✅ `client_leaves.counted_start/end` | ✅ `planLeave` |
+| R11 | ~~Notify Finance + catatan~~ — **dihapus (R19)**: cuti hanya dari Finance dan harus ada jadwal pada rentang | ↩︎ |
+| R12 | **Credit leave per paket** di master paket + flag **satuan** & **asesmen**. Paket satuan: credit leave **tidak reset otomatis** → tombol **Reset credit leave** saat renewal Finance; **total credit leave juga disimpan di client**. Dipakai saat Cancel / Off: pilihan potong memakai credit leave paket dulu | ✅ `master_packages.leave_quota`, `client_packages.leave_total/used`, `clients.leave_credit_balance`, `invoices.reset_leave` | ✅ |
+| R13 | Dashboard Inquiry: **Total Discharge** + **report per alasan** | ✅ (turunan) | ✅ |
+| R14 | **Availability & Utilization Rate** per terapis dan cabang. Perhitungan (revisi): **jumlah sesi terjadwal ÷ maks sesi per bulan** (1 sesi = 1 jam); yang diisi per terapis **total jam/sesi sebulan**, bukan jam kerja per hari; kapasitas ikut **disesuaikan dengan filter periode** | ✅ `users.max_sessions_per_month` | ✅ `/admin-schedule/therapist-utilization` |
+| R14b | Terapis boleh **melihat kalender terapis lain** (read-only, halaman terpisah, nama client boleh tampil). **Tampilan Hari = satu kalender berisi semua terapis; tampilan Minggu = per terapis saja** agar tidak terlalu banyak | — | ✅ `/therapist/team-calendar` |
+| R14c | Active Client: **Re-assessment** (terbitkan kode) + Admin Schedule bisa **menjadwalkan asesmen tanpa potong kredit** seperti di Inquiry | — | ✅ `ReassessmentCard` |
+| R15 | Portal ortu: **hapus Riwayat Invoice** | — | ✅ |
+| R16 | **Refund** di Finance: bagian invoice yang kreditnya sudah terpakai tetap **Verified Revenue**; yang direfund tetap masuk **Gross Revenue**. Nominal bisa otomatis atau diatur manual oleh Finance | ✅ `invoices.refund_*`, ledger `refund` | ✅ |
+| R17 | **Void**: tidak ada lagi pilihan cabut sisa kredit; hanya void invoice dengan kredit dipertahankan, dan **hanya untuk invoice yang kreditnya belum dipakai** | ✅ | ✅ |
+| — | Keputusan klien 7 Okt 2026: saldo cuti bawaan **30 hari** untuk client lama (tanpa paket berjatah) tidak masalah; Dashboard Revenue mengikuti aturan asli: invoice void tidak dimasukkan; refund tetap di Gross tetapi hanya yang benar-benar masuk menjadi Verified Revenue | | |
+
+## Revisi 7 Okt 2026 (batch 2)
+| # | Permintaan | Schema | FE |
+|---|---|---|---|
+| R18 | **Cancel dan Off digabung** (hanya beda alasan): satu aksi *Cancel / Off Sesi*, satu status `cancelled`, **satu daftar alasan** di Master Data (tab *Alasan Cancel / Off*, gabungan alasan cancel + OL/S/SCA/MCU/FM/TI/H) | ✅ `schedules.status` tanpa `off`; `off_reasons`/`off_reason` dihapus | ✅ |
+| R19 | **Cuti hanya dari Finance** dan harus ada sesi pada rentang yang dipilih. Dihapus: Notify Finance, invoice cuti dari Admin Schedule, switch "Hitung sebagai cuti" (Off manual), dan **tombol Hapus log cuti** di Finance (hanya Void / Akhiri Lebih Awal) | ✅ `counts_as_leave`, `notify_note` dihapus | ✅ |
+| R20 | **Kode asesmen**: saat generate pilih **masuk invoice atau tidak** (mis. *School Companion* gratis → tanpa invoice dan tanpa form bayar) | ✅ `assessment_access_codes.invoice_required` | ✅ Inquiry, Master Asesmen, Re-assessment |
+| R21 | Modul terapis: **rekap harian sesi completed** dengan filter periode (custom range) seperti filter lain, contoh "Kamis 25 Oktober • 3 Hours • daftar client", untuk report terapis | — (turunan) | ✅ Summary & Laporan Sesi → tab *Rekap Harian* |
+
+## Revisi 7 Okt 2026 (batch 3) — cuti tahunan & detail
+| # | Permintaan | Schema | FE |
+|---|---|---|---|
+| R22 | **Cuti 30 hari per tahun per client; sisa hangus.** Tombol **Reset Cuti Tahunan** (Finance, awal tahun): hanguskan seluruh cuti tersisa dan reset semua client jadi 30. Jatah per paket di master hanya menambah (bawaan 0) | ✅ `clients.leave_granted` dasar 30, `leave_resets` | ✅ |
+| R23 | Form Catat Cuti: **hilangkan "Kredit sesi"** — cuti otomatis memotong saldo cuti (30 hari/tahun), bukan kredit sesi | ✅ | ✅ |
+| R24 | Tombol **Detail** di log cuti (riwayat pengajuan, selesai lebih awal, void). **Void ≠ hapus**: void mempertahankan log; hapus sudah dihilangkan | ✅ `returned_at/by`, `client_leave_sessions` | ✅ |
+| R25 | **Dua jatah berbeda** (klarifikasi 7 Okt 2026): (1) **cuti 30 hari/tahun** per client — hanya Finance yang menambah/mereset; (2) **credit leave per paket** — dipakai saat Cancel / Off dengan pilihan potong (yang dipotong credit leave paket, bukan kredit sesi; habis baru kredit sesi). Kuota cancel 3x per paket **diganti** credit leave | ✅ | ✅ |
+| R26 | **Finance bisa menerbitkan invoice cuti** (nominal manual, tanpa efek kredit) dan **opsional menyambungkannya ke log cuti** yang sudah dibuat (tab Cuti: kolom Invoice Cuti + tombol Terbitkan Invoice; Detail cuti menampilkan invoice terkait) | ✅ `invoices.leave_id` | ✅ |
+| R27 | **Alasan Cancel / Off memakai CODE** (7 Okt 2026): tiap alasan di Master Data punya KODE (S, OL, SCA, …); yang disimpan/dikirim saat submit adalah KODE (teks "Lainnya" tetap boleh); riwayat & detail sesi di semua modul menampilkan KODE (nama panjang = tooltip) | ✅ `cancelReasonCode`, `ReasonListTab codeMode`, seed v16 | ⏳ `schema.md` `cancel_reasons`: kolom `code` jadi kunci tampil (perlu lewat skill `database-design`) |
+| R28 | **Admin Schedule bisa menjadwalkan Asesmen / Re-assessment langsung dari kalender** (toggle *Jenis Sesi* di `AddScheduleModal`), membantu Admin Inquiry; sesi asesmen tanpa kuota kredit dan memajukan pipeline ke `assessment_scheduled` | ✅ | ✅ (`schedules.type = assessment`) |

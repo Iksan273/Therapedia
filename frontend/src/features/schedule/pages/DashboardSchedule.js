@@ -18,7 +18,7 @@ import { useAuth } from "@/stores/authStore";
 import { useMasterData } from "@/stores/masterDataStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { BRANCHES, branchName } from "@/domain/branch";
-import { isCreditNeutralCancel } from "@/domain/schedule";
+import { isCreditNeutralCancel, normalizeCancelReason } from "@/domain/schedule";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { FilterBar, FilterField } from "@/shared/components/FilterBar";
 import { BranchFilter } from "@/shared/components/BranchFilter";
@@ -120,7 +120,8 @@ export default function DashboardSchedule() {
 
     filteredSchedules.forEach((s) => {
       if (s.status === "cancelled" && s.cancelReason && !isCreditNeutralCancel(s)) {
-        if (counts[s.cancelReason] !== undefined) counts[s.cancelReason] += 1;
+        const code = normalizeCancelReason(s.cancelReason);
+        if (counts[code] !== undefined) counts[code] += 1;
         else other += 1;
       }
     });
@@ -497,7 +498,6 @@ export default function DashboardSchedule() {
                   <SelectItem value="rescheduled">Rescheduled (sudah pindah)</SelectItem>
                   <SelectItem value="reschedule_pending">Reschedule – belum ada jadwal</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="off">Off</SelectItem>
                 </SelectContent>
               </Select>
             </FilterField>

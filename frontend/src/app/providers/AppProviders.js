@@ -8,6 +8,7 @@ import { AssessmentsProvider } from "@/stores/assessmentsStore";
 import { MasterDataProvider } from "@/stores/masterDataStore";
 import { HolidaysProvider } from "@/stores/holidaysStore";
 import { BranchesProvider } from "@/stores/branchesStore";
+import { LeavesProvider } from "@/stores/leavesStore";
 
 // Disiapkan untuk fase API: store domain akan memakai react-query (lihat docs/guide/10).
 const queryClient = new QueryClient({
@@ -32,7 +33,9 @@ export default function AppProviders({ children }) {
               <CreditsProvider>
                 <AssessmentsProvider>
                   <MasterDataProvider>
-                    <HolidaysProvider>{children}</HolidaysProvider>
+                    <HolidaysProvider>
+                      <LeavesProvider>{children}</LeavesProvider>
+                    </HolidaysProvider>
                   </MasterDataProvider>
                 </AssessmentsProvider>
               </CreditsProvider>

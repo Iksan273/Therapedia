@@ -21,6 +21,7 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `auth`, `activeBranch`, `staffUsers`, `rolesList` (+ `canDelete`), `rbacPermissions`, `passwordResets` | `authStore` | lihat 02 |
 | `branches` | `branchesStore` | `{ id, name, code (unik), city, address, phone, isActive, createdBy?, updatedBy? }[]` (nonaktif = tak muncul di pilihan baru, riwayat tetap; hapus = permanen beserta seluruh isi cabang, ADR 0005) | `branches` | — |
 | `holidays` | `holidaysStore` | `{ id, date, name, branchId \| null }[]` | `holidays` | `users`, `roles`, `role_permissions`, `access_modules`, `branches` |
+| `leaves` | `leavesStore` | `Leave[]` (lihat **Leave** di bawah; seed demo 3 contoh: aktif, selesai lebih awal, void, tertaut ke sesi seed) | `client_leaves` | — |
 | `therapedia_seed_version` (tanpa prefix) | `data/seedRegistry.js` | string | — |
 
 ## Client (`clients[]`)
@@ -60,11 +61,12 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `date` | `yyyy-MM-dd` | |
 | `startTime`, `endTime` | `HH:mm` | jam kalender 08:00–17:00 (`CALENDAR_HOURS`) |
 | `status` | enum | `scheduled`, `completed`, `cancelled`, `off`, `rescheduled`, `reschedule_pending` |
-| `offReason` / `offNote` | string \| null | alasan Off (string: kode pilihan cepat OL/S/SCA/MCU/FM/TI/H dari Master Data Layanan → tab Alasan Off, atau teks bebas) + catatan; hanya terisi bila `status = off` |
+| `cancelReason` / `cancelNote` | string \| null | alasan Cancel / Off (SATU daftar: string CODE dari Master Data → tab *Alasan Cancel / Off* [mis. S, OL, SCA], atau teks bebas); nilai lama (`sakit`, `izin_keluarga`, `bentrok_sekolah`, `tanpa_kabar`, `lainnya`, `reschedule_dibatalkan`) dipetakan ke S/FM/SCA/NS/LN/RD lewat `normalizeCancelReason` + catatan; hanya terisi bila `status = cancelled`. Field `offReason/offNote` dan status `off` **dihapus** (7 Okt 2026) |
+| `leaveId` | string \| null | sesi `cancelled` yang berasal dari log cuti Finance (`leaves[].id`; = `schedules.leave_id`; alasan `OL`). Hari dihitung lewat `countedStart–countedEnd` log; dikosongkan saat sesi dikembalikan/di-revert. Data lama = kosong |
 | `creditPackageId` | string \| null | id item paket di `credits.records[].packages[]` |
 | `isRecurring`, `recurrenceRule` | bool, string | `none`, `weekly`, `weekly_Monday,Thursday`, `single_week` |
 | `seriesId` | string? | id seri berulang (satu pola/masa berlaku; = `schedules.series_id`). Kosong pada data lama/sesi tunggal |
-| `cancelReason` | string \| null | **string bebas**: `value` pilihan cepat (Master Data), teks custom, atau `RESCHEDULE_DROPPED` (alasan sistem); `pendingReason` sama |
+| `cancelReason` | string \| null | **string bebas**: CODE pilihan cepat (Master Data; `value` = kode huruf besar 1-10 karakter), teks custom, atau code sistem `RD` (`RESCHEDULE_DROPPED`) / `LN` (`OTHER_REASON`); `pendingReason` sama |
 | `historyNote` / `historyNoteBy` | string \| null | catatan riwayat per sesi (kolom **Catatan** riwayat sesi detail client (diubah lewat tombol **Tambah/Ubah Catatan** di kolom **Aksi**)), bisa ditimpa siapa pun yang punya akses modul schedule |
 | `bookingNote` | string \| null | catatan penjadwalan oleh admin saat membuat jadwal (tampil di kolom "Catatan Penjadwalan" riwayat sesi). Dipisah dari `cancelNote` / `pendingNote`; data lama memakai satu field `notes` (dibaca lewat `bookingNoteOf` / `cancelNoteOf`) |
 | `cancelNote` | string \| null | catatan saat cancel (bersama `cancelReason`); hanya tampil di kalender / detail sesi, bukan di riwayat client |
@@ -79,6 +81,29 @@ Label & kelas warna: `STATUS_META` di `domain/status.js`.
 | `clientStatusFrom` / `clientStatusTo` | string \| null | sesi **asesmen** completed yang memajukan client otomatis: tahap sebelum/sesudah. Dipakai revert untuk memulihkan tahap client (hanya bila status client masih = `clientStatusTo`); dikosongkan saat revert |
 | `revertedAt` | ISO \| null | terisi saat revert; **revert hanya 1x** (diblokir bila terisi, dikosongkan transisi berikutnya) |
 
+## Master paket & kapasitas terapis (revisi 7 Okt 2026)
+- `credits.masterPackages[]` menambah `leaveQuota` (hari), `isSatuan`, `isAssessment` (`packageLeaveConfig` memberi default aman untuk data lama; `SEED_VERSION` v11). `credits.records[]` menambah `leaveGranted` (jatah cuti 30 hari/tahun, hanya diubah Finance) dan `leaveResetAt`; paket client membawa **credit leave** (`leaveTotal`, `leaveUsed`; master `leaveQuota` = credit leave per paket, bawaan 3); `credits.leaveResetAt` + `credits.leaveResets[]` = reset cuti tahunan semua client; paket client menambah `refunded` (status `voided` + `refunded` setelah refund).
+- `therapists[].maxSessionsPerMonth` (int, bawaan 100 bila kosong; `domain/workHours.js`) = maksimal sesi per bulan (= total jam kerja sebulan, 1 sesi = 1 jam); dipakai hanya sebagai kapasitas Availability/Utilization (disesuaikan filter periode). Kode asesmen (`client.assessmentCodes[]`) menambah `invoiceRequired` (false = kode gratis tanpa invoice).
+
+## Leave (`leaves[]`) — cuti client, saldo jatah per paket
+Dibuat `makeLeave(...)` (`domain/leave.js`), disimpan `stores/leavesStore.js`. Log berdiri sendiri; hanya Finance yang mencatat; sesi di rentang dibatalkan (satu mekanisme Cancel / Off).
+
+| Field | Tipe | Catatan |
+|---|---|---|
+| `id`, `clientId`, `branchId` | string | |
+| `startDate`, `endDate` | `yyyy-MM-dd` | rentang cuti dari ortu (inklusif); hanya penampung |
+| `countedStart`, `countedEnd` | `yyyy-MM-dd` | hari sesi terapi pertama / terakhir di rentang = jendela hari yang memotong saldo (`leaveCountedDates`); log lama tanpa field ini memakai `startDate/endDate` |
+| `returnDate` | `yyyy-MM-dd` \| null | anak masuk lebih awal: **hari pertama** masuk kembali; hari berlaku = `startDate` s.d. `returnDate − 1` (`leaveEffectiveEnd`) |
+| `returnNote` | string \| null | keterangan akhiri lebih awal |
+| `returnedAt`, `returnedBy` | iso \| string | kapan & siapa mengakhiri lebih awal (tampil di Detail) |
+| `sessionIds` | string[] | sesi terapi yang dibatalkan oleh cuti ini (Detail membaca status sesi sekarang dari jadwal) |
+| `status` | `active` \| `voided` | void = seluruh hari hitung kembali ke saldo |
+| `reason`, `note` | string | keterangan ortu / catatan Finance |
+| `voidReason`, `voidedAt`, `voidedBy` | | terisi bila `voided` (alasan wajib) |
+| `createdBy`, `createdAt`, `updatedBy`, `updatedAt` | | jejak pelaku (tanpa audit log) |
+
+**Saldo jatah** disimpan di record kredit client (`credits.records[]`: `leaveGranted` hari, `leaveResetAt`), diisi per paket (`masterPackages[].leaveQuota`, `applyLeaveGrant`); **hari terpakai dihitung, tidak disimpan** (`usedLeaveDates` / `leaveQuotaSummary`): hari kalender `countedStart..min(countedEnd, returnDate−1)` log aktif ∪ tanggal Off manual `countsAsLeave`, sejak `leaveResetAt`. `planLeave` menolak cuti tanpa sesi terapi di rentang, dan paket satuan (`clientLeaveContext().isSatuan`) maks 1x per bulan (`satuanLeaveBlocked`). Saldo lewat hanya peringatan. Fase hari: `leavePhase` (`upcoming | ongoing | done | early | voided`). Hapus client/cabang menghapus log cuti-nya.
+
 ## Credits (`credits`)
 ```
 credits = {
@@ -91,7 +116,7 @@ credits = {
     history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note, by }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
   }],
   conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
-  invoices: [{ id, type /*package|assessment|leave*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid|void*/, assessmentCode? /*invoice assessment otomatis: kode kuesioner pemicu*/, leaveScheduleId? /*invoice cuti (type leave): sesi Off pemicu*/,
+  invoices: [{ id, type /*package|assessment|leave*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid|void*/, assessmentCode? /*invoice assessment otomatis: kode kuesioner pemicu*/, leaveId? /*invoice cuti (type leave): log cuti yang disambungkan Finance, opsional*/, leaveScheduleId? /*data lama: sesi Off pemicu*/,
                proofUrl, proofOfPaymentUrl, proofFileName, proofFileType, proofFileSize, proofUploadedAt, proofUploadCount /*maks 4*/, createdAt, issuedAt?, paidAt,
                isRenewal? /*true = invoice perpanjangan paket (kedua jalur renewal)*/, voidReason?, voidedAt?, voidedBy?, voidCreditAction? /*keep|revoke*/, replacesInvoiceId? /*invoice void yang digantikan: paket lama dipakai ulang*/, renewalReason? /*teks bebas, wajib, hanya renewal langsung lunas*/, renewalJustification? /*teks wajib, min. 10 karakter*/,
                grossAmount? /*sebelum saldo lebihan*/, balanceApplied? /*saldo lebihan yang dipakai; amount = gross − balanceApplied*/,
@@ -122,7 +147,7 @@ Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `Assessme
 | `domain/branch.js` | `BRANCHES`, `branchName` |
 | `domain/status.js` | `STATUS_META` (label + kelas warna semua status) |
 | `domain/client.js` | `PIPELINE_STATUSES`, `PIPELINE_FLOW`, `advanceStatus`, `nextClientCode`, `clientCodeGroup`, `matchesClientSearch`, `buildStatusChangePatch`, `INTAKE_SERVICES` (+ alias legacy), `DEFAULT_DISCHARGE_REASONS` (seed pilihan cepat), `dischargeReasonLabel(value, list?)`, `makeInquiryClient`, `getClientServiceIds`, roster: `isActiveClient`, `isRosterClient`, `canReactivateClient`, `matchesRosterStatus`, `ROSTER_STATUS_FILTERS`, `buildActivationPatch` |
-| `domain/schedule.js` | `deriveRecurringRoutines`, `upcomingActiveSessions`, `reportFilledCount`, `isReportEmpty`, `isUnreportedSession`, `getPrevSlot`, `DEFAULT_CANCEL_REASONS` (seed pilihan cepat), `RESCHEDULE_DROPPED`, `SYSTEM_CANCEL_REASONS`, `cancelReasonLabel(val, list?)`, `isCreditNeutralCancel`, `scheduleSlot`, `getOriginSlot`, `buildReportPatch`, `CLEAR_PENDING_PATCH`, `CALENDAR_DAYS`, `CALENDAR_HOURS`, `TIME_OPTIONS`, `WEEKDAY_OPTIONS`, `timeToMin`, `rangesOverlap`, `checkConflicts`, `findTherapistClashIds`, `buildRecurringSchedules`, `SCHEDULE_MANAGER_ROLES`, `canManageSchedule`, `canRevertSession`, `restoreStatusOf` |
+| `domain/schedule.js` | `deriveRecurringRoutines`, `upcomingActiveSessions`, `reportFilledCount`, `isReportEmpty`, `isUnreportedSession`, `getPrevSlot`, `DEFAULT_CANCEL_REASONS` (seed pilihan cepat), `RESCHEDULE_DROPPED`, `SYSTEM_CANCEL_REASONS`, `cancelReasonLabel(val, list?)`, `cancelReasonCode(val)`, `normalizeCancelReason`, `OTHER_REASON`, `isCreditNeutralCancel`, `scheduleSlot`, `getOriginSlot`, `buildReportPatch`, `CLEAR_PENDING_PATCH`, `CALENDAR_DAYS`, `CALENDAR_HOURS`, `TIME_OPTIONS`, `WEEKDAY_OPTIONS`, `timeToMin`, `rangesOverlap`, `checkConflicts`, `findTherapistClashIds`, `buildRecurringSchedules`, `SCHEDULE_MANAGER_ROLES`, `canManageSchedule`, `canRevertSession`, `restoreStatusOf` |
 | `domain/credit.js` | `DEFAULT_MASTER_PACKAGES`, `formatPackageName`, `CANCEL_QUOTA` + aturan mutasi kredit (lihat di atas) |
 | `domain/rbac.js` | `ACCESS_MODULES`, `DEFAULT_ROLES`, `DEFAULT_PERMISSIONS`, `SYSTEM_ROLE_IDS`, `isSystemRole`, `roleHasPermission`, `withDefaultPermissions`, `roleCanDelete`, `canDeleteIn`, `DEFAULT_CAN_DELETE` |
 | `domain/assessment.js` | `buildQuestionnaireCode`, `categoryTypeCode`, `normalizeTypeCode`, `isTypeCodeTaken`, `CODE_VALIDITY_OPTIONS`, `buildExpiresAt`, `isQuestionnaireCodeExpired`, `assessmentInvoiceNeedingProof`, `checkQuestionnaireAccess` |

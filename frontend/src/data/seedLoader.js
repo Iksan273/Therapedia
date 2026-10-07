@@ -5,6 +5,7 @@ import therapistsSeed from "@/data/therapists.seed.json";
 import schedulesSeed from "@/data/schedules.seed.json";
 import creditsSeed from "@/data/credits.seed.json";
 import categoriesSeed from "@/data/assessmentCategories.seed.json";
+import leavesSeed from "@/data/leaves.seed.json";
 import { reconcileDemoCredits } from "@/domain/creditSeed";
 
 export function loadBranchesSeed() {
@@ -37,6 +38,21 @@ export function loadClientsSeed() {
   });
 }
 
+// Tanggal sesi seed: minggu relatif terhadap minggu ini + hari (1 = Senin)
+const weekDate = (now, weekOffset, dayOfWeek) =>
+  format(addDays(addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekOffset != null ? weekOffset : 0), (dayOfWeek != null ? dayOfWeek : 1) - 1), "yyyy-MM-dd");
+
+// Sesi yang dibatalkan oleh log cuti seed (kecuali yang dikembalikan lewat "selesai lebih awal"; log void tidak menyentuh sesi)
+const leaveCancelledSessions = () => {
+  const map = new Map();
+  leavesSeed.forEach((l) => {
+    if (l.status === "voided") return;
+    const restored = new Set(l.restoredSessionIds || []);
+    l.sessionIds.filter((id) => !restored.has(id)).forEach((id) => map.set(id, l));
+  });
+  return map;
+};
+
 function buildSchedulesSeed() {
   const now = new Date();
   const monday = startOfWeek(now, { weekStartsOn: 1 });
@@ -44,11 +60,17 @@ function buildSchedulesSeed() {
   const dateOf = (weekOffset, dayOfWeek) =>
     format(addDays(addWeeks(monday, weekOffset != null ? weekOffset : 0), (dayOfWeek != null ? dayOfWeek : 1) - 1), "yyyy-MM-dd");
 
+  const leaveCancelled = leaveCancelledSessions();
   return schedulesSeed.map((raw) => {
     const { _weekOffset, _dayOfWeek, _movedFrom, _markedDaysAgo, ...schedule } = raw;
     schedule.date = dateOf(_weekOffset, _dayOfWeek);
     // Sesi terjadwal yang tanggalnya sudah lewat dianggap selesai, agar data demo tetap realistis kapan pun dibuka
     if (schedule.status === "scheduled" && schedule.date < today) schedule.status = "completed";
+    const leave = leaveCancelled.get(schedule.id);
+    if (leave && schedule.status === "scheduled") {
+      // dibatalkan oleh log cuti Finance (Cancel / Off: alasan OL, tertaut leaveId)
+      Object.assign(schedule, { status: "cancelled", previousStatus: "scheduled", cancelReason: "OL", cancelNote: `Cuti${leave.reason ? `: ${leave.reason}` : ""}`, leaveId: leave.id });
+    }
 
     const markedAt = _markedDaysAgo != null ? subDays(now, _markedDaysAgo).toISOString() : now.toISOString();
     if (_movedFrom) {
@@ -108,6 +130,7 @@ function buildCreditsSeed(loadedSchedules) {
       inv.createdAt = format(issued, "yyyy-MM-dd");
       inv.invoiceNumber = `INV-${format(issued, "yyyy-MM")}-${String(_seq).padStart(3, "0")}`;
     }
+    if (inv.typeCode && _issuedDaysAgo != null) inv.invoiceNumber = `INV-${inv.typeCode}-${format(subDays(now, _issuedDaysAgo), "yyyyMMdd")}-${String(_seq).padStart(3, "0")}`; // format baru per jenis (ASM)
     if (_paidDaysAgo != null) inv.paidAt = subDays(now, _paidDaysAgo).toISOString();
     return inv;
   });
@@ -131,6 +154,37 @@ function buildCreditsSeed(loadedSchedules) {
     invoices,
     renewals: [],
   };
+}
+
+// Log cuti Finance seed (3 contoh: aktif, selesai lebih awal, void). Tanggal relatif ke minggu ini; hari hitung = sesi pertama–terakhir.
+export function loadLeavesSeed() {
+  const now = new Date();
+  const dateOfSession = (id) => {
+    const s = schedulesSeed.find((x) => x.id === id);
+    return weekDate(now, s._weekOffset, s._dayOfWeek);
+  };
+  return leavesSeed.map((raw) => {
+    const { _startWeekOffset, _startDay, _endWeekOffset, _endDay, _returnWeekOffset, _returnDay, _createdDaysAgo, _returnedDaysAgo, _voidedDaysAgo, restoredSessionIds, ...l } = raw;
+    const dates = l.sessionIds.map(dateOfSession).sort();
+    const created = subDays(now, _createdDaysAgo != null ? _createdDaysAgo : 3).toISOString();
+    return {
+      ...l,
+      startDate: weekDate(now, _startWeekOffset, _startDay),
+      endDate: weekDate(now, _endWeekOffset, _endDay),
+      countedStart: dates[0],
+      countedEnd: dates[dates.length - 1],
+      returnDate: _returnWeekOffset != null ? weekDate(now, _returnWeekOffset, _returnDay) : null,
+      returnNote: l.returnNote || null,
+      returnedAt: _returnedDaysAgo != null ? subDays(now, _returnedDaysAgo).toISOString() : null,
+      returnedBy: _returnedDaysAgo != null ? l.createdBy : null,
+      createdAt: created,
+      updatedBy: l.createdBy,
+      updatedAt: created,
+      voidedAt: l.status === "voided" ? subDays(now, _voidedDaysAgo != null ? _voidedDaysAgo : 1).toISOString() : null,
+      voidedBy: l.status === "voided" ? l.voidedBy || l.createdBy : null,
+      voidReason: l.status === "voided" ? l.voidReason || null : null,
+    };
+  });
 }
 
 export function loadTherapistsSeed() {

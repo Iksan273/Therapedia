@@ -118,6 +118,28 @@ export const dischargeReasonLabel = (value, list = DEFAULT_DISCHARGE_REASONS) =>
   return found ? found.label : LEGACY_DISCHARGE_LABELS[value] || value || "—";
 };
 
+// Statistik discharge untuk dashboard Inquiry: total client berstatus `discharged` dan pembagiannya per alasan (urut terbanyak).
+// Discontinue (batal sebelum admitted) TIDAK dihitung; walau juga mengisi `dischargeReason`, ia punya log sendiri.
+// `list` = pilihan alasan dari Master Data; alasan kosong dikelompokkan sebagai "Tanpa alasan".
+export function dischargeStats(clients = [], list = DEFAULT_DISCHARGE_REASONS) {
+  const discharged = clients.filter((c) => c.status === "discharged");
+  const byReason = new Map();
+  discharged.forEach((c) => {
+    const key = String(c.dischargeReason || "").trim() || "__none";
+    byReason.set(key, (byReason.get(key) || 0) + 1);
+  });
+  const total = discharged.length;
+  const rows = [...byReason.entries()]
+    .map(([key, count]) => ({
+      key,
+      label: key === "__none" ? "Tanpa alasan" : dischargeReasonLabel(key, list),
+      count,
+      percent: total > 0 ? Math.round((count / total) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  return { total, rows };
+}
+
 // Kode kuesioner sudah diisi ortu? Kode baru punya `status` ("issued" | "submitted"); kode lama (seed) tanpa status
 // dianggap terisi bila sudah ada jawaban untuk kategorinya. Kode yang belum diisi boleh dihapus.
 export const isQuestionnaireCodeFilled = (client, codeItem) => {

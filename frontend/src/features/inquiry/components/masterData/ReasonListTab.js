@@ -22,7 +22,8 @@ const slugify = (text) =>
 
 // CRUD daftar pilihan cepat alasan (cancel / discharge). Data transaksi menyimpan alasan sebagai string,
 // jadi menghapus pilihan tidak merusak riwayat; hanya label lama tampil sebagai kodenya.
-export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, onDelete, testId }) {
+// `codeMode` = kode wajib, singkat, HURUF BESAR (mis. S, OL, SCA). Kode itulah yang disimpan di transaksi dan tampil di riwayat.
+export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, onDelete, testId, codeMode = false }) {
   const { confirm, confirmDialog } = useConfirm();
   const [dialog, setDialog] = useState(EMPTY);
 
@@ -38,9 +39,9 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
       onUpdate(dialog.editingValue, { label, active: dialog.active });
       toast.success(`${noun} "${label}" diperbarui.`);
     } else {
-      const code = slugify(dialog.value || label);
-      if (!code) {
-        toast.error(`Kode ${noun} tidak valid.`);
+      const code = codeMode ? dialog.value.trim().toUpperCase() : slugify(dialog.value || label);
+      if (codeMode ? !/^[A-Z0-9]{1,10}$/.test(code) : !code) {
+        toast.error(codeMode ? `Kode ${noun} wajib diisi: 1-10 karakter huruf/angka (mis. S, OL, SCA).` : `Kode ${noun} tidak valid.`);
         return;
       }
       if (items.some((r) => r.value === code)) {
@@ -82,8 +83,9 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
           <Table stackOnMobile>
             <TableHeader>
               <TableRow>
+                {codeMode && <TableHead className="text-xs font-bold">Kode</TableHead>}
                 <TableHead className="text-xs font-bold">Nama</TableHead>
-                <TableHead className="text-xs font-bold">Kode</TableHead>
+                {!codeMode && <TableHead className="text-xs font-bold">Kode</TableHead>}
                 <TableHead className="text-xs font-bold text-center">Aktif</TableHead>
                 <TableHead className="text-xs font-bold text-right">Aksi</TableHead>
               </TableRow>
@@ -91,8 +93,9 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
             <TableBody>
               {items.map((r) => (
                 <TableRow key={r.value} data-testid={`${testId}-row-${r.value}`}>
+                  {codeMode && <TableCell data-label="Kode" className="font-mono text-xs font-black text-slate-900">{r.value}</TableCell>}
                   <TableCell data-nolabel className="min-w-[200px] text-xs font-bold text-slate-900">{r.label}</TableCell>
-                  <TableCell data-label="Kode" className="font-mono text-[11px] text-slate-600">{r.value}</TableCell>
+                  {!codeMode && <TableCell data-label="Kode" className="font-mono text-[11px] text-slate-600">{r.value}</TableCell>}
                   <TableCell data-label="Aktif" className="text-center">
                     <Switch
                       checked={r.active !== false}
@@ -139,12 +142,13 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
               <Input value={dialog.label} onChange={(e) => setDialog((p) => ({ ...p, label: e.target.value }))} maxLength={120} data-testid={`${testId}-label-input`} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold">Kode</Label>
+              <Label className="text-xs font-bold">Kode{codeMode ? " *" : ""}</Label>
               <Input
                 value={dialog.value}
                 disabled={Boolean(dialog.editingValue)}
-                onChange={(e) => setDialog((p) => ({ ...p, value: e.target.value }))}
-                placeholder={slugify(dialog.label) || "otomatis"}
+                onChange={(e) => setDialog((p) => ({ ...p, value: codeMode ? e.target.value.toUpperCase() : e.target.value }))}
+                maxLength={codeMode ? 10 : undefined}
+                placeholder={codeMode ? "mis. SCA" : slugify(dialog.label) || "otomatis"}
                 className="font-mono text-xs"
                 data-testid={`${testId}-code-input`}
               />

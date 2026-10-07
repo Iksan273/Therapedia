@@ -3,7 +3,11 @@
 // ledger saling berbeda; sesi terjadwal yang tanggalnya lewat otomatis dianggap completed saat dimuat). Fungsi ini
 // MEMBANGUN ULANG paket + ledger tiap client dari jadwalnya sehingga: sisa paket = total - sesi yang memotong kredit,
 // ledger = satu baris `used` per sesi completed (urut tanggal, FIFO antar paket), saldo rupiah = sisa x harga per sesi,
-// dan `creditPackageId` tiap sesi menunjuk paket yang benar. Hanya dipakai saat memuat seed (bukan di alur aplikasi).
+// dan `creditPackageId` tiap sesi menunjuk paket yang benar. Credit leave per paket (master `leaveQuota`) ikut dihitung: cancel
+// yang "dipotong" memakai credit leave dulu (`cancel_leave`, kredit sesi utuh), habis baru `cancel_penalty`; sesi yang dibatalkan
+// karena cuti Finance (`leaveId`) dicatat `off_excused`. Hanya dipakai saat memuat seed (bukan di alur aplikasi).
+
+import { OTHER_REASON } from "./schedule";
 
 const addDaysStr = (dateStr, n) => {
   const d = new Date(`${dateStr}T00:00:00Z`);
@@ -29,22 +33,29 @@ export function reconcileDemoCredits({ records, schedules, invoices = [], master
       const inv = idx >= 0 ? unusedPaid.splice(idx, 1)[0] : null;
       const master = masterPackages.find((m) => m.id === p.packageId);
       const price = inv ? inv.amount : master ? Math.round((master.price * p.totalCredit) / master.credits) : p.price || null;
-      return { ...p, price, ...(inv ? { invoiceId: inv.id } : {}), _used: 0, _cancels: 0, _events: [] };
+      return { ...p, price, leaveTotal: master?.leaveQuota != null ? master.leaveQuota : 3, ...(inv ? { invoiceId: inv.id } : {}), _used: 0, _cancels: 0, _leaveUsed: 0, _events: [] };
     });
     if (pkgs.length === 0) return record;
 
     const roomIdx = () => pkgs.findIndex((p) => p._used < p.totalCredit);
     const events = [];
     mine.forEach((s) => {
-      const cancelAction = s.status === "cancelled" ? (origCancel.get(s.id) === "cancel_penalty" ? "cancel_penalty" : "cancel_excused") : null;
+      const isLeaveCancel = s.status === "cancelled" && Boolean(s.leaveId); // dibatalkan karena cuti Finance
+      const wantsCut = s.status === "cancelled" && !isLeaveCancel && origCancel.get(s.id) === "cancel_penalty";
+      let cancelAction = s.status === "cancelled" ? (isLeaveCancel ? "off_excused" : wantsCut ? "cancel_penalty" : "cancel_excused") : null;
       if (s.status !== "completed" && !cancelAction) return;
-      const consumes = s.status === "completed" || cancelAction === "cancel_penalty";
       let i = roomIdx();
+      if (i === -1 && s.status !== "completed" && !wantsCut) i = pkgs.length - 1;
+      // Potong: credit leave paket dipakai lebih dulu (kredit sesi utuh), habis baru kredit sesi dipotong
+      const useLeave = wantsCut && i !== -1 && pkgs[i]._leaveUsed < pkgs[i].leaveTotal;
+      if (useLeave) cancelAction = "cancel_leave";
+      const consumes = s.status === "completed" || (cancelAction === "cancel_penalty" && wantsCut);
       if (consumes && i === -1) return; // melebihi total kredit: tidak ada paket untuk dipotong
       if (i === -1) i = pkgs.length - 1;
       const p = pkgs[i];
       if (consumes) p._used += 1;
-      if (cancelAction) p._cancels += 1;
+      if (cancelAction && !isLeaveCancel) p._cancels += 1;
+      if (useLeave) p._leaveUsed += 1;
       const action = s.status === "completed" ? "used" : cancelAction;
       const ev = {
         id: `hist-${s.id}`,
@@ -54,11 +65,16 @@ export function reconcileDemoCredits({ records, schedules, invoices = [], master
         packageName: p.packageName,
         action,
         creditChange: consumes ? -1 : 0,
-        cancelReason: cancelAction ? s.cancelReason || "lainnya" : undefined,
-        cancelCountAfter: cancelAction ? p._cancels : undefined,
+        ...(useLeave ? { leaveChange: -1 } : {}),
+        cancelReason: cancelAction ? s.cancelReason || OTHER_REASON : undefined,
+        cancelCountAfter: cancelAction && !isLeaveCancel ? p._cancels : undefined,
         note:
           action === "used"
             ? "Sesi terapi selesai"
+            : action === "off_excused"
+            ? "Sesi dibatalkan karena cuti (memotong jatah cuti); kredit sesi tidak dipotong"
+            : action === "cancel_leave"
+            ? `Cancel ke-${p._cancels} pada paket - memakai 1 credit leave; kredit sesi utuh`
             : action === "cancel_penalty"
             ? `Cancel ke-${p._cancels} pada paket - admin memilih potong 1 kredit`
             : `Cancel ke-${p._cancels} pada paket - admin memilih tidak potong kredit`,
@@ -112,9 +128,9 @@ export function reconcileDemoCredits({ records, schedules, invoices = [], master
       .sort((a, b) => a.date.localeCompare(b.date) || a._order - b._order)
       .map(({ _order, ...h }) => h);
 
-    const packages = kept.map(({ _used, _cancels, _events, ...p }) => {
+    const packages = kept.map(({ _used, _cancels, _leaveUsed, _events, ...p }) => {
       const remaining = Math.max(0, p.totalCredit - _used);
-      return { ...p, remainingCredit: remaining, cancelCount: _cancels, status: remaining > 0 ? "active" : "depleted" };
+      return { ...p, remainingCredit: remaining, cancelCount: _cancels, leaveUsed: _leaveUsed, status: remaining > 0 ? "active" : "depleted" };
     });
 
     // Sesi lain (terjadwal / pindah / menggantung) menunjuk paket aktif tertua, atau paket terakhir bila semua habis

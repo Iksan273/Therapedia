@@ -2,7 +2,7 @@ import { IfCanDelete } from "@/shared/components/DeleteControls";
 import React, { useMemo, useState } from "react";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Stethoscope, Grid2x2, Database, ChevronLeft, ChevronRight, CalendarX2, CalendarOff, LogOut } from "lucide-react";
+import { Pencil, Plus, Trash2, Stethoscope, Grid2x2, Database, ChevronLeft, ChevronRight, CalendarX2, LogOut } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -62,7 +62,6 @@ export default function InquiryMasterData() {
     services, addService, updateService, deleteService,
     quadrants, addQuadrant, updateQuadrant, deleteQuadrant,
     cancelReasons, addCancelReason, updateCancelReason, deleteCancelReason,
-    offReasons, addOffReason, updateOffReason, deleteOffReason,
     dischargeReasons, addDischargeReason, updateDischargeReason, deleteDischargeReason,
   } = useMasterData();
   const { clients } = useClients();
@@ -240,7 +239,7 @@ export default function InquiryMasterData() {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Master Data Inquiry</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
-            Kelola daftar layanan klinis, kuadran sensori, serta pilihan cepat alasan cancel, off, dan discharge.
+            Kelola daftar layanan klinis, kuadran sensori, serta pilihan cepat alasan cancel / off dan discharge.
           </p>
         </div>
       </div>
@@ -254,10 +253,7 @@ export default function InquiryMasterData() {
             <Grid2x2 className="w-3.5 h-3.5" /> Kuadran Sensori ({quadrants.length})
           </TabsTrigger>
           <TabsTrigger value="cancel-reasons" className="gap-1.5 text-xs font-bold" data-testid="tab-master-cancel-reasons">
-            <CalendarX2 className="w-3.5 h-3.5" /> Alasan Cancel ({cancelReasons.length})
-          </TabsTrigger>
-          <TabsTrigger value="off-reasons" className="gap-1.5 text-xs font-bold" data-testid="tab-master-off-reasons">
-            <CalendarOff className="w-3.5 h-3.5" /> Alasan Off ({offReasons.length})
+            <CalendarX2 className="w-3.5 h-3.5" /> Alasan Cancel / Off ({cancelReasons.length})
           </TabsTrigger>
           <TabsTrigger value="discharge-reasons" className="gap-1.5 text-xs font-bold" data-testid="tab-master-discharge-reasons">
             <LogOut className="w-3.5 h-3.5" /> Alasan Discharge ({dischargeReasons.length})
@@ -451,28 +447,15 @@ export default function InquiryMasterData() {
         {/* ===== ALASAN CANCEL ===== */}
         <TabsContent value="cancel-reasons" className="mt-4">
           <ReasonListTab
-            noun="alasan cancel"
+            noun="alasan cancel / off"
             icon={CalendarX2}
-            hint="Pilihan cepat saat membatalkan / mereschedule sesi. User juga bisa memilih “Lainnya” dan mengetik alasan sendiri; alasan disimpan sebagai teks, tanpa relasi ke daftar ini."
+            hint="Satu daftar alasan Cancel / Off sesi dan reschedule menggantung. Tiap alasan punya KODE singkat (mis. S, OL, SCA, MCU, FM, TI, H): kode itu yang disimpan dan tampil di riwayat/detail semua modul; nama hanya untuk pilihan di form. User juga bisa memilih “Lainnya” dan mengetik alasan sendiri (disimpan sebagai teks)."
+            codeMode
             items={cancelReasons}
             onAdd={addCancelReason}
             onUpdate={updateCancelReason}
             onDelete={deleteCancelReason}
             testId="cancel-reason"
-          />
-        </TabsContent>
-
-        {/* ===== ALASAN OFF ===== */}
-        <TabsContent value="off-reasons" className="mt-4">
-          <ReasonListTab
-            noun="alasan off"
-            icon={CalendarOff}
-            hint="Pilihan cepat saat menandai sesi Off (mis. OL, S, SCA, MCU, FM, TI, H). Tambah sesuka hati; admin juga bisa memilih “Lainnya” dan mengetik alasan sendiri. Alasan disimpan sebagai teks, tanpa relasi ke daftar ini."
-            items={offReasons}
-            onAdd={addOffReason}
-            onUpdate={updateOffReason}
-            onDelete={deleteOffReason}
-            testId="off-reason"
           />
         </TabsContent>
 

@@ -18,6 +18,7 @@ import {
   UserX,
   Clock,
   Award,
+  LogOut,
   BarChart3,
   Calendar
 } from "lucide-react";
@@ -31,6 +32,9 @@ import { PeriodFilter } from "@/shared/components/PeriodFilter";
 import { TREND_RANGES, buildMonthlyIntakeTrend, trendRangeTitle } from "@/domain/branch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { makePeriodMatcher, periodLabel } from "@/shared/lib/periods";
+import { useMasterData } from "@/stores/masterDataStore";
+import { dischargeStats } from "@/domain/client";
+import { DischargeReport } from "@/shared/components/DischargeReport";
 
 // Warna garis tren per cabang (berurutan; cabang tambahan memakai warna berikutnya)
 const BRANCH_LINE_COLORS = ["#0284c7", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#64748b"];
@@ -45,6 +49,7 @@ const COLORS = {
 export default function BranchPerformance() {
   const { clients: allClients } = useClients();
   const { branches: allBranches } = useBranches();
+  const { dischargeReasons } = useMasterData();
 
   // Filter rentang waktu (template PeriodFilter): intake dihitung berdasarkan tanggal client dibuat (createdAt)
   const [period, setPeriod] = useState("all");
@@ -57,6 +62,13 @@ export default function BranchPerformance() {
       return !d || inPeriod(d);
     });
   }, [allClients, period, customStart, customEnd]);
+
+  // Discharge: periode memakai TANGGAL DISCHARGE (bukan tanggal intake), seluruh cabang
+  const dischargedClients = useMemo(() => {
+    const inPeriod = makePeriodMatcher(period, customStart, customEnd);
+    return allClients.filter((c) => c.status === "discharged" && (!c.dateOfDischarge || inPeriod(c.dateOfDischarge.slice(0, 10))));
+  }, [allClients, period, customStart, customEnd]);
+  const dischargeData = useMemo(() => dischargeStats(dischargedClients, dischargeReasons), [dischargedClients, dischargeReasons]);
 
   // Cabang aktif + cabang nonaktif yang masih punya data intake
   const BRANCHES = useMemo(
@@ -85,6 +97,7 @@ export default function BranchPerformance() {
         ["assessment_done", "done_assessment", "done_consult"].includes(c.status)
       ).length;
       const branchDrop = branchClients.filter((c) => c.status === "discontinued").length;
+      const branchDischarged = dischargedClients.filter((c) => c.branchId === b.id).length;
       const conversionRate = branchClients.length > 0 ? Math.round((branchAdmitted / branchClients.length) * 100) : 0;
       const dropRate = branchClients.length > 0 ? Math.round((branchDrop / branchClients.length) * 100) : 0;
 
@@ -98,11 +111,12 @@ export default function BranchPerformance() {
         inProgress: branchPending,
         doneAssessment: branchDoneAssessment,
         discontinued: branchDrop,
+        discharged: branchDischarged,
         conversionRate,
         dropRate
       };
     });
-  }, [clients, BRANCHES]);
+  }, [clients, BRANCHES, dischargedClients]);
 
   // Overall multi-branch metrics
   const totalAllInquiries = useMemo(() => clients.length, [clients]);
@@ -178,7 +192,7 @@ export default function BranchPerformance() {
       </FilterBar>
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs p-4 space-y-1">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Total Intake All-Branch</span>
@@ -231,6 +245,19 @@ export default function BranchPerformance() {
           </p>
         </Card>
 
+        <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs p-4 space-y-1" data-testid="branch-kpi-discharged">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+            <span>Total Discharged</span>
+            <LogOut className="w-4 h-4 text-slate-600" />
+          </div>
+          <p className="text-2xl font-black text-slate-800 tabular-nums">
+            {dischargeData.total} <span className="text-xs font-medium text-slate-500">Client</span>
+          </p>
+          <p className="text-[11px] font-medium text-slate-500">
+            Selesai / keluar terapi (periode = tanggal discharge)
+          </p>
+        </Card>
+
         <Card className="rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50/70 to-white shadow-2xs p-4 space-y-1 col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between text-xs font-bold text-amber-700">
             <span>Top Conversion Branch</span>
@@ -244,6 +271,9 @@ export default function BranchPerformance() {
           </p>
         </Card>
       </div>
+
+      {/* REPORT DISCHARGE PER ALASAN (seluruh cabang) */}
+      <DischargeReport stats={dischargeData} />
 
       {/* CHART: PERFORMA INTAKE ANTAR CABANG (rasio konversi & drop-off ada di matriks di bawah) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -338,7 +368,7 @@ export default function BranchPerformance() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <Table stackOnMobile className="min-w-[750px] w-full">
+          <Table stackOnMobile className="min-w-[820px] w-full">
             <TableHeader>
               <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-b border-slate-200">
                 <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6">Nama Cabang</TableHead>
@@ -346,6 +376,7 @@ export default function BranchPerformance() {
                 <TableHead className="font-bold text-slate-700 text-xs text-center">Admitted (Aktif)</TableHead>
                 <TableHead className="font-bold text-slate-700 text-xs text-center">Dalam Proses</TableHead>
                 <TableHead className="font-bold text-slate-700 text-xs text-center">Discontinued</TableHead>
+                <TableHead className="font-bold text-slate-700 text-xs text-center">Discharged</TableHead>
                 <TableHead className="font-bold text-slate-700 text-xs text-center">Rasio Konversi</TableHead>
                 <TableHead className="font-bold text-slate-700 text-xs text-center">Rasio Drop-off</TableHead>
               </TableRow>
@@ -380,6 +411,11 @@ export default function BranchPerformance() {
                   <TableCell data-label="Discontinued" className="text-center">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                       {b.discontinued}
+                    </span>
+                  </TableCell>
+                  <TableCell data-label="Discharged" className="text-center">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200" data-testid={`branch-discharged-${b.branchId}`}>
+                      {b.discharged}
                     </span>
                   </TableCell>
                   <TableCell data-label="Rasio Konversi" className="text-center">

@@ -47,7 +47,7 @@ import { useMasterData } from "@/stores/masterDataStore";
 import { PERIOD_OPTIONS, makePeriodMatcher, periodLabel } from "@/shared/lib/periods";
 import { branchName } from "@/domain/branch";
 import { calcAge, fmtDate } from "@/shared/lib/format";
-import { isCreditNeutralCancel } from "@/domain/schedule";
+import { OTHER_REASON, isCreditNeutralCancel, normalizeCancelReason } from "@/domain/schedule";
 import { getClientServiceIds, matchesClientSearch } from "@/domain/client";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
@@ -248,7 +248,7 @@ export default function ClientAnalyticsTab({ activeList }) {
     const counts = new Map();
     scopeSchedules.forEach((s) => {
       if (s.status !== "cancelled") return;
-      const key = s.cancelReason || "lainnya";
+      const key = normalizeCancelReason(s.cancelReason) || OTHER_REASON;
       counts.set(key, (counts.get(key) || 0) + 1);
     });
     return [...counts.entries()]

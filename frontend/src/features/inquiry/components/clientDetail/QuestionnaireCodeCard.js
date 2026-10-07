@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Button } from "@/shared/ui/button";
 import { Copy, Link2, Plus, Trash2 } from "lucide-react";
+import { Switch } from "@/shared/ui/switch";
 import { isQuestionnaireCodeFilled } from "@/domain/client";
 import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionnaireCodeExpired } from "@/domain/assessment";
 import { fmtDate } from "@/shared/lib/format";
@@ -10,7 +11,7 @@ import { Link } from "react-router-dom";
 import { AssessmentServiceSelect } from "@/shared/components/AssessmentServiceSelect";
 import { IfCanDelete } from "@/shared/components/DeleteControls";
 
-export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory, newQuestionnaireValidity = "none", setNewQuestionnaireValidity, masterPackages = [], newQuestionnaireService = "", setNewQuestionnaireService }) {
+export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory, newQuestionnaireValidity = "none", setNewQuestionnaireValidity, masterPackages = [], newQuestionnaireService = "", setNewQuestionnaireService, newQuestionnaireInvoice = true, setNewQuestionnaireInvoice }) {
   return (
     <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -21,7 +22,7 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
               <div>
                 <CardTitle className="text-sm font-bold text-slate-900">Questionnaire Code Generator</CardTitle>
                 <CardDescription className="text-xs text-slate-500">
-                  Generate lebih dari 1 kode kuesioner unik (misal Asesmen Utama + School Companion Profile). Pilih layanan: harganya jadi nominal invoice assessment yang otomatis terbit
+                  Generate lebih dari 1 kode kuesioner unik (misal Asesmen Utama + School Companion Profile). Bila berbayar, pilih layanan: harganya jadi nominal invoice assessment yang otomatis terbit; matikan "Masuk invoice" untuk kode gratis (mis. School Companion)
                 </CardDescription>
               </div>
             </div>
@@ -43,7 +44,10 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                   ))}
                 </SelectContent>
               </Select>
-              <AssessmentServiceSelect packages={masterPackages} value={newQuestionnaireService} onChange={setNewQuestionnaireService} testId="questionnaire-service-select" />
+              <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 h-10 text-xs font-bold text-slate-700">
+                <Switch checked={newQuestionnaireInvoice} onCheckedChange={setNewQuestionnaireInvoice} data-testid="questionnaire-invoice-toggle" /> Masuk invoice
+              </label>
+              {newQuestionnaireInvoice && <AssessmentServiceSelect packages={masterPackages} value={newQuestionnaireService} onChange={setNewQuestionnaireService} testId="questionnaire-service-select" />}
               <Select value={newQuestionnaireValidity} onValueChange={setNewQuestionnaireValidity}>
                 <SelectTrigger className="w-44 text-xs border-slate-200 bg-slate-50 font-semibold" data-testid="questionnaire-validity-select">
                   <SelectValue />
@@ -76,7 +80,7 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                       <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         {item.name}
                       </span>
-                      <p className="font-mono font-black text-sm text-slate-900 mt-0.5">{item.code}</p>
+                      <p className="font-mono font-black text-sm text-slate-900 mt-0.5">{item.code}{item.invoiceRequired === false && <span className="ml-2 align-middle text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md" data-testid={`code-free-${item.code}`}>Gratis</span>}</p>
                       {!isQuestionnaireCodeFilled(client, item) && item.expiresAt && (
                         <p className={`text-[11px] font-semibold mt-0.5 ${isQuestionnaireCodeExpired(item) ? "text-rose-600" : "text-slate-500"}`} data-testid={`code-expiry-${item.code}`}>
                           {isQuestionnaireCodeExpired(item) ? "Kedaluwarsa" : "Berlaku s.d."} {fmtDate(item.expiresAt)}

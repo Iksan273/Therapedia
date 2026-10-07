@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { canDeleteInvoice, canVoidInvoice, invoiceConversionCount, invoicePackageName, invoiceTypeLabel, isInvoiceConverted, lastInvoiceConversion } from "@/domain/credit";
+import { canDeleteInvoice, canRefundInvoice, canVoidInvoice, invoiceConversionCount, invoicePackageName, invoiceTypeLabel, isInvoiceConverted, lastInvoiceConversion } from "@/domain/credit";
 import { DeleteButton } from "@/shared/components/DeleteControls";
 import { TabsContent } from "@/shared/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -9,12 +9,14 @@ import { fmtCurrency, fmtDate } from "@/shared/lib/format";
 import { Button } from "@/shared/ui/button";
 import { getProofFileType } from "@/shared/lib/fileUpload";
 import { ProofFileButton } from "@/shared/components/ProofFileButton";
-import { ArrowRightLeft, Ban, Eye, FileText, History } from "lucide-react";
+import { ArrowRightLeft, Ban, Eye, FileText, History, Undo2 } from "lucide-react";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { TablePagination } from "@/shared/components/TablePagination";
 import { ConvertPackageDialog } from "@/features/finance/components/ConvertPackageDialog";
 import { InvoiceLogDialog } from "@/features/finance/components/InvoiceLogDialog";
 import { VoidInvoiceDialog } from "@/features/finance/components/VoidInvoiceDialog";
+import { RefundInvoiceDialog } from "@/features/finance/components/RefundInvoiceDialog";
+import { useInvoiceVoidActions } from "@/features/finance/hooks/useInvoiceVoidActions";
 import { usePackageConversionActions } from "@/features/finance/hooks/usePackageConversionActions";
 
 export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoice, onUploadProof }) {
@@ -22,6 +24,8 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
   const [convertInvoice, setConvertInvoice] = useState(null);
   const [logInvoice, setLogInvoice] = useState(null);
   const [voidTarget, setVoidTarget] = useState(null);
+  const [refundTarget, setRefundTarget] = useState(null);
+  const { previewVoid } = useInvoiceVoidActions();
   return (
     <TabsContent value="billing" className="space-y-4">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -48,6 +52,7 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                 <TableBody>
                   {invoicesPg.pageItems.map((inv) => {
                     const br = BRANCHES.find((b) => b.id === inv.branchId);
+                    const voidState = canVoidInvoice(inv) ? previewVoid(inv) : null;
                     return (
                       <TableRow key={inv.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                         <TableCell data-nolabel className="font-mono text-xs font-bold text-slate-900 pl-6 min-w-[150px] whitespace-nowrap">
@@ -129,7 +134,7 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                             >
                               <History className="w-3 h-3 text-slate-500" /> Log
                             </Button>
-                            {canVoidInvoice(inv) && (
+                            {voidState && !voidState.voidBlocked && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -138,6 +143,17 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
                                 data-testid={`void-invoice-${inv.id}`}
                               >
                                 <Ban className="w-3 h-3" /> Void
+                              </Button>
+                            )}
+                            {voidState && canRefundInvoice(inv) && voidState.remaining > 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="px-2.5 min-h-10 md:min-h-0 text-[11px] font-semibold text-amber-700 border-amber-200 hover:bg-amber-50 gap-1.5 cursor-pointer"
+                                onClick={() => setRefundTarget(inv)}
+                                data-testid={`refund-invoice-${inv.id}`}
+                              >
+                                <Undo2 className="w-3 h-3" /> Refund
                               </Button>
                             )}
                             {canConvert(inv) && (
@@ -184,6 +200,7 @@ export function BillingTab({ invoicesPg, setSelectedProofInvoice, onDeleteInvoic
           </Card>
           <ConvertPackageDialog invoice={convertInvoice} open={Boolean(convertInvoice)} onOpenChange={(v) => !v && setConvertInvoice(null)} />
           <InvoiceLogDialog invoice={logInvoice} open={Boolean(logInvoice)} onOpenChange={(v) => !v && setLogInvoice(null)} />
+          <RefundInvoiceDialog invoice={refundTarget} open={Boolean(refundTarget)} onOpenChange={(v) => !v && setRefundTarget(null)} />
           <VoidInvoiceDialog invoice={voidTarget} open={Boolean(voidTarget)} onOpenChange={(v) => !v && setVoidTarget(null)} />
         </TabsContent>
   );

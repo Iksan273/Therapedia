@@ -1,5 +1,8 @@
 import {
-  CANCEL_QUOTA,
+  DEFAULT_LEAVE_CREDITS,
+  leaveCreditTotal,
+  leaveRemainingOf,
+  prepareLeaveCredit,
   appendInvoiceLog,
   applyBalanceToAmount,
   applyPackageConversion,
@@ -13,7 +16,12 @@ import {
   canVoidInvoice,
   validateVoid,
   voidSummary,
-  applyVoidRevoke,
+  canRefundInvoice,
+  buildRefundPlan,
+  validateRefund,
+  applyRefund,
+  revenueMetrics,
+  netPaidAmount,
   replacementCandidates,
   adoptPackageForReplacement,
   leftoverSummaryByClient,
@@ -41,6 +49,12 @@ import {
   summarizeCreditRecord,
   validateProofFile,
 } from "@/domain/credit";
+
+// Paket TANPA credit leave (leaveTotal 0): pilihan potong langsung memotong kredit sesi
+const noLeave = (remaining) => {
+  const base = recordWith(remaining);
+  return { ...base, packages: [{ ...base.packages[0], leaveTotal: 0 }] };
+};
 
 const recordWith = (remaining, extra = {}) => ({
   ...newCreditRecord({ clientId: "c-1", branchId: "b-1", id: "cr-1" }),
@@ -74,18 +88,34 @@ describe("applySessionCompleted", () => {
   });
 });
 
-describe("applySessionCancelled (kuota per paket, admin memilih potong kredit)", () => {
-  test("tanpa potong: kredit utuh, cancelCount paket bertambah, ledger cancel_excused (juga setelah kuota lewat)", () => {
+describe("applySessionCancelled (credit leave per paket, admin memilih potong)", () => {
+  test("tanpa potong: tidak ada yang berkurang, cancelCount bertambah, ledger cancel_excused", () => {
     let rec = recordWith(5);
-    for (let i = 1; i <= CANCEL_QUOTA + 2; i += 1) rec = applySessionCancelled(rec, { packageId: "cp-1", scheduleId: `s-${i}`, deductCredit: false });
-    expect(rec.packages[0].cancelCount).toBe(CANCEL_QUOTA + 2);
+    for (let i = 1; i <= 5; i += 1) rec = applySessionCancelled(rec, { packageId: "cp-1", scheduleId: `s-${i}`, deductCredit: false });
+    expect(rec.packages[0].cancelCount).toBe(5);
     expect(rec.packages[0].remainingCredit).toBe(5);
+    expect(leaveRemainingOf(rec.packages[0])).toBe(DEFAULT_LEAVE_CREDITS);
     expect(rec.history.every((h) => h.action === "cancel_excused" && h.creditChange === 0)).toBe(true);
-    expect(rec.history.at(-1).cancelCountAfter).toBe(CANCEL_QUOTA + 2);
   });
 
-  test("potong kredit: -1 kredit, cancelCount bertambah, ledger cancel_penalty (tanpa menunggu kuota habis)", () => {
+  test("potong + credit leave masih ada: credit leave −1, kredit sesi UTUH, ledger cancel_leave", () => {
     const rec = applySessionCancelled(recordWith(5), { packageId: "cp-1", scheduleId: "s-1", deductCredit: true });
+    expect(rec.packages[0]).toMatchObject({ remainingCredit: 5, cancelCount: 1, leaveUsed: 1 });
+    expect(leaveRemainingOf(rec.packages[0])).toBe(DEFAULT_LEAVE_CREDITS - 1);
+    expect(rec.history.at(-1)).toMatchObject({ action: "cancel_leave", creditChange: 0, leaveChange: -1 });
+  });
+
+  test("potong setelah credit leave habis: 1 kredit sesi dipotong (cancel_penalty)", () => {
+    let rec = recordWith(5);
+    for (let i = 1; i <= DEFAULT_LEAVE_CREDITS; i += 1) rec = applySessionCancelled(rec, { packageId: "cp-1", scheduleId: `l-${i}`, deductCredit: true });
+    expect(rec.packages[0]).toMatchObject({ remainingCredit: 5, leaveUsed: DEFAULT_LEAVE_CREDITS });
+    rec = applySessionCancelled(rec, { packageId: "cp-1", scheduleId: "s-x", deductCredit: true });
+    expect(rec.packages[0]).toMatchObject({ remainingCredit: 4, cancelCount: DEFAULT_LEAVE_CREDITS + 1 });
+    expect(rec.history.at(-1)).toMatchObject({ action: "cancel_penalty", creditChange: -1 });
+  });
+
+  test("paket tanpa credit leave: potong langsung memotong kredit sesi", () => {
+    const rec = applySessionCancelled(noLeave(5), { packageId: "cp-1", scheduleId: "s-1", deductCredit: true });
     expect(rec.packages[0]).toMatchObject({ remainingCredit: 4, cancelCount: 1 });
     expect(rec.history.at(-1)).toMatchObject({ action: "cancel_penalty", creditChange: -1 });
   });
@@ -96,25 +126,55 @@ describe("applySessionCancelled (kuota per paket, admin memilih potong kredit)",
     expect(rec.history.at(-1).action).toBe("cancel_excused");
   });
 
-  test("potong tapi saldo paket 0 atau tanpa paket: tidak bisa memotong (cancel_excused)", () => {
-    const empty = applySessionCancelled(recordWith(0), { packageId: "cp-1", scheduleId: "s-1", deductCredit: true });
+  test("potong tapi credit leave & saldo paket 0, atau tanpa paket: tidak bisa memotong (cancel_excused)", () => {
+    const empty = applySessionCancelled(noLeave(0), { packageId: "cp-1", scheduleId: "s-1", deductCredit: true });
     expect(empty.packages[0].remainingCredit).toBe(0);
     expect(empty.history.at(-1).action).toBe("cancel_excused");
     const none = applySessionCancelled(newCreditRecord({ clientId: "c-1" }), { scheduleId: "s-1", deductCredit: true });
     expect(none.history.at(-1)).toMatchObject({ action: "cancel_excused", packageName: "General" });
   });
 
-  test("kuota dihitung per paket: paket lain tidak terpengaruh", () => {
+  test("pembatalan karena cuti Finance (kind off): tidak memakai credit leave maupun kredit sesi, tidak menambah cancelCount", () => {
+    const rec = applySessionCancelled(recordWith(5), { packageId: "cp-1", scheduleId: "s-1", deductCredit: true, kind: "off" });
+    expect(rec.packages[0]).toMatchObject({ remainingCredit: 5, cancelCount: 0 });
+    expect(leaveRemainingOf(rec.packages[0])).toBe(DEFAULT_LEAVE_CREDITS);
+    expect(rec.history.at(-1).action).toBe("off_excused");
+  });
+
+  test("credit leave dihitung per paket: paket lain tidak terpengaruh; total client = jumlah sisa semua paket", () => {
     const rec = recordWith(5, {
       packages: [
-        { id: "cp-1", packageId: "pkg-reguler", packageName: "A", totalCredit: 10, remainingCredit: 5, cancelCount: 2, status: "active" },
-        { id: "cp-2", packageId: "pkg-vip", packageName: "B", totalCredit: 10, remainingCredit: 10, cancelCount: 0, status: "active" },
+        { id: "cp-1", packageId: "pkg-reguler", packageName: "A", totalCredit: 10, remainingCredit: 5, cancelCount: 2, leaveTotal: 3, leaveUsed: 2, status: "active" },
+        { id: "cp-2", packageId: "pkg-vip", packageName: "B", totalCredit: 10, remainingCredit: 10, cancelCount: 0, leaveTotal: 3, leaveUsed: 0, status: "active" },
       ],
     });
-    const next = applySessionCancelled(rec, { packageId: "cp-2", scheduleId: "s-1" });
-    expect(next.packages.map((p) => p.cancelCount)).toEqual([2, 1]);
-    expect(summarizeCreditRecord(next)).toMatchObject({ cancelCount: 2, cancelQuota: CANCEL_QUOTA }); // paket aktif = cp-1
+    const next = applySessionCancelled(rec, { packageId: "cp-2", scheduleId: "s-1", deductCredit: true });
+    expect(next.packages.map((p) => p.leaveUsed)).toEqual([2, 1]);
+    expect(summarizeCreditRecord(next)).toMatchObject({ cancelCount: 2, leaveQuota: 3, leaveRemaining: 1, leaveCreditTotal: 1 + 2 }); // paket aktif = cp-1
+    expect(leaveCreditTotal(next)).toBe(3);
     expect(activePackageOf(next).id).toBe("cp-1");
+  });
+});
+
+describe("prepareLeaveCredit (paket reguler vs satuan)", () => {
+  const live = (over) => ({ id: "p0", status: "active", leaveTotal: 3, leaveUsed: 1, ...over });
+  test("paket reguler: tiap paket membawa credit leave baru sebesar leaveQuota", () => {
+    expect(prepareLeaveCredit({ packages: [live()] }, { leaveQuota: 4, isSatuan: false }).leaveTotal).toBe(4);
+    expect(prepareLeaveCredit(undefined, { leaveQuota: 2 }).leaveTotal).toBe(2);
+  });
+
+  test("paket satuan: pertama membawa leaveQuota; berikutnya MELANJUTKAN sisa (tidak reset otomatis), sisa lama dipindah", () => {
+    expect(prepareLeaveCredit({ packages: [] }, { leaveQuota: 2, isSatuan: true }).leaveTotal).toBe(2);
+    const out = prepareLeaveCredit({ packages: [live()] }, { leaveQuota: 2, isSatuan: true }); // sisa lama 2
+    expect(out.leaveTotal).toBe(2);
+    expect(leaveRemainingOf(out.packages[0])).toBe(0); // dipindah ke paket baru: total tetap satu kumpulan
+    expect(out.packages[0].leaveTotal).toBe(1);
+  });
+
+  test("paket satuan + Reset credit leave: diisi ulang ke leaveQuota, sisa lama hangus", () => {
+    const out = prepareLeaveCredit({ packages: [live()] }, { leaveQuota: 5, isSatuan: true }, { reset: true });
+    expect(out.leaveTotal).toBe(5);
+    expect(leaveRemainingOf(out.packages[0])).toBe(0);
   });
 });
 
@@ -165,8 +225,16 @@ describe("applySessionReverted (ledger append-only)", () => {
     expect(next.history.at(-1)).toMatchObject({ action: "reversal", creditChange: 0 });
   });
 
-  test("revert penalti cancel: +1 kredit dan kuota −1", () => {
-    const cancelled = applySessionCancelled(recordWith(5), { packageId: "cp-1", scheduleId: "s-9", deductCredit: true });
+  test("revert cancel pakai credit leave: credit leave +1, cancelCount −1, kredit sesi tidak berubah", () => {
+    const cancelled = applySessionCancelled(recordWith(5), { packageId: "cp-1", scheduleId: "s-8", deductCredit: true });
+    expect(cancelled.packages[0]).toMatchObject({ remainingCredit: 5, leaveUsed: 1, cancelCount: 1 });
+    const back = applySessionReverted(cancelled, { scheduleId: "s-8" });
+    expect(back.packages[0]).toMatchObject({ remainingCredit: 5, leaveUsed: 0, cancelCount: 0 });
+    expect(back.history.at(-1)).toMatchObject({ action: "reversal", creditChange: 0 });
+  });
+
+  test("revert penalti cancel (credit leave habis): +1 kredit dan cancelCount −1", () => {
+    const cancelled = applySessionCancelled(noLeave(5), { packageId: "cp-1", scheduleId: "s-9", deductCredit: true });
     expect(cancelled.packages[0]).toMatchObject({ remainingCredit: 4, cancelCount: 1 });
     const next = applySessionReverted(cancelled, { scheduleId: "s-9" });
     expect(next.packages[0]).toMatchObject({ remainingCredit: 5, cancelCount: 0 });
@@ -182,7 +250,7 @@ describe("paket & invoice", () => {
   test("applyPackageAdded menambah paket dan history 'renewed'", () => {
     const pkg = newClientPackage({ packageId: "pkg-vip", packageName: "Senior (10x)", credits: 10 });
     const rec = applyPackageAdded(newCreditRecord({ clientId: "c-1" }), pkg, "Renewal");
-    expect(summarizeCreditRecord(rec)).toMatchObject({ remainingCredit: 10, totalCredit: 10, leaveQuota: CANCEL_QUOTA });
+    expect(summarizeCreditRecord(rec)).toMatchObject({ remainingCredit: 10, totalCredit: 10, leaveQuota: DEFAULT_LEAVE_CREDITS, leaveRemaining: DEFAULT_LEAVE_CREDITS });
     expect(rec.history[0]).toMatchObject({ action: "renewed", creditChange: 10 });
   });
 
@@ -383,27 +451,59 @@ describe("void & hapus invoice", () => {
     expect(canVoidInvoice({ status: "unpaid" })).toBe(false);
   });
 
-  test("validateVoid: alasan wajib; pilihan kredit wajib bila ada paket", () => {
-    expect(validateVoid({ reason: " ", creditAction: "keep", hasPackage: true })).toMatch(/Alasan/);
-    expect(validateVoid({ reason: "salah input", creditAction: "", hasPackage: true })).toMatch(/kredit/);
-    expect(validateVoid({ reason: "salah input", creditAction: "", hasPackage: false })).toBeNull();
-    expect(validateVoid({ reason: "salah input", creditAction: "keep", hasPackage: true })).toBeNull();
+  test("validateVoid: alasan wajib; ditolak bila ada alasan terblokir (kredit sudah terpakai)", () => {
+    expect(validateVoid({ reason: " " })).toMatch(/Alasan/);
+    expect(validateVoid({ reason: "salah input" })).toBeNull();
+    expect(validateVoid({ reason: "salah input", blockedReason: "Kredit sudah terpakai" })).toBe("Kredit sudah terpakai");
   });
 
-  test("voidSummary mengikuti rantai konversi sampai paket hidup", () => {
+  test("voidSummary: paket yang sudah dikonversi = kredit terpakai, void ditolak", () => {
     const sum = voidSummary(record, inv, sessions, "2026-10-04");
     expect(sum).toMatchObject({ hasPackage: true, livePackageId: "p2", remaining: 5, usedSessions: 2, upcomingSessions: 1, balanceApplied: 100000 });
     expect(sum.chainIds.sort()).toEqual(["p1", "p2"]);
+    expect(sum.voidBlocked).toMatch(/dikonversi/);
   });
 
-  test("applyVoidRevoke: paket hidup jadi voided (sisa 0, ledger −sisa), saldo lebihan kembali; paket lain & sesi tak berubah", () => {
-    const out = applyVoidRevoke(record, inv, { note: "void" });
-    const live = out.packages.find((p) => p.id === "p2");
-    expect(live).toMatchObject({ remainingCredit: 0, status: "voided" });
-    expect(out.balance).toBe(100000);
-    expect(out.history).toHaveLength(1);
-    expect(out.history[0]).toMatchObject({ action: "manual_adjust", creditChange: -5, packageId: "p2" });
-    expect(activePackageOf(out)?.status).not.toBe("voided");
+  test("voidSummary: boleh void hanya bila kredit belum terpakai; sudah terpakai / sudah direfund = ditolak", () => {
+    const fresh = { clientId: "c1", packages: [{ id: "q1", invoiceId: "i1", packageName: "Reguler", totalCredit: 10, remainingCredit: 10, price: 2500000, status: "active" }], history: [] };
+    expect(voidSummary(fresh, inv, [], "").voidBlocked).toBeNull();
+    expect(voidSummary(fresh, { ...inv, type: "assessment" }, [], "")).toMatchObject({ hasPackage: false, voidBlocked: null });
+    const used = { ...fresh, packages: [{ ...fresh.packages[0], remainingCredit: 9 }] };
+    const sum = voidSummary(used, inv, [], "");
+    expect(sum.usedCredits).toBe(1);
+    expect(sum.voidBlocked).toMatch(/sudah terpakai/);
+    expect(voidSummary(fresh, { ...inv, refundAmount: 1000 }, [], "").voidBlocked).toMatch(/sudah direfund/);
+  });
+
+  test("refund: usulan otomatis = sisa kredit × harga per sesi; validasi nominal & alasan; sisa kredit dinolkan", () => {
+    const rec = { clientId: "c1", packages: [{ id: "q1", invoiceId: "i1", packageName: "Reguler", totalCredit: 10, remainingCredit: 6, price: 2500000, status: "active" }], history: [] };
+    const paid = { id: "i1", invoiceNumber: "INV-REG-1", clientId: "c1", type: "package", status: "paid", amount: 2500000 };
+    expect(canRefundInvoice(paid)).toBe(true);
+    expect(canRefundInvoice({ ...paid, refundAmount: 100 })).toBe(false);
+    expect(canRefundInvoice({ ...paid, type: "assessment" })).toBe(false);
+    const plan = buildRefundPlan(rec, paid, [], "");
+    expect(plan).toMatchObject({ ok: true, credits: 6, suggestedAmount: 1500000, maxAmount: 2500000, packageName: "Reguler" });
+    expect(validateRefund({ amount: 0, reason: "x", plan })).toMatch(/lebih dari 0/);
+    expect(validateRefund({ amount: 3000000, reason: "x", plan })).toMatch(/melebihi/);
+    expect(validateRefund({ amount: 1500000, reason: " ", plan })).toMatch(/Alasan/);
+    expect(validateRefund({ amount: 1200000, reason: "pindah kota", plan })).toBeNull();
+    expect(buildRefundPlan({ ...rec, packages: [{ ...rec.packages[0], remainingCredit: 0 }] }, paid, [], "").ok).toBe(false);
+
+    const out = applyRefund(rec, paid, { amount: 1200000, note: "refund" });
+    expect(out.packages[0]).toMatchObject({ remainingCredit: 0, status: "voided", refunded: true });
+    expect(out.history[0]).toMatchObject({ action: "refund", creditChange: -6, packageId: "q1" });
+  });
+
+  test("revenueMetrics: refund tetap di Gross tapi keluar dari Verified; void keluar dari semua angka", () => {
+    const invoices = [
+      { id: "a", status: "paid", amount: 1000000 },
+      { id: "b", status: "paid", amount: 2000000, refundAmount: 500000 },
+      { id: "c", status: "unpaid", amount: 300000 },
+      { id: "d", status: "void", amount: 999999 },
+    ];
+    expect(revenueMetrics(invoices)).toMatchObject({ totalRevenue: 3300000, grossRevenue: 3000000, refundTotal: 500000, verifiedRevenue: 2500000, pendingRevenue: 300000, totalInvoices: 3, paidCount: 2 });
+    expect(netPaidAmount(invoices[1])).toBe(1500000);
+    expect(netPaidAmount(invoices[2])).toBe(0);
   });
 
   test("replacementCandidates & adoptPackageForReplacement: paket lama dipakai ulang tanpa menambah kredit", () => {
@@ -450,17 +550,16 @@ describe("Frozen", () => {
   });
 });
 
-describe("kuota cancel per paket", () => {
-  const pk = (id, packageName, remainingCredit, cancelCount) => ({ id, packageName, remainingCredit, cancelCount });
+describe("credit leave per paket (rincian)", () => {
+  const pk = (id, packageName, remainingCredit, leaveUsed, leaveTotal = 3) => ({ id, packageName, remainingCredit, leaveUsed, leaveTotal });
   test("dirinci per paket aktif, paket sejenis bernomor, paket habis disembunyikan", () => {
-    const out = cancelQuotaByPackage({ packages: [pk("a", "Regular Therapist (10x)", 0, 3), pk("b", "Regular Therapist (10x)", 4, 2), pk("c", "Regular Therapist (5x)", 3, 4), pk("d", "Senior Therapist (10x)", 5, 1)] });
-    expect(out.rows.map((r) => [r.label, r.cancelCount, r.over])).toEqual([
-      ["Regular Therapist #1", 2, false],
-      ["Regular Therapist #2", 4, true],
-      ["Senior Therapist", 1, false],
+    const out = cancelQuotaByPackage({ packages: [pk("a", "Regular Therapist (10x)", 0, 3), pk("b", "Regular Therapist (10x)", 4, 2), pk("c", "Regular Therapist (5x)", 3, 3), pk("d", "Senior Therapist (10x)", 5, 1)] });
+    expect(out.rows.map((r) => [r.label, r.remaining, r.quota])).toEqual([
+      ["Regular Therapist #1", 1, 3],
+      ["Regular Therapist #2", 0, 3],
+      ["Senior Therapist", 2, 3],
     ]);
-    expect(out.total).toBe(7);
-    expect(out.anyOver).toBe(true);
+    expect(out.total).toBe(3);
   });
 
   test("tanpa paket bersisa: tampilkan paket terakhir; tanpa paket: kosong", () => {

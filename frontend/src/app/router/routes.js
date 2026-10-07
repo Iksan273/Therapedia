@@ -18,8 +18,10 @@ const ActiveClientDetail = lazy(() => import("@/features/schedule/pages/ActiveCl
 const CalendarPage = lazy(() => import("@/features/schedule/pages/CalendarPage"));
 const UnreportedSessions = lazy(() => import("@/features/schedule/pages/UnreportedSessions"));
 const Holidays = lazy(() => import("@/features/schedule/pages/Holidays"));
+const TherapistUtilization = lazy(() => import("@/features/schedule/pages/TherapistUtilization"));
 const MySchedule = lazy(() => import("@/features/therapist/pages/MySchedule"));
 const TherapistSummary = lazy(() => import("@/features/therapist/pages/TherapistSummary"));
+const TeamCalendar = lazy(() => import("@/features/therapist/pages/TeamCalendar"));
 const TherapistClientDetail = lazy(() => import("@/features/therapist/pages/TherapistClientDetail"));
 const PrintClientReport = lazy(() => import("@/features/therapist/pages/PrintClientReport"));
 const ClientDashboard = lazy(() => import("@/features/parent/pages/ClientDashboard"));
@@ -99,6 +101,7 @@ export const PROTECTED_GROUPS = [
       { path: "clients/:id", Component: ActiveClientDetail, module: "active_clients" },
       { path: "unreported-reports", Component: UnreportedSessions, module: "unreported_reports" },
       { path: "holidays", Component: Holidays, module: "holidays" },
+      { path: "therapist-utilization", Component: TherapistUtilization, module: "therapist_utilization" },
     ],
   },
   {
@@ -107,6 +110,7 @@ export const PROTECTED_GROUPS = [
     children: [
       { index: true, Component: MySchedule, module: "therapist_module" },
       { path: "summary", Component: TherapistSummary, module: "therapist_module" },
+      { path: "team-calendar", Component: TeamCalendar, module: "therapist_module" },
       { path: "clients/:id", Component: TherapistClientDetail, module: "therapist_module" },
       { path: "parent-assessment/:id", Component: ParentAssessmentView, module: "therapist_module" },
     ],

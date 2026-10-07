@@ -22,15 +22,14 @@ import { useTherapists } from "@/stores/therapistsStore";
 import { fmtDate } from "@/shared/lib/format";
 import { BRANCHES } from "@/domain/branch";
 import { filterSessionsByDate, isReportEmpty } from "@/domain/schedule";
-import { distinctActivePackages, invoicesForParent } from "@/domain/credit";
-import { InvoiceHistoryCard } from "@/features/parent/components/InvoiceHistoryCard";
+import { distinctActivePackages } from "@/domain/credit";
 import { buildSessionReportsHtml, printHtmlDocument } from "@/shared/lib/reportExport";
 
 export default function ClientDashboard() {
   const { auth } = useAuth();
   const { getClient } = useClients();
   const { schedules } = useSchedules();
-  const { getRecordForClient, getInvoicesForClient } = useCredits();
+  const { getRecordForClient } = useCredits();
   const { getTherapist } = useTherapists();
 
   const [selectedReportSession, setSelectedReportSession] = useState(null);
@@ -39,8 +38,6 @@ export default function ClientDashboard() {
   const client = getClient(auth.clientId);
   const record = client ? getRecordForClient(client.id) : null;
   const activePackages = distinctActivePackages(record?.packages, { fallbackLast: true });
-
-  const parentInvoices = useMemo(() => invoicesForParent(client ? getInvoicesForClient(client.id) : [], client?.id), [client, getInvoicesForClient]); // riwayat invoice (semua jenis, tanpa void)
 
   // RULE: Only COMPLETED sessions appear in parent history!
   const completedHistory = useMemo(() => {
@@ -180,9 +177,6 @@ export default function ClientDashboard() {
           )}
         </Card>
       </div>
-
-      {/* RIWAYAT INVOICE anak (semua jenis, tanpa void) */}
-      <InvoiceHistoryCard invoices={parentInvoices} />
 
       {/* RIWAYAT SESI HANYA YANG COMPLETED */}
       <Card className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">

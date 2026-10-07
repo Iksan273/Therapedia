@@ -8,6 +8,7 @@ import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { CODE_VALIDITY_OPTIONS } from "@/domain/assessment";
 import { AssessmentServiceSelect } from "@/shared/components/AssessmentServiceSelect";
+import { Switch } from "@/shared/ui/switch";
 
 export function GenerateCodeDialog({ masterPackages = [], categories, clients, genDialog, handleConfirmGenerateCode, previewCode, setGenDialog }) {
   return (
@@ -63,6 +64,15 @@ export function GenerateCodeDialog({ masterPackages = [], categories, clients, g
               </Select>
             </div>
 
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+              <span>
+                <span className="block text-xs font-bold text-slate-800">Masuk invoice</span>
+                <span className="block text-[11px] text-slate-500">Matikan untuk kode gratis (mis. School Companion): tanpa invoice dan tanpa form bayar.</span>
+              </span>
+              <Switch checked={genDialog.withInvoice !== false} onCheckedChange={(v) => setGenDialog((prev) => ({ ...prev, withInvoice: v }))} data-testid="generate-code-invoice-toggle" />
+            </label>
+
+            {genDialog.withInvoice !== false && (
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Layanan (harga invoice assessment)</Label>
               <AssessmentServiceSelect
@@ -73,6 +83,7 @@ export function GenerateCodeDialog({ masterPackages = [], categories, clients, g
                 testId="generate-code-service"
               />
             </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">Masa Berlaku Kode</Label>

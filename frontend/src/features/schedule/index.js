@@ -4,4 +4,5 @@ export { WeeklyCalendar, CalendarLegend } from "@/features/schedule/components/c
 export { DayAgenda } from "@/features/schedule/components/calendar/DayAgenda";
 export { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
 export { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
+export { DeductCreditChoice } from "@/features/schedule/components/calendar/DeductCreditChoice";
 export { useSessionActions } from "@/features/schedule/hooks/useSessionActions";

@@ -55,7 +55,7 @@ export default function MySchedule() {
     const total = mySchedules.length;
     const filled = mySchedules.filter((s) => s.activitySection || s.noteSection || s.progressNote || s.homeworkSection).length;
     const pending = mySchedules.filter(
-      (s) => !s.activitySection && !s.noteSection && !s.progressNote && !s.homeworkSection && s.status !== "cancelled" && s.status !== "off"
+      (s) => !s.activitySection && !s.noteSection && !s.progressNote && !s.homeworkSection && s.status !== "cancelled"
     ).length;
     return { total, filled, pending };
   }, [mySchedules]);
@@ -64,7 +64,7 @@ export default function MySchedule() {
   const displayedSchedules = useMemo(() => {
     return mySchedules.filter((s) => {
       const hasReport = Boolean(s.activitySection || s.noteSection || s.progressNote || s.homeworkSection);
-      if (reportFilter === "pending") return !hasReport && s.status !== "cancelled" && s.status !== "off";
+      if (reportFilter === "pending") return !hasReport && s.status !== "cancelled";
       if (reportFilter === "filled") return hasReport;
       return true;
     });

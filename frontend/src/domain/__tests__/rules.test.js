@@ -1,5 +1,5 @@
 import { advanceStatus, buildActivationPatch, canReactivateClient, dischargeReasonLabel, isActiveClient, isQuestionnaireCodeFilled, matchesRosterStatus, PIPELINE_STATUSES } from "@/domain/client";
-import { buildRecurringSchedules, canRevertSession, cancelReasonLabel, checkConflicts, restoreSlotOf, restoreStatusOf, filterSessionsByDate, findTherapistClashIds, getOriginSlot } from "@/domain/schedule";
+import { buildRecurringSchedules, canRevertSession, cancelReasonCode, cancelReasonLabel, checkConflicts, restoreSlotOf, restoreStatusOf, filterSessionsByDate, findTherapistClashIds, getOriginSlot } from "@/domain/schedule";
 import { roleHasPermission } from "@/domain/rbac";
 import { keysToCamel, keysToSnake } from "@/shared/lib/caseConverter";
 
@@ -47,18 +47,22 @@ describe("label alasan (string: pilihan cepat atau teks custom)", () => {
   const list = [{ value: "macet", label: "Terjebak Macet" }];
   test("kode pilihan cepat → label dari daftar master", () => {
     expect(cancelReasonLabel("macet", list)).toBe("Terjebak Macet");
-    expect(cancelReasonLabel("sakit")).toBe("Sakit / Kondisi Medis");
+    expect(cancelReasonLabel("S")).toBe("Sick (Sakit / Kondisi Medis)");
+    expect(cancelReasonCode("S")).toBe("S");
     expect(dischargeReasonLabel("graduate")).toBe("Tercapai Target (Graduated)");
   });
   test("teks custom ditampilkan apa adanya; kode lama & kosong tetap aman", () => {
     expect(cancelReasonLabel("Anak sedang ujian sekolah")).toBe("Anak sedang ujian sekolah");
     expect(dischargeReasonLabel("Pindah ke luar negeri")).toBe("Pindah ke luar negeri");
     expect(cancelReasonLabel("lainnya")).toBe("Alasan Lainnya");
+    expect(cancelReasonCode("sakit")).toBe("S"); // nilai lama dipetakan ke CODE
+    expect(cancelReasonCode("Anak ujian")).toBe("Anak ujian");
+    expect(cancelReasonCode(null)).toBe("—");
     expect(dischargeReasonLabel("other")).toBe("Lainnya");
     expect(cancelReasonLabel(null)).toBe("—");
   });
   test("alasan sistem reschedule_dibatalkan tetap berlabel walau tidak ada di daftar master", () => {
-    expect(cancelReasonLabel("reschedule_dibatalkan", list)).toContain("tidak dilanjutkan");
+    expect(cancelReasonLabel("RD", list)).toContain("tidak dilanjutkan");
   });
 });
 

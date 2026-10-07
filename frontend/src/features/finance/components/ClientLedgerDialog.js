@@ -65,7 +65,15 @@ function LedgerTable({ rows, onEditNote }) {
                     !r.historyNote && "—"
                   )}
                 </TableCell>
-                <TableCell data-label="Detail" className="text-slate-600 whitespace-nowrap">{r.detail}</TableCell>
+                <TableCell data-label="Detail" className="text-slate-600 whitespace-nowrap">
+                  {r.detail}
+                  {r.reasonCode && (
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 font-mono text-[11px] font-black text-slate-800" data-testid={`ledger-reason-${r.id}`}>
+                      {r.reasonCode}
+                    </span>
+                  )}
+                  {r.leaveChange < 0 && <span className="ml-1.5 text-[11px] font-bold text-violet-700">credit leave {r.leaveChange}</span>}
+                </TableCell>
                 <TableCell
                   data-label="Per Sesi"
                   className={cn("text-right tabular-nums font-bold whitespace-nowrap", r.amount > 0 && "text-emerald-700", r.amount < 0 && "text-rose-700", !r.amount && "text-slate-400")}

@@ -1,24 +1,29 @@
 import React from "react";
 import { cn } from "@/shared/lib/utils";
-import { CANCEL_QUOTA } from "@/domain/credit";
+import { leaveRemainingOf, leaveTotalOf } from "@/domain/credit";
 
-const OPTIONS = [
-  { value: "deduct", title: "Potong 1 kredit", hint: "Kredit paket berkurang 1 (ledger cancel_penalty / off_penalty)." },
-  { value: "keep", title: "Jangan potong kredit", hint: "Kredit tetap utuh (ledger cancel_excused / off_excused)." },
-];
-
-// Pilihan WAJIB saat membatalkan sesi: potong kredit atau tidak (keputusan admin). Tanpa nilai awal.
-// `pkg` = paket target sesi; kuota cancel 3 per paket hanya penghitung (tidak otomatis memotong).
+// Pilihan WAJIB saat membatalkan sesi (Cancel / Off): potong atau tidak (keputusan admin). Tanpa nilai awal.
+// "Potong" memakai CREDIT LEAVE paket target lebih dulu (kredit sesi utuh); bila credit leave habis, 1 kredit sesi yang dipotong.
+// "Jangan potong" tidak memakai apa pun. `pkg` = paket target sesi.
 export function DeductCreditChoice({ value, onChange, pkg, count = 1, bulk = false, kind = "cancel", testId = "deduct-credit" }) {
   const isOff = kind === "off";
-  const canDeduct = bulk || (Boolean(pkg) && pkg.remainingCredit > 0);
-  const used = pkg?.cancelCount || 0;
-  const after = used + count;
+  const leaveLeft = pkg ? leaveRemainingOf(pkg) : 0;
+  const leaveTotal = pkg ? leaveTotalOf(pkg) : 0;
+  const canDeduct = bulk || (Boolean(pkg) && (leaveLeft > 0 || pkg.remainingCredit > 0));
+  const deductHint = bulk
+    ? "Per sesi: credit leave paket dipakai dulu (kredit sesi utuh); bila habis, 1 kredit sesi dipotong."
+    : pkg && leaveLeft > 0
+    ? `Memakai 1 credit leave paket (sisa ${leaveLeft} → ${Math.max(0, leaveLeft - count)}); kredit sesi tetap utuh.`
+    : "Credit leave paket habis: memotong 1 kredit sesi paket.";
+  const options = [
+    { value: "deduct", title: pkg && leaveLeft > 0 ? "Potong (pakai credit leave)" : "Potong kredit", hint: deductHint },
+    { value: "keep", title: "Jangan potong", hint: "Tidak ada yang berkurang; pembatalan tetap tercatat di riwayat kredit." },
+  ];
   return (
     <div className="space-y-2" data-testid={testId}>
       <p className="font-bold text-slate-700 text-xs">Kredit sesi *</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" role="radiogroup" aria-label="Potong kredit atau tidak">
-        {OPTIONS.map((o) => {
+        {options.map((o) => {
           const disabled = o.value === "deduct" && !canDeduct;
           return (
             <button
@@ -43,18 +48,16 @@ export function DeductCreditChoice({ value, onChange, pkg, count = 1, bulk = fal
       </div>
       {isOff ? (
         <p className="text-[11px] text-slate-600 leading-relaxed" data-testid={`${testId}-quota`}>
-          Sesi Off tidak menambah kuota cancel paket; keputusan potong kredit ada pada admin.
-          {!canDeduct && " Saldo paket 0 / tanpa paket, kredit tidak bisa dipotong."}
+          Pembatalan karena cuti (Finance) memotong jatah cuti, bukan credit leave paket maupun kredit sesi.
         </p>
       ) : bulk ? (
         <p className="text-[11px] text-slate-600 leading-relaxed" data-testid={`${testId}-quota`}>
-          Berlaku untuk semua sesi terpilih. Sesi yang client-nya tanpa paket aktif atau saldo 0 tidak dipotong. Kuota cancel 3x per paket hanya penghitung.
+          Berlaku untuk semua sesi terpilih. Sesi yang client-nya tanpa paket aktif atau tanpa sisa apa pun tidak dipotong.
         </p>
       ) : pkg ? (
-        <p className={cn("text-[11px] leading-relaxed", after > CANCEL_QUOTA ? "text-rose-700 font-semibold" : "text-slate-600")} data-testid={`${testId}-quota`}>
-          Kuota cancel paket {pkg.packageName}: {used}/{CANCEL_QUOTA} terpakai (setelah ini {after}/{CANCEL_QUOTA}
-          {after > CANCEL_QUOTA ? ", melewati kuota" : ""}). Kuota hanya penghitung; keputusan potong kredit ada pada admin.
-          {!canDeduct && " Saldo paket 0, kredit tidak bisa dipotong."}
+        <p className="text-[11px] leading-relaxed text-slate-600" data-testid={`${testId}-quota`}>
+          Credit leave paket {pkg.packageName}: sisa {leaveLeft} dari {leaveTotal}. Sisa kredit sesi: {pkg.remainingCredit}.
+          {!canDeduct && " Credit leave dan kredit sesi habis, tidak ada yang bisa dipotong."}
         </p>
       ) : (
         <p className="text-[11px] text-slate-600" data-testid={`${testId}-quota`}>Client belum punya paket kredit aktif, kredit tidak dapat dipotong.</p>

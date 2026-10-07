@@ -4,6 +4,7 @@ import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useHolidays } from "@/stores/holidaysStore";
+import { useLeaves } from "@/stores/leavesStore";
 import { useAuth } from "@/stores/authStore";
 import { branchDeleteImpact } from "@/domain/branch";
 
@@ -17,6 +18,7 @@ export function useBranchDeleteActions() {
   const { credits, deleteInvoices, purgeClientCredit } = useCredits();
   const { therapists, removeTherapistsByBranch } = useTherapists();
   const { holidays, removeHoliday } = useHolidays();
+  const { leaves, deleteLeaves } = useLeaves();
   const { staffUsers, removeStaffUser } = useAuth();
 
   const nonMasterStaff = staffUsers.filter((u) => u.role !== "master");
@@ -34,6 +36,8 @@ export function useBranchDeleteActions() {
     const impact = impactOf(branch.id);
     const sessionIds = schedules.filter((s) => s.branchId === branch.id).map((s) => s.id);
     if (sessionIds.length) deleteSchedules(sessionIds);
+    const leaveIds = leaves.filter((l) => l.branchId === branch.id).map((l) => l.id);
+    if (leaveIds.length) deleteLeaves(leaveIds);
     clients.filter((c) => c.branchId === branch.id).forEach((c) => {
       purgeClientCredit(c.id);
       deleteClient(c.id);

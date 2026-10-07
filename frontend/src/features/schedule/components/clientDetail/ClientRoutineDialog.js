@@ -15,6 +15,8 @@ import { useCredits } from "@/stores/creditsStore";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { TIME_OPTIONS, WEEKDAY_OPTIONS, defaultRoutineWeeks, deriveRecurringRoutines, planRoutineChange, routineKeyOfRow, routineSessionsToRemove, seriesPeriod, timeToMin } from "@/domain/schedule";
 import { holidayDateSet } from "@/domain/holiday";
+import { clientLeaveDateSet } from "@/domain/leave";
+import { useLeaves } from "@/stores/leavesStore";
 import { fmtDate } from "@/shared/lib/format";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
@@ -32,6 +34,7 @@ export function ClientRoutineDialog({ clientId, open, onOpenChange }) {
   const { schedules } = useSchedules();
   const { therapists } = useTherapists();
   const { holidays } = useHolidays();
+  const { leaves } = useLeaves();
   const { auth } = useAuth();
   const actions = useSessionActions();
   const { getRecordForClient } = useCredits();
@@ -119,11 +122,12 @@ export function ClientRoutineDialog({ clientId, open, onOpenChange }) {
         rows: rows.filter((r) => r.removed || rowValid(r)),
         from,
         weeks: Math.max(1, Number(weeks) || 1),
-        holidayDates: holidayDateSet(holidays, client?.branchId),
+        // pola baru melewati hari libur dan masa cuti client (seperti AddScheduleModal)
+        holidayDates: new Set([...holidayDateSet(holidays, client?.branchId), ...clientLeaveDateSet(leaves, clientId)]),
         template,
         therapists,
       }),
-    [schedules, rows, from, weeks, holidays, client, template, therapists]
+    [schedules, rows, from, weeks, holidays, leaves, clientId, client, template, therapists]
   );
   const canSave = (plan.removeIds.length > 0 || plan.createList.length > 0) && !hasInvalid && plan.conflicts.length === 0 && from >= today && Number(weeks) >= 1;
 

@@ -40,6 +40,11 @@ export function PackagesTab({ masterPackages, setNewPkgOpen, onEditPackage }) {
                     </Button>
                   </div>
                 </div>
+                <div className="flex flex-wrap gap-1.5 text-[11px] font-bold" data-testid={`package-flags-${pkg.id}`}>
+                  <span className="px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200">Jatah cuti {pkg.leaveQuota || 0} hari</span>
+                  {pkg.isSatuan && <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">Satuan</span>}
+                  {pkg.isAssessment && <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">Asesmen</span>}
+                </div>
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-400">Harga Standar:</span>
                   <span className="text-base font-extrabold text-slate-900 tabular-nums">

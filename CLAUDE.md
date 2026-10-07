@@ -14,7 +14,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 | `docs/guide/` | Panduan developer: arsitektur, alur bisnis, data model, resep, integrasi API |
 | `docs/adr/` | Architecture Decision Records |
 | `implementation_detail.md` | Rencana backend: API per modul + tabel yang dipakai tiap API (draf review) |
-| `schema.md` | Desain database v2: 34 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **log invoice** (tanpa audit log) |
+| `schema.md` | Desain database v2: 35 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **log invoice** (tanpa audit log) |
 | `.claude/skills/` | Skill project: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal: referensi scope fitur |
 | `backend/`, `tests/`, `.emergent/`, `memory/`, `test_reports/` | **Legacy** platform Emergent. Abaikan |
@@ -34,7 +34,7 @@ Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk por
 - **7 role**: `master`, `manager`, `admin_inquiry`, `admin_schedule`, `finance`, `therapist`, `client` (ortu) + role kustom (RBAC per modul).
 - **Pipeline client**: `inquiry → service_selected → assessment_scheduled → assessment_done → admitted | done_consult | done_assessment | discontinued`; `admitted → discharged`. Transisi otomatis hanya maju; perubahan manual boleh ke tahap mana pun. Kode client `AE-00001` (grup huruf pertama nama + 5 digit; juga kode login ortu).
 - **Sesi**: `scheduled → completed | cancelled | rescheduled | reschedule_pending`. Therapy completed −1 kredit. Cancel: admin memilih potong kredit atau tidak; kuota cancel 3 per **paket** (penghitung). Revert hanya 1x. Kredit 0 = **Frozen** (turunan, tidak disimpan).
-- **Finance**: invoice → ortu upload bukti → Finance verifikasi → paket kredit baru. Konversi paket (Senior → Regular, otomatis/manual) → lebihan jadi saldo pemotong invoice berikutnya; log tiap invoice ada di invoice itu sendiri.
+- **Finance**: invoice → ortu upload bukti → Finance verifikasi → paket kredit baru. Void hanya untuk invoice yang kreditnya belum dipakai (kredit dipertahankan); sisa kredit yang sudah berjalan dikembalikan lewat **Refund** (Verified Revenue = lunas − refund, Gross tetap memuat refund). Ada DUA jatah berbeda: **cuti 30 hari/tahun** per client (hanya Finance; sisa hangus lewat Reset Cuti Tahunan; hari cuti = sesi pertama–terakhir di rentang; tidak memotong kredit) dan **credit leave per paket** (master `leaveQuota`; saat Cancel/Off pilihan potong memakai credit leave dulu, habis baru kredit sesi; menggantikan kuota cancel 3x). Konversi paket (Senior → Regular, otomatis/manual) → lebihan jadi saldo pemotong invoice berikutnya; log tiap invoice ada di invoice itu sendiri.
 - **Jejak perubahan**: **tidak ada audit log** (ADR 0004). Semua modul memakai `created_by/updated_by`; log khusus hanya `credit_ledger`, `client_status_histories`, **`invoice_logs`** (log milik invoice), `package_conversions`.
 - **Akses & hapus**: punya akses modul = boleh semua aksi kecuali hapus; tombol hapus hanya untuk role `can_delete`. **Hapus = permanen dengan cascade** (ADR 0005): hapus client/invoice/cabang menghapus semua data terkait; master ber-FK yang sudah dipakai tidak bisa dihapus. Keputusan klien lengkap + status implementasi: `docs/guide/12-keputusan-klien.md`.
 

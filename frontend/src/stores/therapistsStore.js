@@ -6,6 +6,8 @@ const TherapistsContext = createContext(null);
 
 function therapistsReducer(state, action) {
   switch (action.type) {
+    case "UPDATE_MAX_SESSIONS": // maksimal sesi per bulan (domain/workHours); tidak memengaruhi jadwal
+      return state.map((t) => (t.id === action.id ? { ...t, maxSessionsPerMonth: action.maxSessionsPerMonth } : t));
     case "DELETE_BY_BRANCH": // hanya dipakai hapus cabang (ADR 0005)
       return state.filter((t) => t.branchId !== action.branchId);
     default:
@@ -16,10 +18,11 @@ function therapistsReducer(state, action) {
 export const TherapistsProvider = ({ children }) => {
   const [therapists, dispatch] = usePersistentReducer("therapists", therapistsReducer, () => getSeedLoader().loadTherapistsSeed());
   const getTherapist = (id) => therapists.find((t) => t.id === id);
+  const updateTherapistMaxSessions = (id, maxSessionsPerMonth) => dispatch({ type: "UPDATE_MAX_SESSIONS", id, maxSessionsPerMonth });
   const removeTherapistsByBranch = (branchId) => dispatch({ type: "DELETE_BY_BRANCH", branchId });
 
   return (
-    <TherapistsContext.Provider value={{ therapists, getTherapist, removeTherapistsByBranch }}>
+    <TherapistsContext.Provider value={{ therapists, getTherapist, updateTherapistMaxSessions, removeTherapistsByBranch }}>
       {children}
     </TherapistsContext.Provider>
   );

@@ -1,6 +1,7 @@
 import React from "react";
 import { format } from "date-fns";
-import { CalendarPlus, Plus, CalendarDays, FileText, CornerUpRight, Hourglass } from "lucide-react";
+import { CalendarPlus, Plus, CalendarDays, CalendarOff, FileText, CornerUpRight, Hourglass } from "lucide-react";
+import { isLeaveOff } from "@/domain/leave";
 import { Button } from "@/shared/ui/button";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { EmptyState } from "@/shared/components/EmptyState";
@@ -11,7 +12,6 @@ const STATUS_BAR = {
   scheduled: "bg-sky-500",
   completed: "bg-emerald-500",
   cancelled: "bg-rose-500",
-  off: "bg-violet-500",
   rescheduled: "bg-amber-500",
   reschedule_pending: "bg-orange-400",
 };
@@ -89,6 +89,11 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
                         <CornerUpRight className="w-3 h-3" /> Dipindah dari {fmtDate(s.rescheduledFrom.date)} {s.rescheduledFrom.startTime}
                       </span>
                     )}
+                    {isLeaveOff(s) && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-bold text-violet-800" data-testid={`day-agenda-leave-${s.id}`}>
+                        <CalendarOff className="w-3 h-3" /> Cuti
+                      </span>
+                    )}
                     {s.status === "reschedule_pending" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 border border-dashed border-orange-300 px-2 py-0.5 text-[11px] font-bold text-orange-800">
                         <Hourglass className="w-3 h-3" /> Menunggu jadwal pengganti
@@ -103,7 +108,7 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
                         <FileText className="w-3 h-3 text-emerald-600" /> Laporan Terisi
                       </span>
-                    ) : (s.status !== "cancelled" && s.status !== "off") ? (
+                    ) : s.status !== "cancelled" ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                         <FileText className="w-3 h-3 text-slate-400" /> Belum Ada Laporan
                       </span>

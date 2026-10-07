@@ -74,6 +74,7 @@ export default function AssessmentMasterData() {
     generatedCode: "",
     validity: "none",
     servicePackageId: "",
+    withInvoice: true,
   });
 
   // Calculate active category
@@ -236,13 +237,15 @@ export default function AssessmentMasterData() {
     }
 
     const servicePackage = getMasterPackages().find((m) => m.id === genDialog.servicePackageId);
-    if (!servicePackage) {
+    const withInvoice = genDialog.withInvoice !== false;
+    if (withInvoice && !servicePackage) {
       toast.error("Pilih layanan dulu: harganya dipakai untuk invoice assessment.");
       return;
     }
     const option = CODE_VALIDITY_OPTIONS.find((o) => o.value === genDialog.validity);
     codeActions.issueCode(targetClient, targetCat, {
       servicePackage,
+      withInvoice,
       code: genDialog.generatedCode,
       validityDays: option?.days ?? null,
       targetStatus: "service_selected",

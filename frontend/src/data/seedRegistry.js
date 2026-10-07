@@ -2,14 +2,14 @@ import { hasPersisted, removePersisted } from "@/services/storage/localStore";
 
 // Seed demo (~270 KB) hanya diunduh bila ada data yang belum tersimpan di localStorage.
 // Pengguna yang sudah punya data tidak perlu memuat chunk seed sama sekali.
-const SEEDED_KEYS = ["clients", "schedules", "credits", "therapists", "assessment_categories"];
+const SEEDED_KEYS = ["clients", "schedules", "credits", "therapists", "assessment_categories", "leaves"];
 
 // Key lama yang sudah tidak dipakai (fitur audit log dihapus): dibersihkan saat versi seed berubah.
 const LEGACY_KEYS = ["audit_logs"];
 
 // Naikkan nilai ini setiap kali data seed berubah. Browser yang menyimpan seed versi lama akan
 // otomatis memakai seed baru (hanya data domain; akun, RBAC, dan master layanan/kuadran tidak disentuh).
-const SEED_VERSION = "demo-2026-10-v10";
+const SEED_VERSION = "demo-2026-10-v16";
 const VERSION_KEY = "therapedia_seed_version";
 
 let loader = null;
