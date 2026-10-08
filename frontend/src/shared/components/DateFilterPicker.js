@@ -65,6 +65,13 @@ export default function DateFilterPicker({
     onChange(eventLike);
   };
 
+  // Batas tanggal (yyyy-MM-dd): hari di luar rentang nonaktif di kalender dan input ketikan di luar rentang diabaikan
+  const toDate = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? new Date(`${iso}T00:00:00`) : null);
+  const minD = toDate(minDate);
+  const maxD = toDate(maxDate);
+  const outOfRange = (iso) => Boolean((minDate && iso < minDate) || (maxDate && iso > maxDate));
+  const disabledDays = [minD && { before: minD }, maxD && { after: maxD }].filter(Boolean);
+
   // Handle direct text input
   const handleTextChange = (e) => {
     const raw = e.target.value;
@@ -76,7 +83,7 @@ export default function DateFilterPicker({
     }
 
     const iso = parseDdMmYyyy(raw);
-    if (iso) {
+    if (iso && !outOfRange(iso)) {
       emitChange(iso);
     }
   };
@@ -175,6 +182,7 @@ export default function DateFilterPicker({
               mode="single"
               selected={selectedDateObj}
               onSelect={handleCalendarSelect}
+              disabled={disabledDays.length ? disabledDays : undefined}
               initialFocus
               className="p-3"
             />

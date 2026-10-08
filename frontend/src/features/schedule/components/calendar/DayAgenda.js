@@ -1,3 +1,4 @@
+import { SESSION_COLORS, sessionColorKey } from "@/shared/constants/sessionColors";
 import React from "react";
 import { format } from "date-fns";
 import { CalendarPlus, Plus, CalendarDays, CalendarOff, FileText, CornerUpRight, Hourglass } from "lucide-react";
@@ -8,13 +9,7 @@ import { EmptyState } from "@/shared/components/EmptyState";
 import { fmtDate } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 
-const STATUS_BAR = {
-  scheduled: "bg-sky-500",
-  completed: "bg-emerald-500",
-  cancelled: "bg-rose-500",
-  rescheduled: "bg-amber-500",
-  reschedule_pending: "bg-orange-400",
-};
+const barOf = (s) => SESSION_COLORS[sessionColorKey(s)].bar;
 
 // Single-day agenda list — mobile-friendly alternative to the weekly grid.
 export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapistName, onSessionClick, onAddClick }) => {
@@ -73,7 +68,7 @@ export const DayAgenda = ({ day, date, schedules = [], getClientName, getTherapi
                   <p className="text-xs font-bold text-slate-900 tabular-nums">{s.startTime}</p>
                   <p className="text-[11px] font-medium text-slate-400 tabular-nums">{s.endTime}</p>
                 </div>
-                <div className={cn("w-1.5 rounded-full self-stretch shrink-0", STATUS_BAR[s.status] || STATUS_BAR.scheduled)} />
+                <div className={cn("w-1.5 rounded-full self-stretch shrink-0", barOf(s))} />
                 <div className="flex-1 min-w-0">
                   <p className={cn("text-sm font-bold text-slate-900 group-hover:text-sky-700 transition-colors truncate", (s.status === "cancelled" || s.status === "off") && "line-through text-slate-400")}>
                     {getClientName(s.clientId)}

@@ -466,7 +466,7 @@ Catatan:
 - **Frozen** tidak disimpan sebagai status; diturunkan dari `credit_balance = 0` (sesuai frontend).
 - Search nama memakai prefix (`LIKE 'abc%'`). Jika butuh search di tengah kata, tambahkan `FULLTEXT(child_name, parent_name)` (ngram parser).
 - Login ortu: `client_code` **+ tanggal lahir anak** (`date_of_birth`) sebagai verifikasi kedua (tanpa PIN). Respons gagal selalu generik (tidak membocorkan mana yang salah). `client_code` **berurutan** (AE-00001, AE-00002, …) sehingga mudah ditebak: tanggal lahir adalah satu-satunya faktor kedua, jadi wajib throttle per IP & per kode + lockout sementara (Laravel RateLimiter). Client yang sudah dihapus tidak bisa login (barisnya sudah tidak ada). Kode tidak diberikan ulang/diganti sendiri oleh ortu: admin yang menginformasikan kode (D5).
-- **Status**: perpindahan otomatis (assessment dijadwalkan, kuesioner terisi, sesi asesmen completed) hanya maju; perubahan **manual** (outcome, discharge, reaktivasi) boleh ke tahap mana pun, dicatat di `client_status_histories` (lihat §6.6). Client discharge/discontinued dapat diaktifkan kembali (`admitted`) dari list maupun detail.
+- **Status**: perpindahan otomatis (assessment dijadwalkan, sesi asesmen completed; **kuesioner terisi TIDAK mengubah status**) hanya maju; perubahan **manual** (outcome, discharge, reaktivasi) boleh ke tahap mana pun, dicatat di `client_status_histories` (lihat §6.6). Client discharge/discontinued dapat diaktifkan kembali (`admitted`) dari list maupun detail.
 - Pencarian client: awal nama anak, nama ortu, atau kode client (prefix).
 - Nama anak hanya satu kolom `child_name` (nama lengkap). Layanan pendamping sekolah = layanan `school_companion` di `client_services`, bukan flag di `clients`.
 
@@ -1037,7 +1037,7 @@ Schema::create('credit_ledger', function (Blueprint $table) {
     $table->foreignId('client_package_id')->nullable()->constrained()->cascadeOnDelete();   // paket terhapus (hapus client) = ledger-nya ikut
     $table->foreignId('schedule_id')->nullable()->constrained()->nullOnDelete();
     $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'cancel_leave', 'off_excused', 'off_penalty', 'reversal', 'manual_adjust', 'converted_out', 'converted_in', 'refund']);   // converted_out = −sisa paket lama, converted_in = +sesi paket baru (berbagi conversion_id)
+    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'cancel_leave', 'off_excused', 'off_penalty', 'reversal', 'manual_adjust', 'converted_out', 'converted_in', 'refund', 'discharge']);   // converted_out = −sisa paket lama, converted_in = +sesi paket baru (berbagi conversion_id); discharge = −sisa sesi yang hangus saat client di-discharge (satu baris per paket aktif; paket jadi depleted)
     $table->foreignId('conversion_id')->nullable()->constrained('package_conversions')->cascadeOnDelete();
     $table->smallInteger('credit_change');            // +N / -1 / 0
     $table->smallInteger('leave_change')->default(0); // perubahan CREDIT LEAVE paket: −1 pada `cancel_leave` (kredit sesi utuh), +1 pada reversal-nya
@@ -1313,11 +1313,12 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 2. `status = submitted` → 409 (kuesioner hanya boleh diisi **sekali**).
 3. `expires_at IS NOT NULL AND expires_at < NOW()` → 410 kedaluwarsa (dicek saat dibuka; tanpa job harian).
 4. Ada invoice `assessment` milik kode ini (atau invoice manual tanpa kode) yang belum `paid`/`void` **dan belum ada bukti transfer** → 403 `proof_required` (respons memuat id & nomor invoice). Ortu mengunggah bukti lewat `POST /invoices/{id}/proof` (publik, dikunci oleh kode kuesioner), lalu membuka ulang kuesioner; invoice tetap menunggu verifikasi Finance, tidak memblokir pengisian.
-5. Submit: `consent_at` wajib (checkbox); satu transaksi: insert `assessment_responses` (UNIQUE `access_code_id`) + `assessment_answers` + `assessment_quadrant_scores` (dihitung server, tanpa klasifikasi otomatis), kode → `submitted`, `submitted_at`; status client maju otomatis bila perlu (`trigger = questionnaire_submitted`, hanya maju). Tanpa log khusus (jejak = `assessment_responses`).
+5. Submit: `consent_at` wajib (checkbox); satu transaksi: insert `assessment_responses` (UNIQUE `access_code_id`) + `assessment_answers` + `assessment_quadrant_scores` (dihitung server, tanpa klasifikasi otomatis), kode → `submitted`, `submitted_at`; status client **tidak berubah** (tetap `assessment_scheduled` sampai sesi asesmen selesai atau diubah manual). Tanpa log khusus (jejak = `assessment_responses`).
 
 ### 6.6 Transisi status client (`POST /clients/{id}/transition`)
 - **Otomatis** (efek aksi lain: jadwal asesmen, kuesioner terisi, sesi asesmen completed) hanya **maju** (`advanceStatus` di `frontend/src/domain/client.js`).
 - **Manual**: admin boleh mengubah ke **tahap pipeline mana pun**, maju maupun mundur, termasuk koreksi outcome yang salah (cari client di pipeline lalu ubah status, mis. kembali ke `admitted`) dan reaktivasi `discharged` / `discontinued` → `admitted` (dari list maupun detail client).
+- Discharge (`trigger = discharge`) juga: hapus permanen semua `schedules` aktif client (`scheduled`/`rescheduled`/`reschedule_pending`, termasuk seri recurring) dan hanguskan sisa sesi (ledger `discharge`, −sisa per paket aktif, paket `depleted`), satu transaksi.
 - Efek: set `status`, `status_changed_at`, `final_outcome` (sesuai outcome), `date_of_join` saat admit pertama, `date_of_discharge` saat discharged, `date_of_discontinue` saat discontinued, `updated_by`. Selalu insert `client_status_histories` (`trigger` = `manual` / `outcome` / `discharge` / `revert`). Admit tidak membuat paket (saldo 0 = frozen sampai Finance mengaktifkan paket).
 
 ### 6.7 Hapus data (permanen, semua modul) — ADR 0005

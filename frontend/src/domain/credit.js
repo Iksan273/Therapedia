@@ -543,6 +543,25 @@ export function applyPackageConversion(record, { sourcePackageId, target, sessio
   };
 }
 
+// ---- Discharge: sisa sesi hangus ----
+// Client di-discharge → sisa sesi semua paket yang masih berjalan HANGUS dan tercatat di ledger sebagai `discharge` (−sisa, satu baris
+// per paket, catatan menyebut jumlah & nama paket itu sendiri) sehingga log kredit & saldo rupiah menampilkannya seperti sesi terpakai. Paket jadi `depleted` + `forfeited`. Tidak ada
+// refund (refund lewat Finance). Idempoten: paket tanpa sisa dilewati.
+export function applyDischargeForfeit(record, { reason = "", note = "", date, by = null } = {}) {
+  const live = (record?.packages || []).filter((p) => p.status === "active" && (p.remainingCredit || 0) > 0);
+  if (live.length === 0) return record;
+  const when = date || todayStr();
+  const ids = new Set(live.map((p) => p.id));
+  return {
+    ...record,
+    packages: record.packages.map((p) => (ids.has(p.id) ? { ...p, remainingCredit: 0, status: "depleted", forfeited: true } : p)),
+    history: [
+      ...(record.history || []),
+      ...live.map((p) => historyEntry({ by, date: when, packageId: p.id, packageName: p.packageName, action: "discharge", creditChange: -p.remainingCredit, note: note || `Discharge${reason ? `: ${reason}` : ""}. ${p.remainingCredit} sisa sesi ${packageBaseName(p.packageName)} hangus` })),
+    ],
+  };
+}
+
 // ---- Saldo lebihan konversi → pengurang invoice paket berikutnya ----
 // Saldo hanya memotong sampai nominal invoice (tidak pernah membuat invoice negatif); sisanya tetap di saldo.
 export function applyBalanceToAmount(balance, gross) {

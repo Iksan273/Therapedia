@@ -44,6 +44,8 @@ Semua list, tabel, dan feed yang bisa memanjang memakai **pagination 10 data per
 - **Cakupan**: hanya area aplikasi (`AppLayout`). Class `dark` dipasang di `<html>` saat layout tampil dan dilepas saat keluar, jadi landing, `/assessment`, `/roles`, dan halaman cetak tetap terang.
 - **Cara kerja**: token shadcn (`--background`, `--card`, …) punya nilai gelap di `index.css` (`.dark`). Class warna Tailwind yang dipakai di kode (`bg-white`, `*-slate-*`, warna `-50…-300` untuk latar, `-600…-950` untuk teks, border/ring) dipetakan otomatis oleh `scripts/gen-dark-css.cjs` ke `src/styles/dark-utilities.css`. Skrip jalan otomatis sebelum `npm run dev` dan `npm run build`; jalankan `npm run gen:dark` bila perlu cek manual.
 - **Tidak tercakup otomatis**: hex arbitrary (`bg-[#…]`), inline style, dan varian arbitrary (`[&_tr]:…`). Untuk itu tambahkan varian `dark:` pada class atau aturan `.dark …` di `index.css` (contoh: kartu tabel mobile di `shared/ui/table.jsx`, tooltip/grid recharts).
+- **Kalender**: sesi asesmen berwarna fuchsia (scheduled & completed) di `WeeklyCalendar`, `DayAgenda`, `TeamDayGrid` + legend; cancelled/rescheduled tetap mengikuti status.
+- **Date picker**: semua input tanggal memakai `DateFilterPicker` (rutinitas, hari libur, cuti, filter; `minDate`/`maxDate` menonaktifkan hari di luar rentang) di atas `shared/ui/calendar.jsx`: dropdown bulan & tahun (lompat tahun langsung; rentang −25/+10 tahun dari sekarang atau tahun terpilih).
 - **Menambah komponen**: pakai class warna Tailwind biasa atau token; hindari warna hex di inline style.
 
 ## Struktur halaman

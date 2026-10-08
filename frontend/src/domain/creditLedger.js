@@ -27,6 +27,7 @@ const ACTION_DETAIL = {
   converted_out: "Konversi keluar",
   converted_in: "Konversi masuk",
   refund: "Refund (sisa kredit dikembalikan)",
+  discharge: "Discharge (sisa sesi hangus)",
 };
 
 // Harga per sesi sebuah paket client. Paket tanpa snapshot harga memakai harga master (bila ada), selain itu null.
@@ -62,6 +63,7 @@ function valueOfEntry(entry, ctx) {
       return v == null ? null : -v;
     }
     case "manual_adjust":
+    case "discharge": // sisa sesi hangus dinilai seperti sesi terpakai (harga per sesi × sisa)
     case "converted_out":
       return unit == null ? null : Math.round(unit * (entry.creditChange || 0));
     default:
@@ -98,6 +100,7 @@ export function buildClientMoneyLedger(record, schedules = [], { masterPackages 
     } else if (h.action === "converted_in" || h.action === "converted_out") note = "Konversi paket";
     else if (h.action === "reversal") note = h.note || ""; // alasan revert (jejak koreksi dari jadwal)
     else if (CANCEL_ACTIONS.includes(h.action)) note = (s?.status === "cancelled" && cancelNoteOf(s)) || bookingNoteOf(s) || "";
+    else if (h.action === "discharge") note = h.note || "";
     else if (s) note = bookingNoteOf(s) || "";
     else note = h.note || "";
 

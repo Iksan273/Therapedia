@@ -6,6 +6,9 @@ import { StatusBadge } from "@/shared/components/StatusBadge";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { EmptyState } from "@/shared/components/EmptyState";
 import { fmtCurrency, fmtDate } from "@/shared/lib/format";
+import { LogExportButtons } from "@/shared/components/LogExportButtons";
+import { STATUS_META } from "@/domain/status";
+import { BRANCHES } from "@/domain/branch";
 import { cn } from "@/shared/lib/utils";
 
 const money = (v) => (v == null ? "—" : fmtCurrency(v));
@@ -91,6 +94,48 @@ function LedgerTable({ rows, onEditNote }) {
   );
 }
 
+const signed = (v) => (v == null ? "—" : v === 0 ? "-" : `${v > 0 ? "+" : "−"}${fmtCurrency(Math.abs(v))}`);
+
+// Spesifikasi unduhan (PDF/Excel) untuk satu log paket; teks sudah diformat.
+function buildLedgerExportSpec(client, packageLabel, rows) {
+  return {
+    title: "Log Kredit & Saldo",
+    meta: [
+      { label: "Nama Anak", value: client?.clientName },
+      { label: "Kode Client", value: client?.clientCode },
+      { label: "Cabang", value: BRANCHES.find((b) => b.id === client?.branchId)?.name },
+      { label: "Paket", value: packageLabel },
+      { label: "Saldo Saat Ini", value: money(rows[rows.length - 1]?.balance) },
+    ],
+    columns: [
+      { key: "by", label: "Oleh", width: "80px" },
+      { key: "date", label: "Tanggal", width: "78px" },
+      { key: "time", label: "Jam", width: "80px" },
+      { key: "therapist", label: "Terapis", width: "110px" },
+      { key: "status", label: "Status", width: "80px" },
+      { key: "detail", label: "Detail" },
+      { key: "bookingNote", label: "Catatan Penjadwalan" },
+      { key: "note", label: "Catatan" },
+      { key: "change", label: "Kredit", align: "right", width: "50px" },
+      { key: "amount", label: "Per Sesi", align: "right", width: "90px" },
+      { key: "balance", label: "Saldo", align: "right", width: "100px" },
+    ],
+    rows: rows.map((r) => ({
+      by: r.by,
+      date: fmtDate(r.date),
+      time: r.time,
+      therapist: r.therapistName,
+      status: r.status ? STATUS_META[r.status]?.label || r.status : "",
+      detail: [r.detail, r.reasonCode, r.leaveChange < 0 ? `credit leave ${r.leaveChange}` : ""].filter(Boolean).join(" • "),
+      bookingNote: r.note,
+      note: r.historyNote,
+      change: r.creditChange ? `${r.creditChange > 0 ? "+" : ""}${r.creditChange}` : "0",
+      amount: signed(r.amount),
+      balance: money(r.balance),
+    })),
+  };
+}
+
 // Laporan log kredit + uang satu client (turunan dari ledger kredit; tidak ada data baru yang disimpan).
 export function ClientLedgerDialog({ client, packageLabel, rows, open, onOpenChange, onEditNote }) {
   return (
@@ -104,6 +149,9 @@ export function ClientLedgerDialog({ client, packageLabel, rows, open, onOpenCha
             {client?.clientCode}. Log ini khusus satu paket. Tiap sesi yang memotong kredit mengurangi saldo sebesar harga per sesi paketnya (harga paket ÷ jumlah sesi); top up / renewal menambah saldo sebesar harga paket. Kolom Oleh = staf yang memicu mutasi.
           </DialogDescription>
         </DialogHeader>
+        {open && rows.length > 0 && (
+          <LogExportButtons spec={buildLedgerExportSpec(client, packageLabel, rows)} filename={`log-kredit-${client?.clientCode}-${packageLabel}`} testIdPrefix="ledger-export" />
+        )}
         {open && <LedgerTable key={`${client?.id}:${packageLabel}`} rows={rows} onEditNote={onEditNote} />}
       </DialogContent>
     </Dialog>

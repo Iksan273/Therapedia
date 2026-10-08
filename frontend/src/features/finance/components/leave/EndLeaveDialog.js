@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { toast } from "sonner";
 import { Ban, CalendarCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
@@ -61,15 +62,7 @@ export function EndLeaveDialog({ leave, mode, open, onOpenChange }) {
           {!isVoid && (
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Tanggal anak masuk kembali *</Label>
-              <Input
-                type="date"
-                min={leave.startDate}
-                max={lastDay || leave.endDate}
-                className="border-slate-200 bg-slate-50 text-xs font-semibold"
-                value={returnDate}
-                onChange={(e) => setReturnDate(e.target.value)}
-                data-testid="leave-return-date"
-              />
+              <DateFilterPicker allowClear={false} minDate={leave.startDate} maxDate={lastDay || leave.endDate} className="w-full" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} data-testid="leave-return-date" />
             </div>
           )}
 

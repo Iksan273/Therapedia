@@ -56,7 +56,7 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                                 (log.action === "off_excused" || log.action === "off_penalty") && "bg-violet-50 text-violet-800 border-violet-200",
                                 log.action === "reversal" && "bg-violet-50 text-violet-800 border-violet-200",
                                 (log.action === "converted_out" || log.action === "converted_in") && "bg-amber-50 text-amber-800 border-amber-200",
-                                log.action === "manual_adjust" && "bg-rose-50 text-rose-800 border-rose-200"
+                                (log.action === "manual_adjust" || log.action === "discharge") && "bg-rose-50 text-rose-800 border-rose-200"
                               )}
                             >
                               {log.action === "renewed" && "Top Up / Renewal"}
@@ -69,6 +69,7 @@ export function HistoryTab({ allHistoryLogs, historyPg }) {
                               {log.action === "reversal" && "Dibatalkan (Reversal)"}
                               {log.action === "converted_out" && "Konversi Keluar"}
                               {log.action === "converted_in" && "Konversi Masuk"}
+                              {log.action === "discharge" && "Discharge (Sisa Sesi Hangus)"}
                               {log.action === "manual_adjust" && "Koreksi / Pencabutan Kredit (Void)"}
                             </span>
                           </TableCell>

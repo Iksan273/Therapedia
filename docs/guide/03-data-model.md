@@ -38,7 +38,7 @@ Dibuat oleh `makeInquiryClient(form)` di `domain/client.js`.
 | `serviceTypes` | string[] | layanan terpilih (multi). **Pakai `getClientServiceIds(client)`** |
 | `serviceType` | string | legacy single = `serviceTypes[0]` |
 | `assessmentCodes` | `{ code, categoryId, name/categoryName, createdAt, issuedAt, expiresAt?, status? }[]` | kode kuesioner `{typeCode kategori}-{6 acak}` (`buildQuestionnaireCode`, `domain/assessment.js`; kode seed lama `ASM-xxxx` tetap valid). `expiresAt` **opsional** (null = tanpa masa berlaku), dicek saat kode dibuka |
-| `assessmentAnswers` | `{ categoryId, categoryName, submittedAt?, consentAt?, answers: Answer[] }[]` | satu entry per pengisian. **Hanya sekali isi** per kode (tanpa submit ulang); `consentAt` = waktu persetujuan |
+| `assessmentAnswers` | `{ code, categoryId, categoryName, submittedAt?, consentAt?, answers: Answer[] }[]` | satu entry per pengisian. **Hanya sekali isi** per kode (tanpa submit ulang); `consentAt` = waktu persetujuan |
 | `Answer` | `{ questionId, itemNo, quadrant, domain, question, answer, score }` | `score` diambil dari angka di awal jawaban |
 | `intakeNote` | string \| null | catatan saat intake (input di New Intake / Edit Intake; tampil di Client Detail, portal terapis, dan laporan cetak) |
 | `gdriveClientLink` | string \| null | |
@@ -113,7 +113,7 @@ credits = {
     balance?: number,   // SALDO LEBIHAN (rupiah) hasil konversi paket; memotong invoice paket berikutnya (default 0)
     packages: [{ id /*cp-...*/, packageId /*pkg-...*/, packageName, price /*snapshot harga*/, totalCredit, remainingCredit, cancelCount /*kuota cancel PER PAKET*/, status /*active|depleted|converted*/,
                  invoiceId? /*invoice asal (verifikasi/renewal)*/, convertedFromId?, convertedToId?, conversionId? }],
-    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note, by }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in
+    history:  [{ id, date, scheduleId, packageId, packageName, action, creditChange, cancelReason?, reversesId?, conversionId?, note, by }]   // action: renewed | used | cancel_excused | cancel_penalty | reversal (reversesId → id baris asal) | converted_out | converted_in | discharge (−sisa sesi hangus saat discharge)
   }],
   conversions: [{ id /*cv-...*/, clientId, invoiceId, fromPackageId, fromRemaining, toPackageName, toSessions, mode /*auto|manual*/, reason?, leftover, createdAt, createdBy }],
   invoices: [{ id, type /*package|assessment|leave*/, typeCode, invoiceNumber /*INV-{KODE}-{YYYYMMDD}-{NNN}*/, clientId, clientName, branchId, packageId, packageName, credits /*snapshot*/, amount, status /*unpaid|paid|void*/, assessmentCode? /*invoice assessment otomatis: kode kuesioner pemicu*/, leaveId? /*invoice cuti (type leave): log cuti yang disambungkan Finance, opsional*/, leaveScheduleId? /*data lama: sesi Off pemicu*/,

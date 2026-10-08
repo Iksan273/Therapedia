@@ -20,6 +20,8 @@ import { EmptyState } from "@/shared/components/EmptyState";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { ClientReportMonitoringCard } from "@/features/schedule/components/clientDetail/ClientReportMonitoringCard";
 import { SessionHistoryNoteDialog } from "@/shared/components/SessionHistoryNoteDialog";
+import { LogExportButtons } from "@/shared/components/LogExportButtons";
+import { STATUS_META } from "@/domain/status";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { ClientRoutineDialog } from "@/features/schedule/components/clientDetail/ClientRoutineDialog";
 import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
@@ -84,6 +86,49 @@ export default function ActiveClientDetail() {
     return clientSchedules.slice(start, start + historyPageSize);
   }, [clientSchedules, historyPage, historyPageSize]);
 
+  // Riwayat sesi untuk unduhan PDF/Excel: urut dari yang terlama; teks sudah diformat
+  const sessionLogSpec = useMemo(() => {
+    const pkgList = record?.packages || [];
+    const rows = [...clientSchedules]
+      .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
+      .map((s) => {
+        const pkg = pkgList.find((p) => p.id === s.creditPackageId || p.packageId === s.creditPackageId);
+        const cancelCode = s.status === "cancelled" && s.cancelReason ? [getCancelReasonCode(s.cancelReason), cancelNoteOf(s)].filter(Boolean).join(" — ") : "";
+        return {
+          date: fmtDate(s.date),
+          time: `${s.startTime}–${s.endTime}`,
+          therapist: getTherapist(s.therapistId)?.name || "—",
+          type: s.type === "assessment" ? "Asesmen" : "Terapi",
+          pkg: s.type === "assessment" ? "Asesmen (tanpa kredit)" : pkg ? packageBaseName(pkg.packageName) : "Default",
+          status: STATUS_META[s.status]?.label || s.status,
+          reason: cancelCode,
+          bookingNote: bookingNoteOf(s),
+          note: s.historyNote || "",
+        };
+      });
+    return {
+      title: "Riwayat Sesi Terapi",
+      meta: client ? [
+        { label: "Nama Anak", value: client.clientName },
+        { label: "Kode Client", value: client.clientCode },
+        { label: "Cabang", value: BRANCHES.find((b) => b.id === client.branchId)?.name },
+        { label: "Sisa Sesi", value: String(record?.remainingCredit ?? 0) },
+      ] : [],
+      columns: [
+        { key: "date", label: "Tanggal", width: "78px" },
+        { key: "time", label: "Jam", width: "80px" },
+        { key: "therapist", label: "Terapis", width: "120px" },
+        { key: "type", label: "Jenis", width: "60px" },
+        { key: "pkg", label: "Paket Kredit", width: "110px" },
+        { key: "status", label: "Status", width: "90px" },
+        { key: "reason", label: "Alasan Cancel / Off" },
+        { key: "bookingNote", label: "Catatan Penjadwalan" },
+        { key: "note", label: "Catatan" },
+      ],
+      rows,
+    };
+  }, [clientSchedules, record, client, getTherapist, getCancelReasonCode]);
+
   // Jadwal rutin (recurring): pola hari + jam + terapis dari sesi aktif mendatang (seri berulang)
   const today = todayStr();
   const weeklyRoutines = useMemo(
@@ -124,9 +169,11 @@ export default function ActiveClientDetail() {
       toast.error("Mohon pilih atau tulis alasan discharge.");
       return;
     }
-    discharge(client, reason, dischargeNote);
+    const res = discharge(client, reason, dischargeNote);
     setDischargeOpen(false);
-    toast.success(`${client.clientName} resmi di-discharge.`);
+    toast.success(`${client.clientName} resmi di-discharge.`, {
+      description: `${res.deletedSchedules} jadwal aktif dihapus, ${res.forfeitedCredits} sisa sesi hangus (tercatat di Log Kredit & Saldo).`,
+    });
     navigate("/admin-schedule/clients");
   };
 
@@ -134,7 +181,7 @@ export default function ActiveClientDetail() {
   const handleReactivate = async () => {
     const ok = await confirm({
       title: `Aktifkan kembali ${client.clientName}?`,
-      description: `Status ${client.status === "discharged" ? "Discharged" : "Discontinued"} akan diganti menjadi Active Client dan client bisa dijadwalkan sesi lagi. Saldo kredit & riwayat sesi tetap dipertahankan.`,
+      description: `Status ${client.status === "discharged" ? "Discharged" : "Discontinued"} akan diganti menjadi Active Client dan client bisa dijadwalkan sesi lagi. Riwayat sesi tetap dipertahankan; sisa sesi yang sudah hangus saat discharge tidak kembali.`,
       confirmLabel: "Aktifkan Kembali",
     });
     if (!ok) return;
@@ -473,6 +520,7 @@ export default function ActiveClientDetail() {
             </CardDescription>
             <CancelQuotaList record={record} className="mt-2" />
           </div>
+          <LogExportButtons spec={sessionLogSpec} filename={`riwayat-sesi-${client.clientCode}`} testIdPrefix="session-log-export" />
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           {clientSchedules.length === 0 ? (
@@ -501,7 +549,7 @@ export default function ActiveClientDetail() {
                         {fmtDate(s.date)} • <span className="font-mono text-slate-500">{s.startTime}–{s.endTime}</span>
                       </TableCell>
                       <TableCell data-label="Terapis" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{th?.name || "—"}</TableCell>
-                      <TableCell data-label="Paket Kredit" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{pkg ? packageBaseName(pkg.packageName) : "Default"}</TableCell>
+                      <TableCell data-label="Paket Kredit" className="font-medium text-slate-700 min-w-[150px] whitespace-nowrap">{s.type === "assessment" ? "Asesmen (tanpa kredit)" : pkg ? packageBaseName(pkg.packageName) : "Default"}</TableCell>
                       <TableCell data-label="Status" className="min-w-[130px] whitespace-nowrap">
                         <StatusBadge status={s.status} />
                       </TableCell>
@@ -633,6 +681,9 @@ export default function ActiveClientDetail() {
             <DialogDescription className="text-xs text-slate-500">
               Tandai kelulusan atau penghentian sesi terapi untuk {client.clientName}.
             </DialogDescription>
+            <p className="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2 mt-2" data-testid="discharge-warning">
+              Semua jadwal aktif (termasuk recurring) akan dihapus dan {remCredit} sisa sesi hangus. Tercatat di Log Kredit & Saldo sebagai Discharge.
+            </p>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="space-y-1">

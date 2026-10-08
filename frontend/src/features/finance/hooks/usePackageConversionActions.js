@@ -2,10 +2,12 @@ import { useAuth } from "@/stores/authStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { computePackageConversion, isInvoiceConvertible, resolveInvoicePackage } from "@/domain/credit";
+import { ACTIVE_SESSION_STATUSES } from "@/domain/schedule";
 
-// Sesi mendatang yang dihapus saat konversi: jadwal terapi belum berjalan. Sesi completed/cancelled/rescheduled
-// adalah riwayat (terikat ledger) dan asesmen tidak terkait paket, jadi tidak disentuh.
-const UPCOMING_STATUSES = ["scheduled", "reschedule_pending"];
+// Jadwal yang dihapus saat konversi: SEMUA jadwal terapi aktif client (scheduled, rescheduled = sudah dipindah tapi masih
+// aktif, reschedule_pending), termasuk seri recurring. Sesi completed/cancelled adalah riwayat (terikat ledger) dan asesmen
+// tidak terkait paket, jadi tidak disentuh.
+const UPCOMING_STATUSES = ACTIVE_SESSION_STATUSES;
 
 // Use-case Finance: konversi sisa sesi paket (mis. Senior → Regular). Merangkai 2 store: kredit (paket, ledger, saldo,
 // log invoice) dan jadwal (hapus sesi mendatang; pelaku di `deletedBy`). Toast tetap di komponen.
@@ -31,7 +33,7 @@ export function usePackageConversionActions() {
     return src ? { name: src.pkg.packageName, remainingCredit: src.pkg.remainingCredit } : null;
   };
 
-  const upcomingSchedules = (clientId) => schedules.filter((s) => s.clientId === clientId && s.type === "therapy" && UPCOMING_STATUSES.includes(s.status));
+  const upcomingSchedules = (clientId) => schedules.filter((s) => s.clientId === clientId && s.type !== "assessment" && UPCOMING_STATUSES.includes(s.status));
 
   // Pratinjau/validasi tanpa mengubah data. `sessions` kosong = otomatis.
   const previewConversion = ({ invoice, target, sessions = null }) => {

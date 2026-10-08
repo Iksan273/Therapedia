@@ -17,7 +17,6 @@ import { useClients } from "@/stores/clientsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { cn } from "@/shared/lib/utils";
-import { advanceStatus } from "@/domain/client";
 import { AssessmentProofCard } from "@/features/assessment/components/AssessmentProofCard";
 import { checkQuestionnaireAccess } from "@/domain/assessment";
 
@@ -265,11 +264,13 @@ export default function AssessmentFill() {
       };
     });
 
-    const existingAnswers = client.assessmentAnswers || [];
-    const filteredExisting = existingAnswers.filter((a) => a.categoryId !== category.id);
+    const usedCode = codeInput.trim().toUpperCase();
+    // Satu entri per KODE (client bisa punya beberapa kode sekategori); entri lama tanpa `code` dipertahankan.
+    const filteredExisting = (client.assessmentAnswers || []).filter((a) => String(a.code || "").toUpperCase() !== usedCode);
     const updatedAnswers = [
       ...filteredExisting,
       {
+        code: usedCode,
         categoryId: category.id,
         categoryName: category.categoryName,
         submittedAt: nowIso(),
@@ -278,13 +279,12 @@ export default function AssessmentFill() {
       },
     ];
 
-    const usedCode = codeInput.trim().toUpperCase();
     updateClient(client.id, {
       assessmentCodes: (client.assessmentCodes || []).map((c) =>
         c.code && c.code.toUpperCase() === usedCode ? { ...c, status: "submitted", submittedAt: nowIso() } : c
       ),
       assessmentAnswers: updatedAnswers,
-      status: advanceStatus(client.status, "assessment_done"),
+      // Status pipeline TIDAK berubah: client tetap "Asesmen Terjadwal" sampai sesi asesmen selesai (atau diubah manual).
     });
     setStage("done");
     toast.success("Kuesioner asesmen berhasil dikirimkan. Terima kasih!");

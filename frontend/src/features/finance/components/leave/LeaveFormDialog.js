@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { toast } from "sonner";
 import { CalendarOff } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
@@ -76,11 +77,11 @@ export function LeaveFormDialog({ open, onOpenChange, clients }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Mulai cuti *</Label>
-              <Input type="date" className="border-slate-200 bg-slate-50 text-xs font-semibold" value={form.startDate} onChange={(e) => set({ startDate: e.target.value })} data-testid="leave-start" />
+              <DateFilterPicker allowClear={false} className="w-full" value={form.startDate} onChange={(e) => set({ startDate: e.target.value })} data-testid="leave-start" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Selesai cuti *</Label>
-              <Input type="date" min={form.startDate || undefined} className="border-slate-200 bg-slate-50 text-xs font-semibold" value={form.endDate} onChange={(e) => set({ endDate: e.target.value })} data-testid="leave-end" />
+              <DateFilterPicker allowClear={false} minDate={form.startDate || undefined} className="w-full" value={form.endDate} onChange={(e) => set({ endDate: e.target.value })} data-testid="leave-end" />
             </div>
           </div>
 

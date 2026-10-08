@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { toast } from "sonner";
 import { AlertTriangle, CalendarDays, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
@@ -152,7 +153,7 @@ export function ClientRoutineDialog({ clientId, open, onOpenChange }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-slate-700">Berlaku mulai</Label>
-            <Input type="date" min={today} value={from} onChange={(e) => setFrom(e.target.value)} className="h-10 text-xs border-slate-200 bg-slate-50" data-testid="routine-from" />
+            <DateFilterPicker minDate={today} allowClear={false} value={from} onChange={(e) => setFrom(e.target.value)} className="w-full h-10" data-testid="routine-from" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-bold text-slate-700">Jumlah minggu (pola baru)</Label>

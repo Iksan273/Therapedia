@@ -2,8 +2,11 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Link } from "react-router-dom";
 import { Eye } from "lucide-react";
+import { listQuestionnaireResults } from "@/domain/assessment";
+import { fmtDate } from "@/shared/lib/format";
 
 export function ParentAnswerCard({ client }) {
+  const filled = listQuestionnaireResults(client).filter((q) => q.filled);
   return (
     <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -26,16 +29,19 @@ export function ParentAnswerCard({ client }) {
             </Link>
           </CardHeader>
           <CardContent className="p-4 text-xs text-slate-600">
-            {(client.assessmentAnswers || []).length > 0 ? (
+            {filled.length > 0 ? (
               <div className="space-y-2">
-                <p className="font-semibold text-slate-800">
-                  Tersedia {(client.assessmentAnswers || []).length} kuesioner terisi lengkap:
-                </p>
+                <p className="font-semibold text-slate-800">Tersedia {filled.length} kuesioner terisi. Klik salah satu untuk melihat hasilnya:</p>
                 <div className="flex flex-wrap gap-2">
-                  {client.assessmentAnswers.map((a, i) => (
-                    <span key={i} className="px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 font-bold text-teal-800 text-[11px]">
-                      ✓ {a.categoryName} ({a.answers?.length || 0} butir terisi)
-                    </span>
+                  {filled.map((q) => (
+                    <Link
+                      key={q.key}
+                      to={`/admin-inquiry/parent-assessment/${client.id}?kode=${encodeURIComponent(q.key)}`}
+                      className="px-2.5 py-1.5 rounded-lg bg-teal-50 border border-teal-200 font-bold text-teal-800 text-[11px] hover:bg-teal-100 transition-colors"
+                      data-testid={`answer-link-${q.key}`}
+                    >
+                      ✓ {q.categoryName}{q.code ? ` • ${q.code}` : ""} ({q.entry?.answers?.length || 0} butir{q.submittedAt ? `, ${fmtDate(q.submittedAt)}` : ""})
+                    </Link>
                   ))}
                 </div>
               </div>

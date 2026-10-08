@@ -260,11 +260,13 @@ export default function ClientDetailInquiry() {
       toast.error("Mohon pilih atau tulis alasan discharge.");
       return;
     }
-    outcomeActions.discharge(client, dischargeReason, dischargeNote);
+    const res = outcomeActions.discharge(client, dischargeReason, dischargeNote);
     setDischargeOpen(false);
     setDischargeReason("");
     setDischargeNote("");
-    toast.warning("Status client ditandai: Discharged.");
+    toast.warning("Status client ditandai: Discharged.", {
+      description: `${res.deletedSchedules} jadwal aktif dihapus, ${res.forfeitedCredits} sisa sesi hangus.`,
+    });
   };
 
   return (

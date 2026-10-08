@@ -12,6 +12,7 @@ import {
   canVoidInvoice,
   applyPackageAdded,
   applyPackageConversion,
+  applyDischargeForfeit,
   applySessionCancelled,
   applySessionCompleted,
   applySessionReverted,
@@ -138,6 +139,9 @@ function creditsReducer(state, action) {
       });
       return { ...state, invoices: (state.invoices || []).filter((inv) => !gone.has(inv.id)), records };
     }
+
+    case "DISCHARGE_FORFEIT": // discharge client: sisa sesi semua paket hangus (ledger `discharge`)
+      return { ...state, records: mapClientRecord(state.records, action.clientId, (r) => applyDischargeForfeit(r, action)) };
 
     case "VOID_INVOICE": { // invoice lunas dibatalkan, kredit/paket dipertahankan: tetap tercatat (status void, alasan, log); keluar dari omzet
       const inv = (state.invoices || []).find((i) => i.id === action.invoiceId);
@@ -386,6 +390,8 @@ export const CreditsProvider = ({ children }) => {
     dispatch({ type: "SPEND_PACKAGE_CREDIT", clientId, packageId, scheduleId, date, by });
   const handleScheduleCancellation = ({ clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind, by }) =>
     dispatch({ type: "HANDLE_CANCELLATION", clientId, packageId, scheduleId, cancelReason, date, deductCredit, kind, by });
+  // Sisa sesi hangus saat client di-discharge. Lihat useClientOutcomeActions.discharge.
+  const forfeitCreditOnDischarge = ({ clientId, reason, note, date, by }) => dispatch({ type: "DISCHARGE_FORFEIT", clientId, reason, note, date, by });
   const revertSessionCredit = ({ clientId, scheduleId, date, reason, by }) =>
     dispatch({ type: "REVERT_SESSION_CREDIT", clientId, scheduleId, date, reason, by });
   const issueInvoice = ({ clientId, clientName, branchId, packageId, packageName, amount, type, typeCode, credits, isRenewal, replacesInvoiceId, paidDirect, assessmentCode, leaveScheduleId, leaveId, resetLeave, note, by }) =>
@@ -430,6 +436,7 @@ export const CreditsProvider = ({ children }) => {
         spendPackageCredit,
         handleScheduleCancellation,
         revertSessionCredit,
+        forfeitCreditOnDischarge,
         issueInvoice,
         uploadPaymentProof,
         verifyPaymentProof,

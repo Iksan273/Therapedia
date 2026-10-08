@@ -56,3 +56,6 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 - **Keterkaitan antar modul dijaga test** `data/__tests__/seedIntegrity.test.js`: client ↔ sesi ↔ terapis ↔ cabang ↔ akun staf ↔ record kredit ↔ invoice ↔ kode kuesioner ↔ log cuti, status pipeline ↔ tanggal/alasan/sesi, saldo paket ↔ ledger, credit leave, discharge, dan utilisasi terapis. Ubah seed → test ini wajib tetap lolos.
 - **Generator lama tertinggal**: `frontend/scripts/generate_demo_seed.py` belum memuat data baru (riwayat client discharged, paket konsultasi client done_consult, invoice assessment per kode + 1 kode gratis + 1 belum bayar, log cuti seed, `maxSessionsPerMonth` terapis). JANGAN dijalankan menimpa JSON sekarang; ubah JSON langsung (atau perbarui generator lebih dulu).
 - Tidak ada contoh refund / void di seed (fitur ada dan teruji di unit test), jadi kartu Refund/void di Dashboard Revenue awalnya 0.
+
+## Catatan revisi 8 Okt 2026
+- **Kuesioner lama**: jawaban sebelum 8 Okt 2026 tidak punya `code`; `listQuestionnaireResults` memasangkannya ke kode sekategori yang sudah terisi. Sebelumnya jawaban kode kedua sekategori menimpa yang pertama (kini tidak lagi).

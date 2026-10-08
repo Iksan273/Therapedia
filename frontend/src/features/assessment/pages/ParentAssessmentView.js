@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Printer, ArrowLeft, ExternalLink, ClipboardList, Layers, LayoutGrid, CheckSquare, FileSpreadsheet } from "lucide-react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Printer, ArrowLeft, ExternalLink, ClipboardList, Layers, LayoutGrid, CheckSquare, FileSpreadsheet, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { useClients } from "@/stores/clientsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useMasterData, getQuadrantColor } from "@/stores/masterDataStore";
 import { useTherapists } from "@/stores/therapistsStore";
-import { calcAgeDetailed } from "@/shared/lib/format";
+import { calcAgeDetailed, fmtDate } from "@/shared/lib/format";
+import { listQuestionnaireResults } from "@/domain/assessment";
 import { BRANCHES } from "@/domain/branch";
 import { cn } from "@/shared/lib/utils";
 import { DocumentHeader } from "@/features/assessment/components/parentAssessment/DocumentHeader";
@@ -169,8 +170,8 @@ export default function ParentAssessmentView() {
   };
   const { therapists } = useTherapists();
 
-  // Selected questionnaire tab
-  const [activeTab, setActiveTab] = useState("all");
+  // Kuesioner terpilih (kunci = kode kuesioner). Bisa dibuka langsung lewat ?kode=XXX
+  const [searchParams, setSearchParams] = useSearchParams();
   // Assessor view mode: 'clinical' (Image 1 table), 'matrix' (Image 2 parent X-marks), or 'inquiry' (classic summary)
   const [viewMode, setViewMode] = useState("clinical");
   // Active sensory domain filter (for performance when 100++ questions)
@@ -178,18 +179,25 @@ export default function ParentAssessmentView() {
 
   const client = getClient(id);
 
-  const assessmentList = useMemo(() => client?.assessmentAnswers || [], [client]);
-  const currentTab = activeTab === "all" && assessmentList.length > 0 ? (assessmentList[0].categoryId || "cat-001") : activeTab;
+  // Semua kuesioner client (satu opsi per kode, terisi atau belum) — dasar menu "Pilih Kuesioner"
+  const questionnaires = useMemo(() => listQuestionnaireResults(client), [client]);
+  const filledQuestionnaires = useMemo(() => questionnaires.filter((q) => q.filled), [questionnaires]);
+  const latestFilledKey = useMemo(
+    () => [...filledQuestionnaires].sort((a, b) => String(b.submittedAt || "").localeCompare(String(a.submittedAt || "")))[0]?.key || null,
+    [filledQuestionnaires]
+  );
+  const requestedKey = searchParams.get("kode");
+  const selected =
+    filledQuestionnaires.find((q) => q.key === requestedKey || (q.code && q.code === requestedKey)) ||
+    filledQuestionnaires.find((q) => q.key === latestFilledKey) ||
+    null;
+  const activeAssessment = selected?.entry || null;
+  const currentTab = selected?.categoryId || "all"; // kategori master data dari kuesioner terpilih
 
-  const activeAssessment = useMemo(() => {
-    return (
-      assessmentList.find(
-        (a) => (a.categoryId || "") === currentTab || (assessmentList.length === 1 && currentTab === "all")
-      ) ||
-      assessmentList[0] ||
-      null
-    );
-  }, [assessmentList, currentTab]);
+  const selectQuestionnaire = (key) => {
+    setSearchParams({ kode: key }, { replace: true });
+    setDomainFilter("all");
+  };
 
   const isSchoolCompanion =
     currentTab === "cat-002" ||
@@ -418,32 +426,45 @@ export default function ParentAssessmentView() {
         </div>
       </div>
 
-      {/* Multi-Questionnaire Navigation Tabs (if client has > 1 questionnaires, e.g. Child Sensory Profile + School Companion Profile) */}
-      {assessmentList.length > 1 && (
-        <div className="bg-white p-2 rounded-2xl border border-slate-200/90 shadow-2xs print:hidden">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <span className="text-xs font-bold text-slate-400 px-3 uppercase tracking-wider">Kuesioner Terdaftar:</span>
-            {assessmentList.map((a, idx) => {
-              const catId = a.categoryId || `cat-00${idx + 1}`;
-              const isSelected = currentTab === catId;
+      {/* Pilih Kuesioner: satu kartu per KODE yang diterbitkan (client bisa punya beberapa kode) */}
+      {questionnaires.length > 1 && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3 print:hidden" data-testid="questionnaire-picker">
+          <div>
+            <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-emerald-700" /> Pilih Kuesioner
+            </p>
+            <p className="text-xs text-slate-500">
+              Client ini punya {questionnaires.length} kode kuesioner. Pilih salah satu untuk melihat hasilnya; kode yang belum diisi ortu belum bisa dibuka.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {questionnaires.map((q) => {
+              const isSelected = selected?.key === q.key;
               return (
                 <button
-                  key={catId}
-                  onClick={() => {
-                    setActiveTab(catId);
-                    setDomainFilter("all");
-                  }}
+                  key={q.key}
+                  type="button"
+                  disabled={!q.filled}
+                  onClick={() => selectQuestionnaire(q.key)}
+                  aria-pressed={isSelected}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 border",
-                    isSelected
-                      ? "bg-emerald-50 text-emerald-900 border-emerald-300 shadow-xs ring-1 ring-emerald-400/30"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    "text-left rounded-xl border p-3 min-h-[64px] transition-all flex flex-col gap-1.5",
+                    isSelected ? "bg-emerald-50 border-emerald-400 ring-1 ring-emerald-400/40 shadow-xs" : q.filled ? "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 cursor-pointer" : "bg-slate-50 border-dashed border-slate-200 opacity-70 cursor-not-allowed"
                   )}
+                  data-testid={`questionnaire-option-${q.key}`}
                 >
-                  <ClipboardList className={cn("w-3.5 h-3.5", isSelected ? "text-emerald-700" : "text-slate-400")} />
-                  <span>{a.categoryName || `Kuesioner #${idx + 1}`}</span>
-                  <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-white border border-slate-200 font-mono">
-                    {a.answers?.length || 29} item
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold text-slate-900 truncate">{q.categoryName}</span>
+                    {q.filled ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> Sudah diisi</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 shrink-0"><Clock className="w-3.5 h-3.5" /> Belum diisi</span>
+                    )}
+                  </span>
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                    {q.code && <span className="font-mono font-bold text-slate-700">{q.code}</span>}
+                    <span>{q.filled ? `Diisi ${fmtDate(q.submittedAt)}` : q.issuedAt ? `Diterbitkan ${fmtDate(q.issuedAt)}` : ""}</span>
+                    {q.filled && <span>{q.entry?.answers?.length || 0} butir</span>}
                   </span>
                 </button>
               );
@@ -452,6 +473,14 @@ export default function ParentAssessmentView() {
         </div>
       )}
 
+      {!selected && (
+        <div className="p-8 text-center rounded-2xl border border-dashed border-slate-300 bg-white text-sm text-slate-500 print:hidden" data-testid="questionnaire-none">
+          Orang tua belum mengisi kuesioner apa pun, jadi belum ada hasil untuk ditampilkan.
+        </div>
+      )}
+
+      {selected && (
+      <>
       {/* Filter domain dropdown for fast navigation when items are 100++ (Non-print) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 print:hidden">
         <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
@@ -520,6 +549,8 @@ export default function ParentAssessmentView() {
         {/* TANDA TANGAN DOKUMEN CETAK (PRINT-READY) */}
         <SignatureBlock client={client} />
       </div>
+      </>
+      )}
     </div>
   );
 }

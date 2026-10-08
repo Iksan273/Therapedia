@@ -34,7 +34,7 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | `addClient` | `POST clients.list` | `clients`, `client_code_counters`, `client_status_histories` | — |
 | `updateClient` (biodata) | `PATCH clients.detail(id)` | `clients` | — |
 | toggle layanan | `PUT clients.services(id)` | `client_services` | — |
-| `useClientOutcomeActions.*` (admit, outcome, discharge, discontinue, reaktivasi, ubah status manual) | `POST clients.transition(id)` | `clients`, `client_status_histories` | — |
+| `useClientOutcomeActions.*` (admit, outcome, discharge, discontinue, reaktivasi, ubah status manual) | `POST clients.transition(id)` | `clients`, `client_status_histories`; untuk `discharge` juga `schedules` (hapus jadwal aktif) + `credit_ledger` (`discharge`) + `client_packages` | — |
 | simpan link GDrive | `POST clients.gdriveLinks(id)` | `client_documents` | — |
 | generate kode kuesioner (+ masa berlaku opsional) | `POST clients.assessmentCodes(id)` | `assessment_access_codes` | — |
 | buka kuesioner (publik; cek sekali isi, expiry, invoice assessment) *(baru)* | `GET publicAssessment.show(code)` | `assessment_access_codes`, `invoices` | — |

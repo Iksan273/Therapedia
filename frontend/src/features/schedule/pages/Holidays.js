@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { hasAllBranchAccess } from "@/domain/auth";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { toast } from "sonner";
@@ -93,7 +94,7 @@ export default function Holidays() {
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr_auto_auto] gap-3 items-end" data-testid="holiday-form">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Tanggal *</Label>
-              <Input type="date" className="border-slate-200 bg-slate-50 text-xs font-semibold" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="holiday-date-input" />
+              <DateFilterPicker allowClear={false} className="w-full" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="holiday-date-input" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Nama Hari Libur *</Label>

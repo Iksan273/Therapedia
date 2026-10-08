@@ -83,3 +83,38 @@ export const checkQuestionnaireAccess = ({ client, codeItem, invoices = [], now 
 // Tautan kuesioner yang dikirim admin ke ortu: membuka /assessment dengan kode terisi otomatis.
 export const buildQuestionnaireLink = (code, origin = "") =>
   `${String(origin).replace(/\/$/, "")}/assessment?code=${encodeURIComponent(String(code || "").trim().toUpperCase())}`;
+
+// Daftar kuesioner client untuk asesor ("Pilih Kuesioner" di laporan hasil): satu opsi per KODE yang diterbitkan, lengkap dengan
+// jawabannya bila sudah diisi. Jawaban baru menyimpan `code`; jawaban lama (tanpa `code`) dipasangkan ke kode sekategori yang
+// sudah terisi. Jawaban tanpa kode yang cocok tetap tampil (key `ans-{indeks}`).
+// Mengembalikan [{ key, code, categoryId, categoryName, filled, issuedAt, submittedAt, entry }] urut penerbitan.
+export function listQuestionnaireResults(client) {
+  const answers = client?.assessmentAnswers || [];
+  const used = new Set();
+  const same = (a, b) => String(a || "").toUpperCase() === String(b || "").toUpperCase();
+  const codes = client?.assessmentCodes || [];
+
+  const options = codes.map((c) => {
+    const filled = isQuestionnaireCodeFilled(client, c);
+    let idx = answers.findIndex((a, i) => !used.has(i) && a.code && same(a.code, c.code));
+    if (idx === -1 && filled) idx = answers.findIndex((a, i) => !used.has(i) && !a.code && a.categoryId === c.categoryId);
+    if (idx !== -1) used.add(idx);
+    const entry = idx !== -1 ? answers[idx] : null;
+    return {
+      key: c.code,
+      code: c.code,
+      categoryId: c.categoryId,
+      categoryName: c.name || c.categoryName || entry?.categoryName || "Kuesioner",
+      filled: Boolean(entry),
+      issuedAt: c.issuedAt || c.createdAt || null,
+      submittedAt: entry?.submittedAt || c.submittedAt || null,
+      entry,
+    };
+  });
+
+  answers.forEach((a, i) => {
+    if (used.has(i)) return;
+    options.push({ key: `ans-${i}`, code: a.code || null, categoryId: a.categoryId, categoryName: a.categoryName || "Kuesioner", filled: true, issuedAt: null, submittedAt: a.submittedAt || null, entry: a });
+  });
+  return options;
+}

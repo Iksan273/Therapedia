@@ -68,6 +68,25 @@ test("konversi otomatis: paket lama converted, paket baru + saldo, log invoice, 
   expect(log).toMatchObject({ action: "converted", by: "Finance Uji" });
 });
 
+test("konversi menghapus semua jadwal aktif: scheduled, rescheduled (sudah dipindah), pending, recurring, semua jenis terapi", async () => {
+  const { invoice, target } = pickCase();
+  const base = { clientId: invoice.clientId, therapistId: "th-1", startTime: "09:00", endTime: "10:00", date: "2099-01-05" };
+  const extra = [
+    { ...base, id: "x-sch", type: "therapy", status: "scheduled", isRecurring: true, recurrenceRule: "weekly_Monday" },
+    { ...base, id: "x-res", type: "therapy", status: "rescheduled", rescheduledFrom: { date: "2099-01-04", startTime: "09:00", endTime: "10:00", therapistId: "th-1" } },
+    { ...base, id: "x-pen", type: "therapy", status: "reschedule_pending" },
+    { ...base, id: "x-spe", type: "therapy_speech", status: "scheduled" },
+    { ...base, id: "x-done", type: "therapy", status: "completed" },
+    { ...base, id: "x-asm", type: "assessment", status: "scheduled" },
+  ];
+  await act(async () => ctx.schedules.addSchedules(extra));
+  await act(async () => { ctx.conv.convertInvoicePackage({ invoice, target, reason: "uji jadwal" }); });
+  const left = new Set(ctx.schedules.schedules.filter((s) => s.clientId === invoice.clientId).map((s) => s.id));
+  ["x-sch", "x-res", "x-pen", "x-spe"].forEach((id) => expect(left.has(id)).toBe(false));
+  expect(left.has("x-done")).toBe(true);
+  expect(left.has("x-asm")).toBe(true);
+});
+
 test("konversi wajib catatan dan manual tidak boleh melebihi nilai sisa", async () => {
   const { invoice, target } = pickCase();
   const max = ctx.conv.previewConversion({ invoice, target }).maxSessions;

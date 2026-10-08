@@ -17,6 +17,9 @@ export function DischargeDialog({ open, onOpenChange, reasons, reason, setReason
           <DialogDescription className="text-xs text-slate-500">
             Client keluar dari terapi aktif. Bisa diaktifkan kembali kapan saja dari Active Clients Roster.
           </DialogDescription>
+          <p className="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2 mt-2">
+            Semua jadwal aktif (termasuk recurring) akan dihapus dan sisa sesi hangus. Tercatat di Log Kredit & Saldo sebagai Discharge.
+          </p>
         </DialogHeader>
         <div className="space-y-3 pt-2">
           <div className="space-y-1.5">

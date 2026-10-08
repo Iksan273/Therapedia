@@ -2,14 +2,9 @@ import React from "react";
 import { format, isToday } from "date-fns";
 import { CALENDAR_HOURS, timeToMin } from "@/domain/schedule";
 import { cn } from "@/shared/lib/utils";
+import { SESSION_COLORS, sessionColorKey } from "@/shared/constants/sessionColors";
 
-const CHIP = {
-  scheduled: "bg-sky-50 border-sky-200 text-sky-900",
-  completed: "bg-emerald-50 border-emerald-200 text-emerald-900",
-  cancelled: "bg-rose-50 border-rose-200 text-rose-700 line-through",
-  rescheduled: "bg-amber-50 border-amber-200 text-amber-900",
-  reschedule_pending: "bg-orange-50 border-orange-300 border-dashed text-orange-900",
-};
+const chipOf = (s) => SESSION_COLORS[sessionColorKey(s)].chip;
 
 // Kalender tim tampilan HARI (read-only): SATU kalender berisi SEMUA terapis (kolom per terapis) pada satu tanggal, baris per jam.
 // Tanpa klik slot / sesi. `therapists` = kolom yang tampil, `schedules` = sesi di hari itu (sudah difilter cabang).
@@ -45,7 +40,7 @@ export function TeamDayGrid({ day, therapists, schedules, getClientName }) {
                 return (
                   <div key={t.id + hour} className="border-l border-slate-100 p-1 space-y-1 min-h-[52px] min-w-0">
                     {items.map((s) => (
-                      <div key={s.id} className={cn("rounded-lg border px-2 py-1 text-[11px] leading-tight", CHIP[s.status] || CHIP.scheduled)} data-testid={`team-session-${s.id}`}>
+                      <div key={s.id} className={cn("rounded-lg border px-2 py-1 text-[11px] leading-tight", chipOf(s), s.status === "cancelled" && "[&_p:first-child]:line-through")} data-testid={`team-session-${s.id}`}>
                         <p className="font-bold truncate">{getClientName(s.clientId)}</p>
                         <p className="tabular-nums opacity-80">{s.startTime}–{s.endTime}{s.type === "assessment" ? " • Asesmen" : ""}</p>
                       </div>
