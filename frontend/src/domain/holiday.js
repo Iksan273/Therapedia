@@ -1,7 +1,7 @@
 import { uid, nowIso } from "@/shared/lib/id";
 
 // Domain hari libur (nasional / klinik). Jadwal berulang MELEWATI tanggal libur dan kalender tidak bisa memilihnya.
-// Menambah libur tidak mengubah sesi yang sudah ada (hanya diberi penanda). Acuan tabel `holidays` (schema.md §04-B).
+// Menambah libur MEMBATALKAN sesi yang masih aktif di tanggal itu (`holidayAffectedSessions`, alasan H, tanpa potong kredit). Acuan tabel `holidays` (schema.md §04-B).
 // `branchId` null = berlaku untuk semua cabang.
 
 // Contoh awal (tanggal tetap); sesuaikan dengan SKB libur nasional & cuti bersama di halaman Hari Libur.
@@ -43,3 +43,14 @@ export const validateHoliday = (holidays, { date, name, branchId = null, exclude
 
 // Pesan standar saat tanggal libur dipilih.
 export const holidayMessage = (holiday) => `${holiday.date} adalah hari libur (${holiday.name}); jadwal tidak dapat dibuat di tanggal ini.`;
+
+// Alasan pembatalan otomatis oleh hari libur (code "H" di daftar alasan cancel).
+export const HOLIDAY_CANCEL_REASON = "H";
+
+// Sesi yang dibatalkan saat libur ditetapkan: semua sesi di tanggal & cakupan cabang libur itu, KECUALI yang sudah completed,
+// cancelled, atau rescheduled (riwayat / sudah dipindah). Sisanya (scheduled, reschedule_pending) dibatalkan.
+export const HOLIDAY_KEEP_STATUSES = ["completed", "cancelled", "rescheduled"];
+export const holidayAffectedSessions = (schedules = [], holiday) =>
+  holiday?.date
+    ? schedules.filter((s) => s.date === holiday.date && !HOLIDAY_KEEP_STATUSES.includes(s.status) && (!holiday.branchId || s.branchId === holiday.branchId))
+    : [];

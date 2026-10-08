@@ -119,3 +119,5 @@ Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2
 3. Ganti store read-only dulu (`therapistsStore`, `masterDataStore`), lalu `clientsStore`, `assessmentsStore`, `schedulesStore`, `creditsStore` — interface value tetap.
 4. Ganti isi hook use-case dengan satu mutation per fungsi; invalidasi query terkait.
 5. Hapus seed/localStorage untuk domain yang sudah pindah; `usePersistentState` hanya untuk preferensi UI.
+
+- **Hari libur membatalkan sesi** (`useHolidayActions.createHoliday/changeHoliday`): `POST/PATCH holidays` satu transaksi: insert/update `holidays` + `UPDATE schedules SET status='cancelled', cancel_reason='H', cancel_note='Hari libur: …' WHERE session_date = ? AND (branch_id = ? OR holiday semua cabang) AND status IN ('scheduled','reschedule_pending')`. Tidak menulis `credit_ledger`; respons memuat `cancelled_count` untuk toast.

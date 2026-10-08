@@ -13,7 +13,8 @@ import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/components/EmptyState";
 import { DeleteButton } from "@/shared/components/DeleteControls";
 import { useHolidays } from "@/stores/holidaysStore";
-import { useSchedules } from "@/stores/schedulesStore";
+import { useHolidayActions } from "@/features/schedule/hooks/useHolidayActions";
+import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, branchName } from "@/domain/branch";
 import { makeHoliday, validateHoliday } from "@/domain/holiday";
@@ -21,10 +22,11 @@ import { fmtDate } from "@/shared/lib/format";
 import { todayStr } from "@/shared/lib/id";
 
 // Pengaturan hari libur: jadwal berulang melewati tanggal libur dan kalender tidak bisa memilihnya.
-// Menambah libur tidak mengubah sesi yang sudah ada (hanya diberi penanda jumlah sesi terdampak).
+// Menambah libur membatalkan sesi aktif di tanggal itu (konfirmasi + info jumlah sesi); lihat useHolidayActions.
 export default function Holidays() {
-  const { holidays, addHoliday, updateHoliday, removeHoliday } = useHolidays();
-  const { schedules } = useSchedules();
+  const { holidays, removeHoliday } = useHolidays();
+  const { previewAffected, createHoliday, changeHoliday } = useHolidayActions();
+  const { confirm, confirmDialog } = useConfirm();
   const { auth } = useAuth();
   const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
 
@@ -43,12 +45,8 @@ export default function Holidays() {
 
   const holidaysPg = usePagination(visible, 10);
 
-  const affectedCount = (h) =>
-    schedules.filter(
-      (s) => s.date === h.date && !["cancelled", "completed"].includes(s.status) && (!h.branchId || s.branchId === h.branchId)
-    ).length;
-
-  const handleAdd = (e) => {
+  // Menetapkan libur membatalkan sesi aktif di tanggal itu (kecuali completed / cancelled / rescheduled). Admin diberi info dulu.
+  const handleAdd = async (e) => {
     e.preventDefault();
     const branchId = form.scope === "all" ? null : form.scope;
     const error = validateHoliday(holidays, { date: form.date, name: form.name, branchId, excludeId: editingId });
@@ -56,28 +54,28 @@ export default function Holidays() {
       toast.error(error);
       return;
     }
-    if (editingId) {
-      updateHoliday(editingId, { date: form.date, name: form.name.trim(), branchId });
-      toast.success("Hari libur diperbarui. Sesi yang sudah dibuat tidak berubah otomatis.");
-      setEditingId(null);
-      setForm(emptyForm);
-      return;
+    const draft = editingId ? { date: form.date, name: form.name.trim(), branchId } : makeHoliday({ date: form.date, name: form.name, branchId });
+    const affected = previewAffected(draft);
+    if (affected.length > 0) {
+      const ok = await confirm({
+        title: `${affected.length} sesi akan dibatalkan`,
+        description: `Ada ${affected.length} sesi (scheduled / menunggu jadwal pengganti) pada ${fmtDate(draft.date)}${branchId ? ` di ${branchName(branchId)}` : ""}. Semuanya otomatis dibatalkan karena hari libur "${draft.name}" tanpa memotong kredit. Sesi completed, cancelled, dan rescheduled tidak berubah.`,
+        confirmLabel: "Tetapkan Libur & Batalkan Sesi",
+      });
+      if (!ok) return;
     }
-    const holiday = makeHoliday({ date: form.date, name: form.name, branchId });
-    addHoliday(holiday);
-    const affected = affectedCount(holiday);
-    toast.success(
-      affected > 0
-        ? `Hari libur ditambahkan. ${affected} sesi terjadwal pada tanggal itu tidak berubah otomatis: atur manual (reschedule/cancel).`
-        : "Hari libur ditambahkan."
-    );
-    setForm((f) => ({ ...f, date: "", name: "" }));
+    const { cancelled } = editingId ? changeHoliday(editingId, { date: draft.date, name: draft.name, branchId }) : createHoliday(draft);
+    const info = cancelled > 0 ? ` ${cancelled} sesi pada tanggal itu dibatalkan otomatis (tanpa potong kredit).` : "";
+    toast.success(`${editingId ? "Hari libur diperbarui." : "Hari libur ditambahkan."}${info}`);
+    if (editingId) setEditingId(null);
+    setForm(editingId ? emptyForm : (f) => ({ ...f, date: "", name: "" }));
   };
 
   const today = todayStr();
 
   return (
     <div className="space-y-6" data-testid="holidays-page">
+      {confirmDialog}
       <div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-100/80 text-rose-800 text-xs font-semibold mb-2">
           <CalendarOff className="w-3.5 h-3.5 text-rose-600" />
@@ -85,7 +83,7 @@ export default function Holidays() {
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Hari Libur</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Tanggal libur dilewati oleh jadwal berulang dan tidak bisa dipilih saat membuat atau memindahkan sesi. Sesi yang sudah ada tidak berubah otomatis.
+          Tanggal libur dilewati oleh jadwal berulang dan tidak bisa dipilih saat membuat atau memindahkan sesi. Sesi aktif di tanggal libur (scheduled / menunggu jadwal pengganti) otomatis dibatalkan tanpa potong kredit; completed, cancelled, dan rescheduled tidak berubah.
         </p>
       </div>
 
@@ -134,19 +132,17 @@ export default function Holidays() {
             <EmptyState icon={CalendarOff} title="Belum ada hari libur" subtitle="Tambahkan tanggal libur nasional atau libur klinik di atas." />
           ) : (
             <>
-            <Table stackOnMobile className="min-w-[560px] w-full">
+            <Table stackOnMobile className="min-w-[480px] w-full">
               <TableHeader>
                 <TableRow className="bg-slate-50/70 hover:bg-slate-50/70 border-b border-slate-200">
                   <TableHead className="font-bold text-slate-700 text-xs py-3.5 pl-6 whitespace-nowrap">Tanggal</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Nama</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Cabang</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-xs whitespace-nowrap">Sesi terdampak</TableHead>
                   <TableHead className="font-bold text-slate-700 text-xs text-right pr-6 whitespace-nowrap">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {holidaysPg.pageItems.map((h) => {
-                  const affected = affectedCount(h);
                   return (
                     <TableRow key={h.id} className="border-b border-slate-100 hover:bg-slate-50/50" data-testid={`holiday-row-${h.id}`}>
                       <TableCell data-label="Tanggal" className="pl-6 text-xs font-bold text-slate-900 whitespace-nowrap">
@@ -155,13 +151,6 @@ export default function Holidays() {
                       </TableCell>
                       <TableCell data-label="Nama" className="text-xs font-semibold text-slate-800">{h.name}</TableCell>
                       <TableCell data-label="Cabang" className="text-xs text-slate-600">{h.branchId ? branchName(h.branchId) : "Semua cabang"}</TableCell>
-                      <TableCell data-label="Sesi terdampak" className="text-xs">
-                        {affected > 0 ? (
-                          <span className="font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">{affected} sesi perlu diatur manual</span>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </TableCell>
                       <TableCell data-nolabel className="text-right pr-6 whitespace-nowrap">
                         <Button
                           aria-label={`Edit hari libur ${h.name}`}
