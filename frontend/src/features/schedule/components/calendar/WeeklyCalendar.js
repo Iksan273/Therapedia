@@ -63,7 +63,7 @@ function SessionChip({ s, name, therapistName, isFrozen, isConflict, isSelected,
             onActivate(s);
           }}
           className={cn(
-            "w-full min-w-0 text-left rounded-lg border px-2 py-1.5 text-[11px] leading-tight shadow-2xs hover:shadow-md hover:brightness-110 transition-all duration-150 cursor-pointer",
+            "w-full min-w-0 text-left rounded-lg border px-2 py-1.5 text-[11px] leading-tight shadow-2xs hover:shadow-md hover:brightness-95 transition-all duration-150 cursor-pointer",
             SESSION_COLORS[sessionColorKey(s, { isFrozen, isConflict })].chip,
             isSelected && "ring-2 ring-sky-600 shadow-md"
           )}
@@ -135,7 +135,9 @@ export const WeeklyCalendar = ({
   selectedSessionIds = [],
   onToggleSelectSession,
   isClientCreditZero,
+  holidays = [], // hari libur yang berlaku di tampilan ini: kolom diberi penanda & slot tidak bisa diklik untuk menambah jadwal
 }) => {
+  const holidayByDate = new Map(holidays.map((h) => [h.date, h]));
   const days = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
 
   // Sesi yang bentrok: terapis sama handle client lain di jam yang overlap
@@ -185,12 +187,18 @@ export const WeeklyCalendar = ({
               {days.map((day) => (
                 <div
                   key={day.toISOString()}
-                  className={cn("py-3 px-2 text-center border-l border-slate-200/80 min-w-0", isToday(day) ? "bg-sky-50/90" : "")}
+                  className={cn("py-3 px-2 text-center border-l border-slate-200/80 min-w-0", isToday(day) ? "bg-sky-50/90" : "", holidayByDate.has(format(day, "yyyy-MM-dd")) && "bg-rose-100")}
+                  data-testid={holidayByDate.has(format(day, "yyyy-MM-dd")) ? `calendar-holiday-${format(day, "yyyy-MM-dd")}` : undefined}
                 >
                   <p className={cn("text-[11px] font-bold uppercase tracking-wider", isToday(day) ? "text-sky-700" : "text-slate-500")}>{format(day, "EEE")}</p>
                   <p className={cn("text-xs sm:text-sm font-extrabold tabular-nums mt-0.5", isToday(day) ? "text-sky-900 font-black" : "text-slate-800")}>
                     {format(day, "dd/MM/yyyy")}
                   </p>
+                  {holidayByDate.has(format(day, "yyyy-MM-dd")) && (
+                    <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-rose-700 truncate" title={holidayByDate.get(format(day, "yyyy-MM-dd")).name}>
+                      Libur • {holidayByDate.get(format(day, "yyyy-MM-dd")).name}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
@@ -212,9 +220,10 @@ export const WeeklyCalendar = ({
                       className={cn(
                         "calendar-grid-cell border-l border-slate-100 p-1 space-y-1 min-h-[58px] min-w-0",
                         isToday(day) && "bg-sky-50/30",
+                        holidayByDate.has(dayStr) && "bg-rose-50 bg-[repeating-linear-gradient(135deg,transparent,transparent_6px,rgba(244,63,94,0.08)_6px,rgba(244,63,94,0.08)_12px)]",
                         onSlotClick && !isBulkMode && "cursor-pointer hover:bg-sky-50/50 transition-colors duration-150"
                       )}
-                      onClick={() => !isBulkMode && onSlotClick && onSlotClick(dayStr, hour)}
+                      onClick={() => !isBulkMode && onSlotClick && onSlotClick(dayStr, hour, holidayByDate.get(dayStr) || null)}
                       data-testid={`calendar-slot-${dayStr}-${hour.replace(":", "")}`}
                     >
                       {items.map(renderItem)}
@@ -241,6 +250,10 @@ export const CalendarLegend = () => (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200">
       <span className="w-3 h-3 rounded-full border border-dashed border-slate-400 bg-white" />
       Jadwal asal (dipindah)
+    </span>
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200">
+      <span className="w-3 h-3 rounded-sm border border-rose-400 bg-rose-100" />
+      Hari libur (tidak bisa dijadwalkan)
     </span>
     <span className="text-slate-400">• Arahkan kursor ke kartu untuk detail</span>
   </div>

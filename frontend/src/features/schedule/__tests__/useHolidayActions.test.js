@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import AppProviders from "@/app/providers/AppProviders";
 import { ensureSeedsIfNeeded } from "@/data/seedRegistry";
 import { useHolidayActions } from "@/features/schedule/hooks/useHolidayActions";
+import { useSessionActions } from "@/features/schedule/hooks/useSessionActions";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useHolidays } from "@/stores/holidaysStore";
@@ -14,7 +15,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let ctx;
 function Probe() {
-  ctx = { actions: useHolidayActions(), schedules: useSchedules(), credits: useCredits(), holidays: useHolidays() };
+  ctx = { session: useSessionActions(), actions: useHolidayActions(), schedules: useSchedules(), credits: useCredits(), holidays: useHolidays() };
   return null;
 }
 
@@ -47,4 +48,15 @@ test("createHoliday membatalkan sesi aktif tanpa menyentuh kredit atau sesi riwa
   expect([byId.c.status, byId.d.status, byId.e.status]).toEqual(["completed", "cancelled", "rescheduled"]);
   expect(JSON.stringify(ctx.credits.credits.records)).toBe(creditsBefore);
   expect(ctx.holidays.holidays.some((h) => h.name === "Libur Uji")).toBe(true);
+});
+
+test("createSessions menolak sesi di tanggal libur (pagar terakhir) dan tetap membuat sesi di tanggal lain", async () => {
+  await act(async () => ctx.actions.createHoliday(makeHoliday({ date: "2099-05-05", name: "Libur Uji" })));
+  const before = ctx.schedules.schedules.length;
+  let res;
+  await act(async () => { res = ctx.session.createSessions([mk("n1", "scheduled"), { ...mk("n2", "scheduled"), date: "2099-05-12" }]); });
+  expect(res.skippedHoliday).toBe(1);
+  expect(ctx.schedules.schedules).toHaveLength(before + 1);
+  expect(ctx.schedules.schedules.some((s) => s.id === "n1")).toBe(false);
+  expect(ctx.schedules.schedules.some((s) => s.id === "n2")).toBe(true);
 });

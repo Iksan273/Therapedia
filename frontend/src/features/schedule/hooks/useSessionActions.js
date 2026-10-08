@@ -1,3 +1,4 @@
+import { isHoliday } from "@/domain/holiday";
 import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useSchedules } from "@/stores/schedulesStore";
@@ -68,8 +69,11 @@ export function useSessionActions() {
 
   // Buat satu atau beberapa sesi (milik satu client). Sesi asesmen otomatis memajukan client ke
   // "assessment_scheduled" (maju saja; boleh melompat dari inquiry / service_selected).
-  const createSessions = (list) => {
-    if (list.length === 0) return { assessmentScheduled: false };
+  // Sesi di hari libur (sesuai cabang sesi) tidak pernah dibuat: pagar terakhir di luar validasi form. Mengembalikan `skippedHoliday`.
+  const createSessions = (input) => {
+    const list = input.filter((s) => !isHoliday(holidays, s.date, s.branchId));
+    const skippedHoliday = input.length - list.length;
+    if (list.length === 0) return { assessmentScheduled: false, skippedHoliday };
     const first = list[0];
     if (list.length === 1) addSchedule(first);
     else addSchedules(list);
@@ -83,7 +87,7 @@ export function useSessionActions() {
         assessmentScheduled = true;
       }
     }
-    return { assessmentScheduled };
+    return { assessmentScheduled, skippedHoliday };
   };
 
   const saveReport = (schedule, report) => {

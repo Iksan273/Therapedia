@@ -495,6 +495,7 @@ export const AddScheduleModal = ({
                     className="w-full bg-white h-9"
                     value={date}
                     onChange={(e) => setDate(e?.target?.value ?? e)}
+                    isDateDisabled={(iso) => Boolean(findHoliday(holidays, iso, selectedClient?.branchId))}
                   />
                   {findHoliday(holidays, date, selectedClient?.branchId) && (
                     <p className="text-[11px] font-semibold text-rose-600" data-testid="holiday-warning">

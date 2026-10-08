@@ -37,6 +37,8 @@ import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useHolidays } from "@/stores/holidaysStore";
+import { useAuth } from "@/stores/authStore";
+import { holidayMessage } from "@/domain/holiday";
 import { useMasterData } from "@/stores/masterDataStore";
 import { isCreditZero } from "@/domain/credit";
 import { bookingNoteOf, cancelNoteOf } from "@/domain/schedule";
@@ -48,6 +50,7 @@ export default function CalendarPage() {
   const { schedules } = useSchedules();
   const sessionActions = useSessionActions();
   const { holidays } = useHolidays();
+  const { activeBranch } = useAuth();
   const { clients } = useClients();
   const { therapists } = useTherapists();
   const { getRecordForClient } = useCredits();
@@ -231,7 +234,20 @@ export default function CalendarPage() {
       ? `${format(weekStart, "dd/MM/yyyy")} – ${format(addDays(addWeeks(weekStart, 1), -1), "dd/MM/yyyy")}`
       : format(selectedDay, "EEEE, dd/MM/yyyy");
 
-  const openAdd = (date, hour) =>
+  // Libur yang menutup kalender ini: libur semua cabang + libur cabang aktif. Slot di tanggal libur tidak bisa dijadwalkan.
+  const calendarHolidays = useMemo(() => holidays.filter((h) => !h.branchId || h.branchId === activeBranch), [holidays, activeBranch]);
+  const holidayOn = (date) => calendarHolidays.find((h) => h.date === date) || null;
+
+  const openAdd = (date, hour) => {
+    const holiday = holidayOn(date);
+    if (holiday) {
+      toast.error(holidayMessage(holiday));
+      return;
+    }
+    openAddModal(date, hour);
+  };
+
+  const openAddModal = (date, hour) =>
     setAddModal({
       open: true,
       defaults: {
@@ -521,6 +537,7 @@ export default function CalendarPage() {
           schedules={visibleSchedules}
           getClientName={getClientName}
           getTherapistName={getTherapistName}
+          holidays={calendarHolidays}
           onSlotClick={(date, hour) => openAdd(date, hour)}
           onSessionClick={(s) => {
             setSelectedSession(s);

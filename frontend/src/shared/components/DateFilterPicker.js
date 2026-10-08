@@ -26,6 +26,7 @@ export default function DateFilterPicker({
   id,
   minDate,
   maxDate,
+  isDateDisabled, // (yyyy-MM-dd) => boolean; mis. hari libur. Nonaktif di kalender dan diabaikan bila diketik
   "data-testid": testId,
 }) {
   const [open, setOpen] = useState(false);
@@ -69,8 +70,8 @@ export default function DateFilterPicker({
   const toDate = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? new Date(`${iso}T00:00:00`) : null);
   const minD = toDate(minDate);
   const maxD = toDate(maxDate);
-  const outOfRange = (iso) => Boolean((minDate && iso < minDate) || (maxDate && iso > maxDate));
-  const disabledDays = [minD && { before: minD }, maxD && { after: maxD }].filter(Boolean);
+  const outOfRange = (iso) => Boolean((minDate && iso < minDate) || (maxDate && iso > maxDate) || (isDateDisabled && isDateDisabled(iso)));
+  const disabledDays = [minD && { before: minD }, maxD && { after: maxD }, isDateDisabled && ((d) => isDateDisabled(format(d, "yyyy-MM-dd")))].filter(Boolean);
 
   // Handle direct text input
   const handleTextChange = (e) => {
