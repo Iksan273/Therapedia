@@ -1,5 +1,5 @@
 import { buildRecurringSchedules, isReportEmpty, isUnreportedSession, reportFilledCount } from "@/domain/schedule";
-import { DEFAULT_HOLIDAYS, findHoliday, holidayDateSet, holidaysForBranch, isHoliday, makeHoliday, validateHoliday } from "@/domain/holiday";
+import { DEFAULT_HOLIDAYS, findHoliday, holidayDateSet, holidaysForBranch, expandHolidayRange, isHoliday, makeHoliday, validateHoliday, validateHolidayRange } from "@/domain/holiday";
 
 describe("hari libur", () => {
   const holidays = [
@@ -71,5 +71,16 @@ describe("jadwal rutin dan jadwal aktif di detail client", () => {
     ];
     const routines = deriveRecurringRoutines(list, today);
     expect(routines.map((r) => [r.day, r.startTime, r.count])).toEqual([["Senin", "09:00", 2], ["Kamis", "14:00", 1]]);
+  });
+
+  test("rentang tanggal libur: diurai per hari, divalidasi per tanggal", () => {
+    const holidays = [{ id: "h1", date: "2026-12-25", name: "Natal", branchId: null }];
+    expect(expandHolidayRange("2026-12-30", "2027-01-02")).toEqual(["2026-12-30", "2026-12-31", "2027-01-01", "2027-01-02"]);
+    expect(expandHolidayRange("2026-12-30", "")).toEqual(["2026-12-30"]);
+    expect(expandHolidayRange("2026-12-30", "2026-12-29")).toEqual([]);
+    expect(validateHolidayRange(holidays, { start: "2026-12-30", end: "2026-12-29", name: "x" })).toMatch(/sebelum/);
+    expect(validateHolidayRange(holidays, { start: "2026-12-24", end: "2026-12-26", name: "Cuti" })).toMatch(/sudah terdaftar.*2026-12-25/);
+    expect(validateHolidayRange(holidays, { start: "2026-12-27", end: "2026-12-29", name: "Cuti" })).toBeNull();
+    expect(validateHolidayRange(holidays, { start: "2026-01-01", end: "2028-01-01", name: "Cuti" })).toMatch(/maksimal/);
   });
 });

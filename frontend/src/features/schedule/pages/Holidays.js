@@ -17,7 +17,7 @@ import { useHolidayActions } from "@/features/schedule/hooks/useHolidayActions";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, branchName } from "@/domain/branch";
-import { makeHoliday, validateHoliday } from "@/domain/holiday";
+import { expandHolidayRange, makeHoliday, validateHoliday, validateHolidayRange } from "@/domain/holiday";
 import { fmtDate } from "@/shared/lib/format";
 import { todayStr } from "@/shared/lib/id";
 
@@ -25,13 +25,13 @@ import { todayStr } from "@/shared/lib/id";
 // Menambah libur membatalkan sesi aktif di tanggal itu (konfirmasi + info jumlah sesi); lihat useHolidayActions.
 export default function Holidays() {
   const { holidays, removeHoliday } = useHolidays();
-  const { previewAffected, createHoliday, changeHoliday } = useHolidayActions();
+  const { previewAffected, previewAffectedMany, createHolidays, changeHoliday } = useHolidayActions();
   const { confirm, confirmDialog } = useConfirm();
   const { auth } = useAuth();
   const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
 
   // Master boleh libur semua cabang; role lain terkunci ke cabangnya
-  const emptyForm = { date: "", name: "", scope: isMaster ? "all" : auth?.branchId || "all" };
+  const emptyForm = { date: "", endDate: "", name: "", scope: isMaster ? "all" : auth?.branchId || "all" };
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null); // id libur yang sedang diubah (null = tambah baru)
 
@@ -49,26 +49,33 @@ export default function Holidays() {
   const handleAdd = async (e) => {
     e.preventDefault();
     const branchId = form.scope === "all" ? null : form.scope;
-    const error = validateHoliday(holidays, { date: form.date, name: form.name, branchId, excludeId: editingId });
+    // Tambah baru boleh berentang (Sampai tanggal); mengubah libur tetap satu tanggal
+    const endDate = editingId ? "" : form.endDate;
+    const error = editingId
+      ? validateHoliday(holidays, { date: form.date, name: form.name, branchId, excludeId: editingId })
+      : validateHolidayRange(holidays, { start: form.date, end: endDate, name: form.name, branchId });
     if (error) {
       toast.error(error);
       return;
     }
-    const draft = editingId ? { date: form.date, name: form.name.trim(), branchId } : makeHoliday({ date: form.date, name: form.name, branchId });
-    const affected = previewAffected(draft);
+    const drafts = editingId
+      ? [{ date: form.date, name: form.name.trim(), branchId }]
+      : expandHolidayRange(form.date, endDate).map((date) => makeHoliday({ date, name: form.name, branchId }));
+    const affected = editingId ? previewAffected(drafts[0]) : previewAffectedMany(drafts);
     if (affected.length > 0) {
+      const when = drafts.length > 1 ? `${fmtDate(drafts[0].date)} – ${fmtDate(drafts[drafts.length - 1].date)}` : fmtDate(drafts[0].date);
       const ok = await confirm({
         title: `${affected.length} sesi akan dibatalkan`,
-        description: `Ada ${affected.length} sesi (scheduled / menunggu jadwal pengganti) pada ${fmtDate(draft.date)}${branchId ? ` di ${branchName(branchId)}` : ""}. Semuanya otomatis dibatalkan karena hari libur "${draft.name}" tanpa memotong kredit. Sesi completed, cancelled, dan rescheduled tidak berubah.`,
+        description: `Ada ${affected.length} sesi (scheduled / menunggu jadwal pengganti) pada ${when}${branchId ? ` di ${branchName(branchId)}` : ""}. Semuanya otomatis dibatalkan karena hari libur "${drafts[0].name}" tanpa memotong kredit. Sesi completed, cancelled, dan rescheduled tidak berubah.`,
         confirmLabel: "Tetapkan Libur & Batalkan Sesi",
       });
       if (!ok) return;
     }
-    const { cancelled } = editingId ? changeHoliday(editingId, { date: draft.date, name: draft.name, branchId }) : createHoliday(draft);
+    const { cancelled } = editingId ? changeHoliday(editingId, drafts[0]) : createHolidays(drafts);
     const info = cancelled > 0 ? ` ${cancelled} sesi pada tanggal itu dibatalkan otomatis (tanpa potong kredit).` : "";
-    toast.success(`${editingId ? "Hari libur diperbarui." : "Hari libur ditambahkan."}${info}`);
+    toast.success(`${editingId ? "Hari libur diperbarui." : drafts.length > 1 ? `${drafts.length} hari libur ditambahkan.` : "Hari libur ditambahkan."}${info}`);
     if (editingId) setEditingId(null);
-    setForm(editingId ? emptyForm : (f) => ({ ...f, date: "", name: "" }));
+    setForm(editingId ? emptyForm : (f) => ({ ...f, date: "", endDate: "", name: "" }));
   };
 
   const today = todayStr();
@@ -89,11 +96,17 @@ export default function Holidays() {
 
       <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
         <CardContent className="p-4 sm:p-5">
-          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr_auto_auto] gap-3 items-end" data-testid="holiday-form">
+          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_2fr_1fr_auto_auto] gap-3 items-end" data-testid="holiday-form">
             <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700">Tanggal *</Label>
-              <DateFilterPicker allowClear={false} className="w-full" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} data-testid="holiday-date-input" />
+              <Label className="text-xs font-bold text-slate-700">{editingId ? "Tanggal *" : "Dari tanggal *"}</Label>
+              <DateFilterPicker allowClear={false} className="w-full" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value, endDate: form.endDate && form.endDate < e.target.value ? "" : form.endDate })} data-testid="holiday-date-input" />
             </div>
+            {!editingId && (
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Sampai tanggal</Label>
+                <DateFilterPicker className="w-full" minDate={form.date || undefined} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} data-testid="holiday-end-date-input" />
+              </div>
+            )}
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Nama Hari Libur *</Label>
               <Input className="border-slate-200 bg-slate-50 text-xs" placeholder="mis. Hari Raya Idul Fitri" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="holiday-name-input" />
@@ -159,7 +172,7 @@ export default function Holidays() {
                           className="text-slate-400 hover:text-sky-700 hover:bg-sky-50 cursor-pointer"
                           onClick={() => {
                             setEditingId(h.id);
-                            setForm({ date: h.date, name: h.name, scope: h.branchId || "all" });
+                            setForm({ date: h.date, endDate: "", name: h.name, scope: h.branchId || "all" });
                             window.scrollTo?.({ top: 0, behavior: "smooth" });
                           }}
                           title="Edit hari libur"

@@ -104,7 +104,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `password_reset_otps` | OTP email untuk lupa password staf |
 | **B. Master data** | `services` | Layanan intake (BOT-A, FOT-A, Consultation, …) |
 | | `sensory_quadrants` | Kuadran sensori (AV/SN/RG/SK) |
-| | `cancel_reasons` | Pilihan cepat alasan **Cancel / Off** (satu daftar; tanpa FK; transaksi menyimpan string) |
+| | `cancel_reasons` | Pilihan cepat alasan **Cancel / Off** (satu tabel; tanpa FK; transaksi menyimpan string). `is_therapist_off = 1` menandai alasan **Therapist Off** (master terpisah di UI; dasar Therapist Off Rate) |
 | | `discharge_reasons` | Pilihan cepat alasan discharge (tanpa FK; transaksi menyimpan string) |
 | | `master_packages` | Katalog paket kredit (+ jatah cuti, `is_satuan`, `is_assessment`) |
 | | `holidays` | Hari libur (dilewati jadwal berulang, tak bisa dipilih di kalender) |
@@ -348,12 +348,14 @@ Schema::create('sensory_quadrants', function (Blueprint $table) {
 
 #### `cancel_reasons` & `discharge_reasons` (pilihan cepat, TANPA foreign key)
 Hanya **sumber pilihan cepat** untuk dropdown di UI (dikelola di menu Master Data). Tabel transaksi (`schedules`, `clients`, `credit_ledger`) menyimpan alasan sebagai **string biasa** (`cancel_reason`, `pending_reason`, `discharge_reason`): berisi `code` pilihan cepat **atau** teks bebas yang diketik user ("Lainnya"). Karena itu tidak ada FK: mengubah/menghapus pilihan tidak memengaruhi riwayat, dan teks bebas tidak perlu terdaftar. Label tampil = `label` bila string cocok dengan `code`, selain itu string apa adanya.
+**Therapist Off (10 Okt 2026)**: alasan karena terapis berhalangan disimpan di tabel yang sama dengan `is_therapist_off = 1` (UI: tab *Therapist Off* di Master Data; `code` unik lintas kedua daftar karena PK sama; tetap menjadi pilihan di form Cancel / Off). Sesi tidak mendapat kolom baru: statistik mengenali Therapist Off lewat `schedules.cancel_reason = cancel_reasons.code AND is_therapist_off = 1`. Cancel Therapist Off **tetap terhitung di Cancellation Rate keseluruhan**; Therapist Off Rate hanya rinciannya (keduanya dibagi total sesi pada filter). Karena tanpa FK, menghapus alasan atau mengubah flag-nya mengubah klasifikasi riwayat lama (konsisten dengan frontend); nonaktifkan bila ingin hitungan lama tetap.
 Kuota cancel 3x per paket **sudah diganti credit leave per paket** (`client_packages.leave_total/leave_used`, §6.2); `cancel_count` tinggal penghitung statistik. Alasan sistem `reschedule_dibatalkan` (drop reschedule menggantung, netral kredit) adalah konstanta kode, bukan baris tabel.
 ```php
 Schema::create('cancel_reasons', function (Blueprint $table) {
     $table->string('code', 40)->primary();            // SATU daftar Cancel / Off (revisi 7 Okt 2026): sakit, izin_keluarga, bentrok_sekolah, tanpa_kabar, OL, S, SCA, MCU, FM, TI, H
     $table->string('label', 120);
     $table->boolean('is_active')->default(true);      // nonaktif = tidak muncul di pilihan baru
+    $table->boolean('is_therapist_off')->default(false); // master Therapist Off (seed: TO, TS): dasar Therapist Off Rate; tetap muncul di pilihan Cancel / Off
     $table->unsignedSmallInteger('sort_order')->default(0);
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
     $table->timestamps();
@@ -1095,15 +1097,20 @@ WHERE status = 'paid'
 GROUP BY branch_id, paid_date;
 
 -- Q12 Schedule dashboard: status sesi harian per cabang
+-- Cancellation Rate = sessions_cancel_counted / sessions_total (semua alasan; reschedule dilepas `RD` netral -> tidak dihitung)
+-- Therapist Off Rate = sessions_cancel_therapist_off / sessions_total (BAGIAN dari sessions_cancel_counted, bukan tambahan)
 CREATE OR REPLACE VIEW v_daily_sessions AS
-SELECT branch_id, session_date,
-       COUNT(*)                                   AS sessions_total,
-       SUM(status = 'completed')                  AS sessions_completed,
-       SUM(status = 'cancelled')                  AS sessions_cancelled,
-       SUM(status = 'reschedule_pending')         AS sessions_pending,
-       SUM(status IN ('scheduled','rescheduled')) AS sessions_upcoming
-FROM schedules
-GROUP BY branch_id, session_date;
+SELECT s.branch_id, s.session_date,
+       COUNT(*)                                                                AS sessions_total,
+       SUM(s.status = 'completed')                                             AS sessions_completed,
+       SUM(s.status = 'cancelled')                                             AS sessions_cancelled,
+       SUM(s.status = 'cancelled' AND COALESCE(s.cancel_reason, '') <> 'RD')   AS sessions_cancel_counted,
+       SUM(s.status = 'cancelled' AND COALESCE(r.is_therapist_off, 0) = 1)     AS sessions_cancel_therapist_off,
+       SUM(s.status = 'reschedule_pending')                                    AS sessions_pending,
+       SUM(s.status IN ('scheduled','rescheduled'))                            AS sessions_upcoming
+FROM schedules s
+LEFT JOIN cancel_reasons r ON r.code = s.cancel_reason   -- tabel kecil ber-PK code
+GROUP BY s.branch_id, s.session_date;
 
 -- Q12 Inquiry dashboard & Branch performance: funnel pipeline harian per cabang
 CREATE OR REPLACE VIEW v_daily_pipeline AS
@@ -1428,7 +1435,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `therapists[]` + `staffUsers[]` | `users` |
 | `rolesList[]` / `rbacPermissions` | `roles` / `role_permissions` (+ `access_modules`) |
 | `master_services` / `master_quadrants` | `services` / `sensory_quadrants` |
-| `master_cancel_off_reasons` (+ `DEFAULT_CANCEL_REASONS`, satu daftar Cancel / Off) dan `master_discharge_reasons` | `cancel_reasons`, `discharge_reasons` (pilihan cepat; kolom transaksi = string, tanpa FK) |
+| `master_cancel_off_codes` (+ `DEFAULT_CANCEL_REASONS`), `master_therapist_off_codes` (+ `DEFAULT_THERAPIST_OFF_REASONS`: TO, TS) dan `master_discharge_reasons` | `cancel_reasons` (`is_therapist_off` = 0 / 1), `discharge_reasons` (pilihan cepat; kolom transaksi = string, tanpa FK) |
 | `leaves[]` (`leavesStore`, key `leaves`) | `client_leaves` (`startDate/endDate/countedStart/countedEnd/returnDate/returnNote/status/reason/note/voidReason/voidedAt/voidedBy` → kolom snake_case) |
 | `masterPackages[].leaveQuota / isSatuan / isAssessment` | `master_packages.leave_quota / is_satuan / is_assessment` |
 | `credits.records[].packages[].leaveTotal / leaveUsed` | `client_packages.leave_total / leave_used` (+ `clients.leave_credit_balance` = jumlah sisa) |
@@ -1459,7 +1466,8 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 | `credit_ledger.action` | `purchased, renewed, used, cancel_excused, cancel_penalty, off_excused, off_penalty, reversal, manual_adjust, converted_out, converted_in` | Tidak ada |
 | Revert sesi | `POST /schedules/{id}/revert`, hanya 1x (`reverted_at`); reschedule → slot `prev_*` | Blokir revert kedua; simpan riwayat slot (`prev_*`) |
 | Cuti client | Hanya dicatat Finance; jatah cuti **30 hari/tahun** per client (`leave_granted`; TIDAK terkait credit leave paket), reset tahunan manual oleh Finance (sisa hangus); hari dihitung dari **sesi pertama s.d. terakhir** di rentang (tanpa sesi = ditolak); cuti **tidak memotong kredit sesi maupun credit leave**; paket satuan maks 1x/bulan; cuti = pembatalan sesi (`cancel_reason = OL`, `leave_id`); jatah lewat = peringatan; tanpa hapus log; tombol Detail menampilkan riwayat selesai lebih awal / void; `client_leaves.status` = `active`, `voided` | `leavesStore`, `domain/leave.js`, tab Cuti di `/finance`, `LeaveQuotaCard`, `ResetLeaveDialog`, `LeaveDetailDialog` |
-| Cancel / Off | Satu aksi, satu status `cancelled`, satu daftar alasan (`cancel_reasons`) | `SessionDetailModal` (tombol Cancel / Off Sesi), Master Data tab Alasan Cancel / Off |
+| Cancel / Off | Satu aksi, satu status `cancelled`, satu tabel alasan (`cancel_reasons`; `is_therapist_off` menandai Therapist Off) | `SessionDetailModal` (tombol Cancel / Off Sesi), Master Data tab Alasan Cancel / Off dan Therapist Off |
+| Cancellation Rate & Therapist Off Rate | Rate keseluruhan memuat Therapist Off; Therapist Off Rate = rincian; keduanya dibagi total sesi pada filter | `DashboardSchedule`, `cancellationStats` (`domain/schedule.js`) |
 
 ---
 

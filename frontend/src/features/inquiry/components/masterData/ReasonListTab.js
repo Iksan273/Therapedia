@@ -23,7 +23,7 @@ const slugify = (text) =>
 // CRUD daftar pilihan cepat alasan (cancel / discharge). Data transaksi menyimpan alasan sebagai string,
 // jadi menghapus pilihan tidak merusak riwayat; hanya label lama tampil sebagai kodenya.
 // `codeMode` = kode wajib, singkat, HURUF BESAR (mis. S, OL, SCA). Kode itulah yang disimpan di transaksi dan tampil di riwayat.
-export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, onDelete, testId, codeMode = false }) {
+export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, onDelete, testId, codeMode = false, reservedCodes = [] }) {
   const { confirm, confirmDialog } = useConfirm();
   const [dialog, setDialog] = useState(EMPTY);
 
@@ -44,7 +44,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
         toast.error(codeMode ? `Kode ${noun} wajib diisi: 1-10 karakter huruf/angka (mis. S, OL, SCA).` : `Kode ${noun} tidak valid.`);
         return;
       }
-      if (items.some((r) => r.value === code)) {
+      if (items.some((r) => r.value === code) || reservedCodes.includes(code)) {
         toast.error(`Kode "${code}" sudah dipakai.`);
         return;
       }

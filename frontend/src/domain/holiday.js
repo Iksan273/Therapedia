@@ -1,3 +1,4 @@
+import { addDays, format, parseISO } from "date-fns";
 import { uid, nowIso } from "@/shared/lib/id";
 
 // Domain hari libur (nasional / klinik). Jadwal berulang MELEWATI tanggal libur dan kalender tidak bisa memilihnya.
@@ -39,6 +40,35 @@ export const validateHoliday = (holidays, { date, name, branchId = null, exclude
   if (!String(name || "").trim()) return "Nama hari libur wajib diisi.";
   const dup = holidays.some((h) => h.id !== excludeId && h.date === date && (h.branchId || null) === (branchId || null));
   return dup ? "Tanggal ini sudah terdaftar sebagai hari libur." : null;
+};
+
+// Rentang libur: tiap tanggal disimpan sebagai satu baris libur (aturan & tabel `holidays` tidak berubah). Batas aman 1 tahun.
+export const MAX_HOLIDAY_RANGE_DAYS = 366;
+
+// Daftar tanggal yyyy-MM-dd dari `start` sampai `end` (inklusif). `end` kosong = hanya `start`. Rentang terbalik / terlalu panjang → [].
+export const expandHolidayRange = (start, end) => {
+  if (!start) return [];
+  if (!end || end === start) return [start];
+  if (end < start) return [];
+  const dates = [];
+  for (let d = parseISO(start); format(d, "yyyy-MM-dd") <= end; d = addDays(d, 1)) {
+    dates.push(format(d, "yyyy-MM-dd"));
+    if (dates.length > MAX_HOLIDAY_RANGE_DAYS) return [];
+  }
+  return dates;
+};
+
+// Validasi tambah libur berentang: rentang valid + tiap tanggal lolos `validateHoliday`. Mengembalikan pesan error atau null.
+export const validateHolidayRange = (holidays, { start, end, name, branchId = null }) => {
+  if (end && start && end < start) return "Tanggal selesai tidak boleh sebelum tanggal mulai.";
+  if (start && end && expandHolidayRange(start, end).length === 0) return `Rentang libur maksimal ${MAX_HOLIDAY_RANGE_DAYS} hari.`;
+  const dates = expandHolidayRange(start, end);
+  if (dates.length === 0) return validateHoliday(holidays, { date: start, name, branchId });
+  for (const date of dates) {
+    const error = validateHoliday(holidays, { date, name, branchId });
+    if (error) return dates.length > 1 ? `${error} (${date})` : error;
+  }
+  return null;
 };
 
 // Pesan standar saat tanggal libur dipilih.

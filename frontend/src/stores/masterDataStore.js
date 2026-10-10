@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
 import { DEFAULT_DISCHARGE_REASONS, INTAKE_SERVICES, dischargeReasonLabel } from "@/domain/client";
-import { DEFAULT_CANCEL_REASONS, cancelReasonCode, cancelReasonLabel } from "@/domain/schedule";
+import { DEFAULT_CANCEL_REASONS, DEFAULT_THERAPIST_OFF_REASONS, cancelReasonCode, cancelReasonLabel } from "@/domain/schedule";
 
 const MasterDataContext = createContext(null);
 
@@ -101,6 +101,7 @@ const SEED_QUADRANTS = [
 const seedServices = () => INTAKE_SERVICES.map((s) => ({ ...s, active: true }));
 const seedQuadrants = () => SEED_QUADRANTS.map((q) => ({ ...q }));
 const seedCancelReasons = () => DEFAULT_CANCEL_REASONS.map((r) => ({ ...r, active: true }));
+const seedTherapistOffReasons = () => DEFAULT_THERAPIST_OFF_REASONS.map((r) => ({ ...r, active: true }));
 const seedDischargeReasons = () => DEFAULT_DISCHARGE_REASONS.map((r) => ({ ...r, active: true }));
 
 // Reducer generik untuk daftar master yang dikunci oleh `idKey`.
@@ -125,10 +126,13 @@ export const MasterDataProvider = ({ children }) => {
   const [services, dispatchServices] = usePersistentReducer("master_services", servicesReducer, seedServices);
   const [quadrants, dispatchQuadrants] = usePersistentReducer("master_quadrants", quadrantsReducer, seedQuadrants);
   const [cancelReasons, dispatchCancel] = usePersistentReducer("master_cancel_off_codes", reasonsReducer, seedCancelReasons); // satu daftar alasan Cancel / Off (key baru: tiap alasan punya CODE)
+  const [therapistOffReasons, dispatchTherapistOff] = usePersistentReducer("master_therapist_off_codes", reasonsReducer, seedTherapistOffReasons); // master Therapist Off (ber-CODE), ikut jadi pilihan Cancel / Off
   const [dischargeReasons, dispatchDischarge] = usePersistentReducer("master_discharge_reasons", reasonsReducer, seedDischargeReasons);
 
   const value = useMemo(() => {
     const quadrantMap = Object.fromEntries(quadrants.map((q) => [q.code, q]));
+    const allCancelReasons = [...cancelReasons, ...therapistOffReasons.map((r) => ({ ...r, therapistOff: true }))];
+    const therapistOffCodes = therapistOffReasons.map((r) => r.value);
     return {
       services,
       // Layanan yang boleh dipilih di form; yang nonaktif tetap bisa dilabeli lewat getService
@@ -146,13 +150,21 @@ export const MasterDataProvider = ({ children }) => {
       deleteQuadrant: (id) => dispatchQuadrants({ type: "DELETE", id }),
 
       // Pilihan cepat alasan. Data transaksi menyimpan string (code atau teks custom), bukan relasi ke daftar ini.
-      cancelReasons,
-      activeCancelReasons: cancelReasons.filter((r) => r.active !== false),
-      getCancelReasonLabel: (val) => cancelReasonLabel(val, cancelReasons),
+      // `cancelReasons` = alasan Cancel / Off + alasan Therapist Off (dipakai form, label, dan grafik); `baseCancelReasons` = hanya daftar Cancel / Off
+      cancelReasons: allCancelReasons,
+      baseCancelReasons: cancelReasons,
+      activeCancelReasons: allCancelReasons.filter((r) => r.active !== false),
+      therapistOffReasons,
+      therapistOffCodes,
+      getCancelReasonLabel: (val) => cancelReasonLabel(val, allCancelReasons),
       getCancelReasonCode: (val) => cancelReasonCode(val),
       addCancelReason: (item) => dispatchCancel({ type: "ADD", item }),
       updateCancelReason: (id, patch) => dispatchCancel({ type: "UPDATE", id, patch }),
       deleteCancelReason: (id) => dispatchCancel({ type: "DELETE", id }),
+
+      addTherapistOffReason: (item) => dispatchTherapistOff({ type: "ADD", item }),
+      updateTherapistOffReason: (id, patch) => dispatchTherapistOff({ type: "UPDATE", id, patch }),
+      deleteTherapistOffReason: (id) => dispatchTherapistOff({ type: "DELETE", id }),
 
       dischargeReasons,
       activeDischargeReasons: dischargeReasons.filter((r) => r.active !== false),
@@ -161,7 +173,7 @@ export const MasterDataProvider = ({ children }) => {
       updateDischargeReason: (id, patch) => dispatchDischarge({ type: "UPDATE", id, patch }),
       deleteDischargeReason: (id) => dispatchDischarge({ type: "DELETE", id }),
     };
-  }, [services, quadrants, cancelReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchDischarge]);
+  }, [services, quadrants, cancelReasons, therapistOffReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchTherapistOff, dispatchDischarge]);
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
 };

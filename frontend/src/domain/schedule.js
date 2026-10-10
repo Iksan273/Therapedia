@@ -19,6 +19,14 @@ export const DEFAULT_CANCEL_REASONS = [
   { value: "NS", label: "No Show (Tanpa Kabar)" },
 ];
 
+// Master Therapist Off: alasan pembatalan karena TERAPIS berhalangan (bukan client). Daftar terpisah di Master Data, tetap ber-CODE,
+// dan ikut menjadi pilihan di form Cancel / Off. Tersimpan di sesi sebagai CODE biasa (`cancelReason`); statistik mengenalinya lewat
+// daftar kode ini, jadi tetap terhitung sebagai cancel biasa (Cancellation Rate keseluruhan) sekaligus Therapist Off.
+export const DEFAULT_THERAPIST_OFF_REASONS = [
+  { value: "TO", label: "Therapist Off (Terapis Berhalangan)" },
+  { value: "TS", label: "Therapist Sick (Terapis Sakit)" },
+];
+
 // Alasan sistem (tidak muncul di dropdown pembatalan biasa)
 export const RESCHEDULE_DROPPED = "RD";
 export const OTHER_REASON = "LN"; // alasan tidak diketahui / "Lainnya" (default aksi massal & data lama tanpa alasan)
@@ -53,6 +61,20 @@ export const cancelReasonLabel = (val, list = DEFAULT_CANCEL_REASONS) => {
 // Sesi yang dibatalkan dari status "reschedule menggantung" (alasan sistem). Potong kredit atau tidak tetap pilihan admin
 // seperti cancel biasa; penanda ini hanya dipakai statistik kehadiran (bukan kesalahan client).
 export const isCreditNeutralCancel = (s) => Boolean(s) && s.status === "cancelled" && normalizeCancelReason(s.cancelReason) === RESCHEDULE_DROPPED;
+
+// Sesi cancel yang disebabkan Therapist Off (kodenya ada di master Therapist Off).
+export const isTherapistOffCancel = (s, therapistOffCodes = []) =>
+  Boolean(s) && s.status === "cancelled" && Boolean(s.cancelReason) && therapistOffCodes.includes(normalizeCancelReason(s.cancelReason));
+
+// Statistik pembatalan sebuah kumpulan sesi. `cancelled` = SEMUA cancel (kecuali reschedule dilepas, netral) dan SUDAH memuat
+// cancel Therapist Off; `therapistOff` hanya bagian darinya. Kedua rate dibagi total sesi pada kumpulan yang sama. Pure, hasil turunan.
+export const cancellationStats = (schedules = [], therapistOffCodes = []) => {
+  const total = schedules.length;
+  const cancelled = schedules.filter((s) => s.status === "cancelled" && !isCreditNeutralCancel(s)).length;
+  const therapistOff = schedules.filter((s) => isTherapistOffCancel(s, therapistOffCodes)).length;
+  const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
+  return { total, cancelled, therapistOff, cancelRate: pct(cancelled), therapistOffRate: pct(therapistOff) };
+};
 
 // Slot waktu sebuah sesi (dipakai untuk jejak jadwal asal reschedule)
 export const scheduleSlot = (s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime, therapistId: s.therapistId });

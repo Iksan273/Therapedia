@@ -16,7 +16,8 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `assessment_categories` | `assessmentsStore` | `Category[]` | `assessment_categories`, `assessment_sections`, `assessment_questions` |
 | `master_services` | `masterDataStore` | `Service[]` (key `value`) | `services` |
 | `master_quadrants` | `masterDataStore` | `Quadrant[]` (key `code`) | `sensory_quadrants` |
-| `master_cancel_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `cancel_reasons` (tanpa FK) |
+| `master_cancel_off_codes` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `cancel_reasons` (`is_therapist_off` = 0, tanpa FK) |
+| `master_therapist_off_codes` | `masterDataStore` | `{ value, label, active }[]` (TO, TS; ikut jadi pilihan Cancel / Off) | `cancel_reasons` (`is_therapist_off` = 1) |
 | `master_discharge_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `discharge_reasons` (tanpa FK) |
 | `auth`, `activeBranch`, `staffUsers`, `rolesList` (+ `canDelete`), `rbacPermissions`, `passwordResets` | `authStore` | lihat 02 |
 | `branches` | `branchesStore` | `{ id, name, code (unik), city, address, phone, isActive, createdBy?, updatedBy? }[]` (nonaktif = tak muncul di pilihan baru, riwayat tetap; hapus = permanen beserta seluruh isi cabang, ADR 0005) | `branches` | — |

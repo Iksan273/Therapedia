@@ -129,7 +129,7 @@ Notasi tabel dampak: **C** = insert, **U** = update, **D** = delete, **R** = bac
 |---|---|---|---|
 | Layanan | `services` (PK `code`) | tambah, edit, aktif/nonaktif, hapus | tidak boleh dihapus bila dipakai `client_services`/`schedules.service_code` (FK `restrict`); nonaktifkan agar riwayat utuh |
 | Kuadran | `sensory_quadrants` | tambah, edit, hapus | tidak boleh dihapus bila dipakai `assessment_questions`; minimal 1 kuadran |
-| Alasan cancel / discharge | `cancel_reasons`, `discharge_reasons` | tambah, edit, aktif/nonaktif, hapus | tanpa pengaman: hanya sumber dropdown, riwayat menyimpan string sendiri |
+| Alasan cancel / therapist off / discharge | `cancel_reasons` (`is_therapist_off`), `discharge_reasons` | tambah, edit, aktif/nonaktif, hapus | tanpa pengaman: hanya sumber dropdown, riwayat menyimpan string sendiri (menghapus alasan Therapist Off mengubah hitungan Therapist Off Rate riwayat) |
 | Paket kredit | `master_packages` | tambah (edit/nonaktifkan; harga yang diubah tidak memengaruhi invoice/paket lama) | FK `RESTRICT` dari `invoices`/`client_packages.master_package_id` (paket yang pernah dipakai tidak bisa dihapus; nonaktifkan) + snapshot nama/harga di invoice dan `client_packages` |
 
 Jejak: `updated_by`. Hapus hanya untuk role `can_delete`. `master_packages` punya `invoice_code` (kode pendek di nomor invoice; `ASM` dicadangkan untuk invoice assessment). Tabel master kecil, dibaca by PK dan dimuat sekali per sesi (react-query `staleTime` panjang). Alasan sistem `reschedule_dibatalkan` bukan baris tabel (konstanta kode).
@@ -488,6 +488,7 @@ Semua angka dibaca dari **VIEW** (bukan tabel ringkasan), selalu dengan filter c
 | Pemakaian/penambahan kredit | Q12 | `v_daily_credit_usage` ← `credit_ledger` (`idx_ledger_branch_date`) |
 | Terapis summary | Q17 | `v_therapist_sessions` |
 | Antrean finance | Q9 | `v_invoice_queue` |
+| Cancellation Rate & Therapist Off Rate | `v_daily_sessions` (`sessions_cancel_counted`, `sessions_cancel_therapist_off` dibagi `sessions_total`) |
 | Pie alasan cancel / discharge | agregasi langsung | `schedules.cancel_reason`, `clients.discharge_reason` (string; kode pilihan cepat dikelompokkan per kode, teks custom ke "Lainnya") |
 
 Tabel ringkasan `daily_branch_metrics` hanya dibuat bila `EXPLAIN ANALYZE` view > 100 ms (job `metrics:rebuild`).

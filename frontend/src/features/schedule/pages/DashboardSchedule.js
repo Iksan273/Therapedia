@@ -4,7 +4,7 @@ import { ClientCombobox } from "@/shared/components/ClientCombobox";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Users, CalendarDays, Cake, CheckCircle2, XCircle, Building2, MessageCircle, Activity, CalendarClock, PieChart as PieIcon } from "lucide-react";
+import { Users, CalendarDays, Cake, CheckCircle2, XCircle, Building2, MessageCircle, Activity, CalendarClock, UserX, PieChart as PieIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
@@ -18,7 +18,7 @@ import { useAuth } from "@/stores/authStore";
 import { useMasterData } from "@/stores/masterDataStore";
 import { calcAge, fmtDate } from "@/shared/lib/format";
 import { BRANCHES, branchName } from "@/domain/branch";
-import { isCreditNeutralCancel, normalizeCancelReason } from "@/domain/schedule";
+import { cancellationStats, isCreditNeutralCancel, normalizeCancelReason } from "@/domain/schedule";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
 import { FilterBar, FilterField } from "@/shared/components/FilterBar";
 import { BranchFilter } from "@/shared/components/BranchFilter";
@@ -33,7 +33,7 @@ export default function DashboardSchedule() {
   const { schedules } = useSchedules();
   const { getRecordForClient } = useCredits();
   const { therapists } = useTherapists();
-  const { cancelReasons } = useMasterData();
+  const { cancelReasons, therapistOffCodes } = useMasterData();
   const { activeBranch, auth } = useAuth();
   const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
 
@@ -111,6 +111,9 @@ export default function DashboardSchedule() {
       completionRate: totalSessions > 0 ? Math.round((completed / totalSessions) * 100) : 0,
     };
   }, [filteredSchedules]);
+
+  // Cancellation Rate keseluruhan (semua cancel) dan bagian yang karena Therapist Off (sudah ikut terhitung di keseluruhan)
+  const cancelStats = useMemo(() => cancellationStats(filteredSchedules, therapistOffCodes), [filteredSchedules, therapistOffCodes]);
 
   // Cancellation Breakdown by Reason
   const cancellationByReasonData = useMemo(() => {
@@ -201,10 +204,10 @@ export default function DashboardSchedule() {
     const rescheduled = filteredTelemetrySchedules.filter((s) => s.status === "rescheduled").length;
     const cancelled = filteredTelemetrySchedules.filter((s) => s.status === "cancelled" && !isCreditNeutralCancel(s)).length;
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const cancellationRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
+    const { cancelRate: cancellationRate, therapistOff, therapistOffRate } = cancellationStats(filteredTelemetrySchedules, therapistOffCodes);
 
-    return { total, completed, rescheduled, cancelled, completionRate, cancellationRate };
-  }, [filteredTelemetrySchedules]);
+    return { total, completed, rescheduled, cancelled, completionRate, cancellationRate, therapistOff, therapistOffRate };
+  }, [filteredTelemetrySchedules, therapistOffCodes]);
 
   const telemetryTypeDistribution = useMemo(() => {
     const counts = {};
@@ -322,6 +325,26 @@ export default function DashboardSchedule() {
           helper="Dipisahkan per alasan izin"
           trend="down"
           data-testid="stat-cancelled-sessions"
+        />
+      </div>
+
+      {/* Cancellation Rate: keseluruhan, dan bagian yang karena Therapist Off (sudah termasuk di keseluruhan) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" data-testid="cancellation-rate-row">
+        <StatCard
+          icon={XCircle}
+          label="Cancellation Rate"
+          value={`${cancelStats.cancelRate}%`}
+          accent="danger"
+          trend={`${cancelStats.cancelled} dari ${cancelStats.total} sesi (semua alasan)`}
+          testid="stat-cancellation-rate"
+        />
+        <StatCard
+          icon={UserX}
+          label="Cancel karena Therapist Off"
+          value={`${cancelStats.therapistOffRate}%`}
+          accent="warning"
+          trend={`${cancelStats.therapistOff} sesi, sudah termasuk di Cancellation Rate`}
+          testid="stat-therapist-off-rate"
         />
       </div>
 
@@ -522,7 +545,7 @@ export default function DashboardSchedule() {
           </FilterBar>
 
           {/* Telemetry Metric Scorecards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
               <p className="text-[11px] font-bold text-slate-500">Total Filtered</p>
               <p className="text-xl font-black text-slate-900 mt-0.5">{telemetryMetrics.total}</p>
@@ -546,6 +569,11 @@ export default function DashboardSchedule() {
             <div className="bg-rose-50 rounded-xl p-3 border border-rose-200">
               <p className="text-[11px] font-bold text-rose-700">Cancel Rate</p>
               <p className="text-xl font-black text-rose-800 mt-0.5">{telemetryMetrics.cancellationRate}%</p>
+            </div>
+            <div className="bg-violet-50 rounded-xl p-3 border border-violet-200" data-testid="telemetry-therapist-off-rate">
+              <p className="text-[11px] font-bold text-violet-700">Therapist Off Rate</p>
+              <p className="text-xl font-black text-violet-800 mt-0.5">{telemetryMetrics.therapistOffRate}%</p>
+              <p className="text-[10px] font-semibold text-violet-600">{telemetryMetrics.therapistOff} sesi (termasuk di Cancel Rate)</p>
             </div>
           </div>
 

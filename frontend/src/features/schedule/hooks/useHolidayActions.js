@@ -34,6 +34,10 @@ export function useHolidayActions() {
     return cancelAffected(holiday);
   };
 
+  // Libur berentang: satu baris libur per tanggal; sesi aktif di semua tanggal itu dibatalkan (tanggal berbeda → tidak tumpang tindih).
+  const previewAffectedMany = (list) => list.flatMap(previewAffected);
+  const createHolidays = (list) => ({ cancelled: list.reduce((n, h) => n + createHoliday(h).cancelled, 0) });
+
   // Ubah tanggal/cabang libur: sesi di tanggal/cabang BARU ikut dibatalkan; sesi yang sudah dibatalkan oleh libur lama tidak dikembalikan.
   const changeHoliday = (id, patch) => {
     const current = holidays.find((h) => h.id === id);
@@ -41,5 +45,5 @@ export function useHolidayActions() {
     return cancelAffected({ ...current, ...patch });
   };
 
-  return { previewAffected, createHoliday, changeHoliday };
+  return { previewAffected, previewAffectedMany, createHoliday, createHolidays, changeHoliday };
 }

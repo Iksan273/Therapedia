@@ -143,3 +143,10 @@ Tafsir: hanya sesi `scheduled` (belum disentuh) pada pola lama yang diganti; ses
 | R26 | **Finance bisa menerbitkan invoice cuti** (nominal manual, tanpa efek kredit) dan **opsional menyambungkannya ke log cuti** yang sudah dibuat (tab Cuti: kolom Invoice Cuti + tombol Terbitkan Invoice; Detail cuti menampilkan invoice terkait) | ✅ `invoices.leave_id` | ✅ |
 | R27 | **Alasan Cancel / Off memakai CODE** (7 Okt 2026): tiap alasan di Master Data punya KODE (S, OL, SCA, …); yang disimpan/dikirim saat submit adalah KODE (teks "Lainnya" tetap boleh); riwayat & detail sesi di semua modul menampilkan KODE (nama panjang = tooltip) | ✅ `cancelReasonCode`, `ReasonListTab codeMode`, seed v16 | ⏳ `schema.md` `cancel_reasons`: kolom `code` jadi kunci tampil (perlu lewat skill `database-design`) |
 | R28 | **Admin Schedule bisa menjadwalkan Asesmen / Re-assessment langsung dari kalender** (toggle *Jenis Sesi* di `AddScheduleModal`), membantu Admin Inquiry; sesi asesmen tanpa kuota kredit dan memajukan pipeline ke `assessment_scheduled` | ✅ | ✅ (`schedules.type = assessment`) |
+
+## Revisi 10 Okt 2026
+| # | Permintaan | Schema | FE |
+|---|---|---|---|
+| R29 | Hari libur boleh diinput **berentang tanggal** (Dari – Sampai); disimpan satu baris per tanggal, aturan libur lain tidak berubah | — (tabel `holidays` tetap) | ✅ |
+| R30 | **Master Therapist Off** (daftar alasan ber-CODE) + **Cancellation Rate** keseluruhan dan **Therapist Off Rate** di Schedule Dashboard; cancel Therapist Off tetap dihitung di rate keseluruhan | ✅ `cancel_reasons.is_therapist_off`, view `v_daily_sessions` (`sessions_cancel_counted`, `sessions_cancel_therapist_off`) | ✅ |
+
