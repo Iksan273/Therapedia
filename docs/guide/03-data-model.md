@@ -14,6 +14,7 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `credits` | `creditsStore` | `{ masterPackages, records, invoices, renewals }` (invoice terhapus tidak diekspos) | `master_packages`, `client_packages`, `credit_ledger`, `invoices`, `payment_proofs` |
 | `therapists` | `therapistsStore` | `Therapist[]` (read-only) | `users` (role therapist) |
 | `assessment_categories` | `assessmentsStore` | `Category[]` | `assessment_categories`, `assessment_sections`, `assessment_questions` |
+| `assessment_drafts` | `assessmentDraftsStore` | `Draft[]` — `{ code, clientId, answers: { [questionId]: nilai }, answeredCount, lastSectionId, consentAt, version, startedAt, updatedAt }`; hanya ada selama kuesioner belum dikirim (tanpa seed; ikut dibersihkan saat `SEED_VERSION` naik) | `assessment_drafts` (jawaban dipetakan ke `{t, v}` di lapisan API: array → `v`, selain itu → `t`) |
 | `master_services` | `masterDataStore` | `Service[]` (key `value`) | `services` |
 | `master_quadrants` | `masterDataStore` | `Quadrant[]` (key `code`) | `sensory_quadrants` |
 | `master_cancel_off_codes` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `cancel_reasons` (`is_therapist_off` = 0, tanpa FK) |
@@ -151,7 +152,7 @@ Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `Assessme
 | `domain/schedule.js` | `deriveRecurringRoutines`, `upcomingActiveSessions`, `reportFilledCount`, `isReportEmpty`, `isUnreportedSession`, `getPrevSlot`, `DEFAULT_CANCEL_REASONS` (seed pilihan cepat), `RESCHEDULE_DROPPED`, `SYSTEM_CANCEL_REASONS`, `cancelReasonLabel(val, list?)`, `cancelReasonCode(val)`, `normalizeCancelReason`, `OTHER_REASON`, `isCreditNeutralCancel`, `scheduleSlot`, `getOriginSlot`, `buildReportPatch`, `CLEAR_PENDING_PATCH`, `CALENDAR_DAYS`, `CALENDAR_HOURS`, `TIME_OPTIONS`, `WEEKDAY_OPTIONS`, `timeToMin`, `rangesOverlap`, `checkConflicts`, `findTherapistClashIds`, `buildRecurringSchedules`, `SCHEDULE_MANAGER_ROLES`, `canManageSchedule`, `canRevertSession`, `restoreStatusOf` |
 | `domain/credit.js` | `DEFAULT_MASTER_PACKAGES`, `formatPackageName`, `CANCEL_QUOTA` + aturan mutasi kredit (lihat di atas) |
 | `domain/rbac.js` | `ACCESS_MODULES`, `DEFAULT_ROLES`, `DEFAULT_PERMISSIONS`, `SYSTEM_ROLE_IDS`, `isSystemRole`, `roleHasPermission`, `withDefaultPermissions`, `roleCanDelete`, `canDeleteIn`, `DEFAULT_CAN_DELETE` |
-| `domain/assessment.js` | `buildQuestionnaireCode`, `categoryTypeCode`, `normalizeTypeCode`, `isTypeCodeTaken`, `CODE_VALIDITY_OPTIONS`, `buildExpiresAt`, `isQuestionnaireCodeExpired`, `assessmentInvoiceNeedingProof`, `checkQuestionnaireAccess` |
+| `domain/assessment.js` | `buildQuestionnaireCode`, `categoryTypeCode`, `normalizeTypeCode`, `isTypeCodeTaken`, `CODE_VALIDITY_OPTIONS`, `buildExpiresAt`, `isQuestionnaireCodeExpired`, `assessmentInvoiceNeedingProof`, `checkQuestionnaireAccess` (menerima `draft`), draft kuesioner: `isAnswerFilled`, `countAnswered`, `countCategoryQuestions`, `diffAnswers`, `applyDraftPatch`, `canFinishExpiredWithDraft`, `canDeleteQuestionnaireCode`, `draftProgress`, `countActiveDraftsForCategory` |
 | `domain/auth.js` | `DEMO_PASSWORD`, `validateNewPassword`, OTP (`generateOtp`, `makeOtpRequest`, `verifyOtp`), `checkStaffCredentials`, `validateStaffBranch` |
 | `domain/holiday.js` | `DEFAULT_HOLIDAYS`, `makeHoliday`, `findHoliday`, `isHoliday`, `holidayDateSet`, `validateHoliday` |
 | `shared/lib/id.js` | `uid`, `nowIso`, `todayStr` |
@@ -170,6 +171,7 @@ Tabel lengkap ada di `schema.md` bagian 08. Yang paling sering dipakai:
 | `clients[].serviceTypes[]` | `client_services` | |
 | `clients[].gdriveClientLink` | `client_documents` (`type=gdrive_folder`) | |
 | `clients[].assessmentAnswers[]` | `assessment_responses` (sekali isi, `consent_at`) + `assessment_answers` + `assessment_quadrant_scores` | skor kuadran dihitung server |
+| `assessmentDrafts[]` (`assessmentDraftsStore`) | `assessment_drafts` | simpan otomatis; dihapus saat submit; kode ber-draft tidak bisa dihapus |
 | perubahan status client | `client_status_histories` | frontend belum menyimpan histori; backend wajib |
 | `schedules[].date/startTime/endTime` | `schedules.session_date/start_time/end_time` | |
 | `schedules[].rescheduledFrom` | `schedules.origin_*` | |

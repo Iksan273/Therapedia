@@ -13,6 +13,7 @@ import { useCredits } from "@/stores/creditsStore";
 import { useAuth } from "@/stores/authStore";
 import { canManageSchedule } from "@/domain/schedule";
 import { isQuestionnaireCodeFilled } from "@/domain/client";
+import { useAssessmentDrafts } from "@/stores/assessmentDraftsStore";
 import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink } from "@/domain/assessment";
 import { fmtCurrency, fmtDate } from "@/shared/lib/format";
 
@@ -24,6 +25,7 @@ export function ReassessmentCard({ client }) {
   const { getMasterPackages } = useCredits();
   const { hasPermission } = useAuth();
   const codeActions = useQuestionnaireCodeActions();
+  const { getDraft } = useAssessmentDrafts();
   const masterPackages = getMasterPackages();
   const canManage = canManageSchedule(hasPermission);
 
@@ -123,7 +125,7 @@ export function ReassessmentCard({ client }) {
                     <p className="font-mono font-black text-sm text-slate-900 mt-0.5">{item.code}{item.invoiceRequired === false && <span className="ml-2 align-middle text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">Gratis</span>}</p>
                     {item.expiresAt && !filled && <p className="text-[11px] font-semibold text-slate-500 mt-0.5">Berlaku s.d. {fmtDate(item.expiresAt)}</p>}
                     <span className={`inline-block mt-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md border ${filled ? "text-emerald-700 bg-emerald-50 border-emerald-200" : "text-amber-700 bg-amber-50 border-amber-200"}`} data-testid={`reassessment-code-status-${item.code}`}>
-                      {filled ? "Sudah diisi" : "Belum diisi"}
+                      {filled ? "Sudah diisi" : getDraft(item.code) ? "Sedang diisi" : "Belum diisi"}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">

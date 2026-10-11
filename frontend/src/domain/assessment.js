@@ -72,9 +72,10 @@ export const assessmentInvoiceNeedingProof = (invoices = [], code) =>
   ) || null;
 
 // Hasil akses kode kuesioner oleh ortu: { ok } atau { ok:false, reason: submitted | expired | proof_required, invoice? }.
-export const checkQuestionnaireAccess = ({ client, codeItem, invoices = [], now = new Date() }) => {
+export const checkQuestionnaireAccess = ({ client, codeItem, invoices = [], now = new Date(), draft = null }) => {
   if (isQuestionnaireCodeFilled(client, codeItem)) return { ok: false, reason: "submitted" };
-  if (isQuestionnaireCodeExpired(codeItem, now)) return { ok: false, reason: "expired" };
+  // Kode kedaluwarsa tetap boleh diselesaikan bila draft dimulai sebelum `expiresAt`.
+  if (isQuestionnaireCodeExpired(codeItem, now) && !canFinishExpiredWithDraft(codeItem, draft)) return { ok: false, reason: "expired" };
   const invoice = assessmentInvoiceNeedingProof(invoices, codeItem?.code);
   if (invoice) return { ok: false, reason: "proof_required", invoice };
   return { ok: true };
@@ -118,3 +119,88 @@ export function listQuestionnaireResults(client) {
   });
   return options;
 }
+
+// ---- Draft kuesioner (simpan otomatis / lanjutkan; schema.md `assessment_drafts`) ----
+// Kuesioner bisa 200+ soal: jawaban disimpan sebagai draft per KODE dan dilanjutkan dengan kode yang sama.
+// Draft bukan hasil: tidak dibaca laporan/dashboard dan tidak mengubah status client. Dihapus saat submit.
+
+// Jawaban terisi? (teks kosong / array kosong / null = belum). Angka 0 tetap terisi.
+export const isAnswerFilled = (val) => {
+  if (val === undefined || val === null) return false;
+  if (Array.isArray(val)) return val.length > 0;
+  return String(val).trim().length > 0;
+};
+
+export const countAnswered = (questionIds = [], answers = {}) => questionIds.filter((id) => isAnswerFilled(answers[id])).length;
+
+// Jumlah soal sebuah kategori (bentuk bersarang `sections[].questions[]` atau datar `questions[]`).
+export const countCategoryQuestions = (category) => {
+  if (!category) return 0;
+  if (Array.isArray(category.sections) && category.sections.length > 0) {
+    return category.sections.reduce((n, sec) => n + (sec.questions || []).length, 0);
+  }
+  return (category.questions || []).length;
+};
+
+// Selisih jawaban sebagai PATCH (nilai null = jawaban dihapus). Dikirim apa adanya ke `PUT /public/assessments/{code}/draft`.
+export const diffAnswers = (prev = {}, next = {}) => {
+  const patch = {};
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  Object.keys(next).forEach((id) => {
+    if (isAnswerFilled(next[id]) && !same(prev[id], next[id])) patch[id] = next[id];
+    if (!isAnswerFilled(next[id]) && isAnswerFilled(prev[id])) patch[id] = null;
+  });
+  Object.keys(prev).forEach((id) => {
+    if (!(id in next) && isAnswerFilled(prev[id])) patch[id] = null;
+  });
+  return patch;
+};
+
+// Terapkan patch ke draft (pure). `validQuestionIds` (opsional): id di luar kategori dibuang. Draft baru dibuat bila belum ada.
+// `consentAt`: undefined = tidak diubah; null = dicabut; string = waktu persetujuan.
+export const applyDraftPatch = (draft, { code, clientId, answers = {}, validQuestionIds = null, lastSectionId, consentAt }, now) => {
+  const base = draft || { code, clientId, answers: {}, answeredCount: 0, lastSectionId: null, consentAt: null, version: 0, startedAt: now };
+  const valid = validQuestionIds ? new Set(validQuestionIds.map(String)) : null;
+  const merged = { ...base.answers };
+  Object.keys(answers).forEach((id) => {
+    if (valid && !valid.has(String(id))) return;
+    if (!isAnswerFilled(answers[id])) delete merged[id];
+    else merged[id] = answers[id];
+  });
+  const keptIds = Object.keys(merged).filter((id) => !valid || valid.has(String(id)));
+  const clean = Object.fromEntries(keptIds.map((id) => [id, merged[id]]));
+  return {
+    ...base,
+    answers: clean,
+    answeredCount: keptIds.length,
+    lastSectionId: lastSectionId !== undefined ? lastSectionId : base.lastSectionId,
+    consentAt: consentAt !== undefined ? consentAt : base.consentAt,
+    version: (base.version || 0) + 1,
+    updatedAt: now,
+  };
+};
+
+// Kode kedaluwarsa tetap boleh diselesaikan bila draft sudah dimulai sebelum `expiresAt` (keputusan 11 Okt 2026).
+export const canFinishExpiredWithDraft = (codeItem, draft) =>
+  Boolean(draft?.startedAt && codeItem?.expiresAt) && new Date(draft.startedAt).getTime() <= new Date(codeItem.expiresAt).getTime();
+
+// Kode kuesioner boleh dihapus admin? Tidak bila sudah diisi (`filled`) atau SEDANG diisi / sudah punya draft (`draft`).
+export const canDeleteQuestionnaireCode = (client, codeItem, draft = null) => {
+  if (isQuestionnaireCodeFilled(client, codeItem)) return { ok: false, reason: "filled" };
+  if (draft) return { ok: false, reason: "draft" };
+  return { ok: true };
+};
+
+// Progres draft untuk bar & daftar "Menunggu Kuesioner": { answered, total, percent }.
+export const draftProgress = (draft, total) => {
+  const answered = draft?.answeredCount || 0;
+  return { answered, total, percent: total > 0 ? Math.min(100, Math.round((answered / total) * 100)) : 0 };
+};
+
+// Jumlah draft aktif (kode sedang diisi) pada sebuah kategori — peringatan di Master Asesmen sebelum soal diubah.
+export const countActiveDraftsForCategory = (clients = [], drafts = [], categoryId) => {
+  const codes = new Set(
+    clients.flatMap((c) => (c.assessmentCodes || []).filter((item) => item.categoryId === categoryId).map((item) => String(item.code).toUpperCase()))
+  );
+  return drafts.filter((d) => codes.has(String(d.code).toUpperCase())).length;
+};

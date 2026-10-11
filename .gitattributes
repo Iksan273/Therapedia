@@ -1,0 +1,9 @@
+# File yang masuk image/container harus berakhiran baris LF (di Windows git bisa mengubahnya ke CRLF dan merusak skrip .sh).
+*.sh                    text eol=lf
+Dockerfile*             text eol=lf
+docker/**               text eol=lf
+docker-compose*.yml     text eol=lf
+Makefile                text eol=lf
+.dockerignore           text eol=lf
+.github/**              text eol=lf
+backend/**              text=auto

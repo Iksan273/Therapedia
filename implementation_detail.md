@@ -209,13 +209,14 @@ Layar: `/admin-inquiry/assessments` (mesin), Client Detail (kode), `/assessment`
 |---|---|---|---|---|---|---|
 | 5.6 | `GET /clients/{id}/assessment-codes` | kode milik client | lihat client | | `assessment_access_codes` R, `assessment_categories` R | |
 | 5.7 | `POST /clients/{id}/assessment-codes` | `IssueAssessmentCodeAction` (F6) | `inquiry_pipeline` | `category_id`, `expires_at?` | `assessment_access_codes` C (`{type_code}-{6 acak}`, retry bila bentrok); `clients` U (maju ke `assessment_scheduled`); `client_status_histories` C (`code_issued`) | satu client boleh banyak kode |
-| 5.8 ✚ | `DELETE /assessment-codes/{id}` | hapus kode yang belum diisi | `inquiry_pipeline` + hapus | | `assessment_access_codes` D | 409 bila `status = submitted`; status client tidak dimundurkan |
+| 5.8 ✚ | `DELETE /assessment-codes/{id}` | hapus kode yang belum diisi | `inquiry_pipeline` + hapus | | `assessment_access_codes` D; invoice assessment pemicu D bila belum lunas (yang `paid` dibiarkan) | 409 bila `status = submitted`; **409 `draft_exists` bila kode sudah punya draft (sedang diisi)**; status client tidak dimundurkan |
 
 ### 7.3 Kuesioner publik (ortu, tanpa login)
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 5.9 | `GET /public/assessments/{code}` | `OpenAssessmentAction` | publik, throttle per IP | — | `assessment_access_codes` R; `clients` R; `assessment_categories/sections/questions` R; `invoices` R (gating) | 404 generik; 409 `already_submitted`; 410 `expired`; **403 `invoice_unpaid`** (+ nomor invoice → diarahkan ke portal bayar) |
-| 5.10 | `POST /public/assessments/{code}/responses` | `SubmitAssessmentAction` | publik, throttle | `answers[]` (semua soal wajib), `consent` (wajib), `respondent_name,respondent_relation` | `assessment_responses` C (UNIQUE `access_code_id`, `consent_at`, `ip_address`); `assessment_answers` C (snapshot `item_no`,`quadrant_code`,`score`); `assessment_quadrant_scores` C (Σ skor, **dihitung server**, tanpa klasifikasi); `assessment_access_codes` U (`submitted`); `clients` U (maju ke `assessment_done`); `client_status_histories` C (`questionnaire_submitted`) | 409 bila sudah diisi (sekali isi); satu transaksi |
+| 5.9 | `GET /public/assessments/{code}` | `OpenAssessmentAction` | publik, throttle per IP | — | `assessment_access_codes` R; `clients` R; `assessment_categories/sections/questions` R; `invoices` R (gating); `assessment_drafts` R | 404 generik; 409 `already_submitted`; 410 `expired` (kecuali kode sudah punya draft yang dimulai sebelum `expires_at`); **403 `proof_required`** (invoice assessment belum punya bukti; + nomor invoice). Respons memuat **draft** (jawaban, `last_section_id`, `answered_count`, `version`) bila ada |
+| 5.9b ✚ | `PUT /public/assessments/{code}/draft` | `SaveAssessmentDraftAction` (simpan otomatis / lanjutkan nanti) | publik, throttle per IP + per kode | `answers` (patch: `{question_id: {t, v?}}`, `null` = hapus), `last_section_id`, `respondent_name/relation`, `consent?`, `version` | `assessment_drafts` C/U (1 baris per kode, `lockForUpdate`, `answered_count` dihitung server, `version`+1) | cek akses sama dengan 5.9; 409 `version_conflict` (dua perangkat); 422 payload > 256 KB; tidak menyimpan skor, tidak mengubah status kode/client |
+| 5.10 | `POST /public/assessments/{code}/responses` | `SubmitAssessmentAction` | publik, throttle | `answers[]` (jawaban final yang belum tersimpan di draft), `consent` (wajib bila belum di draft), `respondent_name,respondent_relation` | `assessment_responses` C (UNIQUE `access_code_id`, `consent_at`, `ip_address`); `assessment_answers` C (snapshot `item_no`,`quadrant_code`,`score`); `assessment_quadrant_scores` C (Σ skor, **dihitung server**, tanpa klasifikasi); `assessment_access_codes` U (`submitted`); `assessment_drafts` **D**; **status client tidak berubah** (tetap `assessment_scheduled` sampai sesi asesmen selesai / diubah manual) | 409 bila sudah diisi (sekali isi); 422 `incomplete` (+ daftar soal wajib yang belum terjawab / consent kosong); satu transaksi |
 
 ### 7.4 Hasil (staf internal)
 | # | Endpoint | Fungsi | Akses | Tabel | Catatan |
@@ -288,16 +289,16 @@ Layar: `/finance` (tab Verifikasi Transfer, Semua Tagihan, Log Buku Besar Kredit
 ### 9.1 Invoice
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 7.1 | `GET /invoices` | list (tab Verifikasi: `status=unpaid,pending_verification,rejected`; Semua Tagihan: semua) | `finance`, `revenue` (baca) | `branch_id,status[],type,is_renewal,client_id,q(nama/ortu/kode/no. invoice),from,to,page` | `invoices` R (`idx_inv_queue`, `idx_inv_client`, UNIQUE `invoice_number`); `clients` R (join pencarian); `v_invoice_queue` untuk antrean | item memuat badge: jenis, `is_renewal`, `gross_amount`/`balance_applied`, ada log `converted`, status `void` |
+| 7.1 | `GET /invoices` | list (tab Menunggu Pembayaran: `status=unpaid`; Semua Tagihan: semua) | `finance`, `revenue` (baca) | `branch_id,status[],type,is_renewal,client_id,q(nama/ortu/kode/no. invoice),from,to,page` | `invoices` R (`idx_inv_queue`, `idx_inv_client`, UNIQUE `invoice_number`); `clients` R (join pencarian); `v_invoice_queue` untuk antrean | item memuat badge: jenis, `is_renewal`, `gross_amount`/`balance_applied`, ada log `converted`, status `void` |
 | 7.2 | `POST /invoices` | `IssueInvoiceAction` | `finance` | `client_id,invoice_type(package/assessment),master_package_id?,amount?,is_renewal?,replaces_invoice_id?` | `invoices` C (nomor dari `invoice_counters`: `INV-{KODE}-{YYYYMMDD}-{NNN}`; snapshot nama/kredit/harga); `invoice_counters` U; `clients` U (`leftover_balance`) bila saldo lebihan dipakai (`balance_applied = min(saldo, gross)`); `invoice_logs` C (`issued`, `balance_applied`) | **`replaces_invoice_id` wajib dipilih** (atau `null` eksplisit) bila ada kandidat; harus invoice `void` + `keep`, client sama, belum diganti (UNIQUE) → 422. Tanpa jatuh tempo/diskon/DP/cicilan |
 | 7.3 ✚ | `GET /invoices/replacement-candidates?client_id=` | kandidat invoice void (kredit dipertahankan) untuk dialog Buat Tagihan/Renewal | `finance` | | `invoices` R, `client_packages` R | untuk pilihan wajib "menggantikan / paket baru" |
 | 7.4 | `GET /invoices/{id}` | detail + paket + bukti | `finance` / ortu pemilik | | `invoices`, `payment_proofs`, `client_packages` R | |
-| 7.5 | `POST /invoices/{id}/proof` | `UploadPaymentProofAction` (multipart) | ortu pemilik (atau `finance`) | `file` JPG/PNG/PDF ≤ 5 MB | file → storage privat; `payment_proofs` C (`review_status = pending`); `invoices` U (`pending_verification`, `proof_upload_count`+1); `invoice_logs` C (`proof_uploaded`) | 422 bila `proof_upload_count ≥ 4` (1 upload + 3 re-upload), file tak valid |
+| 7.5 | `POST /invoices/{id}/proof` | `UploadPaymentProofAction` (multipart) | ortu pemilik (atau `finance`) | `file` JPG/PNG/PDF ≤ 5 MB | file → storage privat; `payment_proofs` C; `invoices` U (`proof_upload_count`+1; **status tidak berubah**); `invoice_logs` C (`proof_uploaded`) | ortu: hanya invoice `assessment` yang belum `paid`/`void`, 422 `proof_limit_reached` bila `proof_upload_count ≥ 4` (1 upload + 3 re-upload); Finance: invoice `unpaid`/`paid` mana pun, tanpa batas; `void` ditolak; file tak valid |
 | 7.6 ✚ | `GET /invoices/{id}/proofs/{proofId}/file` | tampilkan/unduh bukti (stream, URL bertanda tangan) | `finance` / ortu pemilik | | `payment_proofs` R | file privat; melihat bukti tidak dicatat |
-| 7.7 | `POST /invoices/{id}/verify` | `VerifyPaymentAction` | `finance` | `decision(approve/reject)`, `rejection_reason?`, `version` | **approve**: `invoices` U (`paid`, `paid_at`, `verified_by/at`); `payment_proofs` U (`accepted`); jenis **package**: `client_packages` C (snapshot, `invoice_id` UNIQUE) + `credit_ledger` C (`purchased`/`renewed`) + `clients` U (`credit_balance`) + **relink sesi mendatang** ke paket aktif (`schedules` U); jenis **assessment**: hanya `paid` (membuka gating kuesioner); **invoice pengganti** (`replaces_invoice_id`): **tidak** membuat paket/ledger, `client_packages.invoice_id` paket lama dipindah ke invoice ini. **reject**: `invoices` U (`rejected`), `payment_proofs` U (`rejected`). `invoice_logs` C (`verified`/`rejected`) | 409 bila bukan `pending_verification`/versi beda |
+| 7.7 | `POST /invoices/{id}/verify` | `VerifyPaymentAction` (**Tandai Lunas**; tanpa Tolak) | `finance` | `version` | `invoices` U (`paid`, `paid_at`, `verified_by/at`); jenis **package**: `client_packages` C (snapshot, `invoice_id` UNIQUE) + `credit_ledger` C (`purchased`/`renewed`) + `clients` U (`credit_balance`) + **relink sesi mendatang** ke paket aktif (`schedules` U); jenis **assessment**: hanya `paid` (membuka gating kuesioner); **invoice pengganti** (`replaces_invoice_id`): **tidak** membuat paket/ledger, `client_packages.invoice_id` paket lama dipindah ke invoice ini. `invoice_logs` C (`verified`) | 409 bila bukan `unpaid`/versi beda |
 | 7.8 | `POST /invoices/{id}/void` | `VoidInvoiceAction` | `finance` (bukan `can_delete`) | `reason` (wajib), `credit_action` = `keep`/`revoke` (**wajib bila invoice package, tanpa default**) | `invoices` U (`void`, `void_reason`, `voided_at/by`, `void_credit_action`); `invoice_logs` C (`voided`); jika `revoke`: `client_packages` U (paket hidup ujung rantai → `voided`, `remaining_credit = 0`), `credit_ledger` C (`manual_adjust` −sisa), `clients` U (`credit_balance`, `leftover_balance += balance_applied`), `schedules` U (sesi mendatang pindah ke paket aktif lain, jika tidak ada → `client_package_id = NULL` = Frozen) | hanya dari `paid` (409 selain itu); sesi selesai & laporan tidak disentuh; satu arah |
 | 7.9 ✚ | `GET /invoices/{id}/void-preview` | ringkasan dialog Void (paket, sisa kredit, sesi selesai terpakai, sesi mendatang) | `finance` | | `client_packages`, `schedules` R | |
-| 7.10 | `DELETE /invoices/{id}` | `DeleteInvoiceAction` | `finance` + hapus | | `invoices` D → `payment_proofs` (+ file), `invoice_logs` cascade; `clients` U (`leftover_balance` += `balance_applied`) | **hanya `unpaid`/`pending_verification`/`rejected`**; `paid`/`void` → 409 `invoice_not_deletable` (koreksi lewat Void). Hapus invoice assessment membuka gating bila tak ada invoice assessment lain yang belum lunas |
+| 7.10 | `DELETE /invoices/{id}` | `DeleteInvoiceAction` | `finance` + hapus | | `invoices` D → `payment_proofs` (+ file), `invoice_logs` cascade; `clients` U (`leftover_balance` += `balance_applied`) | **hanya `unpaid`**; `paid`/`void` → 409 `invoice_not_deletable` (koreksi lewat Void). Hapus invoice assessment membuka gating bila tak ada invoice assessment lain yang belum lunas |
 | 7.11 | `GET /invoices/{id}/logs` | log milik invoice (tombol Log) | `finance` | `cursor` | `invoice_logs` R (`idx_invlog_invoice`) | keyset, terbaru dulu |
 
 ### 9.2 Renewal
@@ -396,7 +397,7 @@ Semua hapus **permanen** (ADR 0005), role `can_delete` + akses modul. Matriks le
 | Endpoint | Yang ikut terhapus | Pemblokir | Kode error |
 |---|---|---|---|
 | `DELETE /clients/{id}` | jadwal (+laporan), seri, invoice (bukti, log), paket, konversi, ledger, riwayat status, kode/jawaban kuesioner, dokumen, layanan terpilih | tidak ada | — |
-| `DELETE /invoices/{id}` | bukti bayar (+file), log invoice | hanya `unpaid`/`pending_verification`/`rejected` | 409 `invoice_not_deletable` |
+| `DELETE /invoices/{id}` | bukti bayar (+file), log invoice | hanya `unpaid` | 409 `invoice_not_deletable` |
 | `DELETE /schedules/{id}` | `session_reports` | `completed`/ber-ledger harus di-revert | 422 |
 | `DELETE /assessment-codes/{id}` | — | hanya `issued` | 409 |
 | `DELETE /master/services\|quadrants\|packages`, `/assessment-categories`, `/assessment-questions`, `/roles` | anak milik (sections/questions/permissions) | **sudah dipakai** (FK `RESTRICT` + pengecekan service) | 409 `in_use` (+ alasan "dipakai di N data") |
@@ -451,13 +452,14 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | `client_status_histories` | 4.4 4.7 4.10 5.7 5.10 6.7 6.12 6.17 |
 | `assessment_categories/sections/questions` | 5.2–5.5 |
 | `assessment_access_codes` | 5.7 5.8 5.10 |
+| `assessment_drafts` | 5.8 5.9b 5.10 |
 | `assessment_responses/answers/quadrant_scores` | 5.10 |
 | `schedules` | 6.7–6.9 6.11–6.18 7.7 7.8 7.13 7.15 |
 | `schedule_series` | 6.8 |
 | `session_reports` | 6.10 6.12 |
 | `invoices` | 7.2 7.5 7.7 7.8 7.10 7.13 |
 | `invoice_counters` | 7.2 7.13 |
-| `payment_proofs` | 7.5 7.7 |
+| `payment_proofs` | 7.5 |
 | `invoice_logs` | 7.2 7.5 7.7 7.8 7.13 7.15 |
 | `client_packages` | 6.12 6.13 6.17 7.7 7.8 7.13 7.15 7.19 |
 | `credit_ledger` | 6.12 6.13 6.17 7.7 7.8 7.13 7.15 7.19 |
@@ -468,7 +470,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 `StaffLoginAction`, `ClientLoginAction`, `ChangePasswordAction`, `RequestPasswordOtpAction`, `ResetPasswordWithOtpAction`, `CreateUserAction`, `DeleteBranchAction`, `CreateClientAction`, `SyncClientServicesAction`, `TransitionClientAction`, `DeleteClientAction`, `IssueAssessmentCodeAction`, `OpenAssessmentAction`, `SubmitAssessmentAction`, `CreateScheduleAction`, `CreateRecurringSchedulesAction`, `CompleteSessionAction`, `CancelSessionAction`, `RescheduleSessionAction`, `RevertSessionAction`, `Bulk{Complete,Cancel,Reschedule,Revert}Action`, `SaveSessionReportAction`, `IssueInvoiceAction`, `UploadPaymentProofAction`, `VerifyPaymentAction`, `VoidInvoiceAction`, `DeleteInvoiceAction`, `DirectRenewalAction`, `ConvertPackageAction`, `AdjustCreditAction`. Aturan kredit/status mengikuti `frontend/src/domain/credit.js`, `schedule.js`, `client.js` (acuan test; fungsi frontend dipertahankan sebagai spesifikasi).
 
 ### 17.3 Katalog kode error domain
-`version_conflict`, `schedule_conflict`, `holiday`, `already_reverted`, `already_submitted`, `expired`, `invoice_unpaid`, `invoice_not_deletable`, `invoice_not_voidable`, `in_use`, `quota_credit_insufficient`, `proof_limit_reached`, `replacement_invalid`, `convert_not_allowed`, `confirm_code_mismatch`.
+`version_conflict`, `schedule_conflict`, `holiday`, `already_reverted`, `already_submitted`, `expired`, `proof_required`, `incomplete`, `draft_exists`, `invoice_not_deletable`, `invoice_not_voidable`, `in_use`, `quota_credit_insufficient`, `proof_limit_reached`, `replacement_invalid`, `convert_not_allowed`, `confirm_code_mismatch`.
 
 ### 17.4 Checklist test per modul (ringkas)
 | Modul | Wajib diuji |
@@ -477,7 +479,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | M2 | cabang wajib non-master, `can_delete`, hapus role dipakai → 409, hapus cabang cascade (tidak ada baris yatim), master tak tersentuh |
 | M3 | master dipakai → 409, pilihan string terhapus bebas, UNIQUE libur |
 | M4 | kode client berurutan per grup, transisi otomatis hanya maju & manual bebas, hapus client cascade |
-| M5 | sekali isi, expiry, gating invoice assessment, skor kuadran server, consent wajib |
+| M5 | sekali isi, expiry (kode dengan draft boleh diselesaikan), gating bukti invoice assessment, skor kuadran server, consent wajib, **draft**: simpan otomatis/lanjutkan, konflik `version`, hapus saat submit, soal wajib belum terjawab → 422 `incomplete` |
 | M6 | bentrok + `force`, libur dilewati, cancel `deduct_credit` wajib, revert 1x, bulk complete/cancel/revert sebagian dilewati, bulk reschedule atomik (satu gagal = tidak ada yang tersimpan) |
 | M7 | saldo = Σ ledger, approve tidak dobel, void keep/revoke, pengganti tanpa kredit dobel, hapus invoice lunas ditolak, konversi tanpa kekurangan, relink jadwal |
 | M8–M11 | scope cabang/terapis/ortu, view dengan filter cabang+tanggal, `EXPLAIN` Q1–Q23 pada ±50 ribu sesi |

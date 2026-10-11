@@ -1,0 +1,22 @@
+# Konteks build Docker hanya butuh backend/ dan docker/ (frontend di Vercel, dokumen tidak perlu masuk image).
+*
+!backend
+!docker
+
+# Jangan bawa dependency/artefak lokal, rahasia, atau data runtime ke dalam image
+backend/vendor
+backend/node_modules
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/.git
+backend/storage/logs/*
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/app/*
+backend/bootstrap/cache/*.php
+backend/public/hot
+backend/public/storage
+backend/tests
+**/.DS_Store

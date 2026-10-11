@@ -37,8 +37,9 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | `useClientOutcomeActions.*` (admit, outcome, discharge, discontinue, reaktivasi, ubah status manual) | `POST clients.transition(id)` | `clients`, `client_status_histories`; untuk `discharge` juga `schedules` (hapus jadwal aktif) + `credit_ledger` (`discharge`) + `client_packages` | — |
 | simpan link GDrive | `POST clients.gdriveLinks(id)` | `client_documents` | — |
 | generate kode kuesioner (+ masa berlaku opsional) | `POST clients.assessmentCodes(id)` | `assessment_access_codes` | — |
-| buka kuesioner (publik; cek sekali isi, expiry, invoice assessment) *(baru)* | `GET publicAssessment.show(code)` | `assessment_access_codes`, `invoices` | — |
-| submit kuesioner (publik, consent wajib) | `POST publicAssessment.submit(code)` | `assessment_responses/answers/quadrant_scores` | — |
+| buka kuesioner (publik; cek sekali isi, expiry — kode ber-draft boleh diselesaikan, bukti invoice assessment) *(baru)*; respons membawa draft | `GET publicAssessment.byCode(code)` | `assessment_access_codes`, `invoices`, `assessment_drafts` | — |
+| simpan otomatis kuesioner (patch jawaban `{questionId: nilai\|null}`, `last_section_id`, `consent`, `version`; 409 `version_conflict`) *(baru, R31)* | `PUT publicAssessment.draft(code)` | `assessment_drafts` | — |
+| submit kuesioner (publik, consent wajib; 422 `incomplete`; draft dihapus di transaksi yang sama) | `POST publicAssessment.submit(code)` | `assessment_responses/answers/quadrant_scores`, `assessment_drafts` (D) | — |
 | CRUD kategori/section/soal | `assessmentCategories.*` | `assessment_categories/sections/questions` | — |
 | `cancelSession` (Cancel / Off = SATU aksi; alasan dari satu daftar `cancel_reasons`; `deduct_credit` wajib; potong = credit leave paket dulu, habis baru kredit sesi) | `POST schedules.cancel` | `schedules`, `credit_ledger` (`cancel_leave`/`cancel_penalty`/`cancel_excused`), `client_packages` (`leave_used`, `cancel_count`), `clients.leave_credit_balance` | `credit_ledger` |
 | `cancelForLeave` (pembatalan karena cuti Finance: `leave_id`, ledger `off_*`, tanpa cancel_count; hanya dipanggil di transaksi `createLeave`) | (bagian dari `POST leaves.list`) | `schedules`, `credit_ledger` (`off_*`) | `credit_ledger` |
@@ -58,7 +59,7 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | cek bentrok (preview) | `GET schedules.conflicts` | `schedules`, `holidays` | — |
 | hari libur *(baru)* | `holidays.*` (CRUD) | `holidays` | — |
 | monitoring sesi completed tanpa report *(baru)* | `GET schedules.unreported` | view `v_unreported_sessions` | — |
-| `issueCode` (kode kuesioner + invoice assessment otomatis, satu transaksi) / `deleteCode` (hapus kode + invoice belum lunas) | `POST clients.assessmentCodes` / `DELETE` | `assessment_access_codes`, `invoices` (`assessment_access_code_id`), `invoice_counters`, `invoice_logs` | `invoice_logs` |
+| `issueCode` (kode kuesioner + invoice assessment otomatis, satu transaksi) / `deleteCode` (hapus kode + invoice belum lunas; ditolak 409 `draft_exists` bila kode sudah punya draft) | `POST clients.assessmentCodes` / `DELETE` | `assessment_access_codes`, `invoices` (`assessment_access_code_id`), `invoice_counters`, `invoice_logs` | `invoice_logs` |
 | `uploadPaymentProof({ byFinance })` Finance upload/ganti bukti manual (tanpa batas 4x, tidak untuk void) | `POST invoices.proof` (role finance) | `payment_proofs`, `invoices.proof_upload_count`, `invoice_logs` | `invoice_logs` |
 | `uploadPaymentProof` dari `/assessment` (publik, dikunci kode kuesioner; wajib sebelum isi) | `POST invoices.proof` | `payment_proofs`, `invoices.proof_upload_count`, `invoice_logs` | `invoice_logs` |
 | `issueInvoice` renewal cepat tab Perlu Renewal (paket sama, kredit < 3) | `POST invoices.list` | `invoices`, `invoice_counters`, `invoice_logs` | `invoice_logs` |
@@ -105,7 +106,7 @@ Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2
 ### Pekerjaan frontend saat integrasi
 | Item | Perubahan |
 |---|---|
-| Status invoice | Tampilkan `pending_verification` (setelah ortu upload), `rejected` (+ alasan), `void`; jenis invoice paket/assessment; hapus jatuh tempo |
+| Status invoice | Hanya `unpaid`, `paid`, `void` (unggah bukti tidak mengubah status; Finance "Tandai Lunas"; tanpa Tolak); jenis invoice paket/assessment/cuti; hapus jatuh tempo |
 | Kode & kuesioner | Login ortu memakai `client_code` (bukan `TDC-`); kuesioner sekali isi (tanpa isi ulang), cek expiry/invoice dari server |
 | Hapus | Tombol delete mengikuti `canDelete` dari respons login (role) |
 | Jejak pelaku | Backend mengisi `created_by`/`updated_by`; frontend tidak mengirim pelaku |

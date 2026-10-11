@@ -196,6 +196,7 @@ export default function ClientDetailInquiry() {
     if (!ok) return;
     const result = codeActions.deleteCode(client, item);
     if (result.deleted) toast.success(`Kode ${item.code} dihapus.`);
+    else if (result.reason === "draft") toast.error("Kode ini sedang diisi ortu (sudah ada jawaban tersimpan) sehingga tidak bisa dihapus.");
     else toast.error("Kode ini sudah diisi ortu sehingga tidak bisa dihapus.");
   };
 

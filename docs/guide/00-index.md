@@ -27,6 +27,7 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 | Integrasi Laravel API | 10 | `frontend/src/services/`, `frontend/src/config/env.js`, `schema.md` |
 | Desain tabel / indeks / jejak perubahan | `schema.md` | skill `database-design` |
 | Log invoice & jejak perubahan | 06 §Log invoice, `schema.md` §05 | `frontend/src/domain/credit.js` (`appendInvoiceLog`), `features/finance/components/InvoiceLogDialog.js` |
+| Docker, deploy otomatis ke VPS, backup/restore | 13 | `docker/`, `docker-compose*.yml`, `.github/workflows/deploy.yml` |
 | Cek bug & tech debt | 11 | — |
 | Keputusan klien & status implementasinya | 12 | — |
 
@@ -53,4 +54,6 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 | `docs/adr/` | Architecture Decision Records (mulai `0001-feature-based-architecture.md`) |
 | `.claude/skills/` | Skill Claude Code: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal. Referensi scope, **jangan diedit** kecuali diminta |
-| `backend/`, `tests/`, `.emergent/`, `memory/`, `test_reports/` | Sisa platform Emergent (legacy). Tidak dipakai |
+| `backend/` | Root project Laravel 11 (kosong sampai dibuat; panduan `13-docker-deploy.md`) |
+| `docker/`, `docker-compose*.yml`, `.github/workflows/` | Docker dev + UAT VPS, CI/CD auto-deploy |
+| `tests/`, `.emergent/`, `memory/`, `test_reports/` | Sisa platform Emergent (legacy). Tidak dipakai |

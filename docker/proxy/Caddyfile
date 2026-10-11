@@ -1,0 +1,22 @@
+# Caddy = pintu masuk HTTPS di VPS (sertifikat Let's Encrypt otomatis).
+# Butuh: domain yang A record-nya sudah mengarah ke IP VPS, dan port 80/443 terbuka.
+# Variabel dari .env: APP_DOMAIN (mis. api-uat.therapedia.id)
+#
+# Memakai Cloudflare? Lebih mudah pakai profile `cloudflare` (Tunnel) dan tidak perlu Caddy; lihat docs/guide/13-docker-deploy.md §9.
+# Bila VPS sudah punya reverse proxy sendiri (Nginx/Traefik), jangan aktifkan profile `tls`
+# dan arahkan proxy itu ke 127.0.0.1:${WEB_PORT} (lihat docs/guide/13-docker-deploy.md).
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# Hapus cabang / client besar berjalan sinkron: jangan putus koneksi lebih awal
+	reverse_proxy web:80 {
+		transport http {
+			read_timeout 300s
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

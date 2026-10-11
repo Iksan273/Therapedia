@@ -7,6 +7,9 @@ const SEEDED_KEYS = ["clients", "schedules", "credits", "therapists", "assessmen
 // Key lama yang sudah tidak dipakai (fitur audit log dihapus): dibersihkan saat versi seed berubah.
 const LEGACY_KEYS = ["audit_logs"];
 
+// Draft kuesioner terkait client seed: ikut dibersihkan saat versi seed berubah agar tidak yatim (tidak ikut pengecekan seed).
+const DERIVED_KEYS = ["assessment_drafts"];
+
 // Naikkan nilai ini setiap kali data seed berubah. Browser yang menyimpan seed versi lama akan
 // otomatis memakai seed baru (hanya data domain; akun, RBAC, dan master layanan/kuadran tidak disentuh).
 const SEED_VERSION = "demo-2026-10-v16";
@@ -17,7 +20,7 @@ let loader = null;
 function resetStaleSeedData() {
   try {
     if (window.localStorage.getItem(VERSION_KEY) === SEED_VERSION) return;
-    [...SEEDED_KEYS, ...LEGACY_KEYS].forEach(removePersisted);
+    [...SEEDED_KEYS, ...LEGACY_KEYS, ...DERIVED_KEYS].forEach(removePersisted);
     window.localStorage.setItem(VERSION_KEY, SEED_VERSION);
   } catch {
     // storage tidak tersedia: abaikan

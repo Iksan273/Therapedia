@@ -1,0 +1,169 @@
+# Push ke `main` yang menyentuh backend/ atau docker/ -> test -> build image -> deploy otomatis ke VPS (UAT).
+# Semua langkah otomatis DILEWATI selama backend/artisan belum ada (project Laravel belum dibuat).
+# Panduan setup (secrets, VPS, DNS): docs/guide/13-docker-deploy.md
+name: Deploy UAT
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "docker/**"
+      - "docker-compose.prod.yml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+# Satu deploy pada satu waktu (jangan membatalkan deploy yang sedang jalan)
+concurrency:
+  group: deploy-uat
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  check:
+    name: Cek project Laravel
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.chk.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: chk
+        run: |
+          if [ -f backend/artisan ] && [ -f backend/composer.lock ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::backend/artisan atau composer.lock belum ada: test, build, dan deploy dilewati."
+          fi
+
+  test:
+    name: Test Laravel (MySQL 8)
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: therapedia_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, bcmath, intl, zip, mbstring
+          coverage: none
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      # Skema memakai fitur MySQL (generated column WIB, CHECK, view): test WAJIB berjalan di MySQL, bukan SQLite.
+      # Pastikan phpunit.xml tidak memaksa DB_CONNECTION=sqlite.
+      - run: php artisan test
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_DATABASE: therapedia_test
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+
+  build:
+    name: Build & push image (GHCR)
+    needs: [check, test]
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: vars
+        run: |
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push app (PHP-FPM)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: prod
+          push: true
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.owner }}/therapedia-app:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ steps.vars.outputs.owner }}/therapedia-app:uat
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,scope=app,mode=max
+      - name: Build & push web (Nginx)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: web
+          push: true
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.owner }}/therapedia-web:${{ steps.vars.outputs.tag }}
+            ghcr.io/${{ steps.vars.outputs.owner }}/therapedia-web:uat
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,scope=app,mode=max
+
+  deploy:
+    name: Deploy ke VPS
+    needs: [check, build]
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    # Buat Environment "uat" di Settings > Environments; aktifkan "Required reviewers" bila ingin persetujuan manual sebelum deploy.
+    environment: uat
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+      SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      VPS_PATH: ${{ secrets.VPS_PATH }}
+      GHCR_USER: ${{ github.actor }}
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Siapkan SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s
+' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          if [ -n "$KNOWN_HOSTS" ]; then
+            printf '%s
+' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+      - name: Kirim compose + skrip ke VPS
+        run: |
+          SSH="ssh -i $HOME/.ssh/id_deploy -p $VPS_PORT"
+          rsync -az --delete -e "$SSH" docker/ "$VPS_USER@$VPS_HOST:$VPS_PATH/docker/"
+          rsync -az -e "$SSH" docker-compose.prod.yml "$VPS_USER@$VPS_HOST:$VPS_PATH/"
+      - name: Login GHCR di VPS
+        run: |
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST"             "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+      - name: Jalankan deploy.sh
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST"             "cd '$VPS_PATH' && chmod +x docker/scripts/*.sh && IMAGE_TAG='$TAG' ./docker/scripts/deploy.sh"

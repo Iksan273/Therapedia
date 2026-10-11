@@ -17,7 +17,9 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 | `schema.md` | Desain database v2: 35 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **log invoice** (tanpa audit log) |
 | `.claude/skills/` | Skill project: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal: referensi scope fitur |
-| `backend/`, `tests/`, `.emergent/`, `memory/`, `test_reports/` | **Legacy** platform Emergent. Abaikan |
+| `backend/` | Root project **Laravel 11** (sengaja kosong sampai dibuat: `make laravel-new`). Kode lama Emergent sudah dihapus |
+| `docker/`, `docker-compose*.yml`, `.env.example`, `Makefile`, `.github/workflows/` | Docker (PHP-FPM + Nginx + MySQL 8, tanpa Redis/queue) dan CI/CD auto-deploy ke VPS UAT. Panduan: `docs/guide/13-docker-deploy.md` |
+| `tests/`, `.emergent/`, `memory/`, `test_reports/` | **Legacy** platform Emergent. Abaikan |
 
 ## Commands
 ```bash
@@ -68,6 +70,7 @@ Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk por
 | Membuat/mengubah UI | `docs/guide/08-ui-conventions.md` |
 | Perubahan umum (halaman, field, role, status) | `docs/guide/09-recipes.md` |
 | Integrasi backend / endpoint / nama field API | `docs/guide/10-api-migration.md` + `schema.md` |
+| Docker, deploy VPS, backup/restore | `docs/guide/13-docker-deploy.md` |
 | Desain DB, indeks, jejak perubahan | `schema.md` + skill `database-design` |
 | Sebelum memperbaiki sesuatu yang "aneh" | `docs/guide/11-known-issues.md` |
 | Keputusan klien / meeting 3 Okt 2026 + status implementasi frontend | `docs/guide/12-keputusan-klien.md`, `pertanyaan_klien.md` |

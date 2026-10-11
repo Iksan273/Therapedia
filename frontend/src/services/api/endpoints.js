@@ -37,6 +37,7 @@ export const ENDPOINTS = {
   },
   publicAssessment: {
     byCode: (code) => `/public/assessments/${code}`,
+    draft: (code) => `/public/assessments/${code}/draft`, // PUT: simpan otomatis (patch jawaban); GET byCode ikut membawa draft
     submit: (code) => `/public/assessments/${code}/responses`,
   },
   assessmentCategories: {

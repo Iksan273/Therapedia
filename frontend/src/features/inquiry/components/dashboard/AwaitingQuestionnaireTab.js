@@ -9,8 +9,21 @@ import { ServiceChips } from "@/shared/components/ServiceChips";
 import { Button } from "@/shared/ui/button";
 import { TablePagination } from "@/shared/components/TablePagination";
 import { SearchInput } from "@/shared/components/FilterBar";
+import { useAssessmentDrafts } from "@/stores/assessmentDraftsStore";
+import { useAssessments } from "@/stores/assessmentsStore";
+import { countCategoryQuestions, draftProgress } from "@/domain/assessment";
 
 export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, totalAwaiting, search = "", setSearch, navigate }) {
+  const { getDraft } = useAssessmentDrafts();
+  const { getCategory } = useAssessments();
+  // Progres kode yang sedang diisi (ada draft): { code, answered, total, percent } atau null
+  const progressOf = (c) => {
+    for (const item of c.assessmentCodes || []) {
+      const draft = getDraft(item.code);
+      if (draft) return { code: item.code, ...draftProgress(draft, countCategoryQuestions(getCategory(item.categoryId))) };
+    }
+    return null;
+  };
   return (
     <TabsContent value="awaiting">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
@@ -80,6 +93,11 @@ export function AwaitingQuestionnaireTab({ awaitPg, awaitingQuestionnaires, tota
                             <span className="font-mono font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200 tracking-wider">
                               {codes}
                             </span>
+                            {progressOf(c) && (
+                              <p className="mt-1.5 text-[11px] font-bold text-sky-700" data-testid={`awaiting-progress-${c.id}`}>
+                                Sedang diisi {progressOf(c).answered}/{progressOf(c).total} ({progressOf(c).percent}%)
+                              </p>
+                            )}
                           </TableCell>
                           <TableCell data-label="Kontak WhatsApp">
                             <p className="font-mono text-slate-700">{c.parentContact}</p>

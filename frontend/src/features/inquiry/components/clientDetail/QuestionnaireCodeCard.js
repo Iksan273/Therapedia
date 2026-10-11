@@ -5,13 +5,19 @@ import { Button } from "@/shared/ui/button";
 import { Copy, Link2, Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/shared/ui/switch";
 import { isQuestionnaireCodeFilled } from "@/domain/client";
-import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionnaireCodeExpired } from "@/domain/assessment";
+import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionnaireCodeExpired, countCategoryQuestions, draftProgress } from "@/domain/assessment";
+import { useAssessmentDrafts } from "@/stores/assessmentDraftsStore";
+import { useAssessments } from "@/stores/assessmentsStore";
 import { fmtDate } from "@/shared/lib/format";
 import { Link } from "react-router-dom";
 import { AssessmentServiceSelect } from "@/shared/components/AssessmentServiceSelect";
 import { IfCanDelete } from "@/shared/components/DeleteControls";
 
 export function QuestionnaireCodeCard({ categories, client, copyToClipboard, handleGenerateQuestionnaireCode, handleDeleteQuestionnaireCode, newQuestionnaireCategory, setNewQuestionnaireCategory, newQuestionnaireValidity = "none", setNewQuestionnaireValidity, masterPackages = [], newQuestionnaireService = "", setNewQuestionnaireService, newQuestionnaireInvoice = true, setNewQuestionnaireInvoice }) {
+  const { getDraft } = useAssessmentDrafts();
+  const { getCategory } = useAssessments();
+  // Kode yang sudah punya draft = SEDANG diisi ortu: tampil progres dan tidak boleh dihapus (keputusan 11 Okt 2026).
+  const progressOf = (item) => draftProgress(getDraft(item.code), countCategoryQuestions(getCategory(item.categoryId)));
   return (
     <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between">
@@ -95,6 +101,10 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                         <span className="inline-block mt-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md" data-testid={`code-status-${item.code}`}>
                           Sudah diisi
                         </span>
+                      ) : getDraft(item.code) ? (
+                        <span className="inline-block mt-1 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md" data-testid={`code-status-${item.code}`}>
+                          Sedang diisi {progressOf(item).answered}/{progressOf(item).total} ({progressOf(item).percent}%)
+                        </span>
                       ) : (
                         <span className="inline-block mt-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md" data-testid={`code-status-${item.code}`}>
                           Belum diisi
@@ -129,7 +139,7 @@ export function QuestionnaireCodeCard({ categories, client, copyToClipboard, han
                       >
                         Buka Form
                       </Link>
-                      {!isQuestionnaireCodeFilled(client, item) && (
+                      {!isQuestionnaireCodeFilled(client, item) && !getDraft(item.code) && (
                         <IfCanDelete module="inquiry_pipeline">
                         <Button aria-label="Hapus Kode"
                           size="icon"

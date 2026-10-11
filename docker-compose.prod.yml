@@ -1,0 +1,114 @@
+# UAT / produksi di VPS. Image `app` dan `web` dibangun GitHub Actions lalu ditarik dari GHCR
+# (.github/workflows/deploy.yml). Deploy manual: IMAGE_TAG=<tag> ./docker/scripts/deploy.sh
+# Berkas yang dibutuhkan di VPS (tidak masuk git): .env (variabel compose) dan .env.backend (env Laravel).
+# Panduan lengkap: docs/guide/13-docker-deploy.md
+name: therapedia
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app: &app
+  image: ghcr.io/${GHCR_OWNER:?isi GHCR_OWNER di .env}/therapedia-app:${IMAGE_TAG:-uat}
+  # Fallback bila ingin build langsung di VPS: docker compose -f docker-compose.prod.yml build
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: prod
+  restart: unless-stopped
+  env_file: ./.env.backend
+  volumes:
+    # Seluruh storage Laravel: log, cache/session file, dan bukti bayar (storage privat) wajib persisten antar-deploy
+    - app_storage:/var/www/html/storage
+  logging: *logging
+
+services:
+  app:
+    <<: *app
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/${GHCR_OWNER:?isi GHCR_OWNER di .env}/therapedia-web:${IMAGE_TAG:-uat}
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: web
+    restart: unless-stopped
+    # Hanya dibuka ke localhost; akses publik lewat `cloudflared` (profile cloudflare), `proxy` (profile tls), atau reverse proxy VPS
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    depends_on:
+      - app
+    logging: *logging
+
+  # Scheduler Laravel: credits:reconcile 02:00, housekeeping 04:00, dst. (schema.md §11). Tanpa queue worker.
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?isi MYSQL_DATABASE di .env}
+      MYSQL_USER: ${MYSQL_USER:?isi MYSQL_USER di .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?isi MYSQL_PASSWORD di .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?isi MYSQL_ROOT_PASSWORD di .env}
+    # Tidak dipublikasikan ke host/internet. Akses lewat: docker compose -f docker-compose.prod.yml exec mysql mysql ...
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/therapedia.cnf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    logging: *logging
+
+  # HTTPS otomatis (Let's Encrypt). Aktif bila COMPOSE_PROFILES=tls di .env.
+  proxy:
+    profiles: ["tls"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    logging: *logging
+
+  # Cloudflare Tunnel: HTTPS + proxy tanpa membuka port 80/443 di VPS (IP origin tersembunyi). Aktif bila
+  # COMPOSE_PROFILES=cloudflare. Public hostname -> http://web:80 diatur di Cloudflare Zero Trust (lihat panduan §9).
+  cloudflared:
+    profiles: ["cloudflare"]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - web
+    logging: *logging
+
+volumes:
+  mysql_data:
+  app_storage:
+  caddy_data:
+  caddy_config:

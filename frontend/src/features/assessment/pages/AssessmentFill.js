@@ -1,47 +1,67 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, MessageCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileQuestion, KeyRound, MessageCircle, Save } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { Textarea } from "@/shared/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-import { calcAgeDetailed } from "@/shared/lib/format";
-import { nowIso, todayStr } from "@/shared/lib/id";
 import { Checkbox } from "@/shared/ui/checkbox";
-import { isScoredQuestionType, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
+import { nowIso } from "@/shared/lib/id";
+import { cn } from "@/shared/lib/utils";
 import { useClients } from "@/stores/clientsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useCredits } from "@/stores/creditsStore";
-import { cn } from "@/shared/lib/utils";
 import { AssessmentProofCard } from "@/features/assessment/components/AssessmentProofCard";
-import { checkQuestionnaireAccess } from "@/domain/assessment";
+import { QuestionCard } from "@/features/assessment/components/fill/QuestionCard";
+import { DraftSaveIndicator } from "@/features/assessment/components/fill/DraftSaveIndicator";
+import { buildSections, questionsOf, sectionIndex } from "@/features/assessment/components/fill/fillSections";
+import { useAssessmentFillActions } from "@/features/assessment/hooks/useAssessmentFillActions";
+import { useDraftAutosave } from "@/features/assessment/hooks/useDraftAutosave";
+import { checkQuestionnaireAccess, isAnswerFilled } from "@/domain/assessment";
 
-// Pesan penolakan akses kuesioner (aturan klien: sekali isi, masa berlaku opsional dicek saat dibuka, bukti transfer invoice assessment wajib diunggah sebelum mengisi)..
+// Pesan penolakan akses kuesioner (aturan klien: sekali isi, masa berlaku opsional dicek saat dibuka, bukti transfer invoice assessment wajib diunggah sebelum mengisi).
 const ACCESS_ERRORS = {
   submitted: "Kuesioner dengan kode ini sudah diisi dan tidak dapat diisi ulang. Hubungi Admin Therapedia bila perlu bantuan.",
   expired: "Kode kuesioner sudah kedaluwarsa. Hubungi Admin Therapedia untuk meminta kode baru.",
 };
 
+const normCode = (v) => String(v || "").trim().toUpperCase();
+
 export default function AssessmentFill() {
-  const { clients, updateClient } = useClients();
+  const { clients } = useClients();
   const { getCategory } = useAssessments();
   const { getInvoicesForClient, uploadPaymentProof } = useCredits();
+  const fill = useAssessmentFillActions();
 
   const [stage, setStage] = useState("code"); // code | proof | form | done
-  const [proofTarget, setProofTarget] = useState(null); // { client, category, invoice } menunggu unggah bukti
+  const [proofTarget, setProofTarget] = useState(null); // { client, category, invoice, code } menunggu unggah bukti
   const [searchParams] = useSearchParams();
   const [codeInput, setCodeInput] = useState((searchParams.get("code") || "").toUpperCase()); // dari tautan portal ortu
   const [codeError, setCodeError] = useState("");
   const [client, setClient] = useState(null);
+  const [category, setCategory] = useState(null);
+  const [activeCode, setActiveCode] = useState("");
   const [answers, setAnswers] = useState({});
   const [formError, setFormError] = useState("");
-  const [consent, setConsent] = useState(false);
+  const [consentAt, setConsentAt] = useState(null); // waktu persetujuan; boleh dicentang di awal (tersimpan di draft) atau saat kirim
+  const [lastSectionId, setLastSectionId] = useState(null);
+  const [resume, setResume] = useState(null); // { answered, total } bila form dilanjutkan dari draft
+  const [filterMode, setFilterMode] = useState("all"); // "all" | "unanswered"
+  const resumeSectionRef = useRef(null);
 
-  const [category, setCategory] = useState(null);
+  const categorizedSections = useMemo(() => buildSections(category), [category]);
+  const allCategoryQuestions = useMemo(() => questionsOf(categorizedSections), [categorizedSections]);
+  const sectionOfQuestion = useMemo(() => sectionIndex(categorizedSections), [categorizedSections]);
+  const validQuestionIds = useMemo(() => allCategoryQuestions.map((q) => q.id), [allCategoryQuestions]);
+
+  const autosave = useDraftAutosave({
+    enabled: stage === "form" && Boolean(client && category),
+    save: (payload) => fill.saveProgress({ code: activeCode, clientId: client.id, validQuestionIds, ...payload }),
+    answers,
+    consentAt,
+    lastSectionId,
+  });
 
   const handleCodeSubmit = (e) => {
     e.preventDefault();
@@ -50,7 +70,7 @@ export default function AssessmentFill() {
 
   // Cari kode (dari form atau tautan `?code=`), cek akses, lalu buka unggah bukti / kuesioner
   const lookupCode = (rawCode) => {
-    const input = String(rawCode || "").trim().toUpperCase();
+    const input = normCode(rawCode);
     let foundClient = null;
     let foundCat = null;
     let foundItem = null;
@@ -78,14 +98,14 @@ export default function AssessmentFill() {
       return;
     }
 
-    const access = checkQuestionnaireAccess({ client: foundClient, codeItem: foundItem, invoices: getInvoicesForClient(foundClient.id) });
+    const access = checkQuestionnaireAccess({ client: foundClient, codeItem: foundItem, invoices: getInvoicesForClient(foundClient.id), draft: fill.getDraft(input) });
     if (!foundCat) {
       // Fallback to first category if not found
       foundCat = getCategory("cat-001");
     }
     if (!access.ok && access.reason === "proof_required") {
       setCodeError("");
-      setProofTarget({ client: foundClient, category: foundCat, invoice: access.invoice });
+      setProofTarget({ client: foundClient, category: foundCat, invoice: access.invoice, code: input });
       setStage("proof");
       return;
     }
@@ -94,12 +114,26 @@ export default function AssessmentFill() {
       return;
     }
 
-    openForm(foundClient, foundCat);
+    openForm(foundClient, foundCat, input);
   };
 
-  const openForm = (foundClient, foundCat) => {
-    setAnswers({});
-    setConsent(false);
+  // Buka form; bila kode ini sudah punya draft, jawaban dipulihkan dan ortu melanjutkan dari titik terakhir.
+  const openForm = (foundClient, foundCat, code) => {
+    const sections = buildSections(foundCat);
+    const ids = new Set(questionsOf(sections).map((q) => q.id));
+    const draft = fill.getDraft(code);
+    const restored = draft ? Object.fromEntries(Object.entries(draft.answers || {}).filter(([id]) => ids.has(id))) : {};
+    const restoredConsent = draft?.consentAt || null;
+    const restoredSection = draft?.lastSectionId || null;
+
+    autosave.reset({ answers: restored, consentAt: restoredConsent, lastSectionId: restoredSection });
+    setAnswers(restored);
+    setConsentAt(restoredConsent);
+    setLastSectionId(restoredSection);
+    setResume(Object.keys(restored).length > 0 ? { answered: Object.keys(restored).length, total: ids.size } : null);
+    resumeSectionRef.current = Object.keys(restored).length > 0 ? restoredSection : null;
+    setFormError("");
+    setActiveCode(code);
     setCategory(foundCat);
     setClient(foundClient);
     setStage("form");
@@ -115,7 +149,7 @@ export default function AssessmentFill() {
       fileSize: file.fileSize,
     });
     toast.success("Bukti transfer terkirim. Silakan lanjut mengisi kuesioner.");
-    openForm(proofTarget.client, proofTarget.category);
+    openForm(proofTarget.client, proofTarget.category, proofTarget.code);
     setProofTarget(null);
   };
 
@@ -128,75 +162,26 @@ export default function AssessmentFill() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients.length]);
 
-  const [filterMode, setFilterMode] = useState("all"); // "all" | "unanswered"
+  // Dilanjutkan dari draft: gulir ke section terakhir yang dikerjakan
+  useEffect(() => {
+    if (stage !== "form" || !resumeSectionRef.current) return undefined;
+    const target = resumeSectionRef.current;
+    resumeSectionRef.current = null;
+    const t = setTimeout(() => document.getElementById(target)?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 150);
+    return () => clearTimeout(t);
+  }, [stage]);
 
-  const WINNIE_DUNN_OPTIONS = useMemo(() => [
-    "5 - Hampir Selalu (90%+)",
-    "4 - Sering (75%)",
-    "3 - Kadang (50%)",
-    "2 - Jarang (25%)",
-    "1 - Hampir Tidak Pernah (10%)",
-    "0 - Tidak Pernah / Tidak Berlaku",
-  ], []);
+  // Perubahan satu jawaban (stabil agar QuestionCard ter-memo tidak merender ulang semuanya)
+  const handleAnswer = useCallback(
+    (questionId, value) => {
+      setAnswers((prev) => ({ ...prev, [questionId]: value }));
+      setFormError("");
+      if (sectionOfQuestion[questionId]) setLastSectionId(sectionOfQuestion[questionId]);
+    },
+    [sectionOfQuestion]
+  );
 
-  const categorizedSections = useMemo(() => {
-    if (!category) return [];
-
-    const mapQuestion = (q, idx, sec) => {
-      const qType = normalizeQuestionType(q.type);
-      let opts = [];
-      if (Array.isArray(q.options) && q.options.length > 0) {
-        opts = q.options;
-      } else if (qType === "scale_0_5") {
-        opts = WINNIE_DUNN_OPTIONS;
-      } else {
-        opts = ["Opsi 1", "Opsi 2", "Opsi 3"];
-      }
-
-      return {
-        ...q,
-        id: q.id || `q-${sec ? sec.sectionId : "cat"}-${q.itemNo || idx + 1}`,
-        itemNo: q.itemNo || idx + 1,
-        domain: sec?.title || sec?.domain || q.domain || "Umum",
-        type: qType,
-        options: opts,
-        scaleMin: q.scaleMin !== undefined ? q.scaleMin : (qType === "range" ? 1 : 0),
-        scaleMax: q.scaleMax !== undefined ? q.scaleMax : 5,
-        minLabel: q.minLabel || (qType === "range" ? "Sangat Rendah" : "Tidak Berlaku"),
-        maxLabel: q.maxLabel || (qType === "range" ? "Sangat Tinggi" : "Hampir Selalu"),
-      };
-    };
-
-    if (category.sections && category.sections.length > 0) {
-      return category.sections.map((sec, sIdx) => ({
-        id: sec.sectionId || `sec-${sIdx}`,
-        title: sec.title || `Bagian ${sIdx + 1}`,
-        leadText: sec.leadText || "",
-        questions: (sec.questions || []).map((q, idx) => mapQuestion(q, idx, sec)),
-      }));
-    }
-    return [
-      {
-        id: "sec-default",
-        title: "Daftar Pertanyaan Observasi",
-        leadText: "",
-        questions: (category.questions || []).map((q, idx) => mapQuestion(q, idx, null)),
-      },
-    ];
-  }, [category, WINNIE_DUNN_OPTIONS]);
-
-  const allCategoryQuestions = useMemo(() => {
-    return categorizedSections.flatMap((s) => s.questions);
-  }, [categorizedSections]);
-
-  const answeredCount = useMemo(() => {
-    return allCategoryQuestions.filter((q) => {
-      const val = answers[q.id];
-      if (val === undefined || val === null) return false;
-      if (Array.isArray(val)) return val.length > 0;
-      return String(val).trim().length > 0;
-    }).length;
-  }, [allCategoryQuestions, answers]);
+  const answeredCount = useMemo(() => allCategoryQuestions.filter((q) => isAnswerFilled(answers[q.id])).length, [allCategoryQuestions, answers]);
 
   const progressPercent = useMemo(() => {
     if (!allCategoryQuestions.length) return 0;
@@ -204,88 +189,49 @@ export default function AssessmentFill() {
   }, [answeredCount, allCategoryQuestions.length]);
 
   const scrollToSection = (secId) => {
-    const el = document.getElementById(secId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    document.getElementById(secId)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   };
 
   const jumpToFirstUnanswered = () => {
-    const firstUnanswered = allCategoryQuestions.find((q) => {
-      const val = answers[q.id];
-      if (val === undefined || val === null) return true;
-      if (Array.isArray(val)) return val.length === 0;
-      return !String(val).trim();
-    });
+    const firstUnanswered = allCategoryQuestions.find((q) => !isAnswerFilled(answers[q.id]));
     if (firstUnanswered) {
       const el = document.getElementById(`q-card-${firstUnanswered.id}`);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.scrollIntoView?.({ behavior: "smooth", block: "center" });
         el.classList.add("ring-2", "ring-rose-400");
         setTimeout(() => el.classList.remove("ring-2", "ring-rose-400"), 2000);
       }
     }
   };
 
+  // "Simpan & lanjutkan nanti": simpan sekarang, ortu boleh menutup halaman dan kembali dengan kode/tautan yang sama.
+  const handleSaveForLater = () => {
+    const result = autosave.flush();
+    if (result === "error") {
+      toast.error("Jawaban belum tersimpan. Periksa koneksi lalu coba lagi.");
+      return;
+    }
+    if (result === "clean" && answeredCount === 0 && !consentAt) {
+      toast.info("Belum ada jawaban untuk disimpan.");
+      return;
+    }
+    toast.success("Jawaban tersimpan. Buka kembali tautan atau kode yang sama untuk melanjutkan kapan saja.");
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!category) return;
-    const unanswered = allCategoryQuestions.filter((q) => {
-      const val = answers[q.id];
-      if (val === undefined || val === null) return true;
-      if (Array.isArray(val)) return val.length === 0;
-      return !String(val).trim();
-    });
+    const unanswered = allCategoryQuestions.filter((q) => !isAnswerFilled(answers[q.id]));
     if (unanswered.length > 0) {
       setFormError(`Mohon lengkapi seluruh pertanyaan (${unanswered.length} belum diisi).`);
       return;
     }
-    if (!consent) {
+    if (!consentAt) {
       setFormError("Mohon centang persetujuan penggunaan data anak sebelum mengirim jawaban.");
       return;
     }
-
-    const formattedAnswers = allCategoryQuestions.map((q) => {
-      const val = answers[q.id];
-      let score = null;
-      if (!isScoredQuestionType(q.type)) score = null;
-      else if (typeof val === "number") score = val;
-      else if (typeof val === "string" && /^\d+/.test(val)) {
-        score = parseInt(val.match(/^\d+/)[0], 10);
-      }
-      return {
-        questionId: q.id,
-        itemNo: q.itemNo,
-        quadrant: q.quadrant,
-        domain: q.domain || "Umum",
-        question: q.question,
-        answer: Array.isArray(val) ? val.join(", ") : String(val),
-        score,
-      };
-    });
-
-    const usedCode = codeInput.trim().toUpperCase();
-    // Satu entri per KODE (client bisa punya beberapa kode sekategori); entri lama tanpa `code` dipertahankan.
-    const filteredExisting = (client.assessmentAnswers || []).filter((a) => String(a.code || "").toUpperCase() !== usedCode);
-    const updatedAnswers = [
-      ...filteredExisting,
-      {
-        code: usedCode,
-        categoryId: category.id,
-        categoryName: category.categoryName,
-        submittedAt: nowIso(),
-        consentAt: nowIso(),
-        answers: formattedAnswers,
-      },
-    ];
-
-    updateClient(client.id, {
-      assessmentCodes: (client.assessmentCodes || []).map((c) =>
-        c.code && c.code.toUpperCase() === usedCode ? { ...c, status: "submitted", submittedAt: nowIso() } : c
-      ),
-      assessmentAnswers: updatedAnswers,
-      // Status pipeline TIDAK berubah: client tetap "Asesmen Terjadwal" sampai sesi asesmen selesai (atau diubah manual).
-    });
+    autosave.cancel(); // tidak ada simpan draft yang menyusul setelah kirim final
+    fill.submit({ client, category, code: activeCode, questions: allCategoryQuestions, answers, consentAt });
     setStage("done");
     toast.success("Kuesioner asesmen berhasil dikirimkan. Terima kasih!");
   };
@@ -324,7 +270,7 @@ export default function AssessmentFill() {
                 <FileQuestion className="w-5 h-5 text-[#007AFF]" /> Masukkan Kode Akses Asesmen
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Gunakan kode akses kuesioner yang diberikan klinik (demo: <strong>ASM-2016</strong> atau <strong>ASM-2017</strong>). Kuesioner hanya dapat diisi satu kali.
+                Gunakan kode akses kuesioner yang diberikan klinik (demo: <strong>ASM-2016</strong> atau <strong>ASM-2017</strong>). Kuesioner hanya dapat dikirim satu kali, tetapi Anda boleh berhenti di tengah jalan: jawaban tersimpan otomatis dan dapat dilanjutkan dengan kode yang sama.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
@@ -362,6 +308,15 @@ export default function AssessmentFill() {
 
         {stage === "form" && client && category && (
           <div className="space-y-6" data-testid="assessment-question-form">
+            {resume && (
+              <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-sky-900" data-testid="assessment-resume-banner">
+                <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>Dilanjutkan dari jawaban tersimpan</strong> ({resume.answered} dari {resume.total} soal sudah terisi). Anda bisa langsung melanjutkan dari bagian terakhir.
+                </p>
+              </div>
+            )}
+
             {/* STICKY PROGRESS HEADER (RESPONSIVE) */}
             <div className="sticky top-3 z-30 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-md p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -370,18 +325,19 @@ export default function AssessmentFill() {
                     {category.categoryName}
                   </h2>
                   <p className="text-xs text-slate-500 font-medium">
-                    Kuesioner untuk: <strong className="text-slate-800">{client.clientName}</strong> • Kode: <span className="font-mono text-sky-700 font-bold">{codeInput || client.assessmentAccessCode}</span>
+                    Kuesioner untuk: <strong className="text-slate-800">{client.clientName}</strong> • Kode: <span className="font-mono text-sky-700 font-bold">{activeCode}</span>
                   </p>
                 </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
+                <div className="flex flex-col items-start sm:items-end gap-1 self-start sm:self-auto">
                   <span className={cn(
                     "text-xs font-black px-3 py-1 rounded-full border",
                     answeredCount === allCategoryQuestions.length
                       ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                       : "bg-sky-50 text-sky-800 border-sky-300"
-                  )}>
+                  )} data-testid="assessment-progress-label">
                     {answeredCount} / {allCategoryQuestions.length} Terisi ({progressPercent}%)
                   </span>
+                  <DraftSaveIndicator state={autosave.state} />
                 </div>
               </div>
 
@@ -426,10 +382,7 @@ export default function AssessmentFill() {
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full text-[11px] font-semibold">
                   <span className="text-slate-400 shrink-0 text-[11px] uppercase font-bold">Lompat:</span>
                   {categorizedSections.map((sec, sIdx) => {
-                    const secAnswered = sec.questions.filter((q) => {
-                      const val = answers[q.id];
-                      return val !== undefined && val !== null && String(val).trim().length > 0;
-                    }).length;
+                    const secAnswered = sec.questions.filter((q) => isAnswerFilled(answers[q.id])).length;
                     const isDone = secAnswered === sec.questions.length;
                     return (
                       <button
@@ -458,7 +411,7 @@ export default function AssessmentFill() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {categorizedSections.map((sec, sIdx) => {
                 const visibleQuestions = filterMode === "unanswered"
-                  ? sec.questions.filter((q) => !answers[q.id] || !String(answers[q.id]).trim())
+                  ? sec.questions.filter((q) => !isAnswerFilled(answers[q.id]))
                   : sec.questions;
 
                 if (filterMode === "unanswered" && visibleQuestions.length === 0) {
@@ -495,271 +448,9 @@ export default function AssessmentFill() {
 
                     {/* Questions in section */}
                     <div className="p-4 sm:p-6 space-y-4">
-                      {visibleQuestions.map((q) => {
-                        const isAnswered = answers[q.id] !== undefined && answers[q.id] !== null && String(answers[q.id]).trim().length > 0;
-                        return (
-                          <div
-                            key={q.id}
-                            id={`q-card-${q.id}`}
-                            className={cn(
-                              "p-4 rounded-xl border transition-all space-y-3",
-                              isAnswered
-                                ? "bg-slate-50/40 border-slate-200"
-                                : "bg-white border-amber-200/80 shadow-2xs ring-1 ring-amber-200/40"
-                            )}
-                            data-testid={`assessment-question-${q.id}`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <Label className="text-xs sm:text-sm font-bold text-slate-800 leading-snug flex items-start gap-2.5 flex-1 min-w-0 break-words">
-                                <span className={cn(
-                                  "w-5 h-5 rounded-full flex items-center justify-center text-[11px] shrink-0 font-black mt-0.5",
-                                  isAnswered ? "bg-emerald-600 text-white" : "bg-slate-300 text-slate-700"
-                                )}>
-                                  {q.itemNo}
-                                </span>
-                                <span className="flex-1 min-w-0 break-words">{q.question}</span>
-                              </Label>
-                              {q.quadrant && (
-                                <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
-                                  {q.quadrant}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* 1. Teks Bebas / Esai */}
-                            {(q.type === "free_text" || q.type === "text") && (
-                              <Textarea
-                                rows={3}
-                                className="rounded-xl border-slate-200 bg-white text-xs"
-                                value={answers[q.id] || ""}
-                                onChange={(e) => {
-                                  setAnswers({ ...answers, [q.id]: e.target.value });
-                                  setFormError("");
-                                }}
-                                placeholder="Tuliskan catatan observasi / respon anak..."
-                                data-testid={`assessment-answer-input-${q.id}`}
-                              />
-                            )}
-
-                            {/* 2. Ya / Tidak */}
-                            {q.type === "yes_no" && (
-                              <RadioGroup
-                                value={answers[q.id] || ""}
-                                onValueChange={(v) => {
-                                  setAnswers({ ...answers, [q.id]: v });
-                                  setFormError("");
-                                }}
-                                className="flex gap-3 pt-1"
-                              >
-                                {["Ya", "Tidak"].map((opt) => (
-                                  <label
-                                    key={opt}
-                                    className={cn(
-                                      "flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border transition-all cursor-pointer",
-                                      answers[q.id] === opt
-                                        ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300"
-                                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                                    )}
-                                  >
-                                    <RadioGroupItem value={opt} data-testid={`assessment-answer-${q.id}-${opt.toLowerCase()}`} />
-                                    {opt}
-                                  </label>
-                                ))}
-                              </RadioGroup>
-                            )}
-
-                            {/* 3. Range Angka Kustom (misal 1-5, 1-10) */}
-                            {q.type === "range" && (
-                              <div className="space-y-2 pt-1">
-                                <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
-                                  <span>{q.scaleMin} — {q.minLabel}</span>
-                                  <span>{q.scaleMax} — {q.maxLabel}</span>
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {Array.from({ length: (q.scaleMax - q.scaleMin + 1) }, (_, i) => q.scaleMin + i).map((num) => {
-                                    const isSelected = String(answers[q.id]) === String(num);
-                                    return (
-                                      <button
-                                        key={num}
-                                        type="button"
-                                        onClick={() => {
-                                          setAnswers({ ...answers, [q.id]: num });
-                                          setFormError("");
-                                        }}
-                                        className={cn(
-                                          "w-10 h-10 rounded-xl border text-xs font-black transition-all cursor-pointer",
-                                          isSelected
-                                            ? "bg-cyan-600 text-white border-cyan-600 shadow-sm scale-105"
-                                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                                        )}
-                                      >
-                                        {num}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 4. Multi-Centang (Checkbox Multi) */}
-                            {q.type === "checkbox_multi" && (
-                              <div className="space-y-2 pt-1">
-                                {q.options.map((opt) => {
-                                  const currentArr = Array.isArray(answers[q.id]) ? answers[q.id] : [];
-                                  const isChecked = currentArr.includes(opt);
-                                  return (
-                                    <label
-                                      key={opt}
-                                      className={cn(
-                                        "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
-                                        isChecked
-                                          ? "bg-indigo-50 border-indigo-300 text-indigo-950 shadow-2xs ring-1 ring-indigo-300"
-                                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                                      )}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={(e) => {
-                                          const nextArr = e.target.checked
-                                            ? [...currentArr, opt]
-                                            : currentArr.filter((item) => item !== opt);
-                                          setAnswers({ ...answers, [q.id]: nextArr });
-                                          setFormError("");
-                                        }}
-                                        className="w-4 h-4 rounded text-indigo-600 accent-indigo-600 cursor-pointer"
-                                      />
-                                      <span>{opt}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* 5. Winnie Dunn Standard Scale 0-5 with Fast-Touch Number Badges */}
-                            {q.type === "scale_0_5" && (
-                              <div className="space-y-2.5 pt-1">
-                                {/* Quick Touch Number Buttons */}
-                                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                  {[
-                                    { val: 5, label: "Hampir Selalu (90%+)", color: "hover:bg-emerald-50 active:bg-emerald-600" },
-                                    { val: 4, label: "Sering (75%)", color: "hover:bg-teal-50 active:bg-teal-600" },
-                                    { val: 3, label: "Kadang (50%)", color: "hover:bg-blue-50 active:bg-blue-600" },
-                                    { val: 2, label: "Jarang (25%)", color: "hover:bg-amber-50 active:bg-amber-600" },
-                                    { val: 1, label: "Hampir Tidak Pernah (10%)", color: "hover:bg-rose-50 active:bg-rose-600" },
-                                    { val: 0, label: "Tidak Pernah / Tidak Berlaku", color: "hover:bg-slate-100 active:bg-slate-600" },
-                                  ].map((scoreItem) => {
-                                    const matchingOpt = q.options.find((opt) => opt.startsWith(String(scoreItem.val))) || `${scoreItem.val} - ${scoreItem.label}`;
-                                    const isSelected = String(answers[q.id]).startsWith(String(scoreItem.val));
-                                    return (
-                                      <button
-                                        key={scoreItem.val}
-                                        type="button"
-                                        onClick={() => {
-                                          setAnswers({ ...answers, [q.id]: matchingOpt });
-                                          setFormError("");
-                                        }}
-                                        title={scoreItem.label}
-                                        className={cn(
-                                          "flex-1 min-w-[42px] sm:min-w-[48px] h-10 sm:h-11 rounded-xl border text-xs sm:text-sm font-black transition-all cursor-pointer flex flex-col items-center justify-center select-none",
-                                          isSelected
-                                            ? "bg-sky-600 text-white border-sky-600 shadow-xs scale-105 ring-2 ring-sky-300"
-                                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300"
-                                        )}
-                                      >
-                                        <span>{scoreItem.val}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-
-                                {/* Active answer descriptor label */}
-                                {answers[q.id] && (
-                                  <div className="p-2 rounded-lg bg-sky-50/70 border border-sky-200/80 text-[11px] font-bold text-sky-900 flex items-center justify-between">
-                                    <span>Pilihan: <strong>{answers[q.id]}</strong></span>
-                                    <span className="text-[11px] text-sky-600">Tersimpan ✓</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* 7. Jawaban singkat / angka / tanggal / tanggal lahir / waktu */}
-                            {["short_text", "number", "date", "birth_date", "time"].includes(q.type) && (
-                              <div className="space-y-1.5 pt-1">
-                                <Input
-                                  type={{ short_text: "text", number: "number", date: "date", birth_date: "date", time: "time" }[q.type]}
-                                  max={q.type === "birth_date" ? todayStr() : undefined}
-                                  className="rounded-xl border-slate-200 bg-white text-xs sm:max-w-xs"
-                                  value={answers[q.id] ?? ""}
-                                  onChange={(e) => {
-                                    setAnswers({ ...answers, [q.id]: e.target.value });
-                                    setFormError("");
-                                  }}
-                                  placeholder={q.type === "short_text" ? "Tulis jawaban singkat..." : q.type === "number" ? "Masukkan angka" : undefined}
-                                  data-testid={`assessment-answer-input-${q.id}`}
-                                />
-                                {q.type === "birth_date" && answers[q.id] && (
-                                  <p className="text-[11px] font-bold text-sky-800" data-testid={`assessment-age-${q.id}`}>
-                                    Usia: {(() => {
-                                      const age = calcAgeDetailed(answers[q.id]);
-                                      return `${age.years} tahun ${age.months} bulan`;
-                                    })()}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-
-                            {/* 8. Dropdown */}
-                            {q.type === "dropdown" && (
-                              <Select
-                                value={answers[q.id] ?? ""}
-                                onValueChange={(v) => {
-                                  setAnswers({ ...answers, [q.id]: v });
-                                  setFormError("");
-                                }}
-                              >
-                                <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs sm:max-w-xs" data-testid={`assessment-answer-input-${q.id}`}>
-                                  <SelectValue placeholder="Pilih salah satu..." />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-slate-200">
-                                  {q.options.map((opt) => (
-                                    <SelectItem key={opt} value={opt} className="text-xs">
-                                      {opt}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-
-                            {/* 6. Standard Multiple Choice (if not scale_0_5) */}
-                            {q.type === "multiple_choice" && (
-                              <RadioGroup
-                                value={answers[q.id] !== undefined ? String(answers[q.id]) : ""}
-                                onValueChange={(v) => {
-                                  setAnswers({ ...answers, [q.id]: v });
-                                  setFormError("");
-                                }}
-                                className="space-y-2 pt-1"
-                              >
-                                {q.options.map((opt) => (
-                                  <label
-                                    key={opt}
-                                    className={cn(
-                                      "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
-                                      String(answers[q.id]) === opt
-                                        ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300"
-                                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                                    )}
-                                  >
-                                    <RadioGroupItem value={opt} />
-                                    <span>{opt}</span>
-                                  </label>
-                                ))}
-                              </RadioGroup>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {visibleQuestions.map((q) => (
+                        <QuestionCard key={q.id} q={q} value={answers[q.id]} onChange={handleAnswer} />
+                      ))}
                     </div>
                   </div>
                 );
@@ -782,9 +473,9 @@ export default function AssessmentFill() {
 
                 <label className="flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed cursor-pointer" data-testid="assessment-consent-label">
                   <Checkbox
-                    checked={consent}
+                    checked={Boolean(consentAt)}
                     onCheckedChange={(v) => {
-                      setConsent(v === true);
+                      setConsentAt(v === true ? consentAt || nowIso() : null);
                       setFormError("");
                     }}
                     className="mt-0.5"
@@ -792,7 +483,7 @@ export default function AssessmentFill() {
                   />
                   <span>
                     Saya menyetujui data anak saya dikumpulkan dan digunakan oleh Therapedia untuk keperluan asesmen dan layanan terapi,
-                    sesuai ketentuan pelindungan data pribadi.
+                    sesuai ketentuan pelindungan data pribadi. <span className="text-slate-400">(Boleh dicentang sekarang; persetujuan ikut tersimpan.)</span>
                   </span>
                 </label>
 
@@ -806,18 +497,29 @@ export default function AssessmentFill() {
                     <p className="text-[11px] text-slate-400">Pastikan pengisian dilakukan seobjektif mungkin demi akurasi penanganan klinis.</p>
                   </div>
 
-                  <Button size="lg"
-                    type="submit"
-                    className={cn(
-                      "font-bold px-6 shadow-xs cursor-pointer transition-all shrink-0",
-                      answeredCount === allCategoryQuestions.length
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30"
-                        : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/30"
-                    )}
-                    data-testid="assessment-submit-button"
-                  >
-                    Kirim Jawaban Asesmen ({answeredCount}/{allCategoryQuestions.length})
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveForLater}
+                      className="font-bold gap-1.5 border-slate-300 min-h-10 cursor-pointer"
+                      data-testid="assessment-save-later-button"
+                    >
+                      <Save className="w-4 h-4" /> Simpan & Lanjutkan Nanti
+                    </Button>
+                    <Button size="lg"
+                      type="submit"
+                      className={cn(
+                        "font-bold px-6 shadow-xs cursor-pointer transition-all shrink-0",
+                        answeredCount === allCategoryQuestions.length
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30"
+                          : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/30"
+                      )}
+                      data-testid="assessment-submit-button"
+                    >
+                      Kirim Jawaban Asesmen ({answeredCount}/{allCategoryQuestions.length})
+                    </Button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -878,4 +580,3 @@ export default function AssessmentFill() {
     </div>
   );
 }
-

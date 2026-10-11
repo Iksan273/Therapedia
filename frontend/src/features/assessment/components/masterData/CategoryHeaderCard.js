@@ -6,10 +6,23 @@ import { Button } from "@/shared/ui/button";
 import { Info, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 import { getQuadrantColor } from "@/stores/masterDataStore";
 import { cn } from "@/shared/lib/utils";
+import { useClients } from "@/stores/clientsStore";
+import { useAssessmentDrafts } from "@/stores/assessmentDraftsStore";
+import { countActiveDraftsForCategory } from "@/domain/assessment";
 
 export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestions, activeQuadCounts, handleDeleteCategory, openGenModal, quadrants, setCatDialog, setSecDialog }) {
+  const { clients } = useClients();
+  const { drafts } = useAssessmentDrafts();
+  // Kode yang sedang diisi ortu (ada draft) memakai soal kategori ini: perubahan soal ikut memengaruhi mereka.
+  const activeDrafts = countActiveDraftsForCategory(clients, drafts, activeCategory.id);
   return (
     <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-7 space-y-5">
+      {activeDrafts > 0 && (
+        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900" data-testid="category-active-drafts-warning">
+          <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+          <p className="leading-relaxed"><strong>{activeDrafts} kuesioner sedang diisi ortu</strong> dengan instrumen ini. Soal yang dihapus akan diabaikan dari jawaban tersimpan, dan soal wajib baru harus dijawab saat mereka mengirim.</p>
+        </div>
+      )}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-100">
               <div className="flex items-start gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-xs shrink-0 mt-0.5">

@@ -33,8 +33,8 @@ Dokumen ini masih level detail rencana (diperbarui **4 Okt 2026**: frontend suda
 |---|---|---|---|
 | P1 | ✅ **Selesai (3 Okt):** klien sudah menjawab `pertanyaan_klien.md`. Sisa terbuka (dibahas setelah development selesai): F1–F2 (retensi, server), G1–G4 | Jawaban 🔴 mengubah struktur DB; migration dikunci di S1 | Jawaban terisi di kolom "Jawaban" |
 | P2 | ✅ **Selesai (3 Okt):** revert hanya 1x (reschedule/pending → jadwal asal; 2x reschedule → jadwal tersimpan terakhir) | — | Aturan revert final |
-| P3 | Siapkan server staging (VPS) + domain/subdomain API | Deploy dimulai dari S1, bukan di akhir | Akses SSH, MySQL 8, PHP 8.3, HTTPS |
-| P4 | Buat repo/folder backend baru (bukan folder `backend/` legacy Emergent) | Folder lama diabaikan menurut `CLAUDE.md` | Skeleton Laravel 11 |
+| P3 | Siapkan VPS UAT (satu-satunya lingkungan; tanpa staging) + domain/subdomain API | Deploy dimulai dari S1, bukan di akhir | Docker + Compose v2, akses SSH, A record, secrets GitHub (`docs/guide/13-docker-deploy.md` §3–§4) |
+| P4 | Buat project Laravel 11 di `backend/` (`make laravel-new`; folder sudah dikosongkan dari kode Emergent, Docker sudah disiapkan) | Auto-deploy ke VPS aktif begitu `backend/artisan` ada | Skeleton Laravel 11 jalan di Docker, `/up` 200 |
 | P5 | Tentukan PIC klien untuk UAT per role (admin inquiry, admin schedule, finance, terapis, ortu, manager, master) | UAT butuh penguji nyata per role | Daftar penguji |
 | P6 | Review `implementation_detail.md` (daftar API + tabel per modul) dan `schema.md` FINAL; setujui path ✚ yang akan ditambahkan ke `endpoints.js` | Kontrak API dikunci sebelum coding | Dokumen disetujui |
 

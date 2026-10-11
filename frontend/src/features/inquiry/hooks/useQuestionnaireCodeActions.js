@@ -1,19 +1,21 @@
 import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
+import { useAssessmentDrafts } from "@/stores/assessmentDraftsStore";
 import { useAuth } from "@/stores/authStore";
-import { isQuestionnaireCodeFilled, advanceStatus } from "@/domain/client";
-import { buildQuestionnaireCode, buildExpiresAt } from "@/domain/assessment";
+import { advanceStatus } from "@/domain/client";
+import { buildQuestionnaireCode, buildExpiresAt, canDeleteQuestionnaireCode } from "@/domain/assessment";
 import { DEFAULT_ASSESSMENT_FEE, invoiceTypeCode } from "@/domain/credit";
 import { nowIso, todayStr } from "@/shared/lib/id";
 
 // Use-case kode kuesioner. Fase API: issueCode → POST /clients/{id}/assessment-codes (kode = kode jenis asesmen + acak,
 // masa berlaku opsional); deleteCode → DELETE /clients/{id}/assessment-codes/{code}
-// (hanya kode berstatus `issued`; jejak pelaku di `deleted_by`). Menerbitkan kode sekaligus membuat invoice assessment
+// (hanya kode berstatus `issued` yang belum punya draft; jejak pelaku di `deleted_by`). Menerbitkan kode sekaligus membuat invoice assessment
 // (type `assessment`, `assessment_code` = kode itu) yang bukti transfernya wajib diunggah ortu sebelum mengisi kuesioner;
 // di API keduanya satu transaksi. Menghapus kode ikut menghapus invoice assessment-nya bila belum lunas.
 export function useQuestionnaireCodeActions() {
   const { clients, updateClient } = useClients();
   const { issueInvoice, getInvoicesForClient, deleteInvoices } = useCredits();
+  const { getDraft } = useAssessmentDrafts();
   const { auth } = useAuth();
   const by = auth?.staffName || auth?.role || null;
 
@@ -57,9 +59,11 @@ export function useQuestionnaireCodeActions() {
     return item;
   };
 
-  // Hapus kode yang belum diisi ortu. Tanpa revert. Status client tidak dimundurkan.
+  // Hapus kode yang belum diisi ortu DAN belum punya draft (sedang diisi → ditolak, API: 409 `draft_exists`).
+  // Tanpa revert. Status client tidak dimundurkan.
   const deleteCode = (client, codeItem) => {
-    if (isQuestionnaireCodeFilled(client, codeItem)) return { deleted: false, reason: "filled" };
+    const guard = canDeleteQuestionnaireCode(client, codeItem, getDraft(codeItem.code));
+    if (!guard.ok) return { deleted: false, reason: guard.reason };
 
     updateClient(client.id, { assessmentCodes: (client.assessmentCodes || []).filter((c) => c.code !== codeItem.code) });
     // Invoice assessment pemicu ikut dihapus (invoice lunas dibiarkan; dikoreksi lewat Void oleh Finance)
