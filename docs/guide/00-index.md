@@ -46,6 +46,8 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 | 10 | [10-api-migration.md](10-api-migration.md) | Lapisan HTTP, mapping use-case → endpoint → tabel → jejak |
 | 11 | [11-known-issues.md](11-known-issues.md) | Bug yang sudah/masih terbuka, tech debt |
 | 12 | [12-keputusan-klien.md](12-keputusan-klien.md) | Keputusan klien & hasil meeting (3 Okt 2026) + pelacak implementasi frontend |
+| 13 | [13-docker-deploy.md](13-docker-deploy.md) | Docker, CI/CD, backup, Cloudflare (arsitektur dan operasional) |
+| 14 | [14-runbook-deploy-vps.md](14-runbook-deploy-vps.md) | Runbook deploy ke VPS step by step (bisa dipakai ulang untuk akun klien) |
 
 ## Dokumen & aset lain
 | File | Status |

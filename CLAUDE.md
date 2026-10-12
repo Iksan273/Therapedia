@@ -71,7 +71,7 @@ Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk por
 | Membuat/mengubah UI | `docs/guide/08-ui-conventions.md` |
 | Perubahan umum (halaman, field, role, status) | `docs/guide/09-recipes.md` |
 | Integrasi backend / endpoint / nama field API | `docs/guide/10-api-migration.md` + `schema.md` |
-| Docker, deploy VPS, backup/restore | `docs/guide/13-docker-deploy.md` |
+| Docker, deploy VPS, backup/restore | `docs/guide/13-docker-deploy.md`; langkah deploy dari nol: `docs/guide/14-runbook-deploy-vps.md` |
 | Desain DB, indeks, jejak perubahan | `schema.md` + skill `database-design` |
 | Sebelum memperbaiki sesuatu yang "aneh" | `docs/guide/11-known-issues.md` |
 | Keputusan klien / meeting 3 Okt 2026 + status implementasi frontend | `docs/guide/12-keputusan-klien.md`, `pertanyaan_klien.md` |
