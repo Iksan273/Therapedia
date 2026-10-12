@@ -50,7 +50,7 @@ Pola dashboard:
 | Route | Halaman |
 |---|---|
 | `/` | `Welcome.js`: pemilih portal |
-| `/landing`, `/home` | `Home.js` + `features/landing/components/*` (Hero, Programs, Team, Branches, WhyUs, Knowledge, Contact, Footer). **Dua bahasa (Indonesia / Inggris)**: `features/landing/i18n/LanguageContext.js` (`useLang`, `L(en, id)`, pilihan disimpan di key `landing_lang`, default Indonesia) + pengalih `LanguageToggle` di header. Konten Inggris dari `data/landingData.js`, terjemahan Indonesia di `data/landingDataId.js` (kunci = id item) |
+| Landing (project `landing/`, bukan route `frontend/`) | `landing/src/pages/Home.js` + `landing/src/components/*` (Hero, Programs, Team, Branches, WhyUs, Knowledge, Contact, Footer). **Dua bahasa (Indonesia / Inggris)**: `landing/src/i18n/LanguageContext.js` (`useLang`, `L(en, id)`, pilihan disimpan di localStorage key `landing_lang`, default Indonesia) + pengalih `LanguageToggle` di header. Konten Inggris dari `data/landingData.js`, terjemahan Indonesia di `data/landingDataId.js` (kunci = id item) |
 | `/assessment` | `AssessmentFill.js` (lihat 04) |
 | `/print/client/:id` | `features/therapist/pages/PrintClientReport.js`: laporan cetak client (route mandiri tanpa `AppLayout`, untuk semua role staf; `STANDALONE_ROUTES` di `app/router/routes.js`) |
 

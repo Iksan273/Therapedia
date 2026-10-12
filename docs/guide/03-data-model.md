@@ -136,7 +136,7 @@ credits = {
 Akun login terapis ada di `staffUsers` (`authStore`, seed `data/staffUsers.seed.json`) dan dihubungkan lewat `therapistId`. `staffUsers[]`: `{ id, name, email, role, branchId /*wajib kecuali master*/, password, mustChangePassword, isActive, passwordChangedAt? }`; permintaan OTP lupa password di key `passwordResets` (mode demo).
 
 ## Assessment category (`assessment_categories[]`)
-`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, standardTitle, author, scoringKey: { "0": label, … "5": label }, sections: [{ sectionId, title, leadText, questions: [{ id, itemNo, quadrant, question, type?, options? }] }] }`
+`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, sections: [{ sectionId, title, leadText, questions: [{ id, itemNo, quadrant, question, type?, options? }] }] }`
 Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `AssessmentFill` menangani kedua bentuk ini.
 
 ## Master data

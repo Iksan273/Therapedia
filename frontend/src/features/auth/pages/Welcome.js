@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { ENV } from "@/config/env";
 import { Globe, Layers, ArrowRight, ShieldCheck, MapPin, HeartHandshake } from "lucide-react";
 
 export default function Welcome() {
@@ -102,15 +103,15 @@ export default function Welcome() {
           {/* 2 Main Action Buttons (Requested) */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full max-w-md mx-auto">
             {/* Button 1: Go to Landing Page */}
-            <Link
-              to="/landing"
+            <a
+              href={ENV.LANDING_URL}
               className="w-full sm:w-1/2 group relative inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#007AFF] hover:bg-[#0062cc] text-white font-extrabold text-sm shadow-md shadow-[#007AFF]/25 hover:shadow-lg hover:shadow-[#007AFF]/35 transition-all duration-200 active:scale-[0.98]"
               data-testid="welcome-to-landing-btn"
             >
               <Globe className="w-4 h-4 text-white/90 transition-transform group-hover:scale-110" />
               <span>Go to Landing Page</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            </a>
 
             {/* Button 2: Go to Prototype */}
             <Link

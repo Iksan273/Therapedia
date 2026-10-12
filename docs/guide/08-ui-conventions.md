@@ -30,7 +30,7 @@ button, card, dialog, sheet, drawer, select, tabs, table, popover, calendar, too
 | `PageSkeleton` | loading (juga fallback Suspense) |
 | `PaymentProofViewerModal` | viewer bukti bayar gambar/PDF |
 
-Komponen domain: `features/schedule/components/calendar/*`, `features/therapist/components/*`, `features/schedule/components/analytics/*`, `features/landing/components/*`, `app/layout/AppLayout.js`.
+Komponen domain: `features/schedule/components/calendar/*`, `features/therapist/components/*`, `features/schedule/components/analytics/*`, `app/layout/AppLayout.js`.
 
 ## List & pagination (wajib)
 Semua list, tabel, dan feed yang bisa memanjang memakai **pagination 10 data per halaman**, **bukan infinite scroll** dan bukan daftar penuh yang di-scroll ke bawah:

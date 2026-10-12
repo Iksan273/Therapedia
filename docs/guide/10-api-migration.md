@@ -97,7 +97,7 @@ Semua endpoint list memakai `page` + `per_page` (default **10**, maks 50) dan me
 Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2):
 - Enum `clients.status` & `schedules.status` mengikuti prototype; **frozen** = turunan `credit_balance = 0`.
 - Alasan cancel/pending/discharge = **string bebas** di `schedules.cancel_reason`, `pending_reason`, `clients.discharge_reason`, `credit_ledger.cancel_reason` (kode pilihan cepat atau teks custom, maks 150 karakter, tanpa FK). Tabel `cancel_reasons`/`discharge_reasons` hanya sumber dropdown. Kuota cancel 3 **per paket** (`client_packages.cancel_count`) hanya penghitung; admin memilih potong kredit atau tidak di tiap cancel (`deduct_credit`).
-- Laporan sesi → `session_reports` (3 bagian prototype + SOAP opsional).
+- Laporan sesi → `session_reports` (3 bagian prototype).
 - Riwayat kredit → `credit_ledger` append-only (+ `reversal`).
 - Master layanan & kuadran → `services`, `sensory_quadrants`. Pilihan cepat alasan → `cancel_reasons` (Cancel / Off dan Therapist Off, dibedakan `is_therapist_off`), `discharge_reasons`.
 - **Cancellation Rate / Therapist Off Rate** (Schedule Dashboard): `v_daily_sessions.sessions_cancel_counted` dan `sessions_cancel_therapist_off` dibagi `sessions_total`; Therapist Off adalah bagian dari rate keseluruhan.

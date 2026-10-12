@@ -6,6 +6,8 @@ export const ENV = {
   DATA_SOURCE: import.meta.env.VITE_DATA_SOURCE || "local",
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1",
   API_TIMEOUT_MS: Number(import.meta.env.VITE_API_TIMEOUT_MS) || 15000,
+  // URL landing page (project `landing/`, di-deploy terpisah)
+  LANDING_URL: (import.meta.env.VITE_LANDING_URL || "http://localhost:3001").replace(/\/+$/, ""),
   IS_DEV: import.meta.env.DEV,
 };
 

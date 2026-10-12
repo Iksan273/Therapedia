@@ -11,7 +11,7 @@ Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login
 | Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan atau "Semua Cabang"** (`allBranches`; tanpa itu terikat 1 cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
 | Login form | `/login` | `features/auth/pages/Login.js`: email + password staf (preset demo memakai password demo `Therapedia2026!`); ortu dengan kode client |
 | Kuesioner ortu (publik) | `/assessment` | `features/assessment/pages/AssessmentFill.js`, kode kuesioner `{kode jenis asesmen}-{acak}` (mis. `SP2-K7M4QX`); `?code=` mengisi kolom kode |
-| Landing marketing | `/landing`, `/home` | `features/landing/pages/Home.js` |
+| Landing marketing | — (project terpisah `landing/`) | Tidak ada di router `frontend/`. Tombol "Go to Landing Page" di `/` membuka `VITE_LANDING_URL` |
 
 ## 7 role sistem
 | Role id | Label | Scope cabang | Landing route |
@@ -31,7 +31,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 
 | Daftar | Isi | Guard |
 |---|---|---|
-| `PUBLIC_ROUTES` | `/`, `/landing`, `/home`, `/roles`, `/login`, `/assessment` | tanpa guard, tanpa layout |
+| `PUBLIC_ROUTES` | `/`, `/roles`, `/login`, `/assessment` | tanpa guard, tanpa layout |
 | `STANDALONE_ROUTES` | `/print/client/:id` (PrintClientReport) | `RequireAccess` (semua role staf), tanpa `AppLayout` |
 | `PROTECTED_GROUPS` | grup ber-`AppLayout`: `/master`, `/manager`, `/finance`, `/admin-inquiry`, `/admin-schedule`, `/therapist`, `/client` | `RequireAccess` per grup + `RequireModule` per halaman |
 

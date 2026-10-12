@@ -5,12 +5,13 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 ## Status project
 - **Sekarang**: frontend (React + Vite) di `frontend/`, arsitektur feature-based + domain layer. Data mode demo di **localStorage** (seed JSON); login = simulasi role. Lapisan HTTP untuk API sudah siap (`frontend/src/services/http`).
 - **Berikutnya**: backend **Laravel 11 + MySQL 8 + Sanctum** (tanpa Redis dan tanpa queue/job async: cache/session driver `database`, semua proses sinkron) sesuai `schema.md` v2. Kode baru harus **siap API** (`docs/guide/10-api-migration.md`).
-- Deploy frontend: Vercel (`frontend/vercel.json`).
+- Deploy frontend: Vercel (`frontend/vercel.json`). **Landing page = project sendiri** di `landing/` (Vite + React, deploy terpisah via `landing/vercel.json`); tautan antar-project lewat env `VITE_APP_URL` (landing) dan `VITE_LANDING_URL` (frontend).
 
 ## Peta repo
 | Path | Isi |
 |---|---|
 | `frontend/` | Aplikasi React. Aturan teknisnya ada di bagian **Aturan teknis frontend** di bawah |
+| `landing/` | Landing page marketing (dua bahasa ID/EN), project Vite mandiri, tidak berbagi kode dengan `frontend/`. Lihat `landing/README.md` |
 | `docs/guide/` | Panduan developer: arsitektur, alur bisnis, data model, resep, integrasi API |
 | `docs/adr/` | Architecture Decision Records |
 | `implementation_detail.md` | Rencana backend: API per modul + tabel yang dipakai tiap API (draf review) |
@@ -19,7 +20,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal: referensi scope fitur |
 | `backend/` | Root project **Laravel 11** (sengaja kosong sampai dibuat: `make laravel-new`). Kode lama Emergent sudah dihapus |
 | `docker/`, `docker-compose*.yml`, `.env.example`, `Makefile`, `.github/workflows/` | Docker (PHP-FPM + Nginx + MySQL 8, tanpa Redis/queue) dan CI/CD auto-deploy ke VPS UAT. Panduan: `docs/guide/13-docker-deploy.md` |
-| `tests/`, `.emergent/`, `memory/`, `test_reports/` | **Legacy** platform Emergent. Abaikan |
+| `.emergent/` | **Legacy** platform Emergent. Abaikan |
 
 ## Commands
 ```bash
@@ -86,7 +87,7 @@ Siap untuk fase API: @tanstack/react-query (QueryClient terpasang), axios (`serv
 ```
 app/          App.js · providers/ · router/{routes,guards,AppRouter}.js · layout/{AppLayout,navConfig}.js
 features/<m>/ pages/ · components/<sub>/ · hooks/use<X>Actions.js · index.js (public API) · __tests__/
-              m = auth | landing | inquiry | assessment | schedule | finance | therapist | parent | master
+              m = auth | inquiry | assessment | schedule | finance | therapist | parent | master
 stores/       <entity>Store.js — Context + reducer tipis + persist
 domain/       branch · status · client · schedule · credit · rbac — aturan bisnis PURE (+ __tests__)
 services/     storage/localStore.js · http/{httpClient,apiError,tokenStore}.js · api/endpoints.js
@@ -133,7 +134,7 @@ config/env.js data/ (seed demo)
 22. Nama action/hook = nama use-case (calon endpoint), bukan operasi storage.
 
 #### Mode gelap
-- Class `dark` dipasang di `<html>` oleh `useAppTheme()` (dipanggil sekali di `AppLayout`); halaman publik (landing, `/assessment`, `/roles`) tetap terang. Preferensi tersimpan di key `ui_theme`.
+- Class `dark` dipasang di `<html>` oleh `useAppTheme()` (dipanggil sekali di `AppLayout`); halaman publik (`/assessment`, `/roles`) tetap terang. Preferensi tersimpan di key `ui_theme`.
 - Pakai token (`bg-background`, `text-muted-foreground`, …) atau class warna Tailwind biasa: padanan gelap `bg-white`, `*-slate-*`, dan warna `*-50..300 / 600..950` dihasilkan otomatis dari `scripts/gen-dark-css.cjs`. Warna di luar itu (hex arbitrary, inline style, varian `[&_…]`) tidak ikut: tambahkan `dark:` manual atau aturan di `index.css`.
 - Jangan edit `dark-utilities.css` manual (dihasilkan).
 

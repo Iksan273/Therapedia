@@ -42,7 +42,7 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 - `packageManager` menyebut yarn, repo memakai `package-lock.json` (npm).
 
 ## Repo hygiene
-- Sisa Emergent: `backend/server.py`, `tests/`, `.emergent/`, `memory/`, `test_reports/`, `frontend/plugins/health-check/`, devDependency `@emergentbase/visual-edits`, folder `frontend/build/`.
+- Sisa Emergent: `backend/server.py`, `.emergent/`, `frontend/plugins/health-check/`, devDependency `@emergentbase/visual-edits`, folder `frontend/build/`.
 - `docs/` sudah bersih (4 Okt 2026): file temp Office dan `generate_requirement.py` (generator `.docx`, tak direferensikan) dihapus. Sisa non-guide hanya `Therapedia_Final_Requirement_v1.0.docx` (dokumen bisnis, jangan diedit tanpa diminta).
 
 ## Catatan revisi 7 Okt 2026

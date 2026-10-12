@@ -38,7 +38,7 @@ export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestion
                     </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-                    Standar Acuan: <strong className="text-slate-700">{activeCategory.author || activeCategory.standardTitle || "Therapedia Developmental Standard"}</strong> • Domain: <span className="text-emerald-700 font-semibold">{activeCategory.domain}</span>
+                    Domain: <span className="text-emerald-700 font-semibold">{activeCategory.domain}</span>
                   </p>
                 </div>
               </div>

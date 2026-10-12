@@ -47,7 +47,6 @@ app/
   layout/navConfig.js    menu per role + buildNavConfig()
 features/
   auth/        pages: Welcome, Login, RoleSelect
-  landing/     pages: Home · components: Landing* · data/landingData.js
   inquiry/     pages: DashboardInquiry, InquiryPipeline, ClientDetailInquiry, InquiryMasterData
                components: dashboard/, pipeline/, clientDetail/ · hooks: useClientOutcomeActions
   assessment/  pages: AssessmentFill (publik), AssessmentMasterData, ParentAssessmentView

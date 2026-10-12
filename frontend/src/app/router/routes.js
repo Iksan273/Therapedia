@@ -2,7 +2,6 @@ import { lazy } from "react";
 import Welcome from "@/features/auth/pages/Welcome";
 
 // Semua halaman (kecuali Welcome) di-lazy agar tiap modul jadi chunk terpisah.
-const Home = lazy(() => import("@/features/landing/pages/Home"));
 const Login = lazy(() => import("@/features/auth/pages/Login"));
 const RoleSelect = lazy(() => import("@/features/auth/pages/RoleSelect"));
 const AssessmentFill = lazy(() => import("@/features/assessment/pages/AssessmentFill"));
@@ -37,8 +36,6 @@ const STAFF_ROLES = ["master", "manager", "admin_inquiry", "admin_schedule", "fi
 // Route publik (tanpa AppLayout & tanpa guard)
 export const PUBLIC_ROUTES = [
   { path: "/", Component: Welcome },
-  { path: "/landing", Component: Home },
-  { path: "/home", Component: Home },
   { path: "/roles", Component: RoleSelect },
   { path: "/login", Component: Login },
   { path: "/assessment", Component: AssessmentFill },

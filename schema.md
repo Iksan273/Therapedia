@@ -130,7 +130,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `client_leave_sessions` | Sesi yang dibatalkan oleh satu log cuti (untuk tombol Detail) |
 | | `leave_resets` | Riwayat Reset Cuti Tahunan |
 | | `schedules` | Sesi terapi/asesmen |
-| | `session_reports` | Laporan sesi 3 bagian + SOAP |
+| | `session_reports` | Laporan sesi 3 bagian |
 | | `google_calendar_integrations` | *(fase terakhir)* Token & kalender Google per user |
 | **F. Keuangan & kredit** | `invoices` | Tagihan (paket sesi / assessment) |
 | | `invoice_counters` | Counter nomor invoice per kode + tanggal |
@@ -549,10 +549,7 @@ Schema::create('assessment_categories', function (Blueprint $table) {
     $table->string('code', 50)->unique();             // cat-001
     $table->string('type_code', 10)->unique();        // kode jenis asesmen = prefix kode kuesioner (mis. SP2, SC); jangan diubah setelah ada kode terbit
     $table->string('name', 200);                      // Child Sensory Profile 2 (Winnie Dunn…)
-    $table->string('standard_title', 150)->nullable();
-    $table->string('author', 150)->nullable();
     $table->string('domain', 150)->nullable();
-    $table->json('scoring_key')->nullable();          // {"0": "Tidak berlaku", … "5": "Hampir selalu"}
     $table->boolean('is_active')->default(true);
     $table->unsignedInteger('version')->default(1);
     $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
@@ -629,8 +626,6 @@ Schema::create('assessment_drafts', function (Blueprint $table) {
     $table->json('answers');                          // peta {"<question_id>": {"t": "4 - Sering (75%)", "v": ["a","b"]}}: t = answer_text, v = answer_values (checkbox_multi). Hanya soal yang sudah dijawab; isinya tidak difilter/diquery (tanpa indeks)
     $table->unsignedSmallInteger('answered_count')->default(0);   // jumlah soal terjawab (dihitung server tiap simpan) → bar progres & kolom "sedang diisi" di daftar Menunggu Kuesioner
     $table->foreignId('last_section_id')->nullable()->constrained('assessment_sections')->nullOnDelete();   // section terakhir dibuka → titik lanjut
-    $table->string('respondent_name', 120)->nullable();
-    $table->string('respondent_relation', 30)->nullable();
     $table->timestamp('consent_at')->nullable();      // consent boleh dicentang di awal; submit tetap mensyaratkan consent_at terisi
     $table->unsignedInteger('version')->default(1);   // optimistic lock: dua perangkat menyimpan bersamaan → 409 version_conflict
     $table->string('ip_address', 45)->nullable();
@@ -640,7 +635,7 @@ Schema::create('assessment_drafts', function (Blueprint $table) {
 ```
 Aturan (rinci di §6.5b):
 - **Simpan otomatis**: `PUT /public/assessments/{code}/draft` tiap pindah section dan ±30 detik. Isi: jawaban yang berubah sebagai *patch* (nilai `null` = hapus jawaban), `last_section_id`, `version`. Service `lockForUpdate` baris draft (dibuat pada simpan pertama), menggabungkan patch ke `answers`, membuang id soal yang bukan milik kategori kode itu, menghitung ulang `answered_count`, `version + 1`. Payload ≤ 256 KB. Draft tidak menyimpan skor.
-- **Lanjutkan**: `GET /public/assessments/{code}` mengembalikan form + draft (jawaban, `last_section_id`, `answered_count`, responden, consent). Kode adalah satu-satunya kunci (sama seperti pengisian langsung): pemegang kode bisa melanjutkan dari perangkat mana pun.
+- **Lanjutkan**: `GET /public/assessments/{code}` mengembalikan form + draft (jawaban, `last_section_id`, `answered_count`, consent). Kode adalah satu-satunya kunci (sama seperti pengisian langsung): pemegang kode bisa melanjutkan dari perangkat mana pun.
 - **Submit** memvalidasi semua soal `is_required` terjawab + `consent_at`, lalu memindahkan draft ke `assessment_responses` / `assessment_answers` / `assessment_quadrant_scores` dalam satu transaksi dan menghapus draft. Validasi gagal → draft tidak berubah (respons memuat daftar soal wajib yang belum terjawab).
 - **Instrumen diubah saat ada draft**: id soal yang sudah dihapus diabaikan; soal wajib baru wajib dijawab saat submit. Master Asesmen menampilkan peringatan "ada N draft aktif" sebelum menyimpan perubahan (hitung `assessment_drafts` → `assessment_access_codes.category_id`).
 - **Volume**: paling banyak satu baris per kode `issued`; ±30–40 KB untuk 200 soal; diabaikan.
@@ -653,8 +648,6 @@ Schema::create('assessment_responses', function (Blueprint $table) {
     $table->foreignId('access_code_id')->unique()->constrained('assessment_access_codes')->cascadeOnDelete();
     $table->foreignId('client_id')->constrained()->cascadeOnDelete();
     $table->foreignId('category_id')->constrained('assessment_categories')->restrictOnDelete();
-    $table->string('respondent_name', 120)->nullable();
-    $table->string('respondent_relation', 30)->nullable();
     $table->unsignedSmallInteger('answered_count');
     $table->timestamp('consent_at');                  // persetujuan penggunaan data anak (checkbox wajib diisi sebelum submit)
     $table->timestamp('submitted_at')->useCurrent();
@@ -857,7 +850,7 @@ Catatan:
 - **Frozen** tidak disimpan; diturunkan dari `clients.credit_balance = 0` saat render.
 
 #### `session_reports`
-Laporan sesi 3 bagian (prototype) + kolom SOAP terstruktur opsional.
+Laporan sesi 3 bagian (prototype). Catatan klinis gaya SOAP ditulis bebas di `note_section`; tidak ada kolom SOAP terpisah.
 ```php
 Schema::create('session_reports', function (Blueprint $table) {
     $table->id();
@@ -867,10 +860,6 @@ Schema::create('session_reports', function (Blueprint $table) {
     $table->text('activity_section')->nullable();     // Aktivitas sesi
     $table->text('note_section')->nullable();         // Catatan klinis (ringkas, prototype)
     $table->text('homework_section')->nullable();     // PR / home program
-    $table->text('subjective_note')->nullable();      // SOAP opsional
-    $table->text('objective_note')->nullable();
-    $table->text('assessment_note')->nullable();
-    $table->text('plan_note')->nullable();
     $table->unsignedTinyInteger('filled_sections')->storedAs(
         "(activity_section IS NOT NULL AND activity_section <> '') + (note_section IS NOT NULL AND note_section <> '') + (homework_section IS NOT NULL AND homework_section <> '')"
     );                                                // 0..3 → filter "laporan lengkap 3/3" (TherapistSummary)
@@ -1349,8 +1338,8 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 2. `status = submitted` → 409 (kuesioner hanya boleh diisi **sekali**).
 3. `expires_at IS NOT NULL AND expires_at < NOW()` → 410 kedaluwarsa (dicek saat dibuka; tanpa job harian), **kecuali** kode itu sudah punya draft yang `started_at <= expires_at` (boleh diselesaikan).
 4. Ada invoice `assessment` milik kode ini (atau invoice manual tanpa kode) yang belum `paid`/`void` **dan `proof_upload_count = 0`** → 403 `proof_required` (respons memuat id & nomor invoice). Ortu mengunggah bukti lewat `POST /invoices/{id}/proof` (publik, dikunci oleh kode kuesioner), lalu membuka ulang kuesioner; invoice tetap menunggu ditandai lunas oleh Finance, tidak memblokir pengisian.
-5. Respons buka: form kategori (section → soal) + **draft** bila ada (`answers`, `last_section_id`, `answered_count`, responden, `consent_at`, `version`) sehingga ortu melanjutkan dari titik terakhir.
-6. **Simpan draft** (`PUT /public/assessments/{code}/draft`; ulangi cek 2–4): satu transaksi pendek: lock/insert baris `assessment_drafts`; cek `version` (409 `version_conflict` bila dua perangkat bertabrakan); gabungkan patch `answers` (nilai `null` menghapus), buang id soal di luar kategori kode, set `answered_count`, `last_section_id`, responden/`consent_at` bila dikirim, `version + 1`. Tidak ada skor, tidak ada log, status kode dan client tidak berubah. Throttle per IP + per kode; payload ≤ 256 KB.
+5. Respons buka: form kategori (section → soal) + **draft** bila ada (`answers`, `last_section_id`, `answered_count`, `consent_at`, `version`) sehingga ortu melanjutkan dari titik terakhir.
+6. **Simpan draft** (`PUT /public/assessments/{code}/draft`; ulangi cek 2–4): satu transaksi pendek: lock/insert baris `assessment_drafts`; cek `version` (409 `version_conflict` bila dua perangkat bertabrakan); gabungkan patch `answers` (nilai `null` menghapus), buang id soal di luar kategori kode, set `answered_count`, `last_section_id`, `consent_at` bila dikirim, `version + 1`. Tidak ada skor, tidak ada log, status kode dan client tidak berubah. Throttle per IP + per kode; payload ≤ 256 KB.
 7. **Submit** (`POST /public/assessments/{code}/responses`; ulangi cek 2–4): validasi semua soal `is_required` terjawab (422 `incomplete` + daftar soal yang belum terjawab) dan `consent_at` terisi (dari draft atau request). Satu transaksi: insert `assessment_responses` (UNIQUE `access_code_id`) + `assessment_answers` (dari draft + jawaban final di request) + `assessment_quadrant_scores` (dihitung server, tanpa klasifikasi otomatis), kode → `submitted` + `submitted_at`, **DELETE `assessment_drafts`**; status client **tidak berubah** (tetap `assessment_scheduled` sampai sesi asesmen selesai atau diubah manual). Tanpa log khusus (jejak = `assessment_responses`).
 8. **Hapus kode** (staf, hanya `issued` **dan belum punya draft**): hapus kode + invoice assessment pemicu yang **belum lunas**; invoice yang sudah `paid` dibiarkan (FK `SET NULL`). Kode yang sudah punya draft ditolak 409 `draft_exists` (tombol hapus disembunyikan; ortu tinggal menyelesaikan kuesioner).
 

@@ -56,4 +56,4 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal. Referensi scope, **jangan diedit** kecuali diminta |
 | `backend/` | Root project Laravel 11 (kosong sampai dibuat; panduan `13-docker-deploy.md`) |
 | `docker/`, `docker-compose*.yml`, `.github/workflows/` | Docker dev + UAT VPS, CI/CD auto-deploy |
-| `tests/`, `.emergent/`, `memory/`, `test_reports/` | Sisa platform Emergent (legacy). Tidak dipakai |
+| `.emergent/` | Sisa platform Emergent (legacy). Tidak dipakai |
