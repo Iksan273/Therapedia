@@ -59,3 +59,7 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 
 ## Catatan revisi 8 Okt 2026
 - **Kuesioner lama**: jawaban sebelum 8 Okt 2026 tidak punya `code`; `listQuestionnaireResults` memasangkannya ke kode sekategori yang sudah terisi. Sebelumnya jawaban kode kedua sekategori menimpa yang pertama (kini tidak lagi).
+
+## Catatan deploy Docker (12 Okt 2026)
+- **Dependency eksternal Emergent**: `frontend/package.json` (devDependencies) memuat `@emergentbase/visual-edits` dari `https://assets.emergent.sh/...` dan tidak dipakai kode mana pun. `npm ci` (Docker build & CI) mengunduhnya; bila URL itu mati, build image `web` dan job test-frontend gagal. Belum diubah (di luar scope); solusi: hapus dependency + perbarui `package-lock.json`.
+- **`phpunit.xml` memaksa SQLite** (default Laravel). CI menimpa dengan env `DB_CONNECTION=mysql`, tetapi `make test` lokal tetap SQLite; skema nanti memakai fitur MySQL, ganti sebelum migration kompleks ditambahkan.

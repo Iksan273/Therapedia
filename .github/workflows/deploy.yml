@@ -1,4 +1,5 @@
-# Push ke `main` yang menyentuh backend/ atau docker/ -> test -> build image -> deploy otomatis ke VPS (UAT).
+# Push ke `main` yang menyentuh backend/, frontend/, atau docker/ -> test -> build image -> deploy otomatis ke VPS (UAT).
+# Satu stack: image `app` (Laravel) dan `web` (Nginx + build frontend) dibangun bersamaan.
 # Semua langkah otomatis DILEWATI selama backend/artisan belum ada (project Laravel belum dibuat).
 # Panduan setup (secrets, VPS, DNS): docs/guide/13-docker-deploy.md
 name: Deploy UAT
@@ -8,8 +9,10 @@ on:
     branches: [main]
     paths:
       - "backend/**"
+      - "frontend/**"
       - "docker/**"
       - "docker-compose.prod.yml"
+      - ".dockerignore"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
@@ -39,7 +42,7 @@ jobs:
             echo "::notice::backend/artisan atau composer.lock belum ada: test, build, dan deploy dilewati."
           fi
 
-  test:
+  test-backend:
     name: Test Laravel (MySQL 8)
     needs: check
     if: needs.check.outputs.ready == 'true'
@@ -68,7 +71,6 @@ jobs:
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
       # Skema memakai fitur MySQL (generated column WIB, CHECK, view): test WAJIB berjalan di MySQL, bukan SQLite.
-      # Pastikan phpunit.xml tidak memaksa DB_CONNECTION=sqlite.
       - run: php artisan test
         env:
           DB_CONNECTION: mysql
@@ -81,9 +83,28 @@ jobs:
           SESSION_DRIVER: array
           QUEUE_CONNECTION: sync
 
+  test-frontend:
+    name: Lint & test frontend
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+
   build:
     name: Build & push image (GHCR)
-    needs: [check, test]
+    needs: [check, test-backend, test-frontend]
     if: needs.check.outputs.ready == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -100,7 +121,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build & push app (PHP-FPM)
+      - name: Build & push app (Laravel PHP-FPM)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -112,18 +133,24 @@ jobs:
             ghcr.io/${{ steps.vars.outputs.owner }}/therapedia-app:uat
           cache-from: type=gha,scope=app
           cache-to: type=gha,scope=app,mode=max
-      - name: Build & push web (Nginx)
+      # Variabel VITE_* ditanam saat build. Atur di Settings > Secrets and variables > Actions > Variables.
+      # Tanpa variabel: data demo localStorage (local) dan API di path relatif /api/v1 (satu origin).
+      - name: Build & push web (Nginx + frontend)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/php/Dockerfile
           target: web
           push: true
+          build-args: |
+            VITE_DATA_SOURCE=${{ vars.VITE_DATA_SOURCE || 'local' }}
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || '/api/v1' }}
+            VITE_LANDING_URL=${{ vars.VITE_LANDING_URL }}
           tags: |
             ghcr.io/${{ steps.vars.outputs.owner }}/therapedia-web:${{ steps.vars.outputs.tag }}
             ghcr.io/${{ steps.vars.outputs.owner }}/therapedia-web:uat
-          cache-from: type=gha,scope=app
-          cache-to: type=gha,scope=app,mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
 
   deploy:
     name: Deploy ke VPS
@@ -147,12 +174,10 @@ jobs:
       - name: Siapkan SSH
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s
-' "$SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           if [ -n "$KNOWN_HOSTS" ]; then
-            printf '%s
-' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+            printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           else
             ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null
           fi
@@ -163,7 +188,9 @@ jobs:
           rsync -az -e "$SSH" docker-compose.prod.yml "$VPS_USER@$VPS_HOST:$VPS_PATH/"
       - name: Login GHCR di VPS
         run: |
-          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST"             "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
       - name: Jalankan deploy.sh
         run: |
-          ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST"             "cd '$VPS_PATH' && chmod +x docker/scripts/*.sh && IMAGE_TAG='$TAG' ./docker/scripts/deploy.sh"
+          ssh -i ~/.ssh/id_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
+            "cd '$VPS_PATH' && chmod +x docker/scripts/*.sh && IMAGE_TAG='$TAG' ./docker/scripts/deploy.sh"

@@ -4,7 +4,7 @@
 # Target:
 #   dev   : kode di-mount dari host (docker-compose.yml), opcache cek timestamp
 #   prod  : kode + vendor di dalam image (docker-compose.prod.yml / CI), opcache tanpa cek timestamp
-#   web   : Nginx ringan berisi folder public dari image prod (pasangan target prod)
+#   web   : Nginx berisi hasil build frontend (SPA) + proxy ke PHP-FPM (pasangan target prod)
 ARG PHP_VERSION=8.3
 
 # ---------------------------------------------------------------- base
@@ -57,9 +57,23 @@ RUN composer dump-autoload --optimize --classmap-authoritative --no-dev --no-scr
  && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs storage/app/private bootstrap/cache \
  && chown -R app:app storage bootstrap/cache
 
-# ---------------------------------------------------------------- web (Nginx)
+# ---------------------------------------------------------------- frontend (build SPA React/Vite)
+FROM node:22-alpine AS frontend
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+# Variabel VITE_* ditanam ke bundle saat build (bukan saat container jalan). Satu origin dengan API -> path relatif.
+ARG VITE_DATA_SOURCE=local
+ARG VITE_API_BASE_URL=/api/v1
+ARG VITE_API_TIMEOUT_MS=15000
+ARG VITE_LANDING_URL=
+RUN npm run build
+
+# ---------------------------------------------------------------- web (Nginx: SPA frontend + proxy ke PHP-FPM)
+# Satu pintu masuk: `/` = frontend (dist), `/api/*` dan `/up` = Laravel (container app). Lihat docker/nginx/prod.conf.
 FROM nginx:1.27-alpine AS web
-COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY --from=prod /var/www/html/public /var/www/html/public
+COPY docker/nginx/prod.conf /etc/nginx/conf.d/default.conf
+COPY --from=frontend /app/dist /var/www/frontend
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
   CMD wget -qO- http://127.0.0.1/nginx-health >/dev/null 2>&1 || exit 1

@@ -5,7 +5,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 ## Status project
 - **Sekarang**: frontend (React + Vite) di `frontend/`, arsitektur feature-based + domain layer. Data mode demo di **localStorage** (seed JSON); login = simulasi role. Lapisan HTTP untuk API sudah siap (`frontend/src/services/http`).
 - **Berikutnya**: backend **Laravel 11 + MySQL 8 + Sanctum** (tanpa Redis dan tanpa queue/job async: cache/session driver `database`, semua proses sinkron) sesuai `schema.md` v2. Kode baru harus **siap API** (`docs/guide/10-api-migration.md`).
-- Deploy frontend: Vercel (`frontend/vercel.json`). **Landing page = project sendiri** di `landing/` (Vite + React, deploy terpisah via `landing/vercel.json`); tautan antar-project lewat env `VITE_APP_URL` (landing) dan `VITE_LANDING_URL` (frontend).
+- Deploy: **frontend + backend satu stack Docker di VPS** (image `web` Nginx melayani SPA + proxy `/api` ke Laravel; CI/CD GitHub Actions → GHCR → VPS, ADR 0006, `docs/guide/13-docker-deploy.md`). `frontend/vercel.json` opsional. **Landing page = project sendiri** di `landing/` (Vite + React, deploy terpisah via `landing/vercel.json`); tautan antar-project lewat env `VITE_APP_URL` (landing) dan `VITE_LANDING_URL` (frontend).
 
 ## Peta repo
 | Path | Isi |

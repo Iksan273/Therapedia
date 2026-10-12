@@ -1,6 +1,8 @@
-# Konteks build Docker hanya butuh backend/ dan docker/ (frontend di Vercel, dokumen tidak perlu masuk image).
+# Konteks build Docker butuh backend/, frontend/ (di-build jadi SPA di image web), dan docker/.
+# Dokumen, landing/, dan sisanya tidak masuk image.
 *
 !backend
+!frontend
 !docker
 
 # Jangan bawa dependency/artefak lokal, rahasia, atau data runtime ke dalam image
@@ -19,4 +21,12 @@ backend/bootstrap/cache/*.php
 backend/public/hot
 backend/public/storage
 backend/tests
+
+frontend/node_modules
+frontend/dist
+frontend/build
+frontend/coverage
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 **/.DS_Store

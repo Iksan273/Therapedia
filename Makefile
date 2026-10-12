@@ -15,11 +15,8 @@ up: ## Jalankan app + web + mysql
 tools: ## Jalankan juga Mailpit (email OTP) + Adminer (DB)
 	$(DC) --profile tools up -d
 
-scheduler: ## Jalankan scheduler (schedule:work)
-	$(DC) --profile scheduler up -d
-
 down: ## Hentikan semua container
-	$(DC) --profile tools --profile scheduler down
+	$(DC) --profile tools down
 
 logs: ## Ikuti log app + web
 	$(DC) logs -f app web
@@ -42,4 +39,4 @@ mysql: ## Klien mysql di container
 reset-db: ## HAPUS semua data dev lalu migrate:fresh --seed
 	$(DC) exec app php artisan migrate:fresh --seed
 
-.PHONY: help laravel-new up tools scheduler down logs sh artisan composer test mysql reset-db
+.PHONY: help laravel-new up tools down logs sh artisan composer test mysql reset-db

@@ -1,9 +1,9 @@
 # Lingkungan DEVELOPMENT lokal (kode backend/ di-mount dari host, perubahan langsung terbaca).
 #   docker compose up -d --build        # app + web + mysql
 #   docker compose --profile tools up -d  # + Mailpit (email OTP) + Adminer (DB)
-#   docker compose --profile scheduler up -d  # + scheduler (schedule:work)
 # UAT/produksi di VPS memakai docker-compose.prod.yml. Panduan: docs/guide/13-docker-deploy.md
-name: therapedia
+# Nama project beda dari prod (therapedia) supaya volume MySQL dev dan prod tidak tercampur.
+name: therapedia-dev
 
 x-logging: &logging
   driver: json-file
@@ -59,27 +59,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    logging: *logging
-
-  # Scheduler Laravel (satu-satunya proses di luar request; tanpa queue worker). Opsional di dev.
-  scheduler:
-    profiles: ["scheduler"]
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-      target: dev
-      args:
-        APP_UID: ${APP_UID:-1000}
-        APP_GID: ${APP_GID:-1000}
-    restart: unless-stopped
-    command: ["php", "artisan", "schedule:work"]
-    volumes:
-      - ./backend:/var/www/html
-    depends_on:
-      mysql:
-        condition: service_healthy
-    healthcheck:
-      disable: true
     logging: *logging
 
   # Tangkap email OTP lupa password: UI di http://localhost:8025, SMTP host `mailpit` port 1025

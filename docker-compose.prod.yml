@@ -1,4 +1,5 @@
-# UAT / produksi di VPS. Image `app` dan `web` dibangun GitHub Actions lalu ditarik dari GHCR
+# UAT / produksi di VPS: SATU stack berisi frontend + backend + database. Image `app` (Laravel PHP-FPM) dan
+# `web` (Nginx + build frontend) dibangun GitHub Actions lalu ditarik dari GHCR
 # (.github/workflows/deploy.yml). Deploy manual: IMAGE_TAG=<tag> ./docker/scripts/deploy.sh
 # Berkas yang dibutuhkan di VPS (tidak masuk git): .env (variabel compose) dan .env.backend (env Laravel).
 # Panduan lengkap: docs/guide/13-docker-deploy.md
@@ -37,23 +38,18 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
       target: web
+      args:
+        VITE_DATA_SOURCE: ${VITE_DATA_SOURCE:-local}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+        VITE_LANDING_URL: ${VITE_LANDING_URL:-}
     restart: unless-stopped
-    # Hanya dibuka ke localhost; akses publik lewat `cloudflared` (profile cloudflare), `proxy` (profile tls), atau reverse proxy VPS
+    # Satu pintu masuk: frontend (/) + API (/api, /up). Default hanya localhost; akses publik lewat `cloudflared`
+    # (profile cloudflare), `proxy` (profile tls), atau reverse proxy VPS. Tanpa domain (uji lewat IP VPS): WEB_BIND=0.0.0.0 WEB_PORT=80.
     ports:
-      - "127.0.0.1:${WEB_PORT:-8080}:80"
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:80"
     depends_on:
       - app
     logging: *logging
-
-  # Scheduler Laravel: credits:reconcile 02:00, housekeeping 04:00, dst. (schema.md §11). Tanpa queue worker.
-  scheduler:
-    <<: *app
-    command: ["php", "artisan", "schedule:work"]
-    depends_on:
-      mysql:
-        condition: service_healthy
-    healthcheck:
-      disable: true
 
   mysql:
     image: mysql:8.0
