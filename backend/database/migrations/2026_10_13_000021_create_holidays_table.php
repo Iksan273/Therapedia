@@ -11,7 +11,9 @@ return new class extends Migration
         Schema::create('holidays', function (Blueprint $table) {
             $table->id();
             $table->foreignId('branch_id')->nullable()->constrained('branches')->cascadeOnDelete();
-            $table->unsignedBigInteger('branch_key')->storedAs('IFNULL(branch_id, 0)');
+            // VIRTUAL, bukan STORED: MySQL melarang ON DELETE CASCADE pada kolom dasar stored generated column (error 1215).
+            // UNIQUE index pada kolom virtual tetap didukung InnoDB.
+            $table->unsignedBigInteger('branch_key')->virtualAs('IFNULL(branch_id, 0)');
             $table->date('holiday_date');
             $table->string('name', 150);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
