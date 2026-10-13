@@ -19,10 +19,10 @@ Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis dan tanpa queue 
 2. Aksi lintas tabel = **satu endpoint transaksional** (complete, cancel, verify, transition). Frontend tidak merangkai beberapa request.
 3. Kirim `version` untuk entity ber-optimistic-lock (`clients`, `schedules`, `invoices`, `client_packages`, `session_reports`) → 409 ditangani `ApiError.isConflict`.
 4. Data turunan (saldo, frozen, skor kuadran, KPI) dihitung/diambil dari backend; jangan disimpan di frontend.
-5. **Tidak ada audit log** (ADR 0004). Semua modul memakai `created_by`/`updated_by`; log khusus hanya `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`.
+5. **Tidak ada audit log** (ADR 0004). Semua modul memakai `created_by`/`updated_by`; log khusus hanya `credit_ledger`, `invoice_logs`, `package_conversions`.
 
 ## Mapping use-case → endpoint
-Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada tabel audit log, ADR 0004): `credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`; `—` = cukup kolom pelaku. Endpoint bertanda *(baru)* belum ada di `endpoints.js`.
+Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada tabel audit log, ADR 0004): `credit_ledger`, `invoice_logs`, `package_conversions`; `—` = cukup kolom pelaku. Endpoint bertanda *(baru)* belum ada di `endpoints.js`.
 
 | Frontend (store / hook) | Endpoint (`ENDPOINTS`) | Tabel utama | Jejak |
 |---|---|---|---|
@@ -31,10 +31,10 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | lupa password: minta OTP / reset *(baru)* | `POST auth.forgotPassword` / `auth.resetPassword` | `password_reset_otps`, `users` | — |
 | reset password oleh Master *(baru)* | `POST users.resetPassword(id)` | `users` | — |
 | `login` ortu (kode client + tanggal lahir anak) | `POST auth.clientLogin` | `clients.client_code` | — |
-| `addClient` | `POST clients.list` | `clients`, `client_code_counters`, `client_status_histories` | — |
+| `addClient` | `POST clients.list` | `clients`, `client_code_counters` | — |
 | `updateClient` (biodata) | `PATCH clients.detail(id)` | `clients` | — |
 | toggle layanan | `PUT clients.services(id)` | `client_services` | — |
-| `useClientOutcomeActions.*` (admit, outcome, discharge, discontinue, reaktivasi, ubah status manual) | `POST clients.transition(id)` | `clients`, `client_status_histories`; untuk `discharge` juga `schedules` (hapus jadwal aktif) + `credit_ledger` (`discharge`) + `client_packages` | — |
+| `useClientOutcomeActions.*` (admit, outcome, discharge, discontinue, reaktivasi, ubah status manual) | `POST clients.transition(id)` | `clients`; untuk `discharge` juga `schedules` (hapus jadwal aktif) + `credit_ledger` (`discharge`) + `client_packages` | — |
 | simpan link GDrive | `POST clients.gdriveLinks(id)` | `client_documents` | — |
 | generate kode kuesioner (+ masa berlaku opsional) | `POST clients.assessmentCodes(id)` | `assessment_access_codes` | — |
 | buka kuesioner (publik; cek sekali isi, expiry — kode ber-draft boleh diselesaikan, bukti invoice assessment) *(baru)*; respons membawa draft | `GET publicAssessment.byCode(code)` | `assessment_access_codes`, `invoices`, `assessment_drafts` | — |
@@ -80,15 +80,15 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | `renewClientCredit` / `issueInvoice` + `resetLeave`; `verifyPaymentProof` (paket lunas) memberi saldo cuti | `POST invoices.renewals` / `invoices.verify` | `clients.leave_granted/leave_reset_at`, `invoices.reset_leave` | `invoice_logs` |
 | `updateTherapistMaxSessions` (maksimal sesi per bulan) *(baru)* | `PATCH therapists.capacity(id)` | `users.max_sessions_per_month` | — |
 | Utilisasi terapis (`buildTherapistUtilization`: kapasitas = maks sesi/bulan × porsi hari kerja periode) & kalender tim hari/minggu (`TeamDayGrid`, `freeTherapistsAt`) — turunan | `GET therapists.utilization?branch&from&to` / `GET schedules.team?date` | `users`, `schedules`, `holidays` | — |
-| hapus data (butuh `roles.can_delete`; **permanen**, ADR 0005) *(baru)* | `DELETE …/{id}` pada client, invoice, sesi, master data, cabang (`DELETE branches.detail(id)` = sinkron, atomik, boleh lama; balas 200 + ringkasan jumlah data terhapus) | FK `ON DELETE CASCADE` (client → jadwal/invoice/ledger/…; invoice → bukti/log/paket/konversi); master ber-FK yang dipakai → 409 | log aplikasi (bukan tabel) |
+| hapus data (client & cabang hanya role `master`, lainnya akses modul; **permanen**, ADR 0005) *(baru)* | `DELETE …/{id}` pada client, invoice, sesi, master data, cabang (`DELETE branches.detail(id)` = sinkron, atomik, boleh lama; balas 200 + ringkasan jumlah data terhapus) | FK `ON DELETE CASCADE` (client → jadwal/invoice/ledger/…; invoice → bukti/log/paket/konversi); master ber-FK yang dipakai → 409 | log aplikasi (bukan tabel) |
 | riwayat kredit | `GET creditLedger` (keyset) | `credit_ledger` | — |
 | export laporan harian (portal ortu) *(baru)* | `GET portalClient.reportExport(scheduleId)` | `session_reports` | — |
 | `addMasterPackage` (+ `invoice_code`) | `master.packages` | `master_packages` | — |
 | layanan / kuadran | `master.services` / `master.quadrants` | `services` / `sensory_quadrants` | — |
 | `branchesStore` (`addBranch` / `updateBranch` / `setBranchActive` / `deleteBranch`) *(baru)* | `POST branches.list` / `PUT branches.detail(id)` / `PATCH branches.setActive(id)` / `DELETE branches.detail(id)` | `branches` (+ cascade seluruh isi cabang) | `updated_by` |
 | `addStaffUser` / nonaktifkan staf | `users.*` | `users` | — |
-| `addRole` / `updateRole` / `deleteRole` / `updateRolePermission` (termasuk `can_delete`) | `roles.*`, `roles.permissions(id)` | `roles`, `role_permissions` | — |
-| dashboard revenue / inquiry / schedule / cabang / terapis | `dashboards.*?branchId=&period=` | view `v_daily_revenue` / `v_daily_sessions` / `v_daily_pipeline` / `v_daily_credit_usage` / `v_therapist_sessions` | — |
+| `addRole` / `updateRole` / `deleteRole` / `updateRolePermission`  | `roles.*`, `roles.permissions(id)` | `roles`, `role_permissions` | — |
+| dashboard revenue / inquiry / schedule / cabang / terapis | `dashboards.*?branchId=&period=` | view `v_daily_revenue` / `v_daily_sessions` / `v_daily_credit_usage` (funnel inquiry dihitung dari `clients`) / `v_therapist_sessions` | — |
 
 ## Pagination list (semua endpoint list)
 Semua endpoint list memakai `page` + `per_page` (default **10**, maks 50) dan merespons `data` + `meta` (`total`, `page`, `per_page`, `last_page`). Riwayat yang terus bertambah (`creditLedger`, `invoices.logs`, riwayat sesi) memakai keyset: `cursor` + `per_page`, respons `next_cursor`. Filter/pencarian dijalankan di server sebelum dipaginasi. Frontend: `usePagination` (client-side sekarang) diganti state `page`/`perPage` yang masuk ke query react-query; `TablePagination` tetap.
@@ -101,14 +101,14 @@ Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2
 - Riwayat kredit → `credit_ledger` append-only (+ `reversal`).
 - Master layanan & kuadran → `services`, `sensory_quadrants`. Pilihan cepat alasan → `cancel_reasons` (Cancel / Off dan Therapist Off, dibedakan `is_therapist_off`), `discharge_reasons`.
 - **Cancellation Rate / Therapist Off Rate** (Schedule Dashboard): `v_daily_sessions.sessions_cancel_counted` dan `sessions_cancel_therapist_off` dibagi `sessions_total`; Therapist Off adalah bagian dari rate keseluruhan.
-- Keputusan klien 3 Okt 2026 (kode client `AE-00001`, kuesioner sekali isi + masa berlaku opsional, invoice paket/assessment, revert 1x, hapus per role `can_delete`, hari libur, OTP lupa password, tanpa audit log: jejak = kolom pelaku + log khusus): lihat [12-keputusan-klien.md](12-keputusan-klien.md).
+- Keputusan klien 3 Okt 2026 (kode client `AE-00001`, kuesioner sekali isi + masa berlaku opsional, invoice paket/assessment, revert 1x, hapus client/cabang hanya master, hari libur, OTP lupa password, tanpa audit log: jejak = kolom pelaku + log khusus): lihat [12-keputusan-klien.md](12-keputusan-klien.md).
 
 ### Pekerjaan frontend saat integrasi
 | Item | Perubahan |
 |---|---|
 | Status invoice | Hanya `unpaid`, `paid`, `void` (unggah bukti tidak mengubah status; Finance "Tandai Lunas"; tanpa Tolak); jenis invoice paket/assessment/cuti; hapus jatuh tempo |
 | Kode & kuesioner | Login ortu memakai `client_code` (bukan `TDC-`); kuesioner sekali isi (tanpa isi ulang), cek expiry/invoice dari server |
-| Hapus | Tombol delete mengikuti `canDelete` dari respons login (role) |
+| Hapus | Tombol delete: client/cabang cek `role === master`, lainnya akses modul (dari respons login) |
 | Jejak pelaku | Backend mengisi `created_by`/`updated_by`; frontend tidak mengirim pelaku |
 | Riwayat kredit | Label aksi baru: `purchased`, `reversal`, `manual_adjust` |
 | Revert sesi | Tombol "Batalkan completed / cancel" (wajib alasan) sudah ada di `SessionDetailModal` (`RevertSessionPanel`, `useSessionActions.revertSession`); ganti isinya menjadi satu request `schedules.revert` |

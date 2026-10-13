@@ -96,7 +96,7 @@ Istilah dasar:
 **Aturan akses penting**
 - Punya akses modul = boleh **semua aksi di modul itu kecuali hapus**.
 - Tombol **hapus** hanya muncul untuk role dengan izin hapus **dan** akses modul.
-- Staf selain Master **terikat satu cabang**; bisa diberi "akses semua cabang".
+- Staf selain Master **terikat satu cabang**; bisa diberi cabang "Semua cabang" (cabang kosong).
 - Master dapat melihat semua modul; role lain sesuai pengaturan.
 
 ### 2.4 Pipeline status client
@@ -508,7 +508,7 @@ Kolom: **ID · Prioritas · Langkah · Hasil yang diharapkan**. Catat tiap TC lu
 | RBAC-03 | P0 | Role dengan akses modul tapi **tanpa izin hapus** | Semua aksi non-hapus bisa; **tidak ada tombol hapus** |
 | RBAC-04 | P0 | Role dengan izin hapus tapi tanpa akses modul | Tetap tidak bisa menghapus di modul itu |
 | RBAC-05 | P0 | Non-master mengakses data cabang lain (ubah ID di alamat) | Ditolak / kosong |
-| RBAC-06 | P1 | Akun "akses semua cabang" | Bisa berpindah cabang; data sesuai |
+| RBAC-06 | P1 | Akun cabang "Semua cabang" | Bisa berpindah cabang; data sesuai |
 | RBAC-07 | P1 | Master mengubah matriks role kustom | Berlaku setelah login ulang/refresh |
 | RBAC-08 | P1 | Hapus role yang masih dipakai | Ditolak (masih dipakai) |
 | RBAC-09 | P0 | Terapis membuka data terapis/client lain | Ditolak (kecuali Kalender Tim baca saja) |

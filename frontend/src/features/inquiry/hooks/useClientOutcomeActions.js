@@ -12,7 +12,7 @@ import { todayStr } from "@/shared/lib/id";
 const LIVE_SESSION_STATUSES = ACTIVE_SESSION_STATUSES;
 
 // Use-case keputusan akhir pipeline inquiry (step 8 Client Detail).
-// Fase API: satu endpoint POST /clients/{id}/transition yang juga menulis client_status_histories.
+// Fase API: satu endpoint POST /clients/{id}/transition yang menyimpan status terakhir client (tanpa tabel riwayat).
 export function useClientOutcomeActions() {
   const { updateClient } = useClients();
   const { getRecordForClient, addRecord, forfeitCreditOnDischarge } = useCredits();
@@ -71,7 +71,7 @@ export function useClientOutcomeActions() {
     applyDischarge(client, reason, note, { status: "discharged", dateOfDischarge: todayStr(), dischargeReason: reason.trim(), dischargeNote: note?.trim() || null });
 
   // Ubah status manual ke tahap pipeline mana pun (koreksi salah klik, kembali ke tahap awal, reaktivasi).
-  // Fase API: POST /clients/{id}/transition dengan `to_status` bebas (riwayat `client_status_histories`, trigger manual).
+  // Fase API: POST /clients/{id}/transition dengan `to_status` bebas (hanya status terakhir: `status`, `status_changed_at`, `updated_by`).
   const changeStatus = (client, toStatus, { reason, note } = {}) => {
     if (!toStatus || toStatus === client.status) return { changed: false };
     if (toStatus === "discharged") return { changed: true, from: client.status, to: toStatus, ...applyDischarge(client, reason, note, buildStatusChangePatch(client, toStatus, todayStr(), { reason, note })) }; // efek sama dengan `discharge`

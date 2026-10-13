@@ -19,7 +19,7 @@ Kumpulan hal yang **masih menggantung** dari `schema.md` dan `technical_workflow
 | A3 | 🟡 | Saat client **discontinue** (berhenti sebelum/tanpa jadi aktif), apakah tanggalnya perlu dicatat seperti discharge? Apa alasannya wajib? | Sekarang discontinue tidak mengisi tanggal keluar, dan alasannya disimpan sebagai "other" + catatan | Samakan dengan discharge: isi `date_of_discharge`, alasan wajib (pilihan cepat atau ketik sendiri) | Dicatat: tanggal discontinue disimpan di field sendiri `date_of_discontinue` (terpisah dari `date_of_discharge`), beserta alasan. |
 | A4 | 🟡 | Kalau admin salah klik Admit / Done Consult / Done Assessment / Discontinue, perlu tombol "batalkan"? Siapa yang boleh? | Revert sudah ada untuk sesi, belum untuk outcome client | Tunda. Kalau perlu, tombol revert khusus Master dengan alasan wajib (log audit sudah disiapkan: `client.outcome_reverted`) | Tidak perlu tombol revert khusus: cari client di pipeline, lalu klik ubah status (mis. Admit to Active atau pindah status lain). |
 | A5 | 🟡 | Dokumen client (rujukan dokter, video observasi, laporan) cukup berupa **link Google Drive**, atau harus bisa **upload file** ke sistem? | Upload file butuh storage, batas ukuran, dan biaya | Link saja (satu atau beberapa link per client, beri label). Tanpa upload | Link Google Drive saja (tanpa upload file). |
-| A6 | 🟡 | Bagaimana kalau client salah input dan perlu dihapus? Siapa yang boleh? | Data klinis tidak boleh hilang diam-diam | Hapus = soft delete oleh Master saja, hanya bila belum ada sesi/invoice; tercatat di audit dan bisa dipulihkan | Semua modul mendapat fitur delete. Tombol delete **hanya tampil untuk role yang `can_delete`** (diatur lewat konfigurasi role), mencakup client, invoice, inquiry, dan data lain. Soft delete. |
+| A6 | 🟡 | Bagaimana kalau client salah input dan perlu dihapus? Siapa yang boleh? | Data klinis tidak boleh hilang diam-diam | Hapus = soft delete oleh Master saja, hanya bila belum ada sesi/invoice; tercatat di audit dan bisa dipulihkan | Semua modul mendapat fitur delete. Tombol delete **hanya tampil untuk role yang `can_delete`** (diatur lewat konfigurasi role), mencakup client, invoice, inquiry, dan data lain. Soft delete. *(Direvisi 13 Okt 2026: flag dibuang; hapus client & cabang hanya Master, hapus operasional cukup akses modul; hapus permanen, ADR 0005.)* |
 | A7 | 🟡 | Perlu mencatat **sumber client** (Instagram, rujukan dokter, sekolah, dll.) untuk laporan marketing? | Tidak ada kolom khusus sekarang | Tulis di catatan intake dulu. Kolom khusus ditambah kalau nanti perlu laporan | Tidak perlu kolom sumber client. |
 | A8 | 🟡 | Form "Book a Consultation" di landing page: sekarang hanya membuka WhatsApp (tombol "terkirim" itu simulasi). Apakah form harus **langsung membuat New Intake** di pipeline? | Butuh endpoint publik + proteksi spam | Versi 1 tetap ke WhatsApp. Versi 2: form membuat intake otomatis (sumber = landing), dengan batas permintaan per IP | Dibiarkan: form tetap membuka WhatsApp (versi 1). |
 | A9 | 🟢 | Apakah sudah ada **format nomor rekam medis** yang harus dipertahankan? | Sistem membuat `CLI-tahun-nomor` otomatis | Nomor otomatis berurutan per tahun (global, bukan per cabang) | Sudah ada formatnya: **kode client** = grup 2 huruf (AE, FJ, KO, PT, UZ; kelipatan 5 abjad) + `-` + 5 digit increment per grup yang sama. Contoh `AE-00001`. Grup ditentukan dari huruf pertama nama client (asumsi tim teknis, perlu konfirmasi). |
@@ -96,7 +96,7 @@ Item menggantung yang bisa kita putuskan sendiri. Kalau setuju, tinggal kita ter
 
 | # | Topik | Keputusan yang diusulkan |
 |---|---|---|
-| T1 | Riwayat status pertama client | Tambah nilai `created` di enum `trigger` pada `client_status_histories` (sekarang memakai `manual`, tidak berdampak ke dashboard) |
+| T1 | Riwayat status pertama client | *(Gugur 13 Okt 2026: tabel `client_status_histories` dibuang; hanya status terakhir yang disimpan.)* |
 | T2 | Menghapus pilihan cepat alasan cancel/discharge | Tetap boleh, riwayat menampilkan kodenya. Di UI arahkan ke **nonaktifkan** |
 | T3 | `purchased` vs `renewed` | Otomatis dari ada tidaknya paket sebelumnya (C11 dijawab "Ya") |
 | T4 | Kode client / kuesioner bentrok | Kolom UNIQUE di DB. Kode client = grup huruf + counter berurutan (tidak acak, bentrok dicegah counter + UNIQUE). Kode kuesioner = kode jenis asesmen + suffix acak, ulang pembuatan bila bentrok |
@@ -109,13 +109,13 @@ Item menggantung yang bisa kita putuskan sendiri. Kalau setuju, tinggal kita ter
 |---|---|---|
 | Kode client | `AE-00001` (grup 2 huruf dari huruf pertama nama + 5 digit per grup). Dipakai juga untuk login ortu bersama tanggal lahir anak | `CLI-tahun-nomor`, `TDC-XXXX` |
 | Status client | Manual boleh ke tahap pipeline mana pun; transisi otomatis tetap hanya maju. Discontinue punya `date_of_discontinue` | "Status hanya maju", tanpa tanggal discontinue |
-| Hapus data | Semua modul punya delete; tombol hanya untuk role `can_delete`; soft delete | "Hapus hanya Master, hanya bila belum ada sesi/invoice" |
+| Hapus data | Semua modul punya delete; tombol hanya untuk role `can_delete`; soft delete *(direvisi 13 Okt: hapus client/cabang hanya Master; permanen)* | "Hapus hanya Master, hanya bila belum ada sesi/invoice" |
 | RBAC | Akses modul = semua aksi kecuali hapus (termasuk manager, void/renewal/koreksi saldo = modul Finance) | Manager hanya lihat; aksi sensitif hanya Finance + Master |
 | Kuesioner | Kode = kode jenis asesmen + acak; sekali isi; masa berlaku opsional dicek saat dibuka; consent; ortu tidak melihat hasil; invoice assessment belum dibayar = kuesioner tidak bisa dibuka | `ASM-XXXX` acak, isi ulang tanpa batas, tanpa masa berlaku, job expire |
 | Invoice | Jenis Paket Sesi / Assessment; `INV-{KODE}-{YYYYMMDD}-{NNN}`; tanpa jatuh tempo, diskon, cicilan, refund; snapshot harga saat perpanjang; bukti ≤5 MB, upload ulang maks 3x | `INV-tahun-nomor`, upload ulang tanpa batas |
 | Paket | Tanpa masa berlaku | Kolom masa berlaku disiapkan |
 | Akun | Non-master 1 cabang; password sementara + wajib ganti; lupa password via email OTP; master bisa reset; staf dinonaktifkan | Tanpa OTP |
-| Audit | Tanpa audit log (ADR 0004): semua modul `created_by/updated_by/deleted_by`, log khusus hanya `invoice_logs`, `credit_ledger`, `client_status_histories`, `package_conversions` | Audit semua aksi yang mengubah data |
+| Audit | Tanpa audit log (ADR 0004): semua modul `created_by/updated_by/deleted_by`, log khusus hanya `invoice_logs`, `credit_ledger`, `package_conversions` | Audit semua aksi yang mengubah data |
 | Notifikasi | Tidak ada notifikasi otomatis; email ortu hanya data | Job pengingat invoice, digest jadwal |
 
 ## Penyesuaian dari meeting (3 Okt 2026)

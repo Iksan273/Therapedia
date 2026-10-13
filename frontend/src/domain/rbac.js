@@ -208,19 +208,13 @@ export function withDefaultPermissions(permissions = {}) {
   return Object.fromEntries([...roleIds].map((id) => [id, { ...(DEFAULT_PERMISSIONS[id] || {}), ...(permissions?.[id] || {}) }]));
 }
 
-// ---- Hapus data (keputusan klien) ----
-// Punya akses modul = boleh SEMUA aksi di modul itu KECUALI hapus. Tombol hapus hanya tampil untuk role dengan flag
-// `canDelete` (diatur Master di /master/rbac) DAN akses ke modul terkait. Master selalu boleh.
-export const DEFAULT_CAN_DELETE = { master: true };
-
-// Flag eksplisit di objek role menang; role tanpa flag memakai DEFAULT_CAN_DELETE (default: tidak boleh).
-export const roleCanDelete = (roleId, rolesList = []) => {
+// ---- Hapus data (keputusan klien, direvisi 13 Okt 2026) ----
+// Tanpa flag per role. Dua tingkat:
+//  - Hapus data PENTING (client inquiry/aktif, cabang; ikut menghapus seluruh data turunannya): `masterOnly`, hanya role `master`.
+//  - Hapus operasional (invoice belum lunas, sesi, jadwal rutin, libur, master data, kode kuesioner): cukup akses modul terkait.
+export const canDeleteIn = ({ roleId, permissions, moduleKey, masterOnly = false }) => {
   if (!roleId) return false;
   if (roleId === "master") return true;
-  const role = (rolesList || []).find((x) => x.id === roleId);
-  if (role && typeof role.canDelete === "boolean") return role.canDelete;
-  return Boolean(DEFAULT_CAN_DELETE[roleId]);
+  if (masterOnly) return false;
+  return roleHasPermission(roleId, permissions, moduleKey);
 };
-
-export const canDeleteIn = ({ roleId, rolesList, permissions, moduleKey }) =>
-  roleCanDelete(roleId, rolesList) && roleHasPermission(roleId, permissions, moduleKey);

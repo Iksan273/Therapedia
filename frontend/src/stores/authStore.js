@@ -10,8 +10,7 @@ const EMPTY_AUTH = {
   therapistId: null,
   clientId: null,
   staffName: null,
-  branchId: null,
-  allBranches: false,
+  branchId: null, // null = semua cabang (staf); lihat hasAllBranchAccess
 };
 
 const AuthContext = createContext(null);
@@ -167,9 +166,8 @@ export const AuthProvider = ({ children }) => {
 
   const hasPermission = (moduleKey) => roleHasPermission(auth?.role, rbacPermissions, moduleKey);
 
-  // Tombol hapus hanya untuk role dengan flag `canDelete` + akses modul terkait.
-  const canDelete = (moduleKey) => canDeleteIn({ roleId: auth?.role, rolesList, permissions: rbacPermissions, moduleKey });
-  const setRoleCanDelete = (roleId, allowed) => updateRole(roleId, { canDelete: Boolean(allowed) });
+  // Hapus operasional = akses modul; hapus data penting (`masterOnly`: client, cabang) = hanya master.
+  const canDelete = (moduleKey, { masterOnly = false } = {}) => canDeleteIn({ roleId: auth?.role, permissions: rbacPermissions, moduleKey, masterOnly });
 
   return (
     <AuthContext.Provider
@@ -196,7 +194,6 @@ export const AuthProvider = ({ children }) => {
         updateRolePermission,
         hasPermission,
         canDelete,
-        setRoleCanDelete,
       }}
     >
       {children}

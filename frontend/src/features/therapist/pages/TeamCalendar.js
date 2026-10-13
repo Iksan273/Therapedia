@@ -6,7 +6,7 @@ import { Card } from "@/shared/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { BranchFilter } from "@/shared/components/BranchFilter";
 import { CalendarLegend, WeeklyCalendar } from "@/features/schedule";
-import { TeamDayGrid } from "@/features/therapist/components/TeamDayGrid";
+import { TeamDayGrid } from "@/shared/components/TeamDayGrid";
 import { useAuth } from "@/stores/authStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useClients } from "@/stores/clientsStore";
@@ -59,21 +59,21 @@ export default function TeamCalendar() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+      <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="w-48"><BranchFilter value={branch} onChange={(v) => { setBranch(v); setTherapistId(""); }} isMaster /></div>
+          <div className="w-full sm:w-48"><BranchFilter value={branch} onChange={(v) => { setBranch(v); setTherapistId(""); }} isMaster /></div>
           {view === "week" && (
             <Select value={weekTherapist?.id || ""} onValueChange={setTherapistId}>
-              <SelectTrigger className="w-56 text-xs border-slate-200 bg-slate-50 font-semibold" aria-label="Pilih terapis" data-testid="team-therapist-filter"><SelectValue placeholder="Pilih terapis" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-56 text-xs border-slate-200 bg-slate-50 font-semibold" aria-label="Pilih terapis" data-testid="team-therapist-filter"><SelectValue placeholder="Pilih terapis" /></SelectTrigger>
               <SelectContent className="rounded-xl border-slate-200">
                 {branchTherapists.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between md:justify-start gap-2">
           <Button variant="outline" size="icon" className="min-h-10 min-w-10 md:min-h-9 md:min-w-9" onClick={goPrev} aria-label="Sebelumnya"><ChevronLeft className="w-4 h-4" /></Button>
-          <span className="text-xs font-bold text-slate-800 tabular-nums min-w-[200px] text-center" data-testid="team-calendar-label">{label}</span>
+          <span className="text-xs font-bold text-slate-800 tabular-nums min-w-0 flex-1 md:flex-none md:min-w-[200px] text-center" data-testid="team-calendar-label">{label}</span>
           <Button variant="outline" size="icon" className="min-h-10 min-w-10 md:min-h-9 md:min-w-9" onClick={goNext} aria-label="Berikutnya"><ChevronRight className="w-4 h-4" /></Button>
           <Button variant="outline" size="sm" className="font-bold min-h-10 md:min-h-9" onClick={goToday}>Hari Ini</Button>
           <div className="flex rounded-xl border border-slate-200 overflow-hidden">

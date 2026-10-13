@@ -193,7 +193,7 @@ export default function BranchManagement() {
                         >
                           <Power className="w-3 h-3" /> {b.isActive === false ? "Aktifkan" : "Nonaktifkan"}
                         </Button>
-                        <IfCanDelete module="branch_master">
+                        <IfCanDelete module="branch_master" masterOnly>
                           <Button
                             type="button"
                             size="icon"

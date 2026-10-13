@@ -173,7 +173,7 @@ export default function DashboardInquiry() {
     });
 
     return services.map((s, idx) => ({
-      name: s.shortLabel,
+      name: s.label,
       fullName: s.label,
       value: counts[s.value] || 0,
       color: CHART_COLORS[idx % CHART_COLORS.length],
@@ -250,7 +250,7 @@ export default function DashboardInquiry() {
   if (serviceFilter !== "all") {
     filterChips.push({
       key: "service",
-      label: `Layanan: ${getService(serviceFilter)?.shortLabel || serviceFilter}`,
+      label: `Layanan: ${getService(serviceFilter)?.label || serviceFilter}`,
       onRemove: () => setFilter("service", "all"),
     });
   }

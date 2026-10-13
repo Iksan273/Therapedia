@@ -84,11 +84,11 @@ export const buildStatusChangePatch = (client, toStatus, today, { reason, note }
 };
 
 export const INTAKE_SERVICES = [
-  { value: "b_ota", label: "BOT-A (Brief Occupational Therapy Assessment)", shortLabel: "BOT-A", fullLabel: "BOT-A (Brief Occupational Therapy Assessment)", category: "Asesmen", description: "Brief Occupational Therapy Assessment & Sensory Screening" },
-  { value: "f_ota", label: "FOT-A (Full Occupational Therapy Assessment)", shortLabel: "FOT-A", fullLabel: "FOT-A (Full Occupational Therapy Assessment)", category: "Asesmen", description: "Full Occupational Therapy Comprehensive Assessment" },
-  { value: "school_companion", label: "School Companion Profile", shortLabel: "School Companion", fullLabel: "School Companion Profile", category: "Asesmen", description: "Profil observasi anak di lingkungan sekolah (dapat dipilih bersama layanan lain)" },
-  { value: "consult_wo_report", label: "Consultation without Report", shortLabel: "Consultation w/o Report", fullLabel: "Consultation without Report", category: "Konsultasi", description: "Konsultasi tatap muka evaluasi klinis tanpa laporan tertulis" },
-  { value: "consult_w_report", label: "Consultation with written report", shortLabel: "Consultation w/ Report", fullLabel: "Consultation with written report", category: "Konsultasi", description: "Konsultasi klinis mendalam dengan laporan tertulis resmi" },
+  { value: "b_ota", label: "BOT-A", category: "Asesmen", description: "Brief Occupational Therapy Assessment (BOT-A) & Sensory Screening" },
+  { value: "f_ota", label: "FOT-A", category: "Asesmen", description: "Full Occupational Therapy Assessment (FOT-A), asesmen komprehensif" },
+  { value: "school_companion", label: "School Companion", category: "Asesmen", description: "School Companion Profile: profil observasi anak di lingkungan sekolah (dapat dipilih bersama layanan lain)" },
+  { value: "consult_wo_report", label: "Consultation without Report", category: "Konsultasi", description: "Konsultasi tatap muka evaluasi klinis tanpa laporan tertulis" },
+  { value: "consult_w_report", label: "Consultation with Report", category: "Konsultasi", description: "Konsultasi klinis mendalam dengan laporan tertulis resmi" },
 ];
 
 export const CLINICAL_SERVICES = INTAKE_SERVICES;

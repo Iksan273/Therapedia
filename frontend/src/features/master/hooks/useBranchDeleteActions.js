@@ -8,7 +8,7 @@ import { useLeaves } from "@/stores/leavesStore";
 import { useAuth } from "@/stores/authStore";
 import { branchDeleteImpact } from "@/domain/branch";
 
-// Use-case hapus cabang (PERMANEN, hanya role `canDelete`): seluruh isi cabang dihapus berurutan: sesi, client beserta
+// Use-case hapus cabang (PERMANEN, hanya role master): seluruh isi cabang dihapus berurutan: sesi, client beserta
 // data kreditnya, invoice, hari libur cabang, akun staf/terapis cabang, lalu cabangnya. Akun master tidak tersentuh.
 // Fase API: DELETE /branches/{id} = job antrean berurutan (schema.md §6.7).
 export function useBranchDeleteActions() {

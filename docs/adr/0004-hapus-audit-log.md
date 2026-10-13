@@ -9,7 +9,7 @@ ADR 0002 membatasi `audit_logs` pada modul schedule & finance. Product owner mem
 ## Keputusan
 1. **Hapus fitur & tabel `audit_logs`** (frontend: halaman, store, domain, seed, route/menu, modul RBAC `audit_logs`; backend: tabel, partisi, trigger, job `audit:partitions`, service `AuditLogger`).
 2. **Semua modul memakai kolom pelaku**: `created_by`, `updated_by`, `deleted_by` (`updated_by` = editor terakhir saja, tanpa nilai lama/baru).
-3. **Log khusus yang tetap ada** karena dibutuhkan logika bisnis/UI: `credit_ledger` (append-only, undo = baris `reversal`), `client_status_histories` (pipeline), `invoice_logs` (log invoice sendiri), `package_conversions`.
+3. **Log khusus yang tetap ada** karena dibutuhkan logika bisnis/UI: `credit_ledger` (append-only, undo = baris `reversal`), `invoice_logs` (log invoice sendiri), `package_conversions`.
 4. **Revert tidak lagi bergantung pada audit**: pemulihan tahap client oleh revert sesi asesmen memakai `schedules.client_status_from/to` (disimpan saat sesi completed); revert kredit memakai ledger (`reverses_ledger_id`).
 5. Aksi yang dulu hanya tercatat di audit (lihat bukti bayar, hapus kode kuesioner, bulk action) kini tidak tercatat selain `updated_by`/`deleted_by`.
 

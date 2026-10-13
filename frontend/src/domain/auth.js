@@ -76,12 +76,6 @@ export const checkStaffCredentials = (staff, password) => {
   return { ok: true, mustChangePassword: Boolean(staff.mustChangePassword) };
 };
 
-// Akses semua cabang: Master selalu; role lain bila akunnya diberi `allBranches` (diatur Master di User Management).
-export const hasAllBranchAccess = (user) => user?.role === "master" || Boolean(user?.allBranches);
-
-// Staf non-master (semua role, termasuk terapis & role kustom) terikat TEPAT satu cabang, kecuali akunnya diberi akses semua cabang (`allBranches`).
-export const validateStaffBranch = (role, branchId, allBranches = false) => {
-  if (role === "master" || branchId) return null;
-  if (allBranches) return null;
-  return "Cabang wajib dipilih (atau aktifkan Akses semua cabang).";
-};
+// Cakupan cabang staf hanya ditentukan `branchId` (padanan `users.branch_id`): terisi = 1 cabang, kosong (null) = semua cabang.
+// Berlaku untuk semua role staf (master, terapis, role kustom); diatur Master di User Management. Ortu (`client`) bukan staf.
+export const hasAllBranchAccess = (user) => Boolean(user?.role) && user.role !== "client" && !user.branchId;

@@ -123,6 +123,22 @@ export const WEEKDAY_OPTIONS = [
 
 export const CALENDAR_HOURS = Array.from({ length: 10 }, (_, i) => `${String(8 + i).padStart(2, "0")}:00`);
 
+// Baris jam kalender tim (Day All Therapist / Kalender Tim): bawaan 09:00–18:00 (baris 09:00 … 17:00), melebar otomatis bila
+// ada sesi di luar jam itu pada hari tersebut (mulai sebelum 09:00 atau selesai setelah 18:00). Mengembalikan label "HH:00".
+export const TEAM_DAY_START = "09:00";
+export const TEAM_DAY_END = "18:00";
+export function teamDayHours(sessions = [], { start = TEAM_DAY_START, end = TEAM_DAY_END } = {}) {
+  let first = Math.floor(timeToMin(start) / 60);
+  let last = Math.ceil(timeToMin(end) / 60); // eksklusif: 18:00 -> baris terakhir 17:00
+  sessions.forEach((s) => {
+    if (!s?.startTime) return;
+    first = Math.min(first, Math.floor(timeToMin(s.startTime) / 60));
+    last = Math.max(last, Math.ceil(timeToMin(s.endTime || s.startTime) / 60));
+  });
+  last = Math.max(last, first + 1);
+  return Array.from({ length: last - first }, (_, i) => `${String(first + i).padStart(2, "0")}:00`);
+}
+
 export const TIME_OPTIONS = Array.from({ length: 21 }, (_, i) => {
   const minutes = 8 * 60 + i * 30;
   const h = Math.floor(minutes / 60);

@@ -36,7 +36,7 @@ Setiap resep diakhiri **Verifikasi**. Minimal (di `frontend/`): `npm run lint` (
 2. Kolom di `STAGE_COLUMNS` (`features/inquiry/components/pipeline/pipelineConfig.js`).
 3. Transisi: handler di `ClientDetailInquiry.js` / `useClientOutcomeActions`; transisi otomatis lewat `advanceStatus`.
 4. KPI/funnel di `features/inquiry/components/dashboard/*` & `features/master/pages/BranchPerformance.js`.
-5. Enum `clients.status` + `client_status_histories.trigger` di `schema.md`.
+5. Enum `clients.status` di `schema.md`.
 6. **Verifikasi**: test `advanceStatus` diperbarui; client bisa dipindah dan muncul di kolom & dashboard.
 
 ## 6. Tambah layanan, kuadran, atau paket

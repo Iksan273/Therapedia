@@ -164,11 +164,11 @@ Centang saat selesai. Tenggat mengikuti `TIMELINE_UAT_KLIEN.md` §6.
 Daftar layanan klinik: OT, ST, dan lainnya (sebutkan semua).
 
 ### 5.2 Cabang dan akun staf (Minggu 1–2)
-| Nama | Role | Cabang | Email aktif | Akses semua cabang? |
+| Nama | Role | Cabang | Email aktif | Semua cabang? |
 |---|---|---|---|---|
 | | Manager | East | | Tidak |
 
-Ingat: staf selain Master **terikat satu cabang**; centang "akses semua cabang" bila memang perlu.
+Ingat: staf selain Master **terikat satu cabang**; pilih "Semua cabang" pada Penugasan Cabang bila memang perlu.
 
 ### 5.3 Alasan Cancel/Off dengan KODE (Minggu 1–2)
 Satu daftar saja (Cancel dan Off digabung). Contoh format:

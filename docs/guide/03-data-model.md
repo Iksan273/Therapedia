@@ -20,7 +20,7 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `master_cancel_off_codes` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `cancel_reasons` (`is_therapist_off` = 0, tanpa FK) |
 | `master_therapist_off_codes` | `masterDataStore` | `{ value, label, active }[]` (TO, TS; ikut jadi pilihan Cancel / Off) | `cancel_reasons` (`is_therapist_off` = 1) |
 | `master_discharge_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `discharge_reasons` (tanpa FK) |
-| `auth`, `activeBranch`, `staffUsers`, `rolesList` (+ `canDelete`), `rbacPermissions`, `passwordResets` | `authStore` | lihat 02 |
+| `auth`, `activeBranch`, `staffUsers`, `rolesList`, `rbacPermissions`, `passwordResets` | `authStore` | lihat 02 |
 | `branches` | `branchesStore` | `{ id, name, code (unik), city, address, phone, isActive, createdBy?, updatedBy? }[]` (nonaktif = tak muncul di pilihan baru, riwayat tetap; hapus = permanen beserta seluruh isi cabang, ADR 0005) | `branches` | — |
 | `holidays` | `holidaysStore` | `{ id, date, name, branchId \| null }[]` | `holidays` | `users`, `roles`, `role_permissions`, `access_modules`, `branches` |
 | `leaves` | `leavesStore` | `Leave[]` (lihat **Leave** di bawah; seed demo 3 contoh: aktif, selesai lebih awal, void, tertaut ke sesi seed) | `client_leaves` | — |
@@ -140,7 +140,7 @@ Akun login terapis ada di `staffUsers` (`authStore`, seed `data/staffUsers.seed.
 Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `AssessmentFill` menangani kedua bentuk ini.
 
 ## Master data
-- **Service** `{ value, label, shortLabel, fullLabel, category /*Asesmen|Konsultasi*/, description, active }`. Seed dari `INTAKE_SERVICES`. Pakai `activeServices` untuk form, `getService(value)` untuk label.
+- **Service** `{ value, label, category /*Asesmen|Konsultasi*/, description, active }`. Seed dari `INTAKE_SERVICES`. Pakai `activeServices` untuk form, `getService(value)` untuk label.
 - **Quadrant** `{ code /*AV|SN|RG|SK*/, title, fullName, description, color }`. Warna dari `QUADRANT_COLORS`.
 
 ## Konstanta & aturan (sumber kebenaran, semua di `frontend/src/`)
@@ -151,9 +151,9 @@ Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `Assessme
 | `domain/client.js` | `PIPELINE_STATUSES`, `PIPELINE_FLOW`, `advanceStatus`, `nextClientCode`, `clientCodeGroup`, `matchesClientSearch`, `buildStatusChangePatch`, `INTAKE_SERVICES` (+ alias legacy), `DEFAULT_DISCHARGE_REASONS` (seed pilihan cepat), `dischargeReasonLabel(value, list?)`, `makeInquiryClient`, `getClientServiceIds`, roster: `isActiveClient`, `isRosterClient`, `canReactivateClient`, `matchesRosterStatus`, `ROSTER_STATUS_FILTERS`, `buildActivationPatch` |
 | `domain/schedule.js` | `deriveRecurringRoutines`, `upcomingActiveSessions`, `reportFilledCount`, `isReportEmpty`, `isUnreportedSession`, `getPrevSlot`, `DEFAULT_CANCEL_REASONS` (seed pilihan cepat), `RESCHEDULE_DROPPED`, `SYSTEM_CANCEL_REASONS`, `cancelReasonLabel(val, list?)`, `cancelReasonCode(val)`, `normalizeCancelReason`, `OTHER_REASON`, `isCreditNeutralCancel`, `scheduleSlot`, `getOriginSlot`, `buildReportPatch`, `CLEAR_PENDING_PATCH`, `CALENDAR_DAYS`, `CALENDAR_HOURS`, `TIME_OPTIONS`, `WEEKDAY_OPTIONS`, `timeToMin`, `rangesOverlap`, `checkConflicts`, `findTherapistClashIds`, `buildRecurringSchedules`, `SCHEDULE_MANAGER_ROLES`, `canManageSchedule`, `canRevertSession`, `restoreStatusOf` |
 | `domain/credit.js` | `DEFAULT_MASTER_PACKAGES`, `formatPackageName`, `CANCEL_QUOTA` + aturan mutasi kredit (lihat di atas) |
-| `domain/rbac.js` | `ACCESS_MODULES`, `DEFAULT_ROLES`, `DEFAULT_PERMISSIONS`, `SYSTEM_ROLE_IDS`, `isSystemRole`, `roleHasPermission`, `withDefaultPermissions`, `roleCanDelete`, `canDeleteIn`, `DEFAULT_CAN_DELETE` |
+| `domain/rbac.js` | `ACCESS_MODULES`, `DEFAULT_ROLES`, `DEFAULT_PERMISSIONS`, `SYSTEM_ROLE_IDS`, `isSystemRole`, `roleHasPermission`, `withDefaultPermissions`, `canDeleteIn` |
 | `domain/assessment.js` | `buildQuestionnaireCode`, `categoryTypeCode`, `normalizeTypeCode`, `isTypeCodeTaken`, `CODE_VALIDITY_OPTIONS`, `buildExpiresAt`, `isQuestionnaireCodeExpired`, `assessmentInvoiceNeedingProof`, `checkQuestionnaireAccess` (menerima `draft`), draft kuesioner: `isAnswerFilled`, `countAnswered`, `countCategoryQuestions`, `diffAnswers`, `applyDraftPatch`, `canFinishExpiredWithDraft`, `canDeleteQuestionnaireCode`, `draftProgress`, `countActiveDraftsForCategory` |
-| `domain/auth.js` | `DEMO_PASSWORD`, `validateNewPassword`, OTP (`generateOtp`, `makeOtpRequest`, `verifyOtp`), `checkStaffCredentials`, `validateStaffBranch` |
+| `domain/auth.js` | `DEMO_PASSWORD`, `validateNewPassword`, OTP (`generateOtp`, `makeOtpRequest`, `verifyOtp`), `checkStaffCredentials`, `hasAllBranchAccess` (`branchId` null = semua cabang) |
 | `domain/holiday.js` | `DEFAULT_HOLIDAYS`, `makeHoliday`, `findHoliday`, `isHoliday`, `holidayDateSet`, `validateHoliday` |
 | `shared/lib/id.js` | `uid`, `nowIso`, `todayStr` |
 | `shared/lib/format.js` | `fmtDate`, `formatDdMmYyyy`, `parseDdMmYyyy`, `calcAge`, `calcAgeDetailed`, `fmtCurrency` |
@@ -172,7 +172,7 @@ Tabel lengkap ada di `schema.md` bagian 08. Yang paling sering dipakai:
 | `clients[].gdriveClientLink` | `client_documents` (`type=gdrive_folder`) | |
 | `clients[].assessmentAnswers[]` | `assessment_responses` (sekali isi, `consent_at`) + `assessment_answers` + `assessment_quadrant_scores` | skor kuadran dihitung server |
 | `assessmentDrafts[]` (`assessmentDraftsStore`) | `assessment_drafts` | simpan otomatis; dihapus saat submit; kode ber-draft tidak bisa dihapus |
-| perubahan status client | `client_status_histories` | frontend belum menyimpan histori; backend wajib |
+| perubahan status client | `clients.status` / `status_changed_at` / `updated_by` | tanpa tabel riwayat tahap (keputusan 13 Okt 2026); funnel dihitung dari status saat ini |
 | `schedules[].date/startTime/endTime` | `schedules.session_date/start_time/end_time` | |
 | `schedules[].rescheduledFrom` | `schedules.origin_*` | |
 | `schedules[].activitySection/noteSection/homeworkSection` | `session_reports` | |

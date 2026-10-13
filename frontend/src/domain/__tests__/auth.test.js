@@ -8,7 +8,6 @@ import {
   generateTempPassword,
   makeOtpRequest,
   validateNewPassword,
-  validateStaffBranch,
   hasAllBranchAccess,
   verifyOtp,
 } from "@/domain/auth";
@@ -39,21 +38,19 @@ describe("password & akun staf", () => {
     expect(findStaffByEmail([{ email: "Maya@Therapedia.id" }], " maya@therapedia.id ")).toBeTruthy();
   });
 
-  test("non-master wajib punya cabang; master boleh tanpa cabang", () => {
-    expect(validateStaffBranch("therapist", null)).toMatch(/Cabang wajib/);
-    expect(validateStaffBranch("manager", "branch-sby-timur")).toBeNull();
-    expect(validateStaffBranch("master", null)).toBeNull();
+  test("branchId kosong = semua cabang untuk semua role staf; terisi = 1 cabang", () => {
+    expect(hasAllBranchAccess({ role: "master" })).toBe(true);
+    expect(hasAllBranchAccess({ role: "finance", branchId: null })).toBe(true);
+    expect(hasAllBranchAccess({ role: "therapist" })).toBe(true);
+    expect(hasAllBranchAccess({ role: "custom_role", branchId: null })).toBe(true);
+    expect(hasAllBranchAccess({ role: "finance", branchId: "branch-sby-timur" })).toBe(false);
+    expect(hasAllBranchAccess({ role: "master", branchId: "branch-sby-timur" })).toBe(false);
   });
 
-  test("semua role (termasuk terapis & role kustom) boleh semua cabang bila allBranches", () => {
-    expect(validateStaffBranch("finance", null, true)).toBeNull();
-    expect(validateStaffBranch("finance", null, false)).toMatch(/Cabang wajib/);
-    expect(validateStaffBranch("therapist", null, true)).toBeNull();
-    expect(validateStaffBranch("custom_role", null, true)).toBeNull();
-    expect(validateStaffBranch("custom_role", null, false)).toMatch(/Cabang wajib/);
-    expect(hasAllBranchAccess({ role: "master" })).toBe(true);
-    expect(hasAllBranchAccess({ role: "finance", allBranches: true })).toBe(true);
-    expect(hasAllBranchAccess({ role: "finance", branchId: "branch-sby-timur" })).toBe(false);
+  test("ortu dan sesi belum login bukan akses semua cabang", () => {
+    expect(hasAllBranchAccess({ role: "client", clientId: "c1" })).toBe(false);
+    expect(hasAllBranchAccess({ role: null })).toBe(false);
+    expect(hasAllBranchAccess(null)).toBe(false);
   });
 });
 

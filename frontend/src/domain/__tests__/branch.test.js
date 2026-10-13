@@ -1,4 +1,4 @@
-import { BRANCHES, branchDeleteImpact, activeBranches, branchName, newBranchId, syncBranches, validateBranch, DEFAULT_BRANCHES } from "@/domain/branch";
+import { BRANCHES, branchDeleteImpact, activeBranches, branchName, newBranchId, syncBranches, validateBranch, DEFAULT_BRANCHES, inBranchScope } from "@/domain/branch";
 
 afterEach(() => syncBranches(DEFAULT_BRANCHES));
 
@@ -36,5 +36,18 @@ describe("master cabang", () => {
 
   test("newBranchId dari nama", () => {
     expect(newBranchId("Surabaya Selatan")).toBe("branch-surabaya-selatan");
+  });
+});
+
+describe("cakupan cabang (branchId null = semua cabang)", () => {
+  test("activeBranch all/kosong menampilkan semua", () => {
+    expect(inBranchScope("branch-sby-timur", "all")).toBe(true);
+    expect(inBranchScope("branch-citraland", undefined)).toBe(true);
+  });
+  test("activeBranch satu cabang: hanya cabang itu + entitas tanpa cabang (semua cabang)", () => {
+    expect(inBranchScope("branch-sby-timur", "branch-sby-timur")).toBe(true);
+    expect(inBranchScope("branch-citraland", "branch-sby-timur")).toBe(false);
+    expect(inBranchScope(null, "branch-sby-timur")).toBe(true);
+    expect(inBranchScope(undefined, "branch-citraland")).toBe(true);
   });
 });

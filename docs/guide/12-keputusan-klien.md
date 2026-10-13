@@ -15,7 +15,7 @@ Status: **Schema** = `schema.md` + `technical_workflow.md` sudah mengikuti · **
 | B5 | **Cancel**: kuota 3 **per paket** (penghitung). Admin **wajib memilih potong kredit atau tidak** pada cancel (scheduled/rescheduled/reschedule_pending, semua jenis kalender, termasuk bulk dan drop pending). Reschedule & pending netral kredit | ✅ | ✅ `DeductCreditChoice` |
 | B6 | **Revert hanya 1x** per aksi: reschedule/pending → jadwal asal; sudah 2x reschedule → jadwal tersimpan terakhir (`rescheduledPrev`) | ✅ | ✅ `revertedAt` |
 | B7 | **Status client** boleh diubah manual ke tahap pipeline mana pun (koreksi outcome = ubah status; reaktivasi); discontinue punya `date_of_discontinue`; otomatis tetap hanya maju | ✅ | ✅ `changeStatus`, `dateOfDiscontinue` |
-| B7b | **Hapus di semua modul**: tombol delete hanya untuk role dengan `can_delete` (+ akses modul). **Hapus permanen dengan cascade** (4 Okt 2026, ADR 0005): hapus client/invoice/cabang menghapus semua data terkait; master ber-FK yang pernah dipakai tidak bisa dihapus. Aksi non-hapus mengikuti akses modul (Manager boleh edit, tidak lagi read-only) | ✅ | ✅ (client, invoice, sesi, kode kuesioner, master asesmen/layanan/alasan; hari libur hard delete). Staf: nonaktif |
+| B7b | **Hapus di semua modul**: **direvisi 13 Okt 2026**: hapus data penting (client inquiry/aktif dan cabang) hanya role `master`; hapus operasional (invoice belum lunas, sesi, jadwal rutin, libur, master data, kode kuesioner) cukup akses modul. Flag `can_delete` per role dibuang. **Hapus permanen dengan cascade** (4 Okt 2026, ADR 0005): hapus client/invoice/cabang menghapus semua data terkait; master ber-FK yang pernah dipakai tidak bisa dihapus. Aksi non-hapus mengikuti akses modul (Manager boleh edit, tidak lagi read-only) | ✅ | ✅ (client, invoice, sesi, kode kuesioner, master asesmen/layanan/alasan; hari libur hard delete). Staf: nonaktif |
 | B8 | Pencarian client: awal nama, nama ortu, kode client | ✅ | ✅ `matchesClientSearch` |
 | B9 | Form jadwal asesmen/terapi **tanpa pilih service** (diturunkan dari client) | ✅ | ✅ |
 | — | Dokumen client = link Google Drive; tanpa kolom sumber client; form landing tetap ke WhatsApp; 1 client = 1 ortu | ✅ | ✅ |
@@ -56,7 +56,7 @@ Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflo
 | Revisi | Status |
 |---|---|
 | Catatan Finance wajib saat konversi paket (tampil di log invoice) | Selesai: `ConvertPackageDialog`, `creditsStore` `CONVERT_PACKAGE` |
-| Akun semua role (termasuk terapis & role kustom) bisa **Akses semua cabang** (User Management) | Selesai: `allBranches`, `hasAllBranchAccess` |
+| Akun semua role (termasuk terapis & role kustom) bisa **Akses semua cabang** (User Management) | Selesai: `branchId` kosong (`null`) = semua cabang, tanpa flag `allBranches` (11 Okt 2026); `hasAllBranchAccess` |
 | Combobox pencarian client (nama/ortu/kode) seragam | Selesai: `shared/components/ClientCombobox.js` (Create Invoice, Renewal, Jadwal, Generate Kode, Dashboard Schedule, portal terapis) |
 | Riwayat sesi: alasan cancel + kolom Catatan yang bisa ditimpa | Selesai: `ActiveClientDetail` (`historyNote`) |
 | Monitoring laporan per client di detail client | Selesai: `ClientReportMonitoringCard` |
@@ -91,7 +91,7 @@ Tambahan 6 Okt 2026 (2): Finance bisa upload bukti manual per invoice (yang belu
 |---|---|---|
 | R6 | Admin Schedule: ganti / hapus jadwal recurring (per hari atau ganti keseluruhan) dari detail client dan list Active Client; sesi lama yang tersambung otomatis terhapus dan terganti jadwal baru | ✅ |
 
-Tafsir: hanya sesi `scheduled` (belum disentuh) pada pola lama yang diganti; sesi yang sudah selesai/dibatalkan/dipindah dibiarkan. Mengganti pola cukup akses modul; hapus rutin permanen hanya role `canDelete`.
+Tafsir: hanya sesi `scheduled` (belum disentuh) pada pola lama yang diganti; sesi yang sudah selesai/dibatalkan/dipindah dibiarkan. Mengganti pola cukup akses modul; hapus rutin permanen cukup akses modul `active_clients`.
 
 | # | Permintaan | Status FE |
 |---|---|---|

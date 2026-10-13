@@ -20,6 +20,11 @@ export function syncBranches(list) {
 // Cabang yang masih beroperasi: untuk pilihan penugasan / input baru. Cabang nonaktif tetap muncul sebagai nama di riwayat.
 export const activeBranches = () => BRANCHES.filter((b) => b.isActive !== false);
 
+// Cakupan cabang data: `branchId` kosong (null) = semua cabang (akun/terapis/libur lintas cabang); terisi = 1 cabang.
+// `activeBranch` "all" atau kosong = tampilkan semua cabang; selain itu hanya cabang itu + entitas lintas cabang (branchId null).
+export const inBranchScope = (entityBranchId, activeBranch) =>
+  !activeBranch || activeBranch === "all" || !entityBranchId || entityBranchId === activeBranch;
+
 // Nama cabang untuk tampilan; "—" bila id tidak dikenal (jangan menebak cabang lain)
 export const branchName = (id) => BRANCHES.find((b) => b.id === id)?.name || "—";
 

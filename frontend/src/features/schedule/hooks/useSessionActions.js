@@ -271,7 +271,7 @@ export function useSessionActions() {
     return { released: list.length, creditChange };
   };
 
-  // Hapus sesi (soft delete; tombol hanya untuk role `canDelete`). Sesi completed harus di-revert dulu agar kredit konsisten.
+  // Hapus sesi (permanen; tombol untuk role dengan akses modul jadwal). Sesi completed harus di-revert dulu agar kredit konsisten.
   const deleteSession = (schedule) => {
     if (schedule.status === "completed") return { deleted: false, reason: "completed" };
     deleteSchedules([schedule.id], auth?.staffName || auth?.role || null);
@@ -286,7 +286,7 @@ export function useSessionActions() {
     return { removed: removeIds.length, created: createList.length };
   };
 
-  // Hapus jadwal rutin (sesi `scheduled` pada pola itu); tombol hanya untuk role `canDelete`.
+  // Hapus jadwal rutin (sesi `scheduled` pada pola itu); tombol untuk role dengan akses modul jadwal.
   const deleteRoutineSessions = (ids) => {
     if (ids.length > 0) deleteSchedules(ids);
     return { removed: ids.length };

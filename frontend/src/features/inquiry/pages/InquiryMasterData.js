@@ -26,7 +26,6 @@ const EMPTY_SERVICE = {
   editingValue: null,
   value: "",
   label: "",
-  shortLabel: "",
   category: "Asesmen",
   description: "",
   active: true,
@@ -119,7 +118,6 @@ export default function InquiryMasterData() {
       editingValue: srv.value,
       value: srv.value,
       label: srv.label || "",
-      shortLabel: srv.shortLabel || "",
       category: srv.category || "Asesmen",
       description: srv.description || "",
       active: srv.active !== false,
@@ -127,15 +125,12 @@ export default function InquiryMasterData() {
 
   const saveService = () => {
     const label = svcDialog.label.trim();
-    const shortLabel = svcDialog.shortLabel.trim() || label;
     if (!label) {
       toast.error("Nama layanan wajib diisi.");
       return;
     }
     const payload = {
       label,
-      fullLabel: label,
-      shortLabel,
       category: svcDialog.category.trim() || "Lainnya",
       description: svcDialog.description.trim(),
       active: svcDialog.active,
@@ -143,9 +138,9 @@ export default function InquiryMasterData() {
 
     if (svcDialog.editingValue) {
       updateService(svcDialog.editingValue, payload);
-      toast.success(`Layanan "${shortLabel}" diperbarui.`);
+      toast.success(`Layanan "${label}" diperbarui.`);
     } else {
-      const code = slugify(svcDialog.value || shortLabel);
+      const code = slugify(svcDialog.value || label);
       if (!code) {
         toast.error("Kode layanan tidak valid.");
         return;
@@ -155,7 +150,7 @@ export default function InquiryMasterData() {
         return;
       }
       addService({ value: code, ...payload });
-      toast.success(`Layanan "${shortLabel}" ditambahkan.`);
+      toast.success(`Layanan "${label}" ditambahkan.`);
     }
     setSvcDialog(EMPTY_SERVICE);
   };
@@ -163,12 +158,12 @@ export default function InquiryMasterData() {
   const removeService = async (srv) => {
     const used = serviceUsage[srv.value] || 0;
     if (used > 0) {
-      toast.error(`Layanan "${srv.shortLabel}" dipakai di ${used} data. Nonaktifkan saja agar riwayat tetap utuh.`);
+      toast.error(`Layanan "${srv.label}" dipakai di ${used} data. Nonaktifkan saja agar riwayat tetap utuh.`);
       return;
     }
     if (!(await confirm({ title: "Hapus layanan?", description: `Layanan "${srv.label}" akan dihapus dari daftar.` }))) return;
     deleteService(srv.value);
-    toast.success(`Layanan "${srv.shortLabel}" dihapus.`);
+    toast.success(`Layanan "${srv.label}" dihapus.`);
   };
 
   // ---------- Kuadran ----------
@@ -312,9 +307,9 @@ export default function InquiryMasterData() {
                             checked={srv.active !== false}
                             onCheckedChange={(checked) => {
                               updateService(srv.value, { active: checked });
-                              toast.success(`"${srv.shortLabel}" ${checked ? "diaktifkan" : "dinonaktifkan"}.`);
+                              toast.success(`"${srv.label}" ${checked ? "diaktifkan" : "dinonaktifkan"}.`);
                             }}
-                            aria-label={`Aktifkan ${srv.shortLabel}`}
+                            aria-label={`Aktifkan ${srv.label}`}
                           />
                         </TableCell>
                         <TableCell data-nolabel className="text-right whitespace-nowrap">
@@ -512,27 +507,16 @@ export default function InquiryMasterData() {
                 data-testid="service-label-input"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Nama Singkat</Label>
-                <Input
-                  value={svcDialog.shortLabel}
-                  onChange={(e) => setSvcDialog((p) => ({ ...p, shortLabel: e.target.value }))}
-                  placeholder="mis. Coaching"
-                  data-testid="service-short-input"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Kode</Label>
-                <Input
-                  value={svcDialog.value}
-                  disabled={Boolean(svcDialog.editingValue)}
-                  onChange={(e) => setSvcDialog((p) => ({ ...p, value: e.target.value }))}
-                  placeholder={slugify(svcDialog.shortLabel || svcDialog.label) || "otomatis"}
-                  className="font-mono text-xs"
-                  data-testid="service-code-input"
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Kode</Label>
+              <Input
+                value={svcDialog.value}
+                disabled={Boolean(svcDialog.editingValue)}
+                onChange={(e) => setSvcDialog((p) => ({ ...p, value: e.target.value }))}
+                placeholder={slugify(svcDialog.label) || "otomatis"}
+                className="font-mono text-xs"
+                data-testid="service-code-input"
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Kategori</Label>

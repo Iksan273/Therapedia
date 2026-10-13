@@ -18,7 +18,7 @@ export const ServiceChips = ({ client, className, chipClassName }) => {
             chipClassName
           )}
         >
-          {getService(id)?.shortLabel || id}
+          {getService(id)?.label || id}
         </span>
       ))}
     </div>

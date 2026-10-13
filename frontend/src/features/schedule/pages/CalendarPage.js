@@ -27,6 +27,7 @@ import {
 } from "@/shared/ui/dialog";
 import { WeeklyCalendar, CalendarLegend } from "@/features/schedule/components/calendar/WeeklyCalendar";
 import { DayAgenda } from "@/features/schedule/components/calendar/DayAgenda";
+import { TeamDayGrid } from "@/shared/components/TeamDayGrid";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { SessionDetailModal } from "@/features/schedule/components/calendar/SessionDetailModal";
 import { BulkRescheduleDialog } from "@/features/schedule/components/calendar/BulkRescheduleDialog";
@@ -39,6 +40,7 @@ import { useCredits } from "@/stores/creditsStore";
 import { useHolidays } from "@/stores/holidaysStore";
 import { useAuth } from "@/stores/authStore";
 import { holidayMessage } from "@/domain/holiday";
+import { inBranchScope } from "@/domain/branch";
 import { useMasterData } from "@/stores/masterDataStore";
 import { isCreditZero } from "@/domain/credit";
 import { bookingNoteOf, cancelNoteOf } from "@/domain/schedule";
@@ -56,7 +58,7 @@ export default function CalendarPage() {
   const { getRecordForClient } = useCredits();
   const { getCancelReasonCode } = useMasterData();
 
-  // Mobile defaults to day agenda, desktop to weekly grid
+  // Tampilan: "week" | "day" (Day Agenda) | "team" (Day All Therapist). Mobile default ke day agenda, desktop ke weekly grid
   const [view, setView] = useState(() =>
     typeof window !== "undefined" && window.innerWidth < 768 ? "day" : "week"
   );
@@ -120,6 +122,18 @@ export default function CalendarPage() {
       return true;
     });
   }, [schedules, therapistFilter, showDischarged, dischargedClientIds, query, searchIndex]);
+
+  // Day All Therapist: kolom = terapis cabang aktif (branchId null = terapis semua cabang, tampil di tiap cabang) dan
+  // mengikuti filter terapis; sesi = sesi hari itu milik cabang aktif (activeBranch "all" = semua cabang).
+  const teamTherapists = useMemo(
+    () => therapists.filter((t) => inBranchScope(t.branchId, activeBranch) && (therapistFilter === "all" || t.id === therapistFilter)),
+    [therapists, activeBranch, therapistFilter]
+  );
+  const teamSchedules = useMemo(() => {
+    const ids = new Set(teamTherapists.map((t) => t.id));
+    const dayStr = format(selectedDay, "yyyy-MM-dd");
+    return visibleSchedules.filter((s) => s.date === dayStr && ids.has(s.therapistId) && inBranchScope(s.branchId, activeBranch));
+  }, [visibleSchedules, teamTherapists, selectedDay, activeBranch]);
 
   // Hasil pencarian terdekat dengan hari ini, untuk lompat cepat ke sesi
   const searchResults = useMemo(() => {
@@ -272,7 +286,9 @@ export default function CalendarPage() {
           <p className="text-sm text-slate-500 mt-1">
             {view === "week"
               ? "Click any time slot to schedule sessions or switch to Bulk Mode for multi-client adjustments."
-              : "Day Agenda overview — tap sessions to view and edit progress notes."}
+              : view === "team"
+                ? "Day All Therapist — seluruh jadwal terapis pada satu hari dalam satu kalender; klik sesi untuk detail."
+                : "Day Agenda overview — tap sessions to view and edit progress notes."}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -385,12 +401,12 @@ export default function CalendarPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* View toggle */}
-          <div className="flex rounded-xl border border-slate-200 p-0.5 bg-slate-100" data-testid="calendar-view-toggle">
+          <div className="flex rounded-xl border border-slate-200 p-0.5 bg-slate-100 max-w-full overflow-x-auto" data-testid="calendar-view-toggle">
             <button
               type="button"
               onClick={() => setView("week")}
               className={cn(
-                "px-3 py-2 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                "px-3 py-2.5 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0",
                 view === "week"
                   ? "bg-white text-sky-800 shadow-2xs"
                   : "text-slate-500 hover:text-slate-800"
@@ -403,7 +419,7 @@ export default function CalendarPage() {
               type="button"
               onClick={() => setView("day")}
               className={cn(
-                "px-3 py-2 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer",
+                "px-3 py-2.5 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0",
                 view === "day"
                   ? "bg-white text-sky-800 shadow-2xs"
                   : "text-slate-500 hover:text-slate-800"
@@ -411,6 +427,20 @@ export default function CalendarPage() {
               data-testid="calendar-view-day-button"
             >
               Day Agenda
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("team")}
+              className={cn(
+                "px-3 py-2.5 sm:py-1 text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0",
+                view === "team"
+                  ? "bg-white text-sky-800 shadow-2xs"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+              data-testid="calendar-view-team-button"
+            >
+              <span className="sm:hidden">All Therapist</span>
+              <span className="hidden sm:inline">Day All Therapist</span>
             </button>
           </div>
 
@@ -547,6 +577,17 @@ export default function CalendarPage() {
           selectedSessionIds={selectedSessionIds}
           onToggleSelectSession={toggleSelectSession}
           isClientCreditZero={isClientCreditZero}
+        />
+      ) : view === "team" ? (
+        <TeamDayGrid
+          day={selectedDay}
+          therapists={teamTherapists}
+          schedules={teamSchedules}
+          getClientName={getClientName}
+          onSessionClick={(s) => {
+            setSelectedSession(s);
+            setSessionOpen(true);
+          }}
         />
       ) : (
         <DayAgenda

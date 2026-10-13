@@ -29,7 +29,7 @@ Semua data difilter berdasarkan `auth.therapistId`.
 |---|---|---|---|
 | `/master/revenue`, `/manager/revenue` | master, manager | `features/master/pages/DashboardRevenue.js` | Omzet dari invoice `paid` per cabang & periode, tren, breakdown paket. Manager terkunci ke cabangnya |
 | `/master/branch-performance` | master | `BranchPerformance.js` | Perbandingan performa intake/pipeline antar cabang (recharts). Filter **rentang waktu** (`PeriodFilter`: Semua Waktu … Bulan Ini … Rentang Kustom) menyaring intake berdasarkan `createdAt`; kartu **Tren Volume Intake** punya filter sendiri (3 / 6 default / 12 bulan / Tahun ini; `buildMonthlyIntakeTrend` di `domain/branch.js`) dan tidak mengikuti filter rentang waktu halaman. Rasio konversi (admitted ÷ total intake) dan drop-off hanya di KPI + matriks (chart konversi terpisah dihapus karena duplikat). Cabang dinamis dari Master Cabang |
-| `/master/branches` | master (modul `branch_master`) | `BranchManagement.js` | Master Cabang: tambah, ubah, aktif/nonaktif, dan hapus cabang (hapus = **permanen** seluruh isi cabang: client + jadwal + invoice + ledger + hari libur + akun staf cabang; hanya role `canDelete`, konfirmasi mengetik kode cabang; ADR 0005), cari + pagination 10. Tanpa kolom jumlah client. Store `branchesStore` mensinkronkan registry `BRANCHES` di `domain/branch.js` |
+| `/master/branches` | master (modul `branch_master`) | `BranchManagement.js` | Master Cabang: tambah, ubah, aktif/nonaktif, dan hapus cabang (hapus = **permanen** seluruh isi cabang: client + jadwal + invoice + ledger + hari libur + akun staf cabang; hanya role `master`, konfirmasi mengetik kode cabang; ADR 0005), cari + pagination 10. Tanpa kolom jumlah client. Store `branchesStore` mensinkronkan registry `BRANCHES` di `domain/branch.js` |
 | `/admin-inquiry` | lihat 04 | `DashboardInquiry.js` | KPI funnel inquiry |
 | `/admin-schedule` | lihat 05 | `DashboardSchedule.js` | KPI sesi & client aktif |
 
@@ -43,7 +43,7 @@ Pola dashboard:
 | Route | Halaman | Aksi → `authStore` |
 |---|---|---|
 | `/master/users` | `UserManagement.js` | Tambah akun staf dengan **password sementara** (wajib ganti saat login pertama; non-master wajib 1 cabang), **reset password** oleh Master (`resetStaffPassword`), **nonaktifkan/aktifkan** staf (`setStaffActive`; tidak dihapus). Data `staffUsers` dipakai di `/login` (email + password, `domain/auth.js`). Lupa password: dialog OTP email di `/login` (`requestPasswordOtp`, `resetPasswordWithOtp`; di demo email disimulasikan, OTP tampil di layar) |
-| `/master/rbac` | `RoleModuleAccess.js` | Matriks role × modul (`updateRolePermission`) + baris **"Boleh menghapus data"** per role (`setRoleCanDelete`; tombol hapus di semua modul hanya tampil bila role punya flag + akses modul), tambah/ubah/hapus role kustom (`addRole`, `updateRole`, `deleteRole`). Role sistem (`isSystem`) tidak bisa dihapus |
+| `/master/rbac` | `RoleModuleAccess.js` | Matriks role × modul (`updateRolePermission`) (tanpa baris hak hapus: hapus client & cabang hanya master, hapus operasional mengikuti akses modul), tambah/ubah/hapus role kustom (`addRole`, `updateRole`, `deleteRole`). Role sistem (`isSystem`) tidak bisa dihapus |
 
 
 ## E. Halaman publik / pendukung

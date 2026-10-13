@@ -4,18 +4,18 @@ import { Button } from "@/shared/ui/button";
 import { useAuth } from "@/stores/authStore";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 
-// Tombol/elemen hapus hanya tampil untuk role dengan flag `canDelete` DAN akses modul (domain/rbac.js `canDeleteIn`).
-// Aksi non-hapus mengikuti akses modul saja.
-export function IfCanDelete({ module, children }) {
+// Hapus operasional tampil untuk role dengan akses modul; `masterOnly` (client, cabang: data penting) hanya untuk master
+// (domain/rbac.js `canDeleteIn`).
+export function IfCanDelete({ module, masterOnly = false, children }) {
   const { canDelete } = useAuth();
-  return canDelete(module) ? <>{children}</> : null;
+  return canDelete(module, { masterOnly }) ? <>{children}</> : null;
 }
 
 // Tombol hapus + konfirmasi. `onConfirm` dipanggil setelah user menyetujui.
-export function DeleteButton({ module, onConfirm, title = "Hapus data?", description, label = "Hapus", confirmLabel = "Hapus", iconOnly = false, className, testId }) {
+export function DeleteButton({ module, masterOnly = false, onConfirm, title = "Hapus data?", description, label = "Hapus", confirmLabel = "Hapus", iconOnly = false, className, testId }) {
   const { canDelete } = useAuth();
   const { confirm, confirmDialog } = useConfirm();
-  if (!canDelete(module)) return null;
+  if (!canDelete(module, { masterOnly })) return null;
 
   const handleClick = async () => {
     if (await confirm({ title, description, confirmLabel })) onConfirm();

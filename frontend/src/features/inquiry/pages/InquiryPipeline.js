@@ -101,7 +101,7 @@ export default function InquiryPipeline() {
   if (serviceFilter !== "all") {
     filterChips.push({
       key: "service",
-      label: `Layanan: ${getService(serviceFilter)?.shortLabel || serviceFilter}`,
+      label: `Layanan: ${getService(serviceFilter)?.label || serviceFilter}`,
       onRemove: () => setFilter("service", "all"),
     });
   }

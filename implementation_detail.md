@@ -33,8 +33,8 @@ Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md
 | Base URL | `/api/v1`, JSON, UTF-8. Body/query camelCase dari frontend diubah ke snake_case oleh `httpClient` (sudah ada); respons snake_case → camelCase |
 | Auth | Sanctum bearer token. Dua guard: `staff` (model `User`) dan `client` (model `Client`, portal ortu). Ability token membedakan portal. Rute publik hanya `/public/*` dan `/auth/*` login |
 | Cabang | Semua endpoint berdata cabang memakai `BranchScope`: non-master hanya melihat/mengubah `branch_id` miliknya; master boleh `?branch_id=` (kosong/`all` = semua) |
-| Hak akses | `PermissionService` membaca `role_permissions` (memo per request). Ditulis sebagai **`modul:<kode>`**: punya akses modul = boleh semua aksi non-hapus; **`+hapus`** = juga butuh `roles.can_delete = 1`. Kode modul: `revenue, inquiry_pipeline, inquiry_dashboard, weekly_calendar, schedule_dashboard, active_clients, finance, user_management, branch_master, rbac, therapist_module, unreported_reports, holidays` |
-| Transaksi | Setiap endpoint tulis lintas tabel = satu `DB::transaction()` + `lockForUpdate()` pada baris induk; log khusus (`credit_ledger`, `invoice_logs`, `client_status_histories`, `package_conversions`) ditulis di transaksi yang sama |
+| Hak akses | `PermissionService` membaca `role_permissions` (memo per request). Ditulis sebagai **`modul:<kode>`**: punya akses modul = boleh semua aksi non-hapus; **`+hapus-master`** = hapus client/cabang hanya role `master` (hapus operasional cukup akses modul; tanpa kolom `can_delete`). Kode modul: `revenue, inquiry_pipeline, inquiry_dashboard, weekly_calendar, schedule_dashboard, active_clients, finance, user_management, branch_master, rbac, therapist_module, unreported_reports, holidays` |
+| Transaksi | Setiap endpoint tulis lintas tabel = satu `DB::transaction()` + `lockForUpdate()` pada baris induk; log khusus (`credit_ledger`, `invoice_logs`, `package_conversions`) ditulis di transaksi yang sama |
 | Optimistic lock | Entity ber-`version` (`clients`, `schedules`, `invoices`, `client_packages`, `session_reports`, `assessment_categories`): request kirim `version`; tidak cocok → **409** `{code:"version_conflict"}` |
 | Jejak pelaku | Trait/observer mengisi `created_by`/`updated_by` dari user terautentikasi; frontend tidak mengirim pelaku |
 | Pagination | List: `?page=&per_page=` (default **10**, maks 50) → `{ data:[…], meta:{ total, page, per_page, last_page } }`. Riwayat bertambah (`credit-ledger`, `invoices/{id}/logs`, riwayat sesi) memakai keyset: `?cursor=&per_page=` → `{ data, meta:{ next_cursor } }`. Filter & pencarian di server sebelum dipaginasi |
@@ -49,7 +49,7 @@ Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md
 | Status | Isi | Kapan |
 |---|---|---|
 | 401 | `{message}` | token hilang/kedaluwarsa → frontend logout |
-| 403 | `{message, code:"forbidden"}` | tanpa akses modul / tanpa `can_delete` / `must_change_password` / beda cabang |
+| 403 | `{message, code:"forbidden"}` | tanpa akses modul / bukan master untuk hapus client-cabang / `must_change_password` / beda cabang |
 | 404 | `{message}` | tidak ditemukan (juga untuk data cabang lain, tidak membocorkan keberadaan) |
 | 409 | `{message, code}` | `version_conflict`, `schedule_conflict` (+daftar sesi bentrok), `already_reverted`, `in_use` (master dipakai), `invoice_not_deletable`, `already_submitted` |
 | 410 | `{message, code:"expired"}` | kode kuesioner kedaluwarsa |
@@ -67,9 +67,9 @@ Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md
 | Modul | Cakupan | Tabel inti | Sprint |
 |---|---|---|---|
 | M1 Auth & akun | login staf/ortu, logout, ganti & lupa password | `users`, `clients`, `personal_access_tokens`, `password_reset_otps` | S1 |
-| M2 User, RBAC, cabang | user staf, role, matriks modul, `can_delete`, Master Cabang | `users`, `roles`, `role_permissions`, `access_modules`, `branches` | S1 |
+| M2 User, RBAC, cabang | user staf, role, matriks modul, Master Cabang | `users`, `roles`, `role_permissions`, `access_modules`, `branches` | S1 |
 | M3 Master data | layanan, kuadran, alasan, paket, hari libur | `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays` | S1 |
-| M4 Inquiry & Client | intake, pipeline, layanan, status, dokumen | `clients`, `client_code_counters`, `client_services`, `client_documents`, `client_status_histories` | S2 |
+| M4 Inquiry & Client | intake, pipeline, layanan, status, dokumen | `clients`, `client_code_counters`, `client_services`, `client_documents` | S2 |
 | M5 Asesmen | mesin kuesioner, kode, isi publik, hasil | `assessment_*` | S2 |
 | M6 Penjadwalan | kalender, sesi, aksi, revert, bulk, laporan, monitoring, cuti client (jatah 30 hari/tahun, §8.6) | `schedules`, `schedule_series`, `session_reports`, `client_leaves` (+ kredit) | S3 |
 | M7 Finance & kredit | invoice, bukti, verifikasi, void, pengganti, renewal, konversi, ledger, saldo lebihan | `invoices`, `payment_proofs`, `invoice_logs`, `client_packages`, `credit_ledger`, `package_conversions`, `invoice_counters` | S3 |
@@ -91,7 +91,7 @@ Layar: `/login`, `/roles` (demo), portal ortu. Fitur: F1.
 
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle per email+IP | `email`, `password` | `users` R,U (`last_login_at`); `personal_access_tokens` C; `roles`, `role_permissions`, `branches` R | token + user (role, `branch_id`, matriks modul, `can_delete`, `must_change_password`). 422/401 pesan generik, 429 |
+| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle per email+IP | `email`, `password` | `users` R,U (`last_login_at`); `personal_access_tokens` C; `roles`, `role_permissions`, `branches` R | token + user (role, `branch_id`, matriks modul, `must_change_password`). 422/401 pesan generik, 429 |
 | 1.2 | `POST /auth/client-login` | `ClientLoginAction` | publik, throttle + lockout per IP & per kode | `client_code`, `date_of_birth` | `clients` R,U (`last_login_at`); `personal_access_tokens` C | token portal ortu + ringkasan client. Pesan gagal **selalu generik** (tidak menyebut mana yang salah) |
 | 1.3 | `POST /auth/logout` | hapus token aktif | login | — | `personal_access_tokens` D | 204 |
 | 1.4 | `GET /auth/me` | profil sesi | login | — | `users`/`clients` R; `role_permissions` R | user/client + izin |
@@ -111,7 +111,7 @@ Layar: `/master/users`, `/master/rbac`, `/master/branches`. Fitur: F2 + Master C
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
 | 2.1 | `GET /users` | daftar staf (filter `branch_id`, `role`, `is_active`, `q`) + pagination | `user_management` | — | `users` R, `roles` R, `branches` R | `idx_users_branch_role` |
-| 2.2 | `POST /users` | `CreateUserAction` | `user_management` | `name,email,role_id,branch_id,password(temp),title,specialty,bio,phone` | `users` C (`must_change_password = 1`) | 422: email unik; `branch_id` wajib untuk semua role kecuali master (1 cabang) |
+| 2.2 | `POST /users` | `CreateUserAction` | `user_management` | `name,email,role_id,branch_id,password(temp),title,specialty,phone` | `users` C (`must_change_password = 1`) | 422: email unik; `branch_id` wajib untuk semua role kecuali master (1 cabang) |
 | 2.3 | `GET /users/{id}` · `PATCH /users/{id}` | detail / ubah (nama, role, cabang, atribut klinis) | `user_management` | `version` tidak ada (last-write) | `users` R,U | tidak boleh mengosongkan `branch_id` non-master |
 | 2.4 | `PATCH /users/{id}/active` | nonaktifkan / aktifkan | `user_management` | `is_active` | `users` U, `personal_access_tokens` D (saat nonaktif) | staf **tidak dihapus** lewat UI |
 | 2.5 | `POST /users/{id}/reset-password` ✚ | Master mengatur password sementara | `user_management` | `password` | `users` U (`must_change_password = 1`), `personal_access_tokens` D | 204 |
@@ -121,8 +121,8 @@ Layar: `/master/users`, `/master/rbac`, `/master/branches`. Fitur: F2 + Master C
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
 | 2.7 | `GET /roles` | daftar role + jumlah akun | `rbac` | — | `roles` R, `users` R (count) | |
-| 2.8 | `POST /roles` | buat role kustom | `rbac` | `code,name,badge,description,can_delete` | `roles` C | `is_system = 0` |
-| 2.9 | `PATCH /roles/{id}` | ubah label/badge/`can_delete` | `rbac` | | `roles` U | role sistem: hanya `can_delete` pada role non-master |
+| 2.8 | `POST /roles` | buat role kustom | `rbac` | `code,name,badge,description` | `roles` C | `is_system = 0` |
+| 2.9 | `PATCH /roles/{id}` | ubah label/badge | `rbac` | | `roles` U | role sistem: label/badge saja |
 | 2.10 | `DELETE /roles/{id}` | hapus role | `rbac` + hapus | | `roles` D; `role_permissions` D (cascade); `users` R | 409 `in_use` bila masih ada akun; role sistem ditolak |
 | 2.11 | `GET /access-modules` | daftar modul (seed) | `rbac` | | `access_modules` R | |
 | 2.12 | `PUT /roles/{id}/permissions` | simpan matriks (batch) atau `PATCH` satu modul | `rbac` | `{ module_code: bool }` | `role_permissions` upsert | permission di-cache memo per request |
@@ -145,7 +145,7 @@ Layar: `/admin-inquiry/master-data`, `/finance` (tab paket), `/admin-schedule/ho
 
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 3.1 | `GET /master/services` · `POST` · `PUT /{code}` · `DELETE /{code}` | layanan intake | baca: login staf; tulis: `inquiry_pipeline`/`inquiry_dashboard`; hapus: +hapus | `code,label,short_label,category,description,is_active,sort_order` | `services` C,U,D | DELETE: 409 `in_use` bila ada `client_services`/`schedules.service_code` → nonaktifkan |
+| 3.1 | `GET /master/services` · `POST` · `PUT /{code}` · `DELETE /{code}` | layanan intake | baca: login staf; tulis: `inquiry_pipeline`/`inquiry_dashboard`; hapus: +hapus | `code,label,category,description,is_active,sort_order` | `services` C,U,D | DELETE: 409 `in_use` bila ada `client_services`/`schedules.service_code` → nonaktifkan |
 | 3.2 | `GET /master/quadrants` · `POST` · `PUT /{code}` · `DELETE /{code}` | kuadran sensori | idem | `code,title,full_name,description,color,sort_order` | `sensory_quadrants` | DELETE: 409 bila dipakai `assessment_questions`/`assessment_quadrant_scores`; minimal 1 kuadran |
 | 3.3 | `GET /master/cancel-reasons` ✚ · `POST` · `PUT /{code}` · `DELETE /{code}` | pilihan cepat alasan cancel dan **Therapist Off** (TANPA FK; filter `?therapist_off=0` atau `1`) | tulis: `weekly_calendar` atau `inquiry_*`; hapus: +hapus | `code,label,is_active,is_therapist_off,sort_order` | `cancel_reasons` | DELETE tanpa pengecekan (transaksi menyimpan string) |
 | 3.4 | `GET /master/discharge-reasons` ✚ · `POST` · `PUT` · `DELETE` | idem untuk discharge | idem | idem | `discharge_reasons` | idem |
@@ -168,24 +168,24 @@ Layar: `/admin-inquiry/pipeline`, `/admin-inquiry/pipeline/:id` (Client Detail),
 ### 6.2 Intake & biodata
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 4.4 | `POST /clients` | `CreateClientAction` (F4) | `inquiry_pipeline` | `branch_id,child_name,gender,date_of_birth,parent_name,parent_phone,parent_email?,address?,intake_note?` | `clients` C (`status = inquiry`); `client_code_counters` U (`LAST_INSERT_ID(last_number+1)`, grup dari huruf pertama nama); `client_status_histories` C (`trigger = created`) | kode `AE-00001` dibuat server, tidak berubah walau nama diedit. 422 validasi |
+| 4.4 | `POST /clients` | `CreateClientAction` (F4) | `inquiry_pipeline` | `branch_id,child_name,gender,date_of_birth,parent_name,parent_phone,parent_email?,address?,intake_note?` | `clients` C (`status = inquiry`); `client_code_counters` U (`LAST_INSERT_ID(last_number+1)`, grup dari huruf pertama nama) | kode `AE-00001` dibuat server, tidak berubah walau nama diedit. 422 validasi |
 | 4.5 | `GET /clients/{id}` | detail client | sama dengan 4.1 | — | `clients` R; `client_services`, `client_documents` R; `assessment_access_codes` R; `invoices` R (ringkas); `client_packages` R | satu payload Client Detail |
 | 4.6 | `PATCH /clients/{id}` | ubah biodata & `intake_note` | `inquiry_pipeline` | `version` + field berubah (kode client **tidak** dapat diubah) | `clients` U | 409 `version_conflict` |
 
 ### 6.3 Layanan, dokumen, status
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 4.7 | `PUT /clients/{id}/services` | `SyncClientServicesAction` (F5) | `inquiry_pipeline` | `service_codes[]` (hanya `services.is_active = 1`) | `client_services` C/D (selisih); `clients` U (`status = service_selected` bila daftar tak kosong & status masih sebelumnya); `client_status_histories` C (`trigger = service_selected`, hanya bila status berubah) | melepas semua layanan tidak memundurkan status |
+| 4.7 | `PUT /clients/{id}/services` | `SyncClientServicesAction` (F5) | `inquiry_pipeline` | `service_codes[]` (hanya `services.is_active = 1`) | `client_services` C/D (selisih); `clients` U (`status = service_selected` bila daftar tak kosong & status masih sebelumnya) | melepas semua layanan tidak memundurkan status |
 | 4.8 | `POST /clients/{id}/gdrive-links` | simpan link Google Drive | `inquiry_pipeline` | `url,label?` | `client_documents` C/U (`type = gdrive_folder`) | dokumen = link saja, tanpa upload |
 | 4.9 ✚ | `DELETE /clients/{id}/gdrive-links/{docId}` | hapus link | +hapus | | `client_documents` D | |
-| 4.10 | `POST /clients/{id}/transition` | `TransitionClientAction` (F9/F20; §6.6 schema) | `inquiry_pipeline` atau `active_clients` | `to_status`, `reason?`, `note?` (discharge/discontinue wajib alasan), `version` | `clients` U (`status`, `status_changed_at`, `final_outcome`, `date_of_join`/`date_of_discharge`/`date_of_discontinue`, `discharge_reason`, `discharge_note`); `client_status_histories` C (`trigger` = `manual`/`outcome`/`discharge`/`revert`) | ke tahap mana pun (otomatis hanya maju). Admit **tidak** membuat paket. Sesi mendatang **tidak** dibatalkan otomatis saat discharge |
-| 4.11 | `GET /clients/{id}/pipeline-logs` | timeline status | semua yang boleh lihat client | `cursor` | `client_status_histories` R (`idx_csh_client`) | keyset |
+| 4.10 | `POST /clients/{id}/transition` | `TransitionClientAction` (F9/F20; §6.6 schema) | `inquiry_pipeline` atau `active_clients` | `to_status`, `reason?`, `note?` (discharge/discontinue wajib alasan), `version` | `clients` U (`status`, `status_changed_at`, `final_outcome`, `date_of_join`/`date_of_discharge`/`date_of_discontinue`, `discharge_reason`, `discharge_note`) | ke tahap mana pun (otomatis hanya maju). Admit **tidak** membuat paket. Sesi mendatang **tidak** dibatalkan otomatis saat discharge |
+| 4.11 | *(dihapus 13 Okt 2026)* | tabel riwayat tahap client dibuang; tidak ada timeline status | | | | |
 | 4.12 | `DELETE /clients/{id}` | `DeleteClientAction` (hapus permanen, §14) | `inquiry_pipeline`/`active_clients` + hapus | | cascade: seluruh turunan client | 204; file bukti bayar dihapus sinkron setelah commit |
 
 ### 6.4 Dashboard inquiry (baca)
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel / view | Catatan |
 |---|---|---|---|---|---|---|
-| 4.13 | `GET /dashboards/inquiry` | KPI funnel, tren, alasan discharge/drop-off | `inquiry_dashboard` | `branch_id,period,start,end,service_code,q` | `v_daily_pipeline` ← `client_status_histories`; `clients` R | pie alasan discharge: agregasi `clients.discharge_reason` (kode pilihan cepat per kode, teks custom → "Lainnya") |
+| 4.13 | `GET /dashboards/inquiry` | KPI funnel, tren, alasan discharge/drop-off | `inquiry_dashboard` | `branch_id,period,start,end,service_code,q` | `clients` R (funnel per status saat ini + tanggal `created_at`/`date_of_join`/`date_of_discharge`/`date_of_discontinue`) | pie alasan discharge: agregasi `clients.discharge_reason` (kode pilihan cepat per kode, teks custom → "Lainnya") |
 | 4.14 | `GET /clients?status=discontinued` | log drop-off (+ `date_of_discontinue`) | `inquiry_dashboard` | pencarian `q` | `clients` R | tab Discontinued |
 | 4.15 | `GET /assessment-codes?awaiting=1` | tab "Menunggu Kuesioner" + pencarian nama | `inquiry_dashboard` | `branch_id,q` | `assessment_access_codes` R (`idx_codes_awaiting`) + `clients` R | kode kedaluwarsa tetap tampil (ditandai) — Q18 |
 
@@ -208,7 +208,7 @@ Layar: `/admin-inquiry/assessments` (mesin), Client Detail (kode), `/assessment`
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
 | 5.6 | `GET /clients/{id}/assessment-codes` | kode milik client | lihat client | | `assessment_access_codes` R, `assessment_categories` R | |
-| 5.7 | `POST /clients/{id}/assessment-codes` | `IssueAssessmentCodeAction` (F6) | `inquiry_pipeline` | `category_id`, `expires_at?` | `assessment_access_codes` C (`{type_code}-{6 acak}`, retry bila bentrok); `clients` U (maju ke `assessment_scheduled`); `client_status_histories` C (`code_issued`) | satu client boleh banyak kode |
+| 5.7 | `POST /clients/{id}/assessment-codes` | `IssueAssessmentCodeAction` (F6) | `inquiry_pipeline` | `category_id`, `expires_at?` | `assessment_access_codes` C (`{type_code}-{6 acak}`, retry bila bentrok); `clients` U (maju ke `assessment_scheduled`) | satu client boleh banyak kode |
 | 5.8 ✚ | `DELETE /assessment-codes/{id}` | hapus kode yang belum diisi | `inquiry_pipeline` + hapus | | `assessment_access_codes` D; invoice assessment pemicu D bila belum lunas (yang `paid` dibiarkan) | 409 bila `status = submitted`; **409 `draft_exists` bila kode sudah punya draft (sedang diisi)**; status client tidak dimundurkan |
 
 ### 7.3 Kuesioner publik (ortu, tanpa login)
@@ -242,7 +242,7 @@ Layar: `/admin-schedule/calendar` (Weekly Calendar), Client Detail (jadwal asesm
 ### 8.2 Buat & ubah
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 6.7 | `POST /schedules` | `CreateScheduleAction` (single, F10) | `weekly_calendar` | `client_id,therapist_id,type(therapy/assessment/consultation),session_date,start_time,end_time,client_package_id?,booking_note?,force?` | `schedules` C (`service_code` diturunkan dari client; `client_package_id` NULL untuk asesmen); `clients` U + `client_status_histories` C (`assessment_scheduled`, hanya asesmen & status masih awal) | tolak (422) tanggal libur; 409 `schedule_conflict` (daftar bentrok) kecuali `force=true` oleh role berwenang. Client Frozen tetap boleh dijadwalkan |
+| 6.7 | `POST /schedules` | `CreateScheduleAction` (single, F10) | `weekly_calendar` | `client_id,therapist_id,type(therapy/assessment/consultation),session_date,start_time,end_time,client_package_id?,booking_note?,force?` | `schedules` C (`service_code` diturunkan dari client; `client_package_id` NULL untuk asesmen); `clients` U | tolak (422) tanggal libur; 409 `schedule_conflict` (daftar bentrok) kecuali `force=true` oleh role berwenang. Client Frozen tetap boleh dijadwalkan |
 | 6.8 | `POST /schedules/bulk` | `CreateRecurringSchedulesAction` (pola berulang) | `weekly_calendar` | `client_id,weeks(default 12),starts_on,days[{day,start,end,therapist_id,client_package_id}]` | `schedule_series` C; `schedules` C (N, ber-`series_id`); `holidays` R | tanggal libur **dilewati**; satu transaksi; respons memuat jumlah dibuat & dilewati |
 | 6.9 | `PATCH /schedules/{id}` | ubah catatan penjadwalan (`booking_note`) | `weekly_calendar` | `version`, `booking_note` | `schedules` U | `booking_note` terpisah dari `cancel_note`/`pending_note` |
 | 6.10 | `PUT /schedules/{id}/report` | `SaveSessionReportAction` (F16) | terapis (own) atau `weekly_calendar` | `activity_section,note_section,homework_section`, `version` | `session_reports` upsert (UNIQUE `schedule_id`; `client_id`,`therapist_id` didenormalisasi; `filled_sections` generated) | boleh kapan saja, tak harus menunggu completed |
@@ -251,12 +251,12 @@ Layar: `/admin-schedule/calendar` (Weekly Calendar), Client Detail (jadwal asesm
 ### 8.3 Aksi status & kredit (transaksional)
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 6.12 | `POST /schedules/{id}/complete` | `CompleteSessionAction` (F11) | `weekly_calendar` | `version`, `report?` | `schedules` U (`completed`, `previous_status`, `credit_effect`, `completed_*`); terapi: `client_packages` U (−1, `depleted` bila 0; paket sesi lalu FIFO), `clients` U (`credit_balance`), `credit_ledger` C (`used`, `idempotency_key`); asesmen: `clients` U (`assessment_done`) + `client_status_histories` C (`session_completed`); `session_reports` upsert | asesmen tidak memotong kredit; complete ulang tidak dobel; tanpa paket bersisa = tidak ada potongan |
+| 6.12 | `POST /schedules/{id}/complete` | `CompleteSessionAction` (F11) | `weekly_calendar` | `version`, `report?` | `schedules` U (`completed`, `previous_status`, `credit_effect`, `completed_*`); terapi: `client_packages` U (−1, `depleted` bila 0; paket sesi lalu FIFO), `clients` U (`credit_balance`), `credit_ledger` C (`used`, `idempotency_key`); asesmen: `clients` U (`assessment_done`); `session_reports` upsert | asesmen tidak memotong kredit; complete ulang tidak dobel; tanpa paket bersisa = tidak ada potongan |
 | 6.13 | `POST /schedules/{id}/cancel` | `CancelSessionAction` (F12) | `weekly_calendar` | `reason` (maks 150), `deduct_credit` (boolean **wajib, tanpa default**), `note?`, `version` | `schedules` U (`cancelled`, `cancel_reason`, `cancel_note`, `credit_effect`); `client_packages` U (`cancel_count`+1 pada **paket target**; `remaining_credit`−1 bila potong); `clients` U; `credit_ledger` C (`cancel_penalty`/`cancel_excused`, `cancel_count_after`) | `{ cancel_count, deducted, quota_exceeded }`. 422 bila `deduct_credit` tapi tak ada saldo. Berlaku untuk scheduled/rescheduled/reschedule_pending, semua jenis kalender |
 | 6.14 | `POST /schedules/{id}/reschedule` | `RescheduleSessionAction` (F13) | `weekly_calendar` | `session_date,start_time,end_time,therapist_id` | `schedules` U (`rescheduled`, slot baru, `origin_*` bila kosong, `prev_*`, `rescheduled_at`, kosongkan `pending_*`) | slot harus beda & lolos bentrok (409); tanggal libur 422; tanpa efek kredit |
 | 6.15 | `POST /schedules/{id}/mark-pending` | tandai "jadwal pengganti menyusul" | `weekly_calendar` | `reason,note?` | `schedules` U (`reschedule_pending`, `pending_*`) | diabaikan cek bentrok |
 | 6.16 | `POST /schedules/{id}/drop-pending` | batalkan sesi yang menggantung | `weekly_calendar` | `deduct_credit` wajib, `note?` | sama dengan cancel (alasan sistem `reschedule_dibatalkan`) | |
-| 6.17 | `POST /schedules/{id}/revert` | `RevertSessionAction` (F14, **hanya 1x**) | `weekly_calendar` | `reason` (wajib, maks 300), `version` | `schedules` U (status/slot dipulihkan, `reverted_at`, `credit_effect`); `credit_ledger` C (`reversal`, `reverses_ledger_id` UNIQUE); `client_packages` U (`remaining_credit`/`cancel_count`); `clients` U (kredit, status dipulihkan via `client_status_from/to`); `client_status_histories` C (`revert`) | 422 `already_reverted`; 409 slot target terisi |
+| 6.17 | `POST /schedules/{id}/revert` | `RevertSessionAction` (F14, **hanya 1x**) | `weekly_calendar` | `reason` (wajib, maks 300), `version` | `schedules` U (status/slot dipulihkan, `reverted_at`, `credit_effect`); `credit_ledger` C (`reversal`, `reverses_ledger_id` UNIQUE); `client_packages` U (`remaining_credit`/`cancel_count`); `clients` U (kredit, status dipulihkan via `client_status_from/to`) | 422 `already_reverted`; 409 slot target terisi |
 
 ### 8.4 Aksi massal
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Catatan |
@@ -296,7 +296,7 @@ Layar: `/finance` (tab Verifikasi Transfer, Semua Tagihan, Log Buku Besar Kredit
 | 7.5 | `POST /invoices/{id}/proof` | `UploadPaymentProofAction` (multipart) | ortu pemilik (atau `finance`) | `file` JPG/PNG/PDF ≤ 5 MB | file → storage privat; `payment_proofs` C; `invoices` U (`proof_upload_count`+1; **status tidak berubah**); `invoice_logs` C (`proof_uploaded`) | ortu: hanya invoice `assessment` yang belum `paid`/`void`, 422 `proof_limit_reached` bila `proof_upload_count ≥ 4` (1 upload + 3 re-upload); Finance: invoice `unpaid`/`paid` mana pun, tanpa batas; `void` ditolak; file tak valid |
 | 7.6 ✚ | `GET /invoices/{id}/proofs/{proofId}/file` | tampilkan/unduh bukti (stream, URL bertanda tangan) | `finance` / ortu pemilik | | `payment_proofs` R | file privat; melihat bukti tidak dicatat |
 | 7.7 | `POST /invoices/{id}/verify` | `VerifyPaymentAction` (**Tandai Lunas**; tanpa Tolak) | `finance` | `version` | `invoices` U (`paid`, `paid_at`, `verified_by/at`); jenis **package**: `client_packages` C (snapshot, `invoice_id` UNIQUE) + `credit_ledger` C (`purchased`/`renewed`) + `clients` U (`credit_balance`) + **relink sesi mendatang** ke paket aktif (`schedules` U); jenis **assessment**: hanya `paid` (membuka gating kuesioner); **invoice pengganti** (`replaces_invoice_id`): **tidak** membuat paket/ledger, `client_packages.invoice_id` paket lama dipindah ke invoice ini. `invoice_logs` C (`verified`) | 409 bila bukan `unpaid`/versi beda |
-| 7.8 | `POST /invoices/{id}/void` | `VoidInvoiceAction` | `finance` (bukan `can_delete`) | `reason` (wajib), `credit_action` = `keep`/`revoke` (**wajib bila invoice package, tanpa default**) | `invoices` U (`void`, `void_reason`, `voided_at/by`, `void_credit_action`); `invoice_logs` C (`voided`); jika `revoke`: `client_packages` U (paket hidup ujung rantai → `voided`, `remaining_credit = 0`), `credit_ledger` C (`manual_adjust` −sisa), `clients` U (`credit_balance`, `leftover_balance += balance_applied`), `schedules` U (sesi mendatang pindah ke paket aktif lain, jika tidak ada → `client_package_id = NULL` = Frozen) | hanya dari `paid` (409 selain itu); sesi selesai & laporan tidak disentuh; satu arah |
+| 7.8 | `POST /invoices/{id}/void` | `VoidInvoiceAction` | `finance` | `reason` (wajib), `credit_action` = `keep`/`revoke` (**wajib bila invoice package, tanpa default**) | `invoices` U (`void`, `void_reason`, `voided_at/by`, `void_credit_action`); `invoice_logs` C (`voided`); jika `revoke`: `client_packages` U (paket hidup ujung rantai → `voided`, `remaining_credit = 0`), `credit_ledger` C (`manual_adjust` −sisa), `clients` U (`credit_balance`, `leftover_balance += balance_applied`), `schedules` U (sesi mendatang pindah ke paket aktif lain, jika tidak ada → `client_package_id = NULL` = Frozen) | hanya dari `paid` (409 selain itu); sesi selesai & laporan tidak disentuh; satu arah |
 | 7.9 ✚ | `GET /invoices/{id}/void-preview` | ringkasan dialog Void (paket, sisa kredit, sesi selesai terpakai, sesi mendatang) | `finance` | | `client_packages`, `schedules` R | |
 | 7.10 | `DELETE /invoices/{id}` | `DeleteInvoiceAction` | `finance` + hapus | | `invoices` D → `payment_proofs` (+ file), `invoice_logs` cascade; `clients` U (`leftover_balance` += `balance_applied`) | **hanya `unpaid`**; `paid`/`void` → 409 `invoice_not_deletable` (koreksi lewat Void). Hapus invoice assessment membuka gating bila tak ada invoice assessment lain yang belum lunas |
 | 7.11 | `GET /invoices/{id}/logs` | log milik invoice (tombol Log) | `finance` | `cursor` | `invoice_logs` R (`idx_invlog_invoice`) | keyset, terbaru dulu |
@@ -382,9 +382,9 @@ Semua angka dari **VIEW** atau agregasi terindeks, selalu dengan filter cabang +
 | # | Endpoint | Layar | Akses | Sumber | Catatan |
 |---|---|---|---|---|---|
 | 11.1 | `GET /dashboards/revenue` | Revenue (master/manager) + tabel transaksi dengan pencarian nama/ortu/kode/no. invoice | `revenue` | view `v_daily_revenue` ← `invoices` (`status = 'paid'`, `idx_inv_paid_date`); daftar transaksi: `invoices` + `clients` | `void` tidak masuk omzet; Q11, pagination 10 untuk tabel transaksi |
-| 11.2 | `GET /dashboards/inquiry` | Inquiry Dashboard | `inquiry_dashboard` | `v_daily_pipeline` | lihat 4.13 |
+| 11.2 | `GET /dashboards/inquiry` | Inquiry Dashboard | `inquiry_dashboard` | `clients` | lihat 4.13 |
 | 11.3 | `GET /dashboards/schedule` | Schedule Dashboard (KPI sesi, beban terapis, alasan cancel, distribusi layanan) | `schedule_dashboard` | `v_daily_sessions` (termasuk `sessions_cancel_counted`, `sessions_cancel_therapist_off` untuk Cancellation Rate & Therapist Off Rate), `v_daily_credit_usage`, agregasi `schedules.cancel_reason` | Therapist Off adalah bagian dari cancel keseluruhan |
-| 11.4 | `GET /dashboards/branch-performance` | Performa Inquiry & Intake All-Branch (filter rentang waktu, KPI, chart per cabang, tren 6 bulan, matriks konversi/drop-off) | `revenue` (master) | `clients` R (intake per `created_at`), `v_daily_pipeline` | rasio konversi = admitted ÷ total intake (sekali di KPI + matriks, tanpa chart duplikat); cabang dinamis dari `branches` |
+| 11.4 | `GET /dashboards/branch-performance` | Performa Inquiry & Intake All-Branch (filter rentang waktu, KPI, chart per cabang, tren 6 bulan, matriks konversi/drop-off) | `revenue` (master) | `clients` R (intake per `created_at`, status saat ini) | rasio konversi = admitted ÷ total intake (sekali di KPI + matriks, tanpa chart duplikat); cabang dinamis dari `branches` |
 | 11.5 | `GET /dashboards/therapist-summary` | (lihat 9.2) | | | |
 | 11.6 | `GET /dashboards/client-analytics` | (lihat 8.5) | | | |
 
@@ -392,7 +392,7 @@ Semua angka dari **VIEW** atau agregasi terindeks, selalu dengan filter cabang +
 
 ## 14. M12 Hapus data (ringkasan lintas modul)
 
-Semua hapus **permanen** (ADR 0005), role `can_delete` + akses modul. Matriks lengkap: `schema.md` §6.7.
+Semua hapus **permanen** (ADR 0005), client/cabang hanya role `master`, lainnya akses modul. Matriks lengkap: `schema.md` §6.7.
 
 | Endpoint | Yang ikut terhapus | Pemblokir | Kode error |
 |---|---|---|---|
@@ -449,7 +449,6 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | `client_code_counters` | 4.4 |
 | `client_services` | 4.7 |
 | `client_documents` | 4.8 4.9 |
-| `client_status_histories` | 4.4 4.7 4.10 5.7 5.10 6.7 6.12 6.17 |
 | `assessment_categories/sections/questions` | 5.2–5.5 |
 | `assessment_access_codes` | 5.7 5.8 5.10 |
 | `assessment_drafts` | 5.8 5.9b 5.10 |
@@ -476,7 +475,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | Modul | Wajib diuji |
 |---|---|
 | M1 | login generik, throttle/lockout, `must_change_password` memblokir endpoint lain, OTP (5 percobaan, kedaluwarsa, SMTP gagal → 503) |
-| M2 | cabang wajib non-master, `can_delete`, hapus role dipakai → 409, hapus cabang cascade (tidak ada baris yatim), master tak tersentuh |
+| M2 | hapus client/cabang hanya master, hapus role dipakai → 409, hapus cabang cascade (tidak ada baris yatim), master tak tersentuh |
 | M3 | master dipakai → 409, pilihan string terhapus bebas, UNIQUE libur |
 | M4 | kode client berurutan per grup, transisi otomatis hanya maju & manual bebas, hapus client cascade |
 | M5 | sekali isi, expiry (kode dengan draft boleh diselesaikan), gating bukti invoice assessment, skor kuadran server, consent wajib, **draft**: simpan otomatis/lanjutkan, konflik `version`, hapus saat submit, soal wajib belum terjawab → 422 `incomplete` |

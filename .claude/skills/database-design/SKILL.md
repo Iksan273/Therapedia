@@ -46,7 +46,7 @@ Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolo
 
 ### Jejak perubahan (tanpa audit log)
 - Tidak ada tabel `audit_logs` (ADR 0004). Semua tabel transaksi/master: `created_by`, `updated_by` (editor terakhir), dan `deleted_by` bila ada soft delete.
-- Log khusus append-only hanya bila dibutuhkan logika/UI: `credit_ledger` (undo = baris `reversal`), `client_status_histories`, `invoice_logs`, `package_conversions`. Ditulis di transaksi yang sama dengan perubahan datanya.
+- Log khusus append-only hanya bila dibutuhkan logika/UI: `credit_ledger` (undo = baris `reversal`), `invoice_logs`, `package_conversions`. Ditulis di transaksi yang sama dengan perubahan datanya.
 
 ### Konflik jadwal
 - Tidak bisa dijamin oleh UNIQUE (overlap rentang). Backend: transaksi + `SELECT … FOR UPDATE` pada sesi terapis di tanggal itu, cek overlap, lalu insert.

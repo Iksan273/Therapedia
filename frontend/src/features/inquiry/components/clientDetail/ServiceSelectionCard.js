@@ -30,7 +30,7 @@ export function ServiceSelectionCard({ getService, handleToggleService, selected
                       key={val}
                       className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-lg border border-purple-200"
                     >
-                      ✓ {srv?.shortLabel || val}
+                      ✓ {srv?.label || val}
                     </span>
                   );
                 })}

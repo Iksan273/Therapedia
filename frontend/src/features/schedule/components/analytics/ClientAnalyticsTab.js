@@ -319,7 +319,7 @@ export default function ClientAnalyticsTab({ activeList }) {
       getClientServiceIds(r.client).forEach((id) => counts.set(id, (counts.get(id) || 0) + 1));
     });
     return [...counts.entries()]
-      .map(([id, count]) => ({ name: getService(id)?.shortLabel || id, count }))
+      .map(([id, count]) => ({ name: getService(id)?.label || id, count }))
       .sort((a, b) => b.count - a.count);
   }, [rows, getService]);
 

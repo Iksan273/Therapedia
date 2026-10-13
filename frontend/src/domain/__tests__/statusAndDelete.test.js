@@ -1,5 +1,5 @@
 import { buildActivationPatch, buildStatusChangePatch, dischargeStats } from "@/domain/client";
-import { canDeleteIn, roleCanDelete } from "@/domain/rbac";
+import { canDeleteIn } from "@/domain/rbac";
 
 describe("ubah status manual ke tahap mana pun", () => {
   const client = { status: "discontinued", dateOfJoin: "2026-01-05", dateOfDiscontinue: "2026-09-01", dischargeReason: "other", dischargeNote: "pindah" };
@@ -39,30 +39,24 @@ describe("ubah status manual ke tahap mana pun", () => {
   });
 });
 
-describe("hak hapus per role (akses modul = semua aksi kecuali hapus)", () => {
-  const roles = [
-    { id: "master", canDelete: true },
-    { id: "admin_inquiry" },
-    { id: "manager", canDelete: true },
-    { id: "custom_x", canDelete: false },
-  ];
-  const permissions = { manager: { inquiry_pipeline: true, finance: false }, admin_inquiry: { inquiry_pipeline: true }, custom_x: { inquiry_pipeline: true } };
+describe("hak hapus (operasional = akses modul; data penting = hanya master)", () => {
+  const permissions = { manager: { inquiry_pipeline: true, finance: false }, admin_inquiry: { inquiry_pipeline: true }, custom_x: {} };
+  const check = (roleId, moduleKey, masterOnly = false) => canDeleteIn({ roleId, permissions, moduleKey, masterOnly });
 
-  test("master selalu boleh; role tanpa flag default tidak boleh; flag eksplisit menang", () => {
-    expect(roleCanDelete("master", roles)).toBe(true);
-    expect(roleCanDelete("admin_inquiry", roles)).toBe(false);
-    expect(roleCanDelete("manager", roles)).toBe(true);
-    expect(roleCanDelete("custom_x", roles)).toBe(false);
-    expect(roleCanDelete(null, roles)).toBe(false);
-    expect(roleCanDelete("master", [])).toBe(true);
+  test("hapus operasional cukup akses modul", () => {
+    expect(check("admin_inquiry", "inquiry_pipeline")).toBe(true);
+    expect(check("manager", "inquiry_pipeline")).toBe(true);
+    expect(check("manager", "finance")).toBe(false); // tanpa akses modul finance
+    expect(check("custom_x", "inquiry_pipeline")).toBe(false);
+    expect(check(null, "inquiry_pipeline")).toBe(false);
   });
 
-  test("hapus butuh flag canDelete DAN akses modul", () => {
-    const check = (roleId, moduleKey) => canDeleteIn({ roleId, rolesList: roles, permissions, moduleKey });
-    expect(check("manager", "inquiry_pipeline")).toBe(true);
-    expect(check("manager", "finance")).toBe(false); // flag ya, tapi tanpa akses modul finance
-    expect(check("admin_inquiry", "inquiry_pipeline")).toBe(false); // akses modul ya, tapi flag tidak
-    expect(check("master", "finance")).toBe(true);
+  test("hapus data penting (client, cabang) hanya master", () => {
+    expect(check("master", "branch_master", true)).toBe(true);
+    expect(check("master", "inquiry_pipeline", true)).toBe(true);
+    expect(check("manager", "inquiry_pipeline", true)).toBe(false); // punya akses modul, tetap ditolak
+    expect(check("admin_inquiry", "inquiry_pipeline", true)).toBe(false);
+    expect(check(null, "inquiry_pipeline", true)).toBe(false);
   });
 });
 

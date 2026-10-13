@@ -10,6 +10,7 @@ import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { activeBranches } from "@/domain/branch";
+import { hasAllBranchAccess } from "@/domain/auth";
 import { useBranches } from "@/stores/branchesStore";
 import { cn } from "@/shared/lib/utils";
 
@@ -69,14 +70,14 @@ const RoleCard = ({ icon: Icon, title, description, badge, onClick, active, test
   </motion.div>
 );
 
-// Tombol "Semua Cabang": akun dengan akses semua cabang (allBranches), seperti Master untuk cakupan data.
+// Tombol "Semua Cabang": akun tanpa cabang (branchId null), seperti Master untuk cakupan data.
 function AllBranchesButton({ role, staffName, path, enterRole }) {
   return (
     <Button
       size="lg"
       variant="outline"
       className="justify-between bg-sky-50 hover:bg-sky-100 hover:text-sky-900 hover:border-sky-300 border-sky-200 px-3.5 text-left"
-      onClick={() => enterRole({ role, allBranches: true, staffName: `${staffName} • Semua Cabang` }, path)}
+      onClick={() => enterRole({ role, branchId: null, staffName: `${staffName} • Semua Cabang` }, path)}
       data-testid={`role-branch-${role}-all`}
     >
       <div className="flex items-center gap-2.5">
@@ -88,7 +89,7 @@ function AllBranchesButton({ role, staffName, path, enterRole }) {
   );
 }
 
-// Role staf non-master terikat 1 cabang, atau semua cabang bila akunnya diberi akses itu (keputusan klien): demo meminta cabang dulu agar filter/data sesuai cabang itu.
+// Role staf terikat 1 cabang bila branchId terisi, atau semua cabang bila kosong (keputusan klien): demo meminta cabang dulu agar filter/data sesuai cabang itu.
 function BranchPicker({ role, staffName, path, enterRole }) {
   return (
     <div className="grid gap-2 p-3 rounded-2xl bg-white border border-sky-200 shadow-sm ml-2 sm:ml-4 animate-in fade-in slide-in-from-top-2 duration-200" data-testid={`role-branch-picker-${role}`}>
@@ -129,7 +130,7 @@ export default function RoleSelect() {
     login(payload);
     if (payload.branchId) {
       setActiveBranch(payload.branchId);
-    } else if (payload.allBranches) {
+    } else if (hasAllBranchAccess(payload)) {
       setActiveBranch("all");
     }
     navigate(path);
@@ -321,7 +322,7 @@ export default function RoleSelect() {
                     key={t.id}
                     variant="outline"
                     className="justify-between bg-slate-50 hover:bg-sky-50 hover:text-sky-900 hover:border-sky-300 border-slate-200 px-3.5 text-left"
-                    onClick={() => enterRole({ role: "therapist", therapistId: t.id, staffName: t.name }, "/therapist")}
+                    onClick={() => enterRole({ role: "therapist", therapistId: t.id, branchId: t.branchId || null, staffName: t.name }, "/therapist")}
                     data-testid={`therapist-picker-${t.id}`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">

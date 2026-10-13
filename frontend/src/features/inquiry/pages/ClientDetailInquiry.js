@@ -281,6 +281,7 @@ export default function ClientDetailInquiry() {
         extraActions={
           <DeleteButton
             module="inquiry_pipeline"
+            masterOnly
             label="Hapus Client"
             title={`Hapus ${client.clientName}?`}
             description="Client (data intake/inquiry) beserta seluruh sesi, invoice, kredit, dan log cutinya akan DIHAPUS PERMANEN dan tidak bisa dikembalikan. Client juga tidak bisa lagi login ke portal ortu."

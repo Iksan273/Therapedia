@@ -2,12 +2,13 @@
 
 **One Gate Integrated Clinic System** · MySQL 8.0.22+ (InnoDB) · Laravel 11 · Sanctum · **tanpa Redis dan tanpa antrean/queue worker** (cache & session memakai MySQL; semua proses berjalan sinkron di request)
 
-Dokumen ini adalah sumber kebenaran desain database backend. Skema mencakup **seluruh fitur prototype frontend** (`frontend/`): intake & pipeline, mesin asesmen, penjadwalan + kredit, finance, portal terapis, portal orang tua, dashboard, RBAC, dan **jejak perubahan ringan**: kolom `created_by`/`updated_by` di semua modul, `client_status_histories` untuk pipeline, `credit_ledger` untuk kredit, dan **`invoice_logs` khusus invoice**. Tidak ada tabel audit log (ADR 0004).
+Dokumen ini adalah sumber kebenaran desain database backend. Skema mencakup **seluruh fitur prototype frontend** (`frontend/`): intake & pipeline, mesin asesmen, penjadwalan + kredit, finance, portal terapis, portal orang tua, dashboard, RBAC, dan **jejak perubahan ringan**: kolom `created_by`/`updated_by` di semua modul, `credit_ledger` untuk kredit, dan **`invoice_logs` khusus invoice**. Tidak ada tabel audit log (ADR 0004).
 
 Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md`). Mapping field frontend ↔ kolom ada di bagian 08 dan `docs/guide/03-data-model.md`.
 
 > **Status: FINAL — 4 Okt 2026.** Fitur frontend sudah lengkap dan skema ini sudah diselaraskan dengan kode (`frontend/src/domain`, `docs/guide/`). Siap dijadikan migration (urutan di §09). Keputusan arsitektur: `docs/adr/0001`–`0005`.
 > **Diperbarui 11 Okt 2026:** diselaraskan dengan alur frontend final (status invoice hanya `unpaid` → `paid` | `void` dengan Finance "Tandai Lunas", bukti bayar tanpa tolak, cuti = pembatalan `cancelled` kode `OL`) dan ditambah tabel **`assessment_drafts`** (kuesioner 200+ soal bisa dicicil dan dilanjutkan).
+> **Diperbarui 13 Okt 2026:** spesifikasi tabel (§04) ditulis ulang dalam bentuk tabel kolom/indeks (bukan kode migration); cakupan cabang akun disederhanakan: `users.branch_id` terisi = 1 cabang, **NULL = semua cabang**, kolom `all_branches` dihapus.
 >
 > **Aturan final yang paling memengaruhi desain** (rinci di bagian yang ditunjuk):
 > 1. **Hapus = permanen dengan cascade** (tanpa soft delete): client, invoice belum lunas, master, cabang; master ber-FK yang pernah dipakai tidak bisa dihapus (§6.7, ADR 0005).
@@ -15,7 +16,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 > 3. **Status invoice hanya `unpaid` → `paid` | `void`**: Finance menandai lunas; orang tua tidak mengunggah bukti untuk invoice paket (bukti hanya untuk invoice assessment sebagai syarat membuka kuesioner, tanpa tolak). **Renewal dua jalur**: terbitkan invoice baru, atau langsung lunas (catatan Finance opsional) (§04-F, §6.5).
 > 4. **Kredit per paket**: tiap paket membawa **credit leave** (dari master paket); saat cancel admin memilih potong/tidak, dan "potong" memakai credit leave dulu (kredit sesi utuh) baru kredit sesi bila habis; ledger append-only, Frozen = turunan (§04-F, §6.2). **Dua jatah berbeda**: credit leave per paket vs jatah cuti 30 hari/tahun (hanya Finance, §6.8).
 > 5. **Saldo lebihan konversi** (`clients.leftover_balance`) memotong invoice paket berikutnya; tab Finance menelusuri sumber & pemakaiannya (Q23).
-> 6. **Master Cabang** dikelola Master (`branch_master`); non-master terikat tepat 1 cabang (§04-A).
+> 6. **Master Cabang** dikelola Master (`branch_master`); akun terikat 1 cabang bila `users.branch_id` terisi, **`branch_id` NULL = semua cabang** (tanpa flag `all_branches`, §04-A).
 > 7. **Semua list dipaginasi 10 data per halaman** (§07); backup harian + arsip tiap 6 bulan/1 tahun (§11).
 > 8. **Kuesioner bisa dicicil**: jawaban disimpan sebagai draft (`assessment_drafts`) dan dilanjutkan dengan kode yang sama; hasil final tetap **sekali submit** (§04-D, §6.5b).
 
@@ -44,7 +45,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 |---|---|---|
 | 1 | **Indeks dari query, bukan dari kolom** | Setiap indeks komposit di bagian 04 menyebut query yang dilayani (lihat 01) |
 | 2 | **Ledger sebagai sumber kebenaran kredit** | `credit_ledger` append-only; saldo di `client_packages` & `clients` adalah denormalisasi yang diperbarui di transaksi yang sama |
-| 3 | **Jejak ringan, tanpa audit log** | Semua modul: `created_by`/`updated_by`. Kredit = `credit_ledger` append-only (undo = baris `reversal`), pipeline = `client_status_histories`, invoice = `invoice_logs` (log milik invoice sendiri, termasuk konversi & pemakaian saldo) |
+| 3 | **Jejak ringan, tanpa audit log** | Semua modul: `created_by`/`updated_by`. Kredit = `credit_ledger` append-only (undo = baris `reversal`), pipeline = status terakhir saja (`clients.status`, `status_changed_at`, `updated_by`; tanpa riwayat tahap), invoice = `invoice_logs` (log milik invoice sendiri, termasuk konversi & pemakaian saldo) |
 | 4 | **Reversible by design** | Kolom `previous_status`, `prev_*` (slot sebelum reschedule terakhir), `reverted_at`, `credit_effect`, `reverses_ledger_id`, `client_status_from/to` memungkinkan "completed lalu dibatalkan" tanpa kehilangan jejak |
 | 5 | **Aman dari edit bersamaan** | Kolom `version` (optimistic lock) pada entity yang sering diubah → HTTP 409 |
 | 6 | **Idempoten** | `credit_ledger.idempotency_key` UNIQUE mencegah potong kredit ganda |
@@ -52,7 +53,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 | 8 | **Baca cepat tanpa infrastruktur tambahan** | Dashboard = **VIEW + JOIN** di atas indeks covering & generated column tanggal; tanpa Redis dan tanpa tabel ringkasan selama target terpenuhi (§04-G, §07) |
 | 9 | **Lookup table untuk daftar yang bisa diedit** | Layanan dan kuadran = tabel ber-PK `code`. Alasan cancel/discharge juga tabel `code`, tetapi hanya **pilihan cepat tanpa FK** (transaksi menyimpan string, boleh teks custom) |
 | 10 | **ENUM untuk siklus hidup tetap** | Status client/sesi/invoice/paket |
-| 11 | **Hapus = permanen (hard delete), dikendalikan role** | Punya akses modul = boleh semua aksi non-hapus; hapus hanya bila `roles.can_delete`. Data milik (anak) ikut terhapus lewat FK `ON DELETE CASCADE`; master ber-FK yang pernah dipakai diblokir FK `RESTRICT` (ADR 0005, §6.7). Pemulihan hanya dari backup |
+| 11 | **Hapus = permanen (hard delete), dikendalikan role** | Punya akses modul = boleh semua aksi termasuk hapus operasional; hapus data penting (client, cabang) hanya role `master`. Data milik (anak) ikut terhapus lewat FK `ON DELETE CASCADE`; master ber-FK yang pernah dipakai diblokir FK `RESTRICT` (ADR 0005, §6.7). Pemulihan hanya dari backup |
 
 Konvensi umum (detail di skill): InnoDB `utf8mb4_0900_ai_ci`; PK `BIGINT UNSIGNED`; waktu `DATETIME` UTC; tanggal kalender `DATE`; slot `TIME`; uang `BIGINT UNSIGNED` rupiah utuh; **tanpa soft delete**: hapus bersifat permanen (`DELETE`) dan menyebar lewat FK `ON DELETE CASCADE` (§6.7); ledger kredit, `invoice_logs`, dan `package_conversions` tidak pernah di-UPDATE oleh aplikasi (hanya ikut terhapus bersama induknya).
 
@@ -75,7 +76,7 @@ Daftar ini adalah dasar desain indeks. Setiap halaman prototype dipetakan ke que
 | Q9 | Finance — Menunggu Pembayaran | invoice `unpaid` per cabang (+ penanda sudah ada bukti) | `invoices (branch_id, status, issued_at)` | < 20 ms |
 | Q10 | Finance — riwayat mutasi kredit | ledger semua client per cabang, terbaru, keyset | `credit_ledger (branch_id, created_at, id)` | < 30 ms |
 | Q11 | Revenue dashboard | omzet `paid` per cabang per periode | view `v_daily_revenue` → `invoices idx_inv_paid_date (status, branch_id, paid_date, amount)` | < 50 ms |
-| Q12 | Inquiry / Schedule / Branch dashboard | KPI per cabang per periode | view `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage` (indeks diawali `branch_id, tanggal`) | < 50 ms |
+| Q12 | Inquiry / Schedule / Branch dashboard | KPI per cabang per periode | view `v_daily_sessions`, `v_daily_credit_usage` (indeks diawali `branch_id, tanggal`); funnel pipeline dihitung live dari `clients` (`idx_clients_pipeline`) + tanggal `date_of_join` / `date_of_discharge` / `date_of_discontinue` | < 50 ms |
 | Q13 | Kode kuesioner publik (buka / lanjutkan) | lookup kode, cek `expires_at` & invoice assessment kode itu yang belum ada bukti transfer (`invoices idx_inv_client`), lalu muat draft jawaban bila ada | UNIQUE `assessment_access_codes (code)` · PK `assessment_drafts (access_code_id)` | < 5 ms |
 | Q14 | Login ortu | lookup `client_code` + cek `date_of_birth` | UNIQUE `clients (client_code)` | < 5 ms |
 | Q17 | Therapist summary | sesi `completed` terapis X per periode + status laporan | `schedules (therapist_id, session_date, start_time)` + `session_reports (schedule_id)` | < 30 ms |
@@ -101,7 +102,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | Modul | Tabel | Fungsi singkat |
 |---|---|---|
 | **A. Organisasi & akses** | `branches` | Cabang klinik |
-| | `roles` | Role sistem & kustom (+ flag `can_delete`) |
+| | `roles` | Role sistem & kustom |
 | | `access_modules` | Daftar modul RBAC |
 | | `role_permissions` | Matriks role × modul |
 | | `users` | Staf internal + terapis (satu tabel) |
@@ -116,7 +117,6 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `client_code_counters` | Counter kode client per grup huruf (AE/FJ/KO/PT/UZ) |
 | | `client_services` | Layanan dipilih (multi) |
 | | `client_documents` | Tautan GDrive / dokumen |
-| | `client_status_histories` | Riwayat tahap pipeline |
 | **D. Asesmen** | `assessment_categories` | Instrumen (Sensory Profile 2, …) |
 | | `assessment_sections` | Bagian/domain soal |
 | | `assessment_questions` | Bank soal (12 tipe) |
@@ -139,10 +139,10 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `credit_ledger` | Mutasi kredit append-only |
 | | `package_conversions` | Konversi sisa sesi paket ke paket lain (Finance) |
 | | `invoice_logs` | Log milik invoice sendiri (append-only) |
-| **G. Analitik** | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue`, `v_unreported_sessions` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
+| **G. Analitik** | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue`, `v_unreported_sessions` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
 | **H. Laravel bawaan** | `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, session, cache driver `database` (MySQL). Tabel `jobs`/`failed_jobs`/`job_batches` **tetap dibuat** (migration bawaan Laravel tidak diubah) tetapi tidak dipakai karena tidak ada queue worker (`QUEUE_CONNECTION=sync`) |
 
-Total: 38 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 7 view + tabel bawaan Laravel.
+Total: 37 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 6 view + tabel bawaan Laravel.
 
 ---
 
@@ -156,7 +156,6 @@ erDiagram
   branches ||--o{ invoices : "tagihan"
   branches ||--o{ schedule_series : "seri"
   branches ||--o{ credit_ledger : "mutasi kredit"
-  branches ||--o{ client_status_histories : "funnel"
   roles ||--o{ users : ""
   roles ||--o{ role_permissions : ""
   access_modules ||--o{ role_permissions : ""
@@ -168,7 +167,6 @@ erDiagram
   clients ||--o{ client_services : ""
   services ||--o{ client_services : ""
   clients ||--o{ client_documents : ""
-  clients ||--o{ client_status_histories : "pipeline"
 
   assessment_categories ||--o{ assessment_sections : ""
   assessment_sections ||--o{ assessment_questions : ""
@@ -213,115 +211,131 @@ Garis = foreign key. **Aturan hapus tiap FK** (CASCADE / RESTRICT / SET NULL) ad
 
 ## 04. Spesifikasi tabel
 
-Notasi indeks: `idx_<tabel>_<kolom>` dan komentar `// Qn` = query di bagian 01 yang dilayani.
+Setiap tabel ditulis sebagai tabel kolom + tabel indeks. Cara baca:
+
+| Singkatan | Arti |
+|---|---|
+| **PK** / **UQ** | Primary key / unique |
+| **FK → tabel · X** | Foreign key; X = aturan `ON DELETE` (`CASCADE` anak ikut terhapus, `RESTRICT` hapus induk ditolak, `SET NULL` kolom jadi NULL) |
+| **BIGINT U** | `BIGINT UNSIGNED` (semua PK `id` & FK ke `id`) |
+| **Gen** | Generated column (`STORED`), tidak diisi aplikasi |
+| `created_by` / `updated_by` | FK → `users` · `SET NULL`; pelaku pembuat / editor terakhir (§05) |
+| `// Qn` | Query di §01 yang dilayani indeks tersebut |
+
+Semua tabel InnoDB `utf8mb4_0900_ai_ci`. `timestamps` = `created_at` + `updated_at` (`TIMESTAMP`, NULL).
 
 ### A. Organisasi & akses
 
 #### `branches`
-Dikelola Master lewat menu **Master Cabang** (modul akses `branch_master`, `POST/PUT /branches`, `PATCH /branches/{id}/active`). Cabang yang tak lagi beroperasi dinonaktifkan (`is_active = 0`): tidak muncul di pilihan penugasan/intake baru, riwayat dan nama tetap tampil. **Hapus** (permanen, hanya role `can_delete` + akses `branch_master`) menghapus **seluruh data cabang**: client beserta semua datanya, jadwal, invoice, ledger, hari libur cabang, dan akun staf/terapis cabang itu (alur di §6.7; dijalankan sinkron dalam satu transaksi atomik dengan konfirmasi mengetik kode cabang). `code` dan `name` unik (divalidasi service; `code` 2–10 huruf/angka).
-```php
-Schema::create('branches', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 20)->unique();            // EAST, CTL, WEST
-    $table->string('name', 100)->unique();            // East, Citraland, West
-    $table->string('city', 50)->default('Surabaya');
-    $table->text('address')->nullable();
-    $table->string('phone', 30)->nullable();
-    $table->boolean('is_active')->default(true);
-    $table->unsignedBigInteger('updated_by')->nullable();   // FK ke users ditambahkan di migration terpisah setelah `users` dibuat (tabel ini dibuat lebih awal)
-    $table->timestamps();
-});
-```
+Dikelola Master lewat menu **Master Cabang** (modul akses `branch_master`, `POST/PUT /branches`, `PATCH /branches/{id}/active`). Cabang yang tak lagi beroperasi dinonaktifkan (`is_active = 0`): tidak muncul di pilihan penugasan/intake baru, riwayat dan nama tetap tampil. **Hapus** (permanen, hanya role `master`) menghapus **seluruh data cabang**: client beserta semua datanya, jadwal, invoice, ledger, hari libur cabang, dan akun staf/terapis yang terikat cabang itu (alur di §6.7; sinkron dalam satu transaksi atomik dengan konfirmasi mengetik kode cabang). `code` dan `name` unik (divalidasi service; `code` 2–10 huruf/angka).
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `code` | VARCHAR(20) | — | — | UQ. Mis. `EAST`, `CTL`, `WEST` |
+| `name` | VARCHAR(100) | — | — | UQ. Mis. East, Citraland, West |
+| `city` | VARCHAR(50) | — | `Surabaya` | |
+| `address` | TEXT | ✔ | | |
+| `phone` | VARCHAR(30) | ✔ | | |
+| `is_active` | BOOLEAN | — | 1 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` ditambahkan di migration terpisah setelah `users` dibuat (tabel ini dibuat lebih awal) |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 #### `roles`
 Role sistem (`master`, `manager`, `admin_inquiry`, `admin_schedule`, `finance`, `therapist`) + role kustom buatan Master. Orang tua **tidak** memakai tabel ini (auth via `clients`).
-```php
-Schema::create('roles', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 50)->unique();             // master, admin_inquiry, custom_xxx
-    $table->string('name', 100);
-    $table->string('badge', 100)->nullable();
-    $table->text('description')->nullable();
-    $table->boolean('is_system')->default(false);     // role sistem tidak bisa dihapus
-    $table->boolean('can_delete')->default(false);    // true = tombol hapus tampil di semua modul yang diakses role ini (master selalu true)
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `code` | VARCHAR(50) | — | — | UQ. `master`, `admin_inquiry`, `custom_xxx` |
+| `name` | VARCHAR(100) | — | — | |
+| `badge` | VARCHAR(100) | ✔ | | |
+| `description` | TEXT | ✔ | | |
+| `is_system` | BOOLEAN | — | 0 | Role sistem tidak bisa dihapus |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 #### `access_modules`
-```php
-Schema::create('access_modules', function (Blueprint $table) {
-    $table->string('code', 50)->primary();            // revenue, inquiry_pipeline, weekly_calendar, finance, rbac, unreported_reports (monitoring report), holidays, branch_master, …
-    $table->string('label', 100);
-    $table->string('category', 50);                   // Financial, Inquiry, Scheduling, Administration, Clinical
-    $table->text('description')->nullable();
-    $table->unsignedSmallInteger('sort_order')->default(0);
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `code` | VARCHAR(50) | — | — | **PK**. `revenue`, `inquiry_pipeline`, `weekly_calendar`, `finance`, `rbac`, `unreported_reports` (monitoring report), `holidays`, `branch_master`, … |
+| `label` | VARCHAR(100) | — | — | |
+| `category` | VARCHAR(50) | — | — | Financial, Inquiry, Scheduling, Administration, Clinical |
+| `description` | TEXT | ✔ | | |
+| `sort_order` | SMALLINT U | — | 0 | |
 
 #### `role_permissions`
-```php
-Schema::create('role_permissions', function (Blueprint $table) {
-    $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-    $table->string('module_code', 50);
-    $table->boolean('allowed')->default(false);
-    $table->timestamps();
-    $table->primary(['role_id', 'module_code']);
-    $table->foreign('module_code')->references('code')->on('access_modules')->cascadeOnUpdate()->cascadeOnDelete();
-});
-```
-Dibaca setiap request (policy): satu query by PK `role_id` (±12 baris) — cukup **dimemo per request** di `PermissionService`. Opsional: cache driver `database` (`Cache::remember("rbac:role:{id}")`, tabel `cache` MySQL) dengan invalidasi saat matriks diubah. Tidak butuh Redis.
 
-**Aturan akses (keputusan klien):** `allowed = true` pada suatu modul = role boleh **semua aksi** di modul itu (lihat, tambah, ubah, ubah status), termasuk Manager (tidak lagi read-only). Aksi **hapus** hanya muncul/diizinkan bila `roles.can_delete = 1` **dan** role punya akses modul tersebut. Void invoice, renewal langsung, dan koreksi saldo kredit = aksi modul `finance` (tanpa daftar role hardcode).
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `role_id` | BIGINT U | — | — | PK (1/2). FK → `roles` · CASCADE |
+| `module_code` | VARCHAR(50) | — | — | PK (2/2). FK → `access_modules.code` · CASCADE (update juga CASCADE) |
+| `allowed` | BOOLEAN | — | 0 | |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+Dibaca setiap request (policy): satu query by PK `role_id` (±12 baris), cukup **dimemo per request** di `PermissionService`. Opsional: cache driver `database` (`Cache::remember("rbac:role:{id}")`, tabel `cache` MySQL) dengan invalidasi saat matriks diubah. Tidak butuh Redis.
+
+**Aturan akses (keputusan klien):** `allowed = true` pada suatu modul = role boleh **semua aksi** di modul itu (lihat, tambah, ubah, ubah status), termasuk Manager (tidak lagi read-only). Hapus dibagi dua (13 Okt 2026): **data penting** (client inquiry/aktif dan cabang, yang ikut menghapus seluruh data turunannya) **hanya role `master`**; **hapus operasional** (invoice belum lunas, sesi, jadwal rutin, hari libur, master data, kode kuesioner) cukup akses modul terkait. Tidak ada kolom/flag `can_delete` di `roles`. Void invoice, renewal langsung, dan koreksi saldo kredit = aksi modul `finance` (tanpa daftar role hardcode).
 
 #### `users`
 Staf internal & terapis dalam satu tabel. Atribut klinis nullable untuk non-terapis.
-```php
-Schema::create('users', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('role_id')->constrained()->restrictOnDelete();
-    $table->foreignId('branch_id')->nullable()->constrained()->restrictOnDelete(); // JANGAN nullOnDelete (staf berubah jadi "semua cabang"); dihapus eksplisit oleh hapus cabang (§6.7). Wajib terisi untuk semua role kecuali master (null = semua cabang, hanya master); divalidasi di service. Terapis & staf lain = tepat 1 cabang, KECUALI `all_branches = 1`
-    $table->boolean('all_branches')->default(false);    // akses semua cabang (diatur Master di User Management); master selalu semua cabang. Bila 1 → branch_id NULL. Berlaku untuk semua role non-master termasuk terapis & role kustom
-    $table->string('name', 150);
-    $table->string('email', 150)->unique();
-    $table->string('password');
-    $table->boolean('must_change_password')->default(true);  // true bila password diatur / di-reset Master → wajib ganti saat login berikutnya
-    $table->timestamp('password_changed_at')->nullable();
-    $table->string('phone', 30)->nullable();
-    $table->string('title', 50)->nullable();          // S.Tr.Kes, S.Ft, A.Md.OT
-    $table->string('specialty', 150)->nullable();
-    $table->unsignedSmallInteger('max_sessions_per_month')->nullable();   // TERAPIS: maksimal sesi per bulan = total jam kerja sebulan (1 sesi = 1 jam), diisi di Utilisasi Terapis; penyebut Availability/Utilization (Q25). NULL = bawaan 100. CHECK 1..744; tidak memblokir penjadwalan
-    $table->text('bio')->nullable();
-    $table->boolean('is_active')->default(true);
-    $table->timestamp('last_login_at')->nullable();
-    $table->rememberToken();
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();                              // staf yang berhenti dinonaktifkan (`is_active = 0`), data & riwayat sesi tetap; staf hanya terhapus lewat hapus cabang (§6.7)
 
-    $table->index(['branch_id', 'role_id', 'is_active'], 'idx_users_branch_role');   // daftar staf/terapis per cabang
-});
-```
+**Aturan cabang (11 Okt 2026):** cakupan cabang akun ditentukan **hanya oleh `branch_id`**, tanpa flag tambahan:
+
+| `branch_id` | Artinya |
+|---|---|
+| **terisi** | Akun terikat **1 cabang** itu (data, kalender, dan pilihan cabang dibatasi ke sana) |
+| **NULL** | Akun berlaku untuk **semua cabang** |
+
+Berlaku untuk semua role (termasuk terapis dan role kustom); Master yang mengaturnya di User Management. Tidak ada kolom `all_branches`.
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `role_id` | BIGINT U | — | — | FK → `roles` · RESTRICT |
+| `branch_id` | BIGINT U | ✔ | | FK → `branches` · **RESTRICT** (jangan `SET NULL`: staf akan berubah jadi "semua cabang"; dihapus eksplisit oleh hapus cabang, §6.7). **NULL = semua cabang** |
+| `name` | VARCHAR(150) | — | — | |
+| `email` | VARCHAR(150) | — | — | UQ |
+| `password` | VARCHAR(255) | — | — | Hash |
+| `must_change_password` | BOOLEAN | — | 1 | 1 bila password diatur/di-reset Master → wajib ganti saat login berikutnya |
+| `password_changed_at` | TIMESTAMP | ✔ | | |
+| `phone` | VARCHAR(30) | ✔ | | |
+| `title` | VARCHAR(50) | ✔ | | S.Tr.Kes, S.Ft, A.Md.OT |
+| `specialty` | VARCHAR(150) | ✔ | | |
+| `max_sessions_per_month` | SMALLINT U | ✔ | NULL (= bawaan 100) | TERAPIS: maks sesi per bulan = total jam kerja sebulan (1 sesi = 1 jam), diisi di Utilisasi Terapis; penyebut Availability/Utilization (Q25). CHECK 1..744; tidak memblokir penjadwalan |
+| `is_active` | BOOLEAN | — | 1 | Staf berhenti dinonaktifkan; data & riwayat sesi tetap. Staf hanya terhapus lewat hapus cabang (§6.7) |
+| `last_login_at` | TIMESTAMP | ✔ | | |
+| `remember_token` | VARCHAR(100) | ✔ | | |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_users_branch_role` | `branch_id, role_id, is_active` | Daftar staf/terapis per cabang |
 
 Catatan akun:
 - **Password awal / reset oleh Master**: Master mengisi password sementara → `must_change_password = 1`; setelah login pertama user wajib menggantinya (`password_changed_at` terisi, flag 0).
 - **Lupa password** (staf): minta OTP via email → baris `password_reset_otps` → verifikasi OTP → set password baru. Master juga bisa mereset langsung dari User Management (password sementara + `must_change_password = 1`, tanpa OTP).
+- **Daftar terapis per cabang**: akun terapis ber-`branch_id` NULL muncul di pilihan terapis **semua cabang**; filter `WHERE branch_id = :cabang OR branch_id IS NULL`.
 
 #### `password_reset_otps`
-```php
-Schema::create('password_reset_otps', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-    $table->string('otp_hash');                       // hash OTP 6 digit (tidak disimpan polos)
-    $table->timestamp('expires_at');                  // mis. 10 menit
-    $table->unsignedTinyInteger('attempts')->default(0);   // maks 5 salah → OTP hangus
-    $table->timestamp('used_at')->nullable();
-    $table->string('requested_ip', 45)->nullable();
-    $table->timestamp('created_at')->useCurrent();
-    $table->index(['user_id', 'created_at'], 'idx_otp_user');
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `user_id` | BIGINT U | — | — | FK → `users` · CASCADE |
+| `otp_hash` | VARCHAR(255) | — | — | Hash OTP 6 digit (tidak disimpan polos) |
+| `expires_at` | TIMESTAMP | — | — | Mis. 10 menit |
+| `attempts` | TINYINT U | — | 0 | Maks 5 salah → OTP hangus |
+| `used_at` | TIMESTAMP | ✔ | | |
+| `requested_ip` | VARCHAR(45) | ✔ | | |
+| `created_at` | TIMESTAMP | — | now | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_otp_user` | `user_id, created_at` | Cek OTP terakhir per user |
+
 Throttle permintaan OTP per email & per IP (RateLimiter). Baris kedaluwarsa dibersihkan housekeeping (§11).
 
 ### B. Master data
@@ -329,517 +343,478 @@ Throttle permintaan OTP per email & per IP (RateLimiter). Baris kedaluwarsa dibe
 Tabel master kecil (puluhan baris) dan dibaca lewat PK → query langsung < 1 ms dari buffer pool InnoDB. Frontend memuatnya sekali per sesi (react-query `staleTime` panjang). Tidak perlu Redis.
 
 #### `services`
-```php
-Schema::create('services', function (Blueprint $table) {
-    $table->string('code', 50)->primary();            // b_ota, f_ota, school_companion, consult_wo_report, consult_w_report
-    $table->string('label', 150);
-    $table->string('short_label', 60);
-    $table->string('category', 50);                   // string bebas (tanpa enum): combo box UI menawarkan Asesmen / Konsultasi / Terapi + opsi ketik kategori sendiri
-    $table->text('description')->nullable();
-    $table->boolean('is_active')->default(true);      // nonaktif = tidak bisa dipilih, label tetap tampil
-    $table->unsignedSmallInteger('sort_order')->default(0);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `code` | VARCHAR(50) | — | — | **PK**. `b_ota`, `f_ota`, `school_companion`, `consult_wo_report`, `consult_w_report` |
+| `label` | VARCHAR(150) | — | — | |
+| `category` | VARCHAR(50) | — | — | String bebas (tanpa enum): combo box UI menawarkan Asesmen / Konsultasi / Terapi + opsi ketik kategori sendiri |
+| `description` | TEXT | ✔ | | |
+| `is_active` | BOOLEAN | — | 1 | Nonaktif = tidak bisa dipilih, label tetap tampil |
+| `sort_order` | SMALLINT U | — | 0 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 #### `sensory_quadrants`
-```php
-Schema::create('sensory_quadrants', function (Blueprint $table) {
-    $table->string('code', 10)->primary();            // AV, SN, RG, SK
-    $table->string('title', 60);
-    $table->string('full_name', 100);
-    $table->text('description')->nullable();
-    $table->string('color', 20)->default('slate');
-    $table->unsignedSmallInteger('sort_order')->default(0);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `code` | VARCHAR(10) | — | — | **PK**. `AV`, `SN`, `RG`, `SK` |
+| `title` | VARCHAR(60) | — | — | |
+| `full_name` | VARCHAR(100) | — | — | |
+| `description` | TEXT | ✔ | | |
+| `color` | VARCHAR(20) | — | `slate` | |
+| `sort_order` | SMALLINT U | — | 0 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 #### `cancel_reasons` & `discharge_reasons` (pilihan cepat, TANPA foreign key)
 Hanya **sumber pilihan cepat** untuk dropdown di UI (dikelola di menu Master Data). Tabel transaksi (`schedules`, `clients`, `credit_ledger`) menyimpan alasan sebagai **string biasa** (`cancel_reason`, `pending_reason`, `discharge_reason`): berisi `code` pilihan cepat **atau** teks bebas yang diketik user ("Lainnya"). Karena itu tidak ada FK: mengubah/menghapus pilihan tidak memengaruhi riwayat, dan teks bebas tidak perlu terdaftar. Label tampil = `label` bila string cocok dengan `code`, selain itu string apa adanya.
+
 **Therapist Off (10 Okt 2026)**: alasan karena terapis berhalangan disimpan di tabel yang sama dengan `is_therapist_off = 1` (UI: tab *Therapist Off* di Master Data; `code` unik lintas kedua daftar karena PK sama; tetap menjadi pilihan di form Cancel / Off). Sesi tidak mendapat kolom baru: statistik mengenali Therapist Off lewat `schedules.cancel_reason = cancel_reasons.code AND is_therapist_off = 1`. Cancel Therapist Off **tetap terhitung di Cancellation Rate keseluruhan**; Therapist Off Rate hanya rinciannya (keduanya dibagi total sesi pada filter). Karena tanpa FK, menghapus alasan atau mengubah flag-nya mengubah klasifikasi riwayat lama (konsisten dengan frontend); nonaktifkan bila ingin hitungan lama tetap.
+
 Kuota cancel 3x per paket **sudah diganti credit leave per paket** (`client_packages.leave_total/leave_used`, §6.2); `cancel_count` tinggal penghitung statistik. Alasan sistem `reschedule_dibatalkan` (drop reschedule menggantung, netral kredit) adalah konstanta kode, bukan baris tabel.
-```php
-Schema::create('cancel_reasons', function (Blueprint $table) {
-    $table->string('code', 40)->primary();            // SATU daftar Cancel / Off (revisi 7 Okt 2026): sakit, izin_keluarga, bentrok_sekolah, tanpa_kabar, OL, S, SCA, MCU, FM, TI, H
-    $table->string('label', 120);
-    $table->boolean('is_active')->default(true);      // nonaktif = tidak muncul di pilihan baru
-    $table->boolean('is_therapist_off')->default(false); // master Therapist Off (seed: TO, TS): dasar Therapist Off Rate; tetap muncul di pilihan Cancel / Off
-    $table->unsignedSmallInteger('sort_order')->default(0);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-});
 
+**`cancel_reasons`**
 
-Schema::create('discharge_reasons', function (Blueprint $table) {
-    $table->string('code', 40)->primary();            // moving, financial, conflict_schedule, expectation_not_met, graduate
-    $table->string('label', 120);
-    $table->boolean('is_active')->default(true);
-    $table->unsignedSmallInteger('sort_order')->default(0);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `code` | VARCHAR(40) | — | — | **PK**. SATU daftar Cancel / Off (revisi 7 Okt 2026): `sakit`, `izin_keluarga`, `bentrok_sekolah`, `tanpa_kabar`, `OL`, `S`, `SCA`, `MCU`, `FM`, `TI`, `H` |
+| `label` | VARCHAR(120) | — | — | |
+| `is_active` | BOOLEAN | — | 1 | Nonaktif = tidak muncul di pilihan baru |
+| `is_therapist_off` | BOOLEAN | — | 0 | Master Therapist Off (seed: `TO`, `TS`): dasar Therapist Off Rate; tetap muncul di pilihan Cancel / Off |
+| `sort_order` | SMALLINT U | — | 0 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+**`discharge_reasons`**
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `code` | VARCHAR(40) | — | — | **PK**. `moving`, `financial`, `conflict_schedule`, `expectation_not_met`, `graduate` |
+| `label` | VARCHAR(120) | — | — | |
+| `is_active` | BOOLEAN | — | 1 | |
+| `sort_order` | SMALLINT U | — | 0 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 #### `master_packages`
-```php
-Schema::create('master_packages', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 50)->unique();             // pkg-reguler, pkg-vip, pkg-consult
-    $table->string('invoice_code', 10)->unique();     // kode pendek untuk nomor invoice (mis. REG, VIP); `ASM` dicadangkan untuk invoice assessment
-    $table->string('name', 150);
-    $table->unsignedSmallInteger('credits');
-    $table->unsignedBigInteger('price');              // rupiah
-    $table->text('description')->nullable();
-    $table->unsignedSmallInteger('leave_quota')->default(3);   // CREDIT LEAVE per paket (sesi): pembatalan yang ditanggung per paket. Saat Cancel/Off dengan pilihan "potong", credit leave dipakai dulu (kredit sesi utuh); habis → kredit sesi dipotong. Snapshot ke `client_packages.leave_total` saat paket dibeli. BUKAN jatah cuti 30 hari/tahun
-    $table->boolean('is_satuan')->default(false);              // paket satuan (per sesi): cuti maks 1x per bulan kalender, jatah TIDAK reset otomatis saat renewal (Finance memakai opsi reset)
-    $table->boolean('is_assessment')->default(false);          // penanda paket asesmen: hanya paket berflag ini yang jadi pilihan layanan saat menerbitkan kode asesmen / re-assessment
-    $table->boolean('is_active')->default(true);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `code` | VARCHAR(50) | — | — | UQ. `pkg-reguler`, `pkg-vip`, `pkg-consult` |
+| `invoice_code` | VARCHAR(10) | — | — | UQ. Kode pendek untuk nomor invoice (mis. `REG`, `VIP`); `ASM` dicadangkan untuk invoice assessment |
+| `name` | VARCHAR(150) | — | — | |
+| `credits` | SMALLINT U | — | — | Jumlah sesi |
+| `price` | BIGINT U | — | — | Rupiah |
+| `description` | TEXT | ✔ | | |
+| `leave_quota` | SMALLINT U | — | 3 | **Credit leave per paket** (sesi): pembatalan yang ditanggung per paket. Saat Cancel/Off pilihan "potong", credit leave dipakai dulu (kredit sesi utuh); habis → kredit sesi dipotong. Di-snapshot ke `client_packages.leave_total` saat paket dibeli. BUKAN jatah cuti 30 hari/tahun |
+| `is_satuan` | BOOLEAN | — | 0 | Paket satuan (per sesi): cuti maks 1x per bulan kalender; jatah TIDAK reset otomatis saat renewal (Finance memakai opsi reset) |
+| `is_assessment` | BOOLEAN | — | 0 | Hanya paket berflag ini yang jadi pilihan layanan saat menerbitkan kode asesmen / re-assessment |
+| `is_active` | BOOLEAN | — | 1 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 #### `holidays`
 Tanggal libur (nasional / klinik). Jadwal berulang **melewati** tanggal ini (tidak dibuatkan sesi) dan kalender tidak bisa memilihnya (422 saat buat/pindah sesi). Menambah libur **tidak** mengubah sesi yang sudah ada (UI memberi penanda). Hapus = hard delete (data konfigurasi, tanpa riwayat).
-```php
-Schema::create('holidays', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->nullable()->constrained()->cascadeOnDelete();   // null = semua cabang
-    $table->unsignedBigInteger('branch_key')->storedAs('IFNULL(branch_id, 0)');
-    $table->date('holiday_date');
-    $table->string('name', 150);                      // Hari Kemerdekaan RI
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-    $table->unique(['holiday_date', 'branch_key'], 'uq_holidays_date_branch');
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `branch_id` | BIGINT U | ✔ | | FK → `branches` · CASCADE. **NULL = semua cabang** (sama dengan aturan `users.branch_id`) |
+| `branch_key` | BIGINT U | — | Gen | `IFNULL(branch_id, 0)`; dipakai agar UNIQUE bekerja untuk NULL |
+| `holiday_date` | DATE | — | — | |
+| `name` | VARCHAR(150) | — | — | Hari Kemerdekaan RI |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `uq_holidays_date_branch` | UNIQUE `holiday_date, branch_key` | Satu libur per tanggal per cabang (atau satu libur "semua cabang") |
 
 ### C. Client & intake
 
 #### `clients`
 Master anak, entity pipeline, **sekaligus entity login portal ortu** (`client_code` + tanggal lahir anak). 1 client = 1 orang tua yang didaftarkan.
-```php
-Schema::create('clients', function (Blueprint $table) {
-    $table->id();
-    $table->string('client_code', 10)->unique();      // AE-00001: grup 2 huruf (dari huruf pertama nama) + 5 digit counter per grup (`client_code_counters`). ID rekam medis SEKALIGUS kode login ortu (Q14); tidak berubah walau nama diedit
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();   // hapus cabang = hapus seluruh client cabang itu (§6.7)
 
-    // Biodata
-    $table->string('child_name', 120);                // nama lengkap (tanpa nama panggilan)
-    $table->enum('gender', ['male', 'female']);
-    $table->date('date_of_birth');
-    $table->unsignedTinyInteger('birth_month')->storedAs('MONTH(date_of_birth)');   // Q7 birthday radar
-    $table->string('parent_name', 120);
-    $table->string('parent_phone', 30);               // WhatsApp
-    $table->string('parent_email', 150)->nullable();
-    $table->text('address')->nullable();
-    $table->text('intake_note')->nullable();          // catatan saat intake (keluhan utama, rujukan, dll). Laporan asesmen memakai session_reports, bukan kolom ini
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `client_code` | VARCHAR(10) | — | — | UQ (Q14). `AE-00001`: grup 2 huruf (dari huruf pertama nama) + 5 digit counter per grup (`client_code_counters`). ID rekam medis SEKALIGUS kode login ortu; tidak berubah walau nama diedit |
+| `branch_id` | BIGINT U | — | — | FK → `branches` · CASCADE (hapus cabang = hapus seluruh client cabang itu, §6.7). **Selalu terisi**: client milik tepat 1 cabang |
+| **Biodata** | | | | |
+| `child_name` | VARCHAR(120) | — | — | Nama lengkap (tanpa nama panggilan) |
+| `gender` | ENUM | — | — | `male`, `female` |
+| `date_of_birth` | DATE | — | — | |
+| `birth_month` | TINYINT U | — | Gen | `MONTH(date_of_birth)` — Q7 birthday radar |
+| `parent_name` | VARCHAR(120) | — | — | |
+| `parent_phone` | VARCHAR(30) | — | — | WhatsApp |
+| `parent_email` | VARCHAR(150) | ✔ | | |
+| `address` | TEXT | ✔ | | |
+| `intake_note` | TEXT | ✔ | | Catatan saat intake (keluhan utama, rujukan, dll). Laporan asesmen memakai `session_reports`, bukan kolom ini |
+| **Pipeline & outcome** | | | | |
+| `status` | ENUM | — | `inquiry` | `inquiry`, `service_selected`, `assessment_scheduled`, `assessment_done`, `admitted`, `done_consult`, `done_assessment`, `discontinued`, `discharged` |
+| `final_outcome` | ENUM | ✔ | | `admitted`, `done_consult`, `done_assessment`, `discontinued` |
+| `status_changed_at` | TIMESTAMP | ✔ | | |
+| `date_of_join` | DATE | ✔ | | Diisi saat admit pertama |
+| `date_of_discharge` | DATE | ✔ | | |
+| `date_of_discontinue` | DATE | ✔ | | Terpisah dari discharge |
+| `discharge_reason` | VARCHAR(150) | ✔ | | String bebas: code pilihan cepat atau teks custom (tanpa FK); dipakai juga untuk alasan discontinue |
+| `discharge_note` | TEXT | ✔ | | |
+| **Denormalisasi kredit** (sumber kebenaran: `credit_ledger`; diperbarui di transaksi yang sama) | | | | |
+| `credit_balance` | INT | — | 0 | Σ `remaining_credit` paket aktif; 0 = Frozen |
+| `leave_granted` | SMALLINT U | — | 30 | **Jatah cuti (hari)** sejak `leave_reset_at`: 30 hari/tahun per client, HANYA diubah Finance (Reset Cuti Tahunan, §6.8 butir 5: sisa HANGUS). Tidak terkait credit leave paket. Sisa = `leave_granted` − hari terpakai (turunan dari `client_leaves`, tidak disimpan) |
+| `leave_credit_balance` | SMALLINT U | — | 0 | Total **credit leave** client = Σ (`leave_total` − `leave_used`) paket `active`/`depleted`; diperbarui di transaksi yang sama dengan mutasi credit leave; dicek `credits:reconcile` |
+| `leave_reset_at` | DATE | ✔ | | Tanggal reset cuti terakhir; pemakaian sebelum tanggal ini tidak dihitung lagi |
+| `leftover_balance` | BIGINT U | — | 0 | **Rupiah**: saldo lebihan konversi paket, memotong invoice paket berikutnya. = Σ `package_conversions.leftover_amount` − Σ `invoices.balance_applied` dari invoice yang masih berlaku (invoice terhapus atau void `revoke` tidak dihitung karena saldonya sudah kembali; void `keep` tetap dihitung) |
+| **Portal ortu** | | | | |
+| `last_login_at` | TIMESTAMP | ✔ | | Login = `client_code` + `date_of_birth` (Q14) |
+| `version` | INT U | — | 1 | Optimistic lock |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
-    // Pipeline & outcome
-    $table->enum('status', [
-        'inquiry', 'service_selected', 'assessment_scheduled', 'assessment_done',
-        'admitted', 'done_consult', 'done_assessment', 'discontinued', 'discharged',
-    ])->default('inquiry');
-    $table->enum('final_outcome', ['admitted', 'done_consult', 'done_assessment', 'discontinued'])->nullable();
-    $table->timestamp('status_changed_at')->nullable();
-    $table->date('date_of_join')->nullable();
-    $table->date('date_of_discharge')->nullable();
-    $table->date('date_of_discontinue')->nullable();       // tanggal discontinue (terpisah dari discharge)
-    $table->string('discharge_reason', 150)->nullable();   // string bebas: code pilihan cepat atau teks custom (tanpa FK); dipakai juga sebagai alasan discontinue
-    $table->text('discharge_note')->nullable();
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_clients_pipeline` | `branch_id, status, created_at` | Q4 |
+| `idx_clients_roster` | `branch_id, status, credit_balance` | Q6 |
+| `idx_clients_birthday` | `branch_id, birth_month` | Q7 |
+| `idx_clients_leftover` | `branch_id, leftover_balance` | Q23 tab Saldo Lebihan |
+| `idx_clients_discharge` | `branch_id, date_of_discharge` | Q27 Total Discharge + report per alasan |
+| `idx_clients_child_name` | `child_name` | Q5 prefix search |
+| `idx_clients_parent_name` | `parent_name` | Q5 |
 
-    // Denormalisasi kredit (sumber kebenaran: credit_ledger) — diperbarui di transaksi yang sama
-    $table->integer('credit_balance')->default(0);    // Σ remaining_credit paket aktif; 0 = Frozen
-    $table->unsignedSmallInteger('leave_granted')->default(30);   // JATAH CUTI (hari) sejak `leave_reset_at`: 30 hari/tahun per client, HANYA diubah Finance (Reset Cuti Tahunan, §6.8 butir 7: sisa HANGUS). Tidak ada hubungannya dengan credit leave paket. Sisa = leave_granted − hari terpakai (turunan dari `client_leaves`, tidak disimpan)
-    $table->unsignedSmallInteger('leave_credit_balance')->default(0);   // DENORMALISASI total CREDIT LEAVE client = Σ (leave_total − leave_used) paket `active`/`depleted` (sumber: `client_packages`, diperbarui di transaksi yang sama dengan mutasi credit leave; dicek `credits:reconcile`)
-    $table->date('leave_reset_at')->nullable();                  // tanggal reset terakhir; pemakaian sebelum tanggal ini tidak dihitung lagi
-    $table->unsignedBigInteger('leftover_balance')->default(0);   // RUPIAH: saldo lebihan konversi paket, memotong invoice paket berikutnya (= Σ package_conversions.leftover_amount − Σ invoices.balance_applied dari invoice yang masih berlaku; invoice yang dihapus (belum lunas) atau di-void dengan `void_credit_action = revoke` tidak dihitung karena saldonya sudah kembali, sedangkan void `keep` tetap dihitung)
-
-    // Portal ortu: login = client_code + date_of_birth (Q14)
-    $table->timestamp('last_login_at')->nullable();
-
-    $table->unsignedInteger('version')->default(1);
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-
-    $table->index(['branch_id', 'status', 'created_at'], 'idx_clients_pipeline');        // Q4
-    $table->index(['branch_id', 'status', 'credit_balance'], 'idx_clients_roster');      // Q6
-    $table->index(['branch_id', 'birth_month'], 'idx_clients_birthday');                 // Q7
-    $table->index(['branch_id', 'leftover_balance'], 'idx_clients_leftover');             // Q23 tab Saldo Lebihan
-    $table->index(['branch_id', 'date_of_discharge'], 'idx_clients_discharge');          // Q27 Total Discharge + report per alasan
-    $table->index('child_name', 'idx_clients_child_name');                               // Q5 prefix search
-    $table->index('parent_name', 'idx_clients_parent_name');                             // Q5
-});
-```
 Catatan:
 - **Frozen** tidak disimpan sebagai status; diturunkan dari `credit_balance = 0` (sesuai frontend).
-- Search nama memakai prefix (`LIKE 'abc%'`). Jika butuh search di tengah kata, tambahkan `FULLTEXT(child_name, parent_name)` (ngram parser).
+- Search nama memakai prefix (`LIKE 'abc%'`). Jika butuh search di tengah kata, tambahkan `FULLTEXT(child_name, parent_name)` (ngram parser). Pencarian client: awal nama anak, nama ortu, atau kode client (prefix).
 - Login ortu: `client_code` **+ tanggal lahir anak** (`date_of_birth`) sebagai verifikasi kedua (tanpa PIN). Respons gagal selalu generik (tidak membocorkan mana yang salah). `client_code` **berurutan** (AE-00001, AE-00002, …) sehingga mudah ditebak: tanggal lahir adalah satu-satunya faktor kedua, jadi wajib throttle per IP & per kode + lockout sementara (Laravel RateLimiter). Client yang sudah dihapus tidak bisa login (barisnya sudah tidak ada). Kode tidak diberikan ulang/diganti sendiri oleh ortu: admin yang menginformasikan kode (D5).
-- **Status**: perpindahan otomatis (assessment dijadwalkan, sesi asesmen completed; **kuesioner terisi TIDAK mengubah status**) hanya maju; perubahan **manual** (outcome, discharge, reaktivasi) boleh ke tahap mana pun, dicatat di `client_status_histories` (lihat §6.6). Client discharge/discontinued dapat diaktifkan kembali (`admitted`) dari list maupun detail.
-- Pencarian client: awal nama anak, nama ortu, atau kode client (prefix).
-- Nama anak hanya satu kolom `child_name` (nama lengkap). Layanan pendamping sekolah = layanan `school_companion` di `client_services`, bukan flag di `clients`.
+- **Status**: perpindahan otomatis (assessment dijadwalkan, sesi asesmen completed; **kuesioner terisi TIDAK mengubah status**) hanya maju; perubahan **manual** (outcome, discharge, reaktivasi) boleh ke tahap mana pun, menimpa `status`, `status_changed_at`, dan `updated_by` (§6.6; tanpa riwayat tahap). Client discharge/discontinued dapat diaktifkan kembali (`admitted`) dari list maupun detail.
+- Nama anak hanya satu kolom `child_name`. Layanan pendamping sekolah = layanan `school_companion` di `client_services`, bukan flag di `clients`.
 
 #### `client_code_counters`
-Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A–E = `AE`, F–J = `FJ`, K–O = `KO`, P–T = `PT`, U–Z = `UZ`. Nomor = counter grup + 1 (global lintas cabang), tampil 5 digit (`AE-00001`). Dinaikkan di transaksi pembuatan client: `UPDATE client_code_counters SET last_number = LAST_INSERT_ID(last_number + 1) WHERE group_code = ?` (atomik, tanpa celah bentrok).
-```php
-Schema::create('client_code_counters', function (Blueprint $table) {
-    $table->char('group_code', 2)->primary();         // AE, FJ, KO, PT, UZ (di-seed)
-    $table->unsignedInteger('last_number')->default(0);
-});
-```
+Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A–E = `AE`, F–J = `FJ`, K–O = `KO`, P–T = `PT`, U–Z = `UZ`. Nomor = counter grup + 1 (global lintas cabang), tampil 5 digit (`AE-00001`). Dinaikkan di transaksi pembuatan client: `UPDATE client_code_counters SET last_number = LAST_INSERT_ID(last_number + 1) WHERE group_code = ?` (atomik).
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `group_code` | CHAR(2) | — | — | **PK**. `AE`, `FJ`, `KO`, `PT`, `UZ` (di-seed) |
+| `last_number` | INT U | — | 0 | |
 
 #### `client_services`
-```php
-Schema::create('client_services', function (Blueprint $table) {
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->string('service_code', 50);
-    $table->timestamp('selected_at')->useCurrent();
-    $table->foreignId('selected_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->primary(['client_id', 'service_code']);
-    $table->foreign('service_code')->references('code')->on('services');
-    $table->index('service_code', 'idx_client_services_service');                         // funnel per layanan
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `client_id` | BIGINT U | — | — | PK (1/2). FK → `clients` · CASCADE |
+| `service_code` | VARCHAR(50) | — | — | PK (2/2). FK → `services.code` · RESTRICT |
+| `selected_at` | TIMESTAMP | — | now | |
+| `selected_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_client_services_service` | `service_code` | Funnel per layanan |
 
 #### `client_documents`
-```php
-Schema::create('client_documents', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->enum('type', ['gdrive_folder', 'referral', 'observation_video', 'report', 'other'])->default('gdrive_folder');
-    $table->string('label', 150)->nullable();
-    $table->string('url', 500);
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-    $table->index(['client_id', 'type'], 'idx_client_docs_client');
-});
-```
 
-#### `client_status_histories`
-Timeline bisnis pipeline (ditampilkan ke user). Tabel ini adalah satu-satunya riwayat pipeline. Perubahan manual ke tahap mana pun (maju **maupun mundur**) dicatat di sini dengan `trigger = manual` / `outcome` / `discharge` / `revert`.
-```php
-Schema::create('client_status_histories', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();          // denormalisasi dari clients (untuk view per cabang)
-    $table->string('from_status', 30)->nullable();
-    $table->string('to_status', 30);
-    $table->enum('trigger', ['manual', 'service_selected', 'code_issued', 'assessment_scheduled', 'questionnaire_submitted', 'session_completed', 'outcome', 'discharge', 'revert', 'created']);   // `created` = baris riwayat pertama saat client dibuat; `questionnaire_submitted` tidak dipakai (kuesioner terkirim tidak mengubah status), dipertahankan agar enum stabil
-    $table->text('note')->nullable();
-    $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();  // null = sistem / ortu
-    $table->timestamp('changed_at')->useCurrent();
-    $table->date('changed_date')->storedAs("DATE(changed_at + INTERVAL 7 HOUR)");  // tanggal WIB
-    $table->index(['client_id', 'changed_at'], 'idx_csh_client');                        // timeline client
-    $table->index(['branch_id', 'changed_date', 'to_status'], 'idx_csh_branch_date');    // v_daily_pipeline (funnel & tren)
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `type` | ENUM | — | `gdrive_folder` | `gdrive_folder`, `referral`, `observation_video`, `report`, `other` |
+| `label` | VARCHAR(150) | ✔ | | |
+| `url` | VARCHAR(500) | — | — | |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_client_docs_client` | `client_id, type` | Dokumen per client |
 
 ### D. Mesin asesmen
 
 #### `assessment_categories`
-```php
-Schema::create('assessment_categories', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 50)->unique();             // cat-001
-    $table->string('type_code', 10)->unique();        // kode jenis asesmen = prefix kode kuesioner (mis. SP2, SC); jangan diubah setelah ada kode terbit
-    $table->string('name', 200);                      // Child Sensory Profile 2 (Winnie Dunn…)
-    $table->string('domain', 150)->nullable();
-    $table->boolean('is_active')->default(true);
-    $table->unsignedInteger('version')->default(1);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `type_code` | VARCHAR(10) | — | — | UQ. Kode jenis asesmen = prefix kode kuesioner (mis. `SP2`, `SC`); jangan diubah setelah ada kode terbit |
+| `name` | VARCHAR(200) | — | — | Child Sensory Profile 2 (Winnie Dunn…) |
+| `domain` | VARCHAR(150) | ✔ | | |
+| `is_active` | BOOLEAN | — | 1 | |
+| `version` | INT U | — | 1 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 #### `assessment_sections`
-```php
-Schema::create('assessment_sections', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('category_id')->constrained('assessment_categories')->cascadeOnDelete();
-    $table->string('title', 150);                     // Pemrosesan AUDITORI
-    $table->string('lead_text', 150)->nullable();     // "Anakku ..."
-    $table->unsignedSmallInteger('sort_order')->default(0);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-    $table->index(['category_id', 'sort_order'], 'idx_sections_category');
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `category_id` | BIGINT U | — | — | FK → `assessment_categories` · CASCADE |
+| `title` | VARCHAR(150) | — | — | Pemrosesan AUDITORI |
+| `lead_text` | VARCHAR(150) | ✔ | | "Anakku ..." |
+| `sort_order` | SMALLINT U | — | 0 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_sections_category` | `category_id, sort_order` | Render form |
 
 #### `assessment_questions`
-```php
-Schema::create('assessment_questions', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('category_id')->constrained('assessment_categories')->cascadeOnDelete(); // denormalisasi untuk load 1 query
-    $table->foreignId('section_id')->constrained('assessment_sections')->cascadeOnDelete();
-    $table->unsignedSmallInteger('item_no');
-    $table->string('quadrant_code', 10)->nullable();
-    $table->enum('question_type', ['scale_0_5', 'range', 'multiple_choice', 'checkbox_multi', 'free_text', 'yes_no', 'short_text', 'number', 'dropdown', 'date', 'birth_date', 'time'])->default('scale_0_5');
-    $table->text('question');
-    $table->json('options')->nullable();              // pilihan untuk multiple_choice / checkbox_multi / dropdown
-    $table->smallInteger('range_min')->nullable();
-    $table->smallInteger('range_max')->nullable();
-    $table->string('range_min_label', 60)->nullable();
-    $table->string('range_max_label', 60)->nullable();
-    $table->boolean('is_required')->default(true);
-    $table->unsignedSmallInteger('sort_order')->default(0);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
 
-    $table->foreign('quadrant_code')->references('code')->on('sensory_quadrants');
-    $table->index(['category_id', 'section_id', 'sort_order'], 'idx_questions_form');  // render form
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `category_id` | BIGINT U | — | — | FK → `assessment_categories` · CASCADE. Denormalisasi agar form dimuat 1 query |
+| `section_id` | BIGINT U | — | — | FK → `assessment_sections` · CASCADE |
+| `item_no` | SMALLINT U | — | — | |
+| `quadrant_code` | VARCHAR(10) | ✔ | | FK → `sensory_quadrants.code` · RESTRICT |
+| `question_type` | ENUM | — | `scale_0_5` | `scale_0_5`, `range`, `multiple_choice`, `checkbox_multi`, `free_text`, `yes_no`, `short_text`, `number`, `dropdown`, `date`, `birth_date`, `time` |
+| `question` | TEXT | — | — | |
+| `options` | JSON | ✔ | | Pilihan untuk `multiple_choice` / `checkbox_multi` / `dropdown` |
+| `range_min`, `range_max` | SMALLINT | ✔ | | |
+| `range_min_label`, `range_max_label` | VARCHAR(60) | ✔ | | |
+| `is_required` | BOOLEAN | — | 1 | |
+| `sort_order` | SMALLINT U | — | 0 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_questions_form` | `category_id, section_id, sort_order` | Render form |
 
 #### `assessment_access_codes`
-```php
-Schema::create('assessment_access_codes', function (Blueprint $table) {
-    $table->id();
-    $table->string('code', 20)->unique();             // {assessment_categories.type_code}-{suffix acak 6 karakter}, mis. SP2-K7M4QX — Q13
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('category_id')->constrained('assessment_categories')->restrictOnDelete();
-    $table->enum('status', ['issued', 'submitted'])->default('issued');   // diisi SEKALI saja (submit final). "Sedang diisi" TIDAK disimpan di sini: diturunkan dari ada tidaknya baris `assessment_drafts`. Kode `issued` yang BELUM punya draft boleh DIHAPUS (baris dihapus, tanpa jejak); kode yang SUDAH punya draft (sedang diisi) TIDAK boleh dihapus (409 `draft_exists`); `submitted` tidak bisa dihapus
-    $table->foreignId('issued_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamp('issued_at')->useCurrent();
-    $table->timestamp('expires_at')->nullable();      // OPSIONAL: admin memilih saat generate; NULL = tanpa masa berlaku. Dicek saat kode dibuka (tanpa job harian)
-    $table->timestamp('submitted_at')->nullable();
-    $table->boolean('invoice_required')->default(true);   // false = kode GRATIS (mis. School Companion): saat generate admin mematikan "Masuk invoice" → tidak ada invoice assessment & tidak ada form bayar untuk ortu; true = invoice assessment otomatis terbit (harga layanan `is_assessment`)
-    $table->timestamps();
 
-    $table->index(['client_id', 'category_id'], 'idx_codes_client');
-    $table->index(['status', 'issued_at'], 'idx_codes_awaiting');                         // Q18
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `code` | VARCHAR(20) | — | — | UQ (Q13). `{assessment_categories.type_code}-{suffix acak 6 karakter}`, mis. `SP2-K7M4QX` |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `category_id` | BIGINT U | — | — | FK → `assessment_categories` · RESTRICT |
+| `status` | ENUM | — | `issued` | `issued`, `submitted`. Diisi SEKALI (submit final). "Sedang diisi" TIDAK disimpan di sini: diturunkan dari ada tidaknya baris `assessment_drafts`. Kode `issued` tanpa draft boleh dihapus (baris hilang, tanpa jejak); kode yang sudah punya draft TIDAK boleh dihapus (409 `draft_exists`); `submitted` tidak bisa dihapus |
+| `issued_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `issued_at` | TIMESTAMP | — | now | |
+| `expires_at` | TIMESTAMP | ✔ | | OPSIONAL (dipilih admin saat generate); NULL = tanpa masa berlaku. Dicek saat kode dibuka (tanpa job harian) |
+| `submitted_at` | TIMESTAMP | ✔ | | |
+| `invoice_required` | BOOLEAN | — | 1 | 0 = kode GRATIS (mis. School Companion): tidak ada invoice assessment & tidak ada form bayar untuk ortu; 1 = invoice assessment otomatis terbit (harga layanan `is_assessment`) |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_codes_client` | `client_id, category_id` | Kode per client |
+| `idx_codes_awaiting` | `status, issued_at` | Q18 |
+
 "Kedaluwarsa" **tidak** disimpan sebagai status: kode dianggap kedaluwarsa bila `expires_at IS NOT NULL AND expires_at < NOW()` saat dibuka (410, tidak ada job). Kode kedaluwarsa tetap tampil di daftar "menunggu kuesioner" (ditandai) agar admin bisa menghapus/menerbitkan ulang.
-**Draft & kedaluwarsa:** `expires_at` dicek saat kode **dibuka**. Kode yang sudah punya draft yang dimulai sebelum `expires_at` (`assessment_drafts.started_at <= expires_at`) **boleh diselesaikan** walau sudah lewat; kode kedaluwarsa tanpa draft tetap ditolak (410).
+**Draft & kedaluwarsa:** kode yang sudah punya draft yang dimulai sebelum `expires_at` (`assessment_drafts.started_at <= expires_at`) **boleh diselesaikan** walau sudah lewat; kode kedaluwarsa tanpa draft tetap ditolak (410).
 
 #### `assessment_drafts`
 Draft jawaban kuesioner **sebelum submit**. Kuesioner bisa 200+ soal, jadi ortu boleh berhenti dan melanjutkan kapan saja dengan kode yang sama (seperti Google Form). Satu kode = paling banyak satu draft (PK = `access_code_id`). Draft **bukan hasil**: tidak pernah dibaca laporan, dashboard, atau halaman hasil staf, dan tidak mengubah status client. Baris draft **dihapus** saat submit sukses, serta ikut terhapus bila client/cabang dihapus (CASCADE). Kode yang sudah punya draft **tidak bisa dihapus lewat UI** (409 `draft_exists`). Tanpa queue dan tanpa job pembersih.
-```php
-Schema::create('assessment_drafts', function (Blueprint $table) {
-    $table->foreignId('access_code_id')->primary()->constrained('assessment_access_codes')->cascadeOnDelete();
-    $table->json('answers');                          // peta {"<question_id>": {"t": "4 - Sering (75%)", "v": ["a","b"]}}: t = answer_text, v = answer_values (checkbox_multi). Hanya soal yang sudah dijawab; isinya tidak difilter/diquery (tanpa indeks)
-    $table->unsignedSmallInteger('answered_count')->default(0);   // jumlah soal terjawab (dihitung server tiap simpan) → bar progres & kolom "sedang diisi" di daftar Menunggu Kuesioner
-    $table->foreignId('last_section_id')->nullable()->constrained('assessment_sections')->nullOnDelete();   // section terakhir dibuka → titik lanjut
-    $table->timestamp('consent_at')->nullable();      // consent boleh dicentang di awal; submit tetap mensyaratkan consent_at terisi
-    $table->unsignedInteger('version')->default(1);   // optimistic lock: dua perangkat menyimpan bersamaan → 409 version_conflict
-    $table->string('ip_address', 45)->nullable();
-    $table->timestamp('started_at')->useCurrent();
-    $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `access_code_id` | BIGINT U | — | — | **PK**. FK → `assessment_access_codes` · CASCADE |
+| `answers` | JSON | — | — | Peta `{"<question_id>": {"t": "4 - Sering (75%)", "v": ["a","b"]}}`: `t` = answer_text, `v` = answer_values (checkbox_multi). Hanya soal yang sudah dijawab; tidak difilter/diquery (tanpa indeks) |
+| `answered_count` | SMALLINT U | — | 0 | Dihitung server tiap simpan → bar progres & kolom "sedang diisi" di Menunggu Kuesioner |
+| `last_section_id` | BIGINT U | ✔ | | FK → `assessment_sections` · SET NULL. Section terakhir dibuka = titik lanjut |
+| `consent_at` | TIMESTAMP | ✔ | | Consent boleh dicentang di awal; submit tetap mensyaratkan terisi |
+| `version` | INT U | — | 1 | Optimistic lock: dua perangkat menyimpan bersamaan → 409 `version_conflict` |
+| `ip_address` | VARCHAR(45) | ✔ | | |
+| `started_at` | TIMESTAMP | — | now | |
+| `updated_at` | TIMESTAMP | — | now (on update) | |
+
 Aturan (rinci di §6.5b):
 - **Simpan otomatis**: `PUT /public/assessments/{code}/draft` tiap pindah section dan ±30 detik. Isi: jawaban yang berubah sebagai *patch* (nilai `null` = hapus jawaban), `last_section_id`, `version`. Service `lockForUpdate` baris draft (dibuat pada simpan pertama), menggabungkan patch ke `answers`, membuang id soal yang bukan milik kategori kode itu, menghitung ulang `answered_count`, `version + 1`. Payload ≤ 256 KB. Draft tidak menyimpan skor.
 - **Lanjutkan**: `GET /public/assessments/{code}` mengembalikan form + draft (jawaban, `last_section_id`, `answered_count`, consent). Kode adalah satu-satunya kunci (sama seperti pengisian langsung): pemegang kode bisa melanjutkan dari perangkat mana pun.
-- **Submit** memvalidasi semua soal `is_required` terjawab + `consent_at`, lalu memindahkan draft ke `assessment_responses` / `assessment_answers` / `assessment_quadrant_scores` dalam satu transaksi dan menghapus draft. Validasi gagal → draft tidak berubah (respons memuat daftar soal wajib yang belum terjawab).
+- **Submit** memvalidasi semua soal `is_required` terjawab + `consent_at` terisi, lalu memindahkan draft ke `assessment_responses` / `assessment_answers` / `assessment_quadrant_scores` dalam satu transaksi dan menghapus draft. Validasi gagal → draft tidak berubah (respons memuat daftar soal wajib yang belum terjawab).
 - **Instrumen diubah saat ada draft**: id soal yang sudah dihapus diabaikan; soal wajib baru wajib dijawab saat submit. Master Asesmen menampilkan peringatan "ada N draft aktif" sebelum menyimpan perubahan (hitung `assessment_drafts` → `assessment_access_codes.category_id`).
 - **Volume**: paling banyak satu baris per kode `issued`; ±30–40 KB untuk 200 soal; diabaikan.
 
 #### `assessment_responses`
 **Satu kode = satu pengisian** (tanpa revisi): `access_code_id` UNIQUE, submit kedua ditolak (409). Baris dibuat **hanya saat submit final**; jawaban sementara ada di `assessment_drafts`. Hasil dapat dilihat semua staf internal yang punya akses modul; **ortu tidak** melihat hasil.
-```php
-Schema::create('assessment_responses', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('access_code_id')->unique()->constrained('assessment_access_codes')->cascadeOnDelete();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('category_id')->constrained('assessment_categories')->restrictOnDelete();
-    $table->unsignedSmallInteger('answered_count');
-    $table->timestamp('consent_at');                  // persetujuan penggunaan data anak (checkbox wajib diisi sebelum submit)
-    $table->timestamp('submitted_at')->useCurrent();
-    $table->string('ip_address', 45)->nullable();
-    $table->timestamps();
 
-    $table->index(['client_id', 'category_id', 'submitted_at'], 'idx_responses_client');   // hasil per client
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `access_code_id` | BIGINT U | — | — | UQ. FK → `assessment_access_codes` · CASCADE |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `category_id` | BIGINT U | — | — | FK → `assessment_categories` · RESTRICT |
+| `answered_count` | SMALLINT U | — | — | |
+| `consent_at` | TIMESTAMP | — | — | Persetujuan penggunaan data anak (wajib dicentang sebelum submit) |
+| `submitted_at` | TIMESTAMP | — | now | |
+| `ip_address` | VARCHAR(45) | ✔ | | |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_responses_client` | `client_id, category_id, submitted_at` | Hasil per client |
 
 #### `assessment_answers`
-```php
-Schema::create('assessment_answers', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('response_id')->constrained('assessment_responses')->cascadeOnDelete();
-    $table->foreignId('question_id')->constrained('assessment_questions')->restrictOnDelete();
-    $table->unsignedSmallInteger('item_no');          // snapshot
-    $table->string('quadrant_code', 10)->nullable();  // snapshot
-    $table->text('answer_text');                      // "4 - Sering (75%)"; tipe date/birth_date = yyyy-MM-dd, time = HH:mm
-    $table->json('answer_values')->nullable();        // checkbox_multi
-    $table->smallInteger('score')->nullable();        // NULL untuk tipe tak bernilai (short_text, number, date, birth_date, time, free_text, yes_no, checkbox_multi)
-    $table->unique(['response_id', 'question_id'], 'uq_answers_question');
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `response_id` | BIGINT U | — | — | FK → `assessment_responses` · CASCADE |
+| `question_id` | BIGINT U | — | — | FK → `assessment_questions` · RESTRICT |
+| `item_no` | SMALLINT U | — | — | Snapshot |
+| `quadrant_code` | VARCHAR(10) | ✔ | | Snapshot |
+| `answer_text` | TEXT | — | — | `4 - Sering (75%)`; tipe `date`/`birth_date` = `yyyy-MM-dd`, `time` = `HH:mm` |
+| `answer_values` | JSON | ✔ | | `checkbox_multi` |
+| `score` | SMALLINT | ✔ | | NULL untuk tipe tak bernilai (`short_text`, `number`, `date`, `birth_date`, `time`, `free_text`, `yes_no`, `checkbox_multi`) |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `uq_answers_question` | UNIQUE `response_id, question_id` | Satu jawaban per soal |
 
 #### `assessment_quadrant_scores`
 Dihitung **server** saat submit (Σ score per kuadran). Disimpan agar laporan & dashboard tidak menghitung ulang.
-```php
-Schema::create('assessment_quadrant_scores', function (Blueprint $table) {
-    $table->foreignId('response_id')->constrained('assessment_responses')->cascadeOnDelete();
-    $table->string('quadrant_code', 10);
-    $table->unsignedSmallInteger('raw_score');
-    $table->unsignedSmallInteger('item_count');
-    $table->string('classification', 40)->nullable(); // mis. "Much More Than Others"
-    $table->primary(['response_id', 'quadrant_code']);
-    $table->foreign('quadrant_code')->references('code')->on('sensory_quadrants');
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `response_id` | BIGINT U | — | — | PK (1/2). FK → `assessment_responses` · CASCADE |
+| `quadrant_code` | VARCHAR(10) | — | — | PK (2/2). FK → `sensory_quadrants.code` · RESTRICT |
+| `raw_score` | SMALLINT U | — | — | |
+| `item_count` | SMALLINT U | — | — | |
+| `classification` | VARCHAR(40) | ✔ | | Mis. "Much More Than Others" |
 
 ### E. Penjadwalan
 
 #### `schedule_series`
 Pola jadwal berulang (multi-hari, N minggu) agar operasi "ubah/batalkan seluruh seri" efisien.
-```php
-Schema::create('schedule_series', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-    $table->json('pattern');                          // tanggal yang jatuh di `holidays` dilewati saat generate. [{"day":1,"start":"09:00","end":"10:00","therapist_id":7,"client_package_id":3,"type":"therapy"}]
-    $table->unsignedTinyInteger('weeks');             // default 12
-    $table->date('starts_on');
-    $table->date('ends_on');
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-    $table->index(['client_id', 'starts_on'], 'idx_series_client');
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `branch_id` | BIGINT U | — | — | FK → `branches` · CASCADE |
+| `pattern` | JSON | — | — | Tanggal yang jatuh di `holidays` dilewati saat generate. Contoh: `[{"day":1,"start":"09:00","end":"10:00","therapist_id":7,"client_package_id":3,"type":"therapy"}]` |
+| `weeks` | TINYINT U | — | — | Bawaan 12 |
+| `starts_on`, `ends_on` | DATE | — | — | |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_series_client` | `client_id, starts_on` | Q20 |
 
 #### `client_leaves`
 Log cuti client, **berdiri sendiri** (memotong **saldo jatah cuti client** `clients.leave_granted`; hari yang dihitung = hari kalender dari **sesi terapi pertama sampai terakhir** di rentang, revisi 7 Okt 2026). Dicatat Finance (modul `finance`) sesuai rentang tanggal yang disampaikan ortu; sesi terapi terjadwal di rentang itu menjadi `cancelled` dengan kode `OL` (§6.8). Dibuat **sebelum** `schedules` (FK `schedules.leave_id`).
-```php
-Schema::create('client_leaves', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->date('start_date');
-    $table->date('end_date');                              // rencana akhir cuti (inklusif)
-    $table->date('counted_start');                         // hari pertama sesi terapi di rentang = awal hitungan jatah (Finance hanya boleh mencatat cuti bila client punya sesi terapi di rentang)
-    $table->date('counted_end');                           // hari terakhir sesi terapi di rentang = akhir hitungan jatah (mis. rentang 07–14 Okt dengan sesi 08 & 12 Okt → 08–12 = 5 hari)
-    $table->date('return_date')->nullable();               // anak masuk lebih awal: HARI PERTAMA masuk kembali; hari berlaku = start_date .. return_date − 1
-    $table->string('return_note', 255)->nullable();
-    $table->timestamp('returned_at')->nullable();          // kapan & siapa mengakhiri lebih awal (jejak untuk tombol Detail)
-    $table->foreignId('returned_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->enum('status', ['active', 'voided'])->default('active');   // void = seluruh hari kembali ke jatah (return_date tetap NULL)
-    $table->string('reason', 255)->nullable();             // keterangan dari ortu (mis. liburan keluarga)
-    $table->text('note')->nullable();                      // catatan Finance
-    $table->text('void_reason')->nullable();               // wajib bila status = voided
-    $table->timestamp('voided_at')->nullable();
-    $table->foreignId('voided_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->unsignedInteger('version')->default(1);
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
 
-    $table->index(['client_id', 'start_date'], 'idx_leave_client');   // Q24: kartu jatah + cek overlap per client
-    $table->index(['branch_id', 'start_date'], 'idx_leave_branch');   // tab Cuti Finance (per cabang, terbaru dulu)
-});
-// CHECK: end_date >= start_date; counted_start BETWEEN start_date AND end_date; counted_end BETWEEN counted_start AND end_date; return_date IS NULL OR (return_date > start_date AND return_date <= end_date);
-//        status = 'voided' → void_reason NOT NULL
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `branch_id` | BIGINT U | — | — | FK → `branches` · CASCADE |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `start_date` | DATE | — | — | Awal rentang (penampung) |
+| `end_date` | DATE | — | — | Rencana akhir cuti (inklusif) |
+| `counted_start` | DATE | — | — | Hari pertama sesi terapi di rentang = awal hitungan jatah |
+| `counted_end` | DATE | — | — | Hari terakhir sesi terapi di rentang = akhir hitungan jatah (mis. rentang 07–14 Okt dengan sesi 08 & 12 Okt → 08–12 = 5 hari) |
+| `return_date` | DATE | ✔ | | Anak masuk lebih awal: HARI PERTAMA masuk kembali; hari berlaku = `start_date .. return_date − 1` |
+| `return_note` | VARCHAR(255) | ✔ | | |
+| `returned_at` | TIMESTAMP | ✔ | | Kapan & siapa mengakhiri lebih awal (jejak tombol Detail) |
+| `returned_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `status` | ENUM | — | `active` | `active`, `voided`. Void = seluruh hari kembali ke jatah (`return_date` tetap NULL) |
+| `reason` | VARCHAR(255) | ✔ | | Keterangan dari ortu (mis. liburan keluarga) |
+| `note` | TEXT | ✔ | | Catatan Finance |
+| `void_reason` | TEXT | ✔ | | Wajib bila `status = voided` |
+| `voided_at` | TIMESTAMP | ✔ | | |
+| `voided_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `version` | INT U | — | 1 | |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks / constraint | Kolom / aturan | Melayani |
+|---|---|---|
+| `idx_leave_client` | `client_id, start_date` | Q24: kartu jatah + cek overlap per client |
+| `idx_leave_branch` | `branch_id, start_date` | Tab Cuti Finance (per cabang, terbaru dulu) |
+| CHECK | `end_date >= start_date`; `counted_start BETWEEN start_date AND end_date`; `counted_end BETWEEN counted_start AND end_date`; `return_date IS NULL OR (return_date > start_date AND return_date <= end_date)`; `status = 'voided'` → `void_reason NOT NULL` | Integritas |
+
 Catatan:
 - **Hari terpakai dihitung, tidak disimpan** (jangan buat kolom `days_used`): untuk satu client sejak `clients.leave_reset_at`, tanggal unik hari kalender `counted_start .. min(counted_end, return_date − 1)` dari log `active`. Sisa = `clients.leave_granted − terpakai`. Void log otomatis mengembalikan hari. **Hanya log Finance yang memakai saldo** (tidak ada lagi Off manual `counts_as_leave`). **Rentang `start_date`/`end_date` hanya penampung** (cek overlap & jendela sesi); cuti tanpa sesi terapi di rentang **ditolak** (422 `leave_no_sessions`).
 - **Paket satuan** (`master_packages.is_satuan` pada paket aktif client): maks **1x cuti per bulan kalender** (log aktif di bulan yang sama → 422 `leave_satuan_monthly`).
 - Jatah melewati saldo **tidak diblokir** (hanya peringatan di respons); keputusan potong kredit tetap pada pencatat (§6.8).
 - Log cuti **tidak bisa dihapus manual** (tidak ada tombol/endpoint hapus; hapus akan melepas sesi dari log dan tidak bisa dikembalikan): hanya **Akhiri Lebih Awal** atau **Void**. Terhapus hanya lewat hapus client/cabang (CASCADE; `schedules.leave_id` → `SET NULL`).
 
-#### `client_leave_sessions` & `leave_resets`
-Pelengkap `client_leaves` (append-only, tidak diedit).
-```php
-Schema::create('client_leave_sessions', function (Blueprint $table) {
-    $table->foreignId('leave_id')->constrained('client_leaves')->cascadeOnDelete();
-    $table->foreignId('schedule_id')->constrained('schedules')->cascadeOnDelete();   // sesi terapi yang dibatalkan oleh cuti ini; status sekarang dibaca dari `schedules` (leave_id masih sama = masih dibatalkan, selain itu sudah kembali)
-    $table->primary(['leave_id', 'schedule_id']);
-});
+#### `client_leave_sessions`
+Sesi terapi yang dibatalkan oleh satu log cuti (append-only, tidak diedit; untuk tombol Detail).
 
-Schema::create('leave_resets', function (Blueprint $table) {   // riwayat reset cuti tahunan (semua client)
-    $table->id();
-    $table->date('reset_date');
-    $table->unsignedInteger('clients_count');
-    $table->unsignedInteger('forfeited_days');                 // total hari cuti tersisa yang hangus saat reset
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-    $table->index('reset_date', 'idx_leave_reset_date');
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `leave_id` | BIGINT U | — | — | PK (1/2). FK → `client_leaves` · CASCADE |
+| `schedule_id` | BIGINT U | — | — | PK (2/2). FK → `schedules` · CASCADE. Status sekarang dibaca dari `schedules` (`leave_id` masih sama = masih dibatalkan, selain itu sudah kembali) |
+
+#### `leave_resets`
+Riwayat Reset Cuti Tahunan (semua client; append-only).
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `reset_date` | DATE | — | — | |
+| `clients_count` | INT U | — | — | |
+| `forfeited_days` | INT U | — | — | Total hari cuti tersisa yang hangus saat reset |
+| `created_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_leave_reset_date` | `reset_date` | Riwayat reset |
 
 #### `schedules`
 Tabel paling sering dibaca (kalender). Teks laporan dipisah ke `session_reports` agar baris tetap ramping.
-```php
-Schema::create('schedules', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('therapist_id')->constrained('users')->restrictOnDelete();   // staf tidak dihapus lewat UI; hapus cabang menghapus sesi lebih dulu (§6.7)
-    $table->foreignId('series_id')->nullable()->constrained('schedule_series')->nullOnDelete();
-    $table->foreignId('client_package_id')->nullable()->constrained()->nullOnDelete();   // null untuk asesmen / sesi yang kehilangan paket (Frozen). Paket hanya terhapus lewat hapus client (sesinya ikut terhapus oleh FK client)
-    $table->string('service_code', 50)->nullable();     // diturunkan dari client_services, tidak dipilih di form jadwal
-    $table->enum('type', ['therapy', 'assessment', 'consultation'])->default('therapy');
 
-    $table->date('session_date');
-    $table->time('start_time');
-    $table->time('end_time');
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `branch_id` | BIGINT U | — | — | FK → `branches` · CASCADE |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `therapist_id` | BIGINT U | — | — | FK → `users` · RESTRICT (staf tidak dihapus lewat UI; hapus cabang menghapus sesi lebih dulu, §6.7) |
+| `series_id` | BIGINT U | ✔ | | FK → `schedule_series` · SET NULL |
+| `client_package_id` | BIGINT U | ✔ | | FK → `client_packages` · SET NULL. NULL untuk asesmen / sesi yang kehilangan paket (Frozen). Paket hanya terhapus lewat hapus client (sesinya ikut terhapus oleh FK client) |
+| `service_code` | VARCHAR(50) | ✔ | | FK → `services.code`. Diturunkan dari `client_services`, tidak dipilih di form jadwal |
+| `type` | ENUM | — | `therapy` | `therapy`, `assessment`, `consultation` |
+| `session_date` | DATE | — | — | |
+| `start_time`, `end_time` | TIME | — | — | |
+| `status` | ENUM | — | `scheduled` | `scheduled`, `completed`, `cancelled`, `rescheduled`, `reschedule_pending`. Cancel dan Off DIGABUNG (revisi 7 Okt 2026): satu status `cancelled` + `cancel_reason`. Nilai `off` lama tidak dipakai (migrasikan ke `cancelled`) |
+| **Revert** | | | | |
+| `previous_status` | VARCHAR(30) | ✔ | | Status sebelum transisi terakhir — dipakai revert |
+| `client_status_from` | VARCHAR(30) | ✔ | | Sesi asesmen completed yang memajukan client otomatis: tahap client sebelumnya |
+| `client_status_to` | VARCHAR(30) | ✔ | | Tahap hasil transisi otomatis; revert hanya memulihkan bila `clients.status` masih sama |
+| `reverted_at` | TIMESTAMP | ✔ | | Diisi saat revert; revert hanya 1x → diblokir bila terisi, dikosongkan oleh transisi berikutnya |
+| `credit_effect` | ENUM | — | `none` | `none`, `used`, `excused`, `penalty`. Efek kredit transisi terakhir; pada cancel = KEPUTUSAN ADMIN (wajib): `penalty` = kredit dipotong, `excused` = tidak dipotong |
+| **Catatan** | | | | |
+| `booking_note` | TEXT | ✔ | | Catatan admin saat membuat jadwal (tampil di riwayat sesi client). Terpisah dari `cancel_note` / `pending_note` |
+| `history_note` | TEXT | ✔ | | Catatan riwayat; bisa ditimpa siapa pun dengan akses modul schedule; 1 catatan per sesi, tanpa riwayat versi |
+| `history_note_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| **Cuti** (§6.8) | | | | |
+| `leave_id` | BIGINT U | ✔ | | FK → `client_leaves` · SET NULL. Pembatalan (`cancelled`, `cancel_reason = 'OL'`) dari log cuti Finance; tidak menambah `cancel_count`. Log dihapus → sesi tetap `cancelled` biasa |
+| **Cancel** | | | | |
+| `cancel_reason` | VARCHAR(150) | ✔ | | String bebas: code pilihan cepat atau teks custom (tanpa FK) |
+| `cancel_note` | TEXT | ✔ | | |
+| `cancelled_at` | TIMESTAMP | ✔ | | |
+| `cancelled_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| **Complete** | | | | |
+| `completed_at` | TIMESTAMP | ✔ | | |
+| `completed_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| **Reschedule** | | | | |
+| `origin_date`, `origin_start_time`, `origin_end_time` | DATE / TIME / TIME | ✔ | | Slot asal PERTAMA |
+| `origin_therapist_id` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `prev_date`, `prev_start_time`, `prev_end_time` | DATE / TIME / TIME | ✔ | | Slot TEPAT SEBELUM reschedule terakhir = target revert (sama dengan `origin_*` bila baru 1x reschedule; berbeda setelah 2x) |
+| `prev_therapist_id` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `rescheduled_at` | TIMESTAMP | ✔ | | |
+| `pending_reason` | VARCHAR(150) | ✔ | | String bebas, sama seperti `cancel_reason` |
+| `pending_note` | TEXT | ✔ | | |
+| `pending_at` | TIMESTAMP | ✔ | | |
+| `version` | INT U | — | 1 | Optimistic lock |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
-    $table->enum('status', ['scheduled', 'completed', 'cancelled', 'rescheduled', 'reschedule_pending'])->default('scheduled');   // Cancel dan Off DIGABUNG (revisi 7 Okt 2026): satu status `cancelled` + `cancel_reason` dari satu daftar alasan. Nilai `off` lama tidak dipakai lagi (migrasikan ke `cancelled`)
-    $table->string('previous_status', 30)->nullable();   // status sebelum transisi terakhir — dipakai revert
-    $table->string('client_status_from', 30)->nullable(); // sesi asesmen completed yang memajukan client otomatis: tahap client sebelumnya (dipakai revert)
-    $table->string('client_status_to', 30)->nullable();   // tahap hasil transisi otomatis; revert hanya memulihkan bila `clients.status` masih sama
-    $table->timestamp('reverted_at')->nullable();        // diisi saat revert; revert hanya 1x → diblokir bila terisi, dikosongkan oleh transisi berikutnya
-    $table->enum('credit_effect', ['none', 'used', 'excused', 'penalty'])->default('none'); // efek kredit transisi terakhir; pada cancel = KEPUTUSAN ADMIN (wajib dipilih): `penalty` = kredit dipotong, `excused` = tidak dipotong
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_sch_calendar` | `branch_id, session_date, status` | Q1 + `v_daily_sessions` (covering) |
+| `idx_sch_therapist` | `therapist_id, session_date, start_time` | Q2, Q3, Q17, Q25 |
+| `idx_sch_client` | `client_id, session_date` | Q8, Q20, portal ortu |
+| `idx_sch_status` | `status, session_date` | Rekap lintas cabang per status |
+| `idx_sch_series` | `series_id` | Operasi per seri |
+| `idx_sch_leave` | `leave_id` | Sesi cuti milik satu log (void / akhiri lebih awal) |
 
-    // Catatan penjadwalan
-    $table->text('booking_note')->nullable();            // catatan penjadwalan oleh admin saat membuat jadwal (tampil di riwayat sesi client). Dipisah dari cancel_note / pending_note: tiap sumber punya kolom sendiri
-
-    // Catatan riwayat (bisa ditimpa siapa pun yang punya akses modul schedule; 1 catatan per sesi, tanpa riwayat versi)
-    $table->text('history_note')->nullable();
-    $table->foreignId('history_note_by')->nullable()->constrained('users')->nullOnDelete();
-
-    // Cuti (§6.8): `leave_id` = pembatalan (cancelled, `cancel_reason = 'OL'`) yang dibuat dari log cuti Finance; tidak menambah cancel_count.
-    // (kolom `counts_as_leave` DIHAPUS: cuti hanya dari Finance)
-    $table->foreignId('leave_id')->nullable()->constrained('client_leaves')->nullOnDelete();   // log dihapus → sesi tetap `cancelled` biasa
-
-    // Cancel
-    $table->string('cancel_reason', 150)->nullable();    // string bebas: code pilihan cepat atau teks custom (tanpa FK)
-    $table->text('cancel_note')->nullable();
-    $table->timestamp('cancelled_at')->nullable();
-    $table->foreignId('cancelled_by')->nullable()->constrained('users')->nullOnDelete();
-
-    // Complete
-    $table->timestamp('completed_at')->nullable();
-    $table->foreignId('completed_by')->nullable()->constrained('users')->nullOnDelete();
-
-    // Reschedule (jejak slot asal pertama) & reschedule menggantung
-    $table->date('origin_date')->nullable();
-    $table->time('origin_start_time')->nullable();
-    $table->time('origin_end_time')->nullable();
-    $table->foreignId('origin_therapist_id')->nullable()->constrained('users')->nullOnDelete();
-    // Slot TEPAT SEBELUM reschedule terakhir — target revert (sama dengan origin_* bila baru 1x reschedule; berbeda setelah reschedule 2x)
-    $table->date('prev_date')->nullable();
-    $table->time('prev_start_time')->nullable();
-    $table->time('prev_end_time')->nullable();
-    $table->foreignId('prev_therapist_id')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamp('rescheduled_at')->nullable();
-    $table->string('pending_reason', 150)->nullable();   // string bebas, sama seperti cancel_reason
-    $table->text('pending_note')->nullable();
-    $table->timestamp('pending_at')->nullable();
-
-    $table->unsignedInteger('version')->default(1);
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-
-    $table->foreign('service_code')->references('code')->on('services');
-
-    $table->index(['branch_id', 'session_date', 'status'], 'idx_sch_calendar'); // Q1 + v_daily_sessions (covering)
-    $table->index(['therapist_id', 'session_date', 'start_time'], 'idx_sch_therapist');   // Q2, Q3, Q17
-    $table->index(['client_id', 'session_date'], 'idx_sch_client');                       // Q8, portal ortu
-    $table->index(['status', 'session_date'], 'idx_sch_status');                          // auto-complete job, rekap
-    $table->index('series_id', 'idx_sch_series');
-    $table->index('leave_id', 'idx_sch_leave');                                          // sesi cuti milik satu log (void / akhiri lebih awal)
-});
-```
 Catatan:
 - Hari cuti dihitung dari log (`client_leaves`), bukan dari sesi, sehingga tidak butuh indeks tambahan di `schedules`.
 - `rescheduled` = sudah pindah slot (slot baru di `session_date/start_time`, asal pertama di `origin_*`, slot sebelum reschedule terakhir di `prev_*`).
@@ -851,237 +826,236 @@ Catatan:
 
 #### `session_reports`
 Laporan sesi 3 bagian (prototype). Catatan klinis gaya SOAP ditulis bebas di `note_section`; tidak ada kolom SOAP terpisah.
-```php
-Schema::create('session_reports', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('schedule_id')->unique()->constrained()->cascadeOnDelete();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();         // denormalisasi: riwayat laporan per client
-    $table->foreignId('therapist_id')->constrained('users')->restrictOnDelete();
-    $table->text('activity_section')->nullable();     // Aktivitas sesi
-    $table->text('note_section')->nullable();         // Catatan klinis (ringkas, prototype)
-    $table->text('homework_section')->nullable();     // PR / home program
-    $table->unsignedTinyInteger('filled_sections')->storedAs(
-        "(activity_section IS NOT NULL AND activity_section <> '') + (note_section IS NOT NULL AND note_section <> '') + (homework_section IS NOT NULL AND homework_section <> '')"
-    );                                                // 0..3 → filter "laporan lengkap 3/3" (TherapistSummary)
-    $table->unsignedInteger('version')->default(1);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
 
-    $table->index(['client_id', 'created_at'], 'idx_reports_client');
-    $table->index(['therapist_id', 'filled_sections'], 'idx_reports_therapist');
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `schedule_id` | BIGINT U | — | — | UQ. FK → `schedules` · CASCADE |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE. Denormalisasi: riwayat laporan per client |
+| `therapist_id` | BIGINT U | — | — | FK → `users` · RESTRICT |
+| `activity_section` | TEXT | ✔ | | Aktivitas sesi |
+| `note_section` | TEXT | ✔ | | Catatan klinis |
+| `homework_section` | TEXT | ✔ | | PR / home program |
+| `filled_sections` | TINYINT U | — | Gen | 0..3 = jumlah bagian yang terisi (tidak NULL dan tidak kosong) → filter "laporan lengkap 3/3" |
+| `version` | INT U | — | 1 | |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_reports_client` | `client_id, created_at` | Riwayat laporan client |
+| `idx_reports_therapist` | `therapist_id, filled_sections` | Q17, Q19 |
 
 #### `google_calendar_integrations` *(fase terakhir — migration ditunda sampai semua fitur lain selesai)*
-```php
-Schema::create('google_calendar_integrations', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
-    $table->string('google_email', 150);
-    $table->text('refresh_token');                    // terenkripsi (cast `encrypted`)
-    $table->string('calendar_id', 150)->default('primary');
-    $table->boolean('sync_enabled')->default(true);
-    $table->timestamp('last_synced_at')->nullable();
-    $table->timestamps();
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `user_id` | BIGINT U | — | — | UQ. FK → `users` · CASCADE |
+| `google_email` | VARCHAR(150) | — | — | |
+| `refresh_token` | TEXT | — | — | Terenkripsi (cast `encrypted`) |
+| `calendar_id` | VARCHAR(150) | — | `primary` | |
+| `sync_enabled` | BOOLEAN | — | 1 | |
+| `last_synced_at` | TIMESTAMP | ✔ | | |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
 Sinkron satu arah (sesi → Google Calendar) dipanggil **sinkron setelah commit** di request yang sama (di luar transaksi sesi); kegagalan hanya dicatat di log aplikasi dan tidak membatalkan perubahan sesi.
 
 ### F. Keuangan & kredit
 
 #### `invoices`
-```php
-Schema::create('invoices', function (Blueprint $table) {
-    $table->id();
-    $table->string('invoice_number', 40)->unique();   // INV-{type_code}-{YYYYMMDD WIB}-{NNN}, mis. INV-ASM-20261003-001 / INV-REG-20261003-001 (counter per kode + tanggal, dibuat server)
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('master_package_id')->nullable()->constrained()->restrictOnDelete();   // master paket yang pernah dipakai invoice tidak bisa dihapus
-    $table->enum('invoice_type', ['package', 'assessment', 'leave'])->default('package');   // Paket Sesi | Assessment (otomatis dari kode kuesioner BERBAYAR / manual Finance) | `leave` = invoice cuti (kode `CUT`) diterbitkan **Finance** dengan nominal manual, tanpa efek kredit/paket, opsional tertaut ke log cuti lewat `leave_id` (7 Okt 2026). Tanpa diskon manual, DP, cicilan, jatuh tempo (refund hanya lewat `refund_amount` di bawah); satu-satunya pengurang = saldo lebihan konversi, `balance_applied`
-    $table->foreignId('assessment_access_code_id')->nullable()->constrained('assessment_access_codes')->nullOnDelete();   // invoice assessment OTOMATIS: kode kuesioner pemicunya (null = invoice assessment manual Finance, berlaku untuk semua kode client). Hapus kode: service ikut MENGHAPUS invoice-nya hanya bila belum lunas; invoice yang sudah `paid` dibiarkan (FK SET NULL; koreksi lewat Void oleh Finance)
-    $table->foreignId('leave_id')->nullable()->constrained('client_leaves')->nullOnDelete();   // invoice cuti: log cuti yang disambungkan Finance (opsional; null bila tidak disambung / log dihapus; invoice tetap)
-    $table->foreignId('leave_schedule_id')->nullable()->constrained('schedules')->nullOnDelete();   // invoice cuti: sesi Off pemicunya (null bila sesi dihapus; invoice tetap)
-    $table->string('type_code', 10);                  // snapshot: `CUT` untuk cuti, `ASM` untuk assessment, master_packages.invoice_code untuk paket
-    $table->boolean('is_renewal')->default(false);    // true = invoice perpanjangan paket (kedua jalur renewal: terbitkan invoice baru / langsung lunas); hanya `package`. Dipakai badge "Renewal" & filter di Semua Tagihan
 
-    // Snapshot saat tagihan diterbitkan
-    $table->string('package_name', 150);
-    $table->unsignedSmallInteger('credits')->default(0);
-    $table->unsignedBigInteger('amount');             // rupiah, NOMINAL BERSIH yang dibayar ortu (= gross_amount − balance_applied)
-    $table->unsignedBigInteger('gross_amount')->nullable();     // nominal sebelum saldo lebihan; null bila tak ada saldo dipakai
-    $table->unsignedBigInteger('balance_applied')->default(0); // saldo lebihan konversi yang dipotongkan saat terbit; hanya invoice `package`, maks sampai nominal invoice
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `invoice_number` | VARCHAR(40) | — | — | UQ. `INV-{type_code}-{YYYYMMDD WIB}-{NNN}`, mis. `INV-ASM-20261003-001` / `INV-REG-20261003-001` (counter per kode + tanggal, dibuat server) |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `branch_id` | BIGINT U | — | — | FK → `branches` · CASCADE |
+| `master_package_id` | BIGINT U | ✔ | | FK → `master_packages` · RESTRICT (master paket yang pernah dipakai invoice tidak bisa dihapus) |
+| `invoice_type` | ENUM | — | `package` | `package`, `assessment`, `leave`. Paket Sesi \| Assessment (otomatis dari kode kuesioner BERBAYAR / manual Finance) \| invoice cuti (kode `CUT`) diterbitkan **Finance** dengan nominal manual, tanpa efek kredit/paket (7 Okt 2026). Tanpa diskon manual, DP, cicilan, jatuh tempo; satu-satunya pengurang = saldo lebihan konversi (`balance_applied`) |
+| `assessment_access_code_id` | BIGINT U | ✔ | | FK → `assessment_access_codes` · SET NULL. Invoice assessment OTOMATIS: kode pemicu (NULL = invoice assessment manual Finance, berlaku untuk semua kode client). Hapus kode: service ikut MENGHAPUS invoice-nya hanya bila belum lunas; yang sudah `paid` dibiarkan (koreksi lewat Void) |
+| `leave_id` | BIGINT U | ✔ | | FK → `client_leaves` · SET NULL. Invoice cuti: log cuti yang disambungkan Finance (opsional) |
+| `leave_schedule_id` | BIGINT U | ✔ | | FK → `schedules` · SET NULL. Invoice cuti: sesi Off pemicunya |
+| `type_code` | VARCHAR(10) | — | — | Snapshot: `CUT` cuti, `ASM` assessment, `master_packages.invoice_code` untuk paket |
+| `is_renewal` | BOOLEAN | — | 0 | 1 = invoice perpanjangan paket (kedua jalur renewal); hanya `package`. Dipakai badge "Renewal" & filter di Semua Tagihan |
+| `package_name` | VARCHAR(150) | — | — | Snapshot saat terbit |
+| `credits` | SMALLINT U | — | 0 | Snapshot |
+| `amount` | BIGINT U | — | — | Rupiah, NOMINAL BERSIH yang dibayar ortu (= `gross_amount` − `balance_applied`) |
+| `gross_amount` | BIGINT U | ✔ | | Nominal sebelum saldo lebihan; NULL bila tak ada saldo dipakai |
+| `balance_applied` | BIGINT U | — | 0 | Saldo lebihan konversi yang dipotongkan saat terbit; hanya `package`, maks sampai nominal invoice |
+| `status` | ENUM | — | `unpaid` | `unpaid`, `paid`, `void`. FINAL: `unpaid` → `paid` (Finance "Tandai Lunas" / dibuat langsung lunas); `void` = invoice lunas dibatalkan. TANPA `pending_verification` / `rejected`: bukti yang diunggah tidak mengubah status |
+| `void_reason` | TEXT | ✔ | | Wajib bila `status = void` |
+| `void_credit_action` | ENUM | ✔ | | `keep`, `revoke`. Sejak revisi 7 Okt 2026 selalu `keep` (void hanya untuk invoice yang kreditnya belum dipakai); `revoke` hanya di data lama |
+| `reset_leave` | BOOLEAN | — | 0 | Invoice renewal: Finance meminta credit leave direset ke jatah paket saat lunas |
+| `refund_amount` | BIGINT U | ✔ | | REFUND sisa kredit (rupiah, ≤ `amount`): invoice tetap `paid`; masuk gross revenue tetapi dikeluarkan dari verified revenue. Sekali per invoice (NULL = belum direfund) |
+| `refunded_at` | TIMESTAMP | ✔ | | |
+| `refunded_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `refund_reason` | TEXT | ✔ | | Wajib bila `refund_amount` terisi |
+| `refund_credits` | SMALLINT U | ✔ | | Sisa kredit paket yang dinolkan oleh refund |
+| `voided_at` | TIMESTAMP | ✔ | | |
+| `voided_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `replaces_invoice_id` | BIGINT U | ✔ | | UQ. FK → `invoices` · SET NULL. Invoice pengganti: menunjuk invoice void (`keep`) yang paketnya dipakai ulang; satu invoice void hanya bisa digantikan satu kali |
+| `issued_at` | TIMESTAMP | — | now | |
+| `paid_at` | TIMESTAMP | ✔ | | |
+| `paid_date` | DATE | ✔ | Gen | `DATE(paid_at + INTERVAL 7 HOUR)` (WIB) untuk `v_daily_revenue` |
+| `verified_by` | BIGINT U | ✔ | | FK → `users` · SET NULL. Pelaku "Tandai Lunas" / langsung lunas |
+| `verified_at` | TIMESTAMP | ✔ | | |
+| `payment_method` | VARCHAR(40) | — | `transfer` | Teks bebas (mis. transfer, tunai) |
+| `renewal_reason` | VARCHAR(150) | ✔ | | Catatan Finance (opsional) pada invoice langsung lunas / renewal langsung lunas |
+| `proof_upload_count` | TINYINT U | — | 0 | Jumlah upload bukti (semua pengunggah). (a) gating kuesioner: invoice assessment `unpaid` dengan 0 menahan akses kode; (b) batas ORTU maks 4 upload (1 + 3 re-upload). Upload Finance tidak dibatasi |
+| `version` | INT U | — | 1 | Optimistic lock |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
-    $table->enum('status', ['unpaid', 'paid', 'void'])->default('unpaid');   // FINAL (alur frontend): unpaid → paid (Finance "Tandai Lunas" / dibuat langsung lunas); void = invoice lunas dibatalkan. TANPA pending_verification / rejected: bukti yang diunggah tidak mengubah status
-    $table->text('void_reason')->nullable();                      // wajib bila status = void
-    $table->enum('void_credit_action', ['keep', 'revoke'])->nullable();   // hanya invoice `package` yang di-void. Sejak revisi 7 Okt 2026 selalu `keep` (void hanya untuk invoice yang kreditnya belum dipakai, kredit dipertahankan); `revoke` hanya ada di data lama
-    $table->boolean('reset_leave')->default(false);               // invoice paket renewal: Finance meminta jatah cuti direset ke jatah paket saat invoice lunas
-    $table->unsignedBigInteger('refund_amount')->nullable();      // REFUND sisa kredit (rupiah, ≤ amount): invoice tetap `paid`; nominal tetap masuk gross revenue tetapi dikeluarkan dari verified revenue. Sekali per invoice (NULL = belum direfund)
-    $table->timestamp('refunded_at')->nullable();
-    $table->foreignId('refunded_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->text('refund_reason')->nullable();                    // wajib bila refund_amount terisi
-    $table->unsignedSmallInteger('refund_credits')->nullable();   // sisa kredit paket yang dinolkan oleh refund
-    $table->timestamp('voided_at')->nullable();
-    $table->foreignId('voided_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('replaces_invoice_id')->nullable()->unique()->constrained('invoices')->nullOnDelete();   // invoice pengganti: menunjuk invoice void (keep) yang paketnya dipakai ulang; satu invoice void hanya bisa digantikan satu kali
-    $table->timestamp('issued_at')->useCurrent();
-    $table->timestamp('paid_at')->nullable();
-    $table->date('paid_date')->nullable()->storedAs("DATE(paid_at + INTERVAL 7 HOUR)");  // tanggal WIB untuk v_daily_revenue
-    $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();   // pelaku "Tandai Lunas" / langsung lunas (Finance)
-    $table->timestamp('verified_at')->nullable();
-    $table->string('payment_method', 40)->default('transfer');   // teks bebas (mis. transfer, tunai)
-    $table->string('renewal_reason', 150)->nullable();   // catatan Finance (opsional) pada invoice langsung lunas / renewal langsung lunas
-    $table->unsignedTinyInteger('proof_upload_count')->default(0);   // jumlah upload bukti (semua pengunggah). Dipakai (a) gating kuesioner: invoice assessment `unpaid` dengan `proof_upload_count = 0` menahan akses kode; (b) batas ORTU: maks 4 upload (1 + 3 re-upload). Upload Finance tidak dibatasi
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_inv_queue` | `branch_id, status, issued_at` | Q9 |
+| `idx_inv_client` | `client_id, issued_at` | Q8, Q13, Q22, portal ortu |
+| `idx_inv_paid_date` | `status, branch_id, paid_date, amount` | Q11 `v_daily_revenue` (covering) |
 
-    $table->unsignedInteger('version')->default(1);
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
-
-    $table->index(['branch_id', 'status', 'issued_at'], 'idx_inv_queue');                // Q9
-    $table->index(['client_id', 'issued_at'], 'idx_inv_client');                         // Q8, portal ortu
-    $table->index(['status', 'branch_id', 'paid_date', 'amount'], 'idx_inv_paid_date'); // Q11 v_daily_revenue (covering)
-});
-```
 Status final (sesuai frontend): `unpaid` → `paid` (Finance menekan **Tandai Lunas**, atau invoice dibuat langsung lunas) · `paid` → `void` (invoice lunas dibatalkan Finance: alasan wajib, hanya bila kreditnya belum dipakai; satu arah, tercatat di `invoice_logs` `voided`). **Tidak ada status `pending_verification` / `rejected`**: mengunggah bukti tidak mengubah status dan tidak ada tombol Tolak. Invoice `unpaid` boleh dihapus permanen; invoice `paid` / `void` tidak (409), koreksinya lewat Void / Refund (§6.5).
 
-- **Jenis `assessment`**: terbit **otomatis saat kode kuesioner dibuat** (`assessment_access_code_id` = kode itu; nominal = harga layanan/master paket yang dipilih saat generate (disalin ke `amount`/`package_name`), `master_package_id` null, `credits = 0`, tidak membuat `client_packages`) atau manual oleh Finance (tanpa `assessment_access_code_id`). Sebelum membuka kuesioner, ortu **wajib mengunggah bukti transfer** (cukup terunggah, `proof_upload_count > 0`; lunas ditandai Finance terpisah) untuk invoice assessment milik kode itu (atau invoice manual tanpa kode) yang belum `paid`/`void` (§6.5b); dicek lewat `idx_inv_client`.
+- **Jenis `assessment`**: terbit **otomatis saat kode kuesioner dibuat** (`assessment_access_code_id` = kode itu; nominal = harga layanan/master paket yang dipilih saat generate (disalin ke `amount`/`package_name`), `master_package_id` NULL, `credits = 0`, tidak membuat `client_packages`) atau manual oleh Finance (tanpa `assessment_access_code_id`). Sebelum membuka kuesioner, ortu **wajib mengunggah bukti transfer** (cukup terunggah, `proof_upload_count > 0`; lunas ditandai Finance terpisah) untuk invoice assessment milik kode itu (atau invoice manual tanpa kode) yang belum `paid`/`void` (§6.5b); dicek lewat `idx_inv_client`.
 - **Jenis `package`**: `amount`, `credits`, `package_name` adalah **snapshot** master paket saat terbit/renewal; mengubah harga master tidak memengaruhi invoice atau paket yang sudah ada. Renewal ada **2 jalur**: (1) *terbitkan invoice baru* = invoice biasa (`unpaid` → Finance menandai lunas); (2) *langsung lunas* (Finance) = invoice `paid` dibuat sekaligus dengan `renewal_reason` sebagai catatan opsional (juga masuk `invoice_logs.note/data` pada `renewal_paid`). Ortu **tidak** mengunggah bukti: invoice `unpaid` ditandai lunas oleh Finance (`verified`). *Create invoice* juga punya opsi langsung lunas (paket pertama; `is_renewal = 0`). Satu invoice = satu baris log berurutan: bayar, konversi, dst. tetap dihitung 1 invoice. `purchased` vs `renewed` di ledger ditentukan otomatis dari ada tidaknya paket sebelumnya.
 - Tanpa jatuh tempo: pengingat tagihan dilakukan admin manual lewat WhatsApp.
 - **Saldo lebihan**: saat invoice `package` terbit / renewal langsung, `balance_applied = min(clients.leftover_balance, gross)` mengurangi nominal dan saldo client; invoice yang dihapus (permanen) mengembalikan saldo yang dipakainya ke `clients.leftover_balance` (dihitung ulang; lebihan dari konversi yang ikut terhapus hilang). Invoice yang di-**void** mengembalikan saldo yang dipakainya hanya pada pilihan `revoke`; pada `keep` saldo tidak dikembalikan karena paketnya masih dipakai. Paket yang dibuat dari invoice ini memakai **harga gross** sebagai `package_price` (nilai paket utuh).
 
 #### `invoice_logs`
 Log **milik invoice sendiri**, append-only (aplikasi tidak pernah UPDATE/DELETE; baris hanya ikut terhapus bersama invoice-nya), ditulis di transaksi yang sama dengan perubahan invoice. Dipakai tombol **Log** di tab Billing (Q21). Satu-satunya jejak per invoice (tidak ada audit log).
-```php
-Schema::create('invoice_logs', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();   // log ikut terhapus bersama invoice-nya
-    $table->enum('action', ['issued', 'proof_uploaded', 'verified', 'rejected', 'renewal_paid', 'balance_applied', 'converted', 'voided', 'refunded']);   // tambah nilai baru di akhir; `verified` = Tandai Lunas; `rejected` tidak dipakai UI final (tanpa Tolak), dipertahankan agar enum stabil
-    $table->string('actor_name', 120)->nullable();    // snapshot pelaku (staf / "Orang tua")
-    $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
-    $table->string('note', 500)->nullable();          // teks ringkas tampil di UI
-    $table->json('data')->nullable();                 // tidak difilter (mis. conversion_id, sisa, lebihan, nominal saldo)
-    $table->timestamp('created_at', 3)->useCurrent();
 
-    $table->index(['invoice_id', 'created_at', 'id'], 'idx_invlog_invoice');   // Q21: log 1 invoice, terbaru dulu (keyset)
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `invoice_id` | BIGINT U | — | — | FK → `invoices` · CASCADE |
+| `action` | ENUM | — | — | `issued`, `proof_uploaded`, `verified`, `rejected`, `renewal_paid`, `balance_applied`, `converted`, `voided`, `refunded`. Tambah nilai baru di akhir; `verified` = Tandai Lunas; `rejected` tidak dipakai UI final, dipertahankan agar enum stabil |
+| `actor_name` | VARCHAR(120) | ✔ | | Snapshot pelaku (staf / "Orang tua") |
+| `actor_id` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `note` | VARCHAR(500) | ✔ | | Teks ringkas tampil di UI |
+| `data` | JSON | ✔ | | Tidak difilter (mis. `conversion_id`, sisa, lebihan, nominal saldo) |
+| `created_at` | TIMESTAMP(3) | — | now | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_invlog_invoice` | `invoice_id, created_at, id` | Q21: log 1 invoice, terbaru dulu (keyset) |
 
 #### `package_conversions`
-Satu baris per konversi paket oleh Finance (`POST /invoices/{id}/convert-package`). Baris ledger `converted_out`/`converted_in` menunjuk baris ini lewat `credit_ledger.conversion_id`.
-```php
-Schema::create('package_conversions', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();             // invoice yang ditekan tombol Konversi
-    $table->foreignId('from_package_id')->constrained('client_packages')->cascadeOnDelete();
-    $table->foreignId('to_package_id')->constrained('client_packages')->cascadeOnDelete();
-    $table->unsignedSmallInteger('from_remaining');   // sisa sesi paket asal yang dikonversi
-    $table->unsignedSmallInteger('to_sessions');      // sesi di paket baru (otomatis = floor(nilai sisa ÷ harga per sesi tujuan); manual ≤ itu)
-    $table->unsignedBigInteger('remaining_value');    // rupiah: from_remaining × (harga bayar ÷ total kredit asal)
-    $table->unsignedBigInteger('leftover_amount')->default(0);   // rupiah lebihan → clients.leftover_balance (tidak boleh negatif / kekurangan)
-    $table->enum('mode', ['auto', 'manual']);
-    $table->string('reason', 500)->nullable();        // wajib bila mode = manual
-    $table->unsignedSmallInteger('deleted_schedule_count')->default(0);   // jadwal terapi mendatang yang dihapus
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamp('created_at')->useCurrent();
+Satu baris per konversi paket oleh Finance (`POST /invoices/{id}/convert-package`). Baris ledger `converted_out`/`converted_in` menunjuk baris ini lewat `credit_ledger.conversion_id`. Tanpa UPDATE/DELETE dan tanpa fitur revert (jadwal yang dihapus tidak bisa dipulihkan otomatis; koreksi = `manual_adjust` / konversi ulang).
 
-    $table->index(['client_id', 'created_at'], 'idx_conv_client');
-    $table->index(['invoice_id', 'created_at'], 'idx_conv_invoice');
-});
-```
-Tanpa UPDATE/DELETE dan tanpa fitur revert (jadwal yang dihapus tidak bisa dipulihkan otomatis; koreksi = `manual_adjust` / konversi ulang).
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `invoice_id` | BIGINT U | — | — | FK → `invoices` · CASCADE. Invoice yang ditekan tombol Konversi |
+| `from_package_id` | BIGINT U | — | — | FK → `client_packages` · CASCADE |
+| `to_package_id` | BIGINT U | — | — | FK → `client_packages` · CASCADE |
+| `from_remaining` | SMALLINT U | — | — | Sisa sesi paket asal yang dikonversi |
+| `to_sessions` | SMALLINT U | — | — | Sesi di paket baru (otomatis = floor(nilai sisa ÷ harga per sesi tujuan); manual ≤ itu) |
+| `remaining_value` | BIGINT U | — | — | Rupiah: `from_remaining` × (harga bayar ÷ total kredit asal) |
+| `leftover_amount` | BIGINT U | — | 0 | Rupiah lebihan → `clients.leftover_balance` (tidak boleh negatif / kekurangan) |
+| `mode` | ENUM | — | — | `auto`, `manual` |
+| `reason` | VARCHAR(500) | ✔ | | Wajib bila `mode = manual` |
+| `deleted_schedule_count` | SMALLINT U | — | 0 | Jadwal terapi mendatang yang dihapus |
+| `created_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at` | TIMESTAMP | — | now | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_conv_client` | `client_id, created_at` | Q23 |
+| `idx_conv_invoice` | `invoice_id, created_at` | Konversi per invoice |
 
 #### `invoice_counters`
 Counter nomor invoice per kode jenis + tanggal WIB (increment reset harian). Dinaikkan atomik di transaksi terbit invoice: `INSERT … ON DUPLICATE KEY UPDATE last_number = LAST_INSERT_ID(last_number + 1)`. Nomor tampil 3 digit minimal (`001`; melebihi 999 otomatis 4 digit).
-```php
-Schema::create('invoice_counters', function (Blueprint $table) {
-    $table->string('type_code', 10);
-    $table->date('counter_date');                     // tanggal WIB
-    $table->unsignedInteger('last_number')->default(0);
-    $table->primary(['type_code', 'counter_date']);
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `type_code` | VARCHAR(10) | — | — | PK (1/2) |
+| `counter_date` | DATE | — | — | PK (2/2). Tanggal WIB |
+| `last_number` | INT U | — | 0 | |
 
 #### `payment_proofs`
 Riwayat setiap upload bukti (bukan hanya yang terakhir). Bukti **tidak ditinjau / ditolak**: mengunggah tidak mengubah status invoice (Finance yang menandai lunas). Pengunggah: **ortu** hanya untuk invoice `assessment` (syarat membuka kuesioner; maks 4 upload = 1 + 3 re-upload, lihat `invoices.proof_upload_count`) dan **Finance** (`uploaded_by_type = user`) untuk invoice mana pun kecuali `void` (bukti mutasi manual atau mengganti bukti; tanpa batas, boleh untuk invoice `paid`). Format **JPG/PNG/PDF**, maks **5 MB** (divalidasi service); file di storage privat selama data client ada.
-```php
-Schema::create('payment_proofs', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
-    $table->string('file_path', 500);                 // storage privat (bukan public URL)
-    $table->string('file_name', 200);
-    $table->string('mime_type', 80);
-    $table->unsignedInteger('file_size');
-    $table->enum('uploaded_by_type', ['client', 'user']);
-    $table->unsignedBigInteger('uploaded_by_id');
-    $table->timestamp('uploaded_at')->useCurrent();
-    $table->index(['invoice_id', 'uploaded_at'], 'idx_proofs_invoice');
-});
-```
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `invoice_id` | BIGINT U | — | — | FK → `invoices` · CASCADE |
+| `file_path` | VARCHAR(500) | — | — | Storage privat (bukan public URL) |
+| `file_name` | VARCHAR(200) | — | — | |
+| `mime_type` | VARCHAR(80) | — | — | |
+| `file_size` | INT U | — | — | Byte |
+| `uploaded_by_type` | ENUM | — | — | `client`, `user` |
+| `uploaded_by_id` | BIGINT U | — | — | Polimorfik (`clients.id` atau `users.id`), tanpa FK |
+| `uploaded_at` | TIMESTAMP | — | now | |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_proofs_invoice` | `invoice_id, uploaded_at` | Q9 (bukti terakhir) |
 
 #### `client_packages`
 Paket kredit milik client. Satu client bisa punya banyak paket; saldo total = Σ `remaining_credit` paket aktif.
-```php
-Schema::create('client_packages', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('invoice_id')->nullable()->unique()->constrained()->nullOnDelete(); // 1 invoice paid → 1 paket; invoice lunas tidak dihapus lewat UI (void), SET NULL hanya jaring pengaman
-    $table->foreignId('master_package_id')->nullable()->constrained()->restrictOnDelete();   // master paket yang pernah dipakai tidak bisa dihapus
-    $table->string('package_name', 150);              // snapshot
-    $table->unsignedBigInteger('package_price');      // snapshot harga saat paket dibuat/diperpanjang (tidak ikut berubah bila master diedit)
-    $table->unsignedSmallInteger('total_credit');
-    $table->smallInteger('remaining_credit');         // denormalisasi dari ledger; CHECK >= 0
-    $table->unsignedSmallInteger('cancel_count')->default(0);   // penghitung cancel PER PAKET (statistik; tidak lagi kuota 3x)
-    $table->unsignedSmallInteger('leave_total')->default(3);    // CREDIT LEAVE paket (snapshot `master_packages.leave_quota`). Paket reguler: baru per pembelian; paket satuan (`is_satuan`): melanjutkan sisa paket sebelumnya (sisa lama dipindah: `leave_total` paket lama = `leave_used`), kecuali Finance memilih Reset credit leave pada renewal (`invoices.reset_leave`) → diisi ulang ke `leave_quota`, sisa lama hangus
-    $table->unsignedSmallInteger('leave_used')->default(0);     // credit leave terpakai (ledger `cancel_leave`); CHECK leave_used <= leave_total
-    $table->boolean('is_refunded')->default(false);            // true = paket dinolkan oleh refund invoice (ledger `refund`)
-    $table->enum('status', ['active', 'depleted', 'converted', 'voided'])->default('active');   // paket tanpa masa berlaku; `converted` = sisa sesi sudah dikonversi ke paket lain (remaining_credit = 0); `voided` = sisa kredit dinolkan (remaining_credit = 0) oleh REFUND (`is_refunded = 1`) atau data lama void-revoke
-    $table->foreignId('converted_from_package_id')->nullable()->constrained('client_packages')->cascadeOnDelete();   // paket asal bila dibuat lewat konversi (invoice_id null; `cancel_count` disalin dari paket asal)
-    $table->foreignId('converted_to_package_id')->nullable()->constrained('client_packages')->nullOnDelete();     // paket tujuan bila status = converted
-    $table->timestamp('activated_at')->useCurrent();
-    $table->unsignedInteger('version')->default(1);
-    $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamps();
 
-    $table->index(['client_id', 'status', 'activated_at'], 'idx_pkg_client');            // pilih paket aktif tertua (FIFO)
-});
-// MySQL 8.0.16+: CHECK constraint
-DB::statement('ALTER TABLE client_packages ADD CONSTRAINT chk_pkg_remaining CHECK (remaining_credit >= 0 AND remaining_credit <= total_credit)');
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `invoice_id` | BIGINT U | ✔ | | UQ. FK → `invoices` · SET NULL. 1 invoice paid → 1 paket; invoice lunas tidak dihapus lewat UI (void), `SET NULL` hanya jaring pengaman |
+| `master_package_id` | BIGINT U | ✔ | | FK → `master_packages` · RESTRICT |
+| `package_name` | VARCHAR(150) | — | — | Snapshot |
+| `package_price` | BIGINT U | — | — | Snapshot harga saat paket dibuat/diperpanjang |
+| `total_credit` | SMALLINT U | — | — | |
+| `remaining_credit` | SMALLINT | — | — | Denormalisasi dari ledger |
+| `cancel_count` | SMALLINT U | — | 0 | Penghitung cancel PER PAKET (statistik; bukan kuota 3x lagi) |
+| `leave_total` | SMALLINT U | — | 3 | **Credit leave** paket (snapshot `master_packages.leave_quota`). Paket reguler: baru per pembelian; paket satuan (`is_satuan`): melanjutkan sisa paket sebelumnya (`leave_total` paket lama = `leave_used`), kecuali Finance memilih Reset credit leave pada renewal (`invoices.reset_leave`) → diisi ulang ke `leave_quota`, sisa lama hangus |
+| `leave_used` | SMALLINT U | — | 0 | Credit leave terpakai (ledger `cancel_leave`) |
+| `is_refunded` | BOOLEAN | — | 0 | 1 = paket dinolkan oleh refund invoice (ledger `refund`) |
+| `status` | ENUM | — | `active` | `active`, `depleted`, `converted`, `voided`. Paket tanpa masa berlaku; `converted` = sisa sesi sudah dikonversi ke paket lain (`remaining_credit = 0`); `voided` = sisa kredit dinolkan oleh REFUND (`is_refunded = 1`) atau data lama void-revoke |
+| `converted_from_package_id` | BIGINT U | ✔ | | FK → `client_packages` · CASCADE. Paket asal bila dibuat lewat konversi (`invoice_id` NULL; `cancel_count` disalin dari paket asal) |
+| `converted_to_package_id` | BIGINT U | ✔ | | FK → `client_packages` · SET NULL. Paket tujuan bila `status = converted` |
+| `activated_at` | TIMESTAMP | — | now | |
+| `version` | INT U | — | 1 | Optimistic lock |
+| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+| Indeks / constraint | Kolom / aturan | Melayani |
+|---|---|---|
+| `idx_pkg_client` | `client_id, status, activated_at` | Pilih paket aktif tertua (FIFO), Q8 |
+| `chk_pkg_remaining` (CHECK, MySQL 8.0.16+) | `remaining_credit >= 0 AND remaining_credit <= total_credit` | Saldo tidak negatif |
+| CHECK | `leave_used <= leave_total` | Credit leave tidak minus |
 
 #### `credit_ledger`
 Mutasi kredit **append-only**. Tidak ada UPDATE/DELETE; koreksi = baris `reversal`.
-```php
-Schema::create('credit_ledger', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('client_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('branch_id')->constrained()->cascadeOnDelete();          // denormalisasi untuk Q10
-    $table->foreignId('client_package_id')->nullable()->constrained()->cascadeOnDelete();   // paket terhapus (hapus client) = ledger-nya ikut
-    $table->foreignId('schedule_id')->nullable()->constrained()->nullOnDelete();
-    $table->foreignId('invoice_id')->nullable()->constrained()->nullOnDelete();
-    $table->enum('action', ['purchased', 'renewed', 'used', 'cancel_excused', 'cancel_penalty', 'cancel_leave', 'off_excused', 'off_penalty', 'reversal', 'manual_adjust', 'converted_out', 'converted_in', 'refund', 'discharge']);   // converted_out = −sisa paket lama, converted_in = +sesi paket baru (berbagi conversion_id); discharge = −sisa sesi yang hangus saat client di-discharge (satu baris per paket aktif; paket jadi depleted)
-    $table->foreignId('conversion_id')->nullable()->constrained('package_conversions')->cascadeOnDelete();
-    $table->smallInteger('credit_change');            // +N / -1 / 0
-    $table->smallInteger('leave_change')->default(0); // perubahan CREDIT LEAVE paket: −1 pada `cancel_leave` (kredit sesi utuh), +1 pada reversal-nya
-    $table->smallInteger('package_balance_after');    // saldo paket setelah mutasi (audit cepat)
-    $table->integer('client_balance_after');          // saldo total client setelah mutasi
-    $table->unsignedSmallInteger('cancel_count_after')->nullable();   // client_packages.cancel_count setelah mutasi (per paket)
-    $table->string('cancel_reason', 150)->nullable();   // string bebas (tanpa FK)
-    $table->string('package_name', 150)->nullable();  // snapshot
-    $table->text('note')->nullable();
-    $table->foreignId('reverses_ledger_id')->nullable()->unique()->constrained('credit_ledger')->cascadeOnDelete(); // 1 baris hanya bisa di-reverse sekali
-    $table->string('idempotency_key', 100)->nullable()->unique();   // used:schedule:{id}:v{version}
-    $table->char('batch_id', 26)->nullable();         // ULID: mengelompokkan baris ledger dari 1 aksi user (mis. bulk complete)
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-    $table->timestamp('created_at', 3)->useCurrent();
-    $table->date('entry_date')->storedAs("DATE(created_at + INTERVAL 7 HOUR)");  // tanggal WIB
 
-    $table->index(['client_id', 'created_at'], 'idx_ledger_client');                     // riwayat per client
-    $table->index(['branch_id', 'created_at', 'id'], 'idx_ledger_branch');               // Q10 keyset
-    $table->index(['schedule_id', 'action'], 'idx_ledger_schedule');                     // revert sesi
-    $table->index(['branch_id', 'entry_date', 'action'], 'idx_ledger_branch_date');      // v_daily_credit_usage
-});
-```
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
+| `branch_id` | BIGINT U | — | — | FK → `branches` · CASCADE. Denormalisasi untuk Q10 |
+| `client_package_id` | BIGINT U | ✔ | | FK → `client_packages` · CASCADE (paket terhapus = ledger-nya ikut) |
+| `schedule_id` | BIGINT U | ✔ | | FK → `schedules` · SET NULL |
+| `invoice_id` | BIGINT U | ✔ | | FK → `invoices` · SET NULL |
+| `action` | ENUM | — | — | `purchased`, `renewed`, `used`, `cancel_excused`, `cancel_penalty`, `cancel_leave`, `off_excused`, `off_penalty`, `reversal`, `manual_adjust`, `converted_out`, `converted_in`, `refund`, `discharge`. `converted_out` = −sisa paket lama, `converted_in` = +sesi paket baru (berbagi `conversion_id`); `discharge` = −sisa sesi yang hangus saat client di-discharge (satu baris per paket aktif; paket jadi `depleted`); `off_penalty` hanya data lama |
+| `conversion_id` | BIGINT U | ✔ | | FK → `package_conversions` · CASCADE |
+| `credit_change` | SMALLINT | — | — | +N / −1 / 0 |
+| `leave_change` | SMALLINT | — | 0 | Perubahan **credit leave** paket: −1 pada `cancel_leave` (kredit sesi utuh), +1 pada reversal-nya |
+| `package_balance_after` | SMALLINT | — | — | Saldo paket setelah mutasi |
+| `client_balance_after` | INT | — | — | Saldo total client setelah mutasi |
+| `cancel_count_after` | SMALLINT U | ✔ | | `client_packages.cancel_count` setelah mutasi (per paket) |
+| `cancel_reason` | VARCHAR(150) | ✔ | | String bebas (tanpa FK) |
+| `package_name` | VARCHAR(150) | ✔ | | Snapshot |
+| `note` | TEXT | ✔ | | |
+| `reverses_ledger_id` | BIGINT U | ✔ | | UQ. FK → `credit_ledger` · CASCADE. 1 baris hanya bisa di-reverse sekali |
+| `idempotency_key` | VARCHAR(100) | ✔ | | UQ. Mis. `used:schedule:{id}:v{version}` |
+| `batch_id` | CHAR(26) | ✔ | | ULID: mengelompokkan baris ledger dari 1 aksi user (mis. bulk complete) |
+| `created_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
+| `created_at` | TIMESTAMP(3) | — | now | |
+| `entry_date` | DATE | — | Gen | `DATE(created_at + INTERVAL 7 HOUR)` (tanggal WIB) |
+
+| Indeks | Kolom | Melayani |
+|---|---|---|
+| `idx_ledger_client` | `client_id, created_at` | Riwayat per client, Q22 |
+| `idx_ledger_branch` | `branch_id, created_at, id` | Q10 (keyset) |
+| `idx_ledger_schedule` | `schedule_id, action` | Revert sesi |
+| `idx_ledger_branch_date` | `branch_id, entry_date, action` | `v_daily_credit_usage` |
 
 ### G. Analitik
 
@@ -1091,19 +1065,13 @@ Dashboard membaca **VIEW MySQL** di atas tabel transaksi. View tidak menyimpan d
 2. Tanggal bisnis memakai **generated column tanggal WIB** (`… + INTERVAL 7 HOUR`, WIB tanpa DST) agar transaksi jam 00:00–06:59 WIB tidak tercatat di tanggal UTC kemarin.
 3. Query ke view **selalu** memakai filter cabang + rentang tanggal. MySQL ≥ 8.0.22 mendorong filter itu ke dalam view ber-`GROUP BY` (*derived condition pushdown*), sehingga hanya rentang indeks yang dibaca.
 
-Generated column & indeks pendukung (ringkasan — sudah tercantum di spesifikasi tabel masing-masing):
-```php
-// invoices
-$table->date('paid_date')->nullable()->storedAs("DATE(paid_at + INTERVAL 7 HOUR)");
-$table->index(['status', 'branch_id', 'paid_date', 'amount'], 'idx_inv_paid_date'); // v_daily_revenue (covering)
-// client_status_histories (branch_id ikut disimpan saat insert — denormalisasi dari clients)
-$table->date('changed_date')->storedAs("DATE(changed_at + INTERVAL 7 HOUR)");
-$table->index(['branch_id', 'changed_date', 'to_status'], 'idx_csh_branch_date');       // v_daily_pipeline (covering)
-// credit_ledger
-$table->date('entry_date')->storedAs("DATE(created_at + INTERVAL 7 HOUR)");
-$table->index(['branch_id', 'entry_date', 'action'], 'idx_ledger_branch_date');         // v_daily_credit_usage
-// schedules: session_date sudah DATE lokal → cukup idx_sch_calendar (branch_id, session_date, status), covering untuk v_daily_sessions
-```
+Generated column & indeks pendukung (ringkasan; rinci di spesifikasi tabel masing-masing):
+
+| Tabel | Generated column (WIB) | Indeks covering | Dipakai view |
+|---|---|---|---|
+| `invoices` | `paid_date` = `DATE(paid_at + INTERVAL 7 HOUR)` | `idx_inv_paid_date (status, branch_id, paid_date, amount)` | `v_daily_revenue` |
+| `credit_ledger` | `entry_date` = `DATE(created_at + INTERVAL 7 HOUR)` | `idx_ledger_branch_date (branch_id, entry_date, action)` | `v_daily_credit_usage` |
+| `schedules` | — (`session_date` sudah `DATE` lokal) | `idx_sch_calendar (branch_id, session_date, status)` | `v_daily_sessions` |
 
 ```sql
 -- Q11 Revenue dashboard: omzet harian per cabang
@@ -1132,11 +1100,9 @@ FROM schedules s
 LEFT JOIN cancel_reasons r ON r.code = s.cancel_reason   -- tabel kecil ber-PK code
 GROUP BY s.branch_id, s.session_date;
 
--- Q12 Inquiry dashboard & Branch performance: funnel pipeline harian per cabang
-CREATE OR REPLACE VIEW v_daily_pipeline AS
-SELECT branch_id, changed_date, to_status, COUNT(*) AS transitions
-FROM client_status_histories
-GROUP BY branch_id, changed_date, to_status;
+-- Funnel pipeline (Dashboard Inquiry, Branch Performance): TIDAK memakai view/riwayat. Dihitung live dari `clients`:
+--   SELECT status, COUNT(*) FROM clients WHERE branch_id = ? AND created_at BETWEEN ? AND ? GROUP BY status;   -- idx_clients_pipeline
+-- ditambah tanggal date_of_join / date_of_discharge / date_of_discontinue untuk hitungan per periode.
 
 -- Finance / revenue: pemakaian & penambahan kredit harian per cabang
 CREATE OR REPLACE VIEW v_daily_credit_usage AS
@@ -1189,7 +1155,7 @@ WHERE branch_id = 1 AND paid_date BETWEEN '2026-01-01' AND '2026-12-31';
 
 ## 05. Jejak perubahan (tanpa audit log)
 
-Keputusan ADR 0004: **tidak ada tabel `audit_logs`**. Jejak perubahan memakai kolom pelaku di setiap tabel dan empat log khusus yang memang dibutuhkan bisnis (`credit_ledger`, `client_status_histories`, `invoice_logs`, `package_conversions`).
+Keputusan ADR 0004: **tidak ada tabel `audit_logs`**. Jejak perubahan memakai kolom pelaku di setiap tabel dan tiga log khusus yang memang dibutuhkan bisnis (`credit_ledger`, `invoice_logs`, `package_conversions`).
 
 ### 5.1 Kolom pelaku (semua modul)
 Setiap tabel transaksi/master punya `created_by` dan `updated_by` (FK `users`, nullable); `updated_by` hanya menyimpan editor **terakhir** (tanpa nilai lama/baru) — keputusan klien.
@@ -1198,7 +1164,7 @@ Setiap tabel transaksi/master punya `created_by` dan `updated_by` (FK `users`, n
 | Data | Jejak |
 |---|---|
 | Kredit (sesi completed/cancel/revert, renewal, konversi, koreksi) | `credit_ledger` append-only: `created_by` (pelaku; frontend mengirim `history[].by` = nama staf pemicu: completed/cancel/off/revert oleh admin schedule, renewal/konversi/void oleh Finance), `reverses_ledger_id` (undo = baris `reversal` yang menunjuk baris asal, hanya 1x), `batch_id`, `conversion_id` |
-| Pipeline client (otomatis & manual, outcome, discharge, revert) | `client_status_histories` (from/to, `changed_by`, `trigger`, `note`) |
+| Pipeline client (otomatis & manual, outcome, discharge, revert) | Hanya status terakhir: `clients.status`, `status_changed_at`, `updated_by`, plus tanggal `date_of_join` / `date_of_discharge` / `date_of_discontinue` dan `schedules.client_status_from/to` (untuk revert). **Tanpa tabel riwayat tahap** (keputusan 13 Okt 2026) |
 | Invoice (terbit, upload bukti, tandai lunas, renewal, pemakaian/pengembalian saldo, konversi, hapus) | `invoice_logs` (§F; pelaku, waktu, catatan, `data` JSON) |
 | Konversi paket | `package_conversions` (`created_by`, mode, alasan, sisa, sesi baru, lebihan, jumlah jadwal terhapus) |
 | Status client yang berubah otomatis oleh sesi asesmen | `schedules.client_status_from/to` (dipakai revert untuk memulihkan tahap client) |
@@ -1260,15 +1226,15 @@ WHERE r.created_at >= '2026-10-01';
 
 ## 06. Alur transaksi kritis
 
-Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `version` (optimistic lock), isi kolom pelaku (`updated_by`, `created_by`) dan log khusus (`credit_ledger`, `invoice_logs`, `client_status_histories`) di transaksi yang sama. Respons error: 409 (versi berubah / bentrok jadwal), 422 (validasi).
+Semua alur: `DB::transaction()`, kunci baris dengan `lockForUpdate()`, cek `version` (optimistic lock), isi kolom pelaku (`updated_by`, `created_by`) dan log khusus (`credit_ledger`, `invoice_logs`) di transaksi yang sama. Respons error: 409 (versi berubah / bentrok jadwal), 422 (validasi).
 
 ### 6.1 Complete sesi (`POST /schedules/{id}/complete`)
 1. Lock `schedules` (id) → cek `version` & status ∈ {scheduled, rescheduled}.
 2. Jika `type = therapy`: lock `client_packages` aktif client (`ORDER BY activated_at` — FIFO; prioritas `client_package_id` sesi) → `remaining_credit -= 1` (CHECK ≥ 0), status `depleted` bila 0.
 3. Insert `credit_ledger` (`used`, idempotency key) → update `clients.credit_balance`.
 4. Update sesi: `status=completed`, `previous_status`, `credit_effect=used`, `completed_*`, `version+1`; upsert `session_reports`.
-5. Jika `type = assessment` dan status client sebelum `assessment_done` → update `clients.status`, insert `client_status_histories` (`trigger=session_completed`).
-6. Jejak: `schedules.updated_by/completed_by` + ledger `used`; perubahan status client tercatat di `client_status_histories`. Dashboard otomatis ikut berubah karena membaca view (tidak ada ringkasan yang perlu di-update).
+5. Jika `type = assessment` dan status client sebelum `assessment_done` → update `clients.status`, `status_changed_at`, `updated_by`.
+6. Jejak: `schedules.updated_by/completed_by` + ledger `used`; perubahan status client tercatat di `clients.status_changed_at` / `updated_by` (tanpa riwayat tahap). Dashboard otomatis ikut berubah karena membaca view (tidak ada ringkasan yang perlu di-update).
 
 ### 6.2 Cancel sesi (`POST /schedules/{id}/cancel`) — keputusan kredit oleh admin
 Berlaku untuk sesi berstatus `scheduled`, `rescheduled`, dan `reschedule_pending` (termasuk "drop" reschedule yang menggantung), di **semua jenis kalender** (terapi, asesmen, konsultasi). Request wajib `reason` dan `deduct_credit` (boolean **tanpa default**: admin harus memilih potong kredit atau tidak).
@@ -1295,7 +1261,7 @@ Aturan tambahan (diterapkan di frontend demo, `useSessionActions.revertSession`)
 - **Alasan wajib** (maks 300 karakter). Sesi yang kembali aktif (`scheduled`/`rescheduled`) harus lolos cek bentrok §6.4 (409 bila slot sudah terisi).
 - **Ledger append-only**: baris `used` / `cancel_*` lama tidak diubah. Revert = baris `reversal` baru dengan `reverses_ledger_id` → baris asal (UNIQUE, jadi satu baris hanya bisa dibalik sekali).
 - **Complete lagi setelah revert** sah dan membuat baris `used` **baru** (id berbeda, `idempotency_key` memakai `version` baru). Revert berikutnya menunjuk baris `used` yang terbaru yang belum dibalik, bukan yang lama.
-- **Asesmen completed**: bila di aksi asal status client naik otomatis ke `assessment_done`, revert mengembalikannya ke status sebelumnya (hanya jika status client masih `assessment_done`) + `client_status_histories` `trigger = revert`.
+- **Asesmen completed**: bila di aksi asal status client naik otomatis ke `assessment_done`, revert mengembalikannya ke status sebelumnya (hanya jika status client masih `assessment_done`).
 - Revert `completed` memakai `previous_status` sesi; data lama tanpa `previous_status` dianggap `scheduled` (atau `rescheduled` bila ada jejak `origin_*`).
 
 ### 6.4 Buat / pindah sesi (conflict check)
@@ -1304,7 +1270,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 1. `SELECT … FROM schedules WHERE therapist_id=? AND session_date=? AND status NOT IN ('cancelled','reschedule_pending') FOR UPDATE` (indeks `idx_sch_therapist`).
 2. Cek overlap jam dengan sesi aktif terapis itu (tidak ada konsep jam kerja; bentrok = terapis sudah handle client lain di jam yang sama). Bentrok → 409 dengan daftar sesi bentrok (kecuali `force=true` oleh role yang diizinkan; jejak = `schedules.updated_by`).
 3. Insert/update. Pindah slot (reschedule): isi `prev_*` dari slot sekarang (dan `origin_*` hanya bila masih kosong). Seri berulang: insert batch dalam satu transaksi (`schedule_series` + N `schedules`, tanggal libur dilewati). **Ganti/hapus jadwal rutin** (`POST /clients/{id}/routine-replace`, satu transaksi): hanya `schedules` berstatus `scheduled` pada seri/pola yang berubah dan `session_date >= berlaku_mulai` yang di-`DELETE` (sesi completed/cancelled/off/rescheduled/pending tidak disentuh, kredit tidak berubah), lalu seri baru dibuat. **Nasib baris `schedule_series` lama**: bila semua sesinya ikut terhapus, seri itu di-`DELETE`; bila masih punya sesi lain (completed/cancelled/rescheduled, atau hari yang tidak diganti), seri dipertahankan dan `ends_on` dipotong ke sehari sebelum tanggal berlaku (`pattern` hari yang diganti dibuang). Seri baru memakai `starts_on` = tanggal berlaku. Menambah recurring lewat modal Tambah Jadwal hanya menambah seri baru, seri lama tidak disentuh. Detail client menampilkan seri aktif (`ends_on >= hari ini` dan masih punya sesi `scheduled`) beserta `starts_on`–`ends_on`; cek overlap terapis (`FOR UPDATE`) atas sesi baru, bentrok → 422 tanpa perubahan.
-4. Saat **membuat** sesi `type = assessment` dan `clients.status` masih sebelum `assessment_scheduled` (`inquiry` / `service_selected`): update `clients.status = assessment_scheduled` + insert `client_status_histories` (`trigger=assessment_scheduled`) di transaksi yang sama (riwayat = `client_status_histories`). Boleh melompat dari `inquiry` (tidak perlu `service_selected` / kode kuesioner dulu); transisi **otomatis** tidak pernah mundur (perubahan manual bebas, lihat §6.6). Pindah jadwal (reschedule) tidak memicu transisi.
+4. Saat **membuat** sesi `type = assessment` dan `clients.status` masih sebelum `assessment_scheduled` (`inquiry` / `service_selected`): update `clients.status = assessment_scheduled` di transaksi yang sama. Boleh melompat dari `inquiry` (tidak perlu `service_selected` / kode kuesioner dulu); transisi **otomatis** tidak pernah mundur (perubahan manual bebas, lihat §6.6). Pindah jadwal (reschedule) tidak memicu transisi.
 
 ### 6.5 Terbit invoice & Tandai Lunas
 **Terbit** (`POST /invoices`, role dengan akses modul finance): `invoice_type` = `package` | `assessment`. Nomor `INV-{type_code}-{YYYYMMDD WIB}-{NNN}` dari `invoice_counters` (atomik di transaksi yang sama). Paket: salin snapshot (`package_name`, `credits`, `amount`, harga) dari `master_packages`; kode = `invoice_code`. Assessment: `type_code = ASM`, nominal diisi Finance (manual) atau nominal bawaan bila terbit otomatis dari pembuatan kode kuesioner (satu transaksi dengan insert `assessment_access_codes`), tanpa paket/kredit. `is_renewal = true` bila diterbitkan dari dialog Renewal (jalur "terbitkan invoice baru"). Tulis `invoice_logs` (`issued`).
@@ -1318,7 +1284,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 
 **Renewal** punya 2 jalur: *terbitkan invoice baru* (= alur invoice biasa di atas) atau **langsung lunas** (Finance; tunai/di tempat): `renewal_reason` opsional (catatan), lalu satu transaksi membuat invoice `paid` + `client_packages` + ledger `renewed`; `invoice_logs` (`renewal_paid`, `data` memuat catatan). **Koreksi saldo** (`manual_adjust`, wajib alasan) = aksi modul finance.
 
-**Void invoice lunas** (`POST /invoices/{id}/void`, modul finance, tanpa `can_delete`; body `reason`): satu transaksi. **Hanya untuk invoice yang kreditnya BELUM dipakai** (revisi 7 Okt 2026): untuk invoice `package`, tolak 422 `void_credit_used` bila paket akarnya `remaining_credit < total_credit`, sudah ada sesi `completed` yang memakai rantai paketnya, paketnya sudah dikonversi, atau invoice sudah direfund. Tidak ada lagi pilihan "cabut sisa kredit": void selalu **mempertahankan** kredit. (1) Lock invoice (status harus `paid`; invoice belum lunas dihapus, bukan di-void) lalu `status = void`, `void_reason`, `voided_at/by`, `void_credit_action = keep` (invoice package); tulis `invoice_logs` `voided`. (2) Paket, sisa kredit, jadwal tidak berubah (paket tetap menunjuk invoice void sampai ada invoice pengganti). (3) Invoice `void` tidak ikut v_daily_revenue (hanya `status = 'paid'`), tidak masuk antrean Menunggu Pembayaran, dan invoice assessment `void` tidak lagi menahan gating kuesioner.
+**Void invoice lunas** (`POST /invoices/{id}/void`, modul finance; body `reason`): satu transaksi. **Hanya untuk invoice yang kreditnya BELUM dipakai** (revisi 7 Okt 2026): untuk invoice `package`, tolak 422 `void_credit_used` bila paket akarnya `remaining_credit < total_credit`, sudah ada sesi `completed` yang memakai rantai paketnya, paketnya sudah dikonversi, atau invoice sudah direfund. Tidak ada lagi pilihan "cabut sisa kredit": void selalu **mempertahankan** kredit. (1) Lock invoice (status harus `paid`; invoice belum lunas dihapus, bukan di-void) lalu `status = void`, `void_reason`, `voided_at/by`, `void_credit_action = keep` (invoice package); tulis `invoice_logs` `voided`. (2) Paket, sisa kredit, jadwal tidak berubah (paket tetap menunjuk invoice void sampai ada invoice pengganti). (3) Invoice `void` tidak ikut v_daily_revenue (hanya `status = 'paid'`), tidak masuk antrean Menunggu Pembayaran, dan invoice assessment `void` tidak lagi menahan gating kuesioner.
 
 **Refund sisa kredit** (`POST /invoices/{id}/refund`, modul finance; body `amount`, `reason`): hanya invoice `package` `paid` yang belum pernah direfund (`refund_amount IS NULL`) dan paket hidupnya masih bersisa kredit. Nominal diusulkan otomatis = sisa kredit × harga per sesi (snapshot `package_price` ÷ `total_credit`) dan **boleh diubah Finance** (0 < amount ≤ `invoices.amount`). Satu transaksi: `invoices.refund_amount/refunded_at/refunded_by/refund_reason/refund_credits`; paket hidup di ujung rantai → `status = voided`, `is_refunded = 1`, `remaining_credit = 0`; ledger `refund` bernilai −sisa; `clients.credit_balance` diperbarui; sesi **mendatang** yang memakai paket itu dipindah ke paket aktif tertua lain, bila tak ada `client_package_id = NULL` (Frozen, tidak dihapus); `invoice_logs` `refunded`. Invoice tetap `paid`. **Dampak omzet**: bagian yang sudah terpakai tetap *verified revenue*; `refund_amount` tetap masuk *gross revenue* tetapi dikeluarkan dari *verified revenue* (view `v_daily_revenue`: `gross_revenue`, `refund_total`, `revenue`).
 
@@ -1346,27 +1312,27 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 ### 6.6 Transisi status client (`POST /clients/{id}/transition`)
 - **Otomatis** (efek aksi lain: jadwal asesmen, kode kuesioner terbit, sesi asesmen completed; **kuesioner terkirim tidak mengubah status**) hanya **maju** (`advanceStatus` di `frontend/src/domain/client.js`).
 - **Manual**: admin boleh mengubah ke **tahap pipeline mana pun**, maju maupun mundur, termasuk koreksi outcome yang salah (cari client di pipeline lalu ubah status, mis. kembali ke `admitted`) dan reaktivasi `discharged` / `discontinued` → `admitted` (dari list maupun detail client).
-- Discharge (`trigger = discharge`) juga: hapus permanen semua `schedules` aktif client (`scheduled`/`rescheduled`/`reschedule_pending`, termasuk seri recurring) dan hanguskan sisa sesi (ledger `discharge`, −sisa per paket aktif, paket `depleted`), satu transaksi.
-- Efek: set `status`, `status_changed_at`, `final_outcome` (sesuai outcome), `date_of_join` saat admit pertama, `date_of_discharge` saat discharged, `date_of_discontinue` saat discontinued, `updated_by`. Selalu insert `client_status_histories` (`trigger` = `manual` / `outcome` / `discharge` / `revert`). Admit tidak membuat paket (saldo 0 = frozen sampai Finance mengaktifkan paket).
+- Discharge juga: hapus permanen semua `schedules` aktif client (`scheduled`/`rescheduled`/`reschedule_pending`, termasuk seri recurring) dan hanguskan sisa sesi (ledger `discharge`, −sisa per paket aktif, paket `depleted`), satu transaksi.
+- Efek: set `status`, `status_changed_at`, `final_outcome` (sesuai outcome), `date_of_join` saat admit pertama, `date_of_discharge` saat discharged, `date_of_discontinue` saat discontinued, `updated_by`. Tidak ada riwayat tahap: hanya status terakhir yang disimpan (pelaku = `updated_by`). Admit tidak membuat paket (saldo 0 = frozen sampai Finance mengaktifkan paket).
 
 ### 6.7 Hapus data (permanen, semua modul) — ADR 0005
 **Konsep:** semua hapus adalah `DELETE` fisik (bukan soft delete). Data milik induk ikut terhapus lewat FK `ON DELETE CASCADE`; tidak ada kolom `deleted_at`/`deleted_by` dan tidak ada jejak di DB. Pemulihan hanya dari backup (harian + arsip 6 bulan/1 tahun, §11), jadi UI wajib memakai konfirmasi dan service mencatat satu baris ke **log aplikasi** (file, bukan tabel).
 
-1. Policy: `roles.can_delete = 1` **dan** role punya akses modul bersangkutan; selain itu tombol tidak tampil dan endpoint 403. Semua hapus = `DB::transaction()` + `lockForUpdate()` pada baris induk.
+1. Policy: **hapus client (inquiry/aktif) dan hapus cabang hanya role `master`**; hapus operasional (invoice belum lunas, sesi, jadwal rutin, libur, master data, kode kuesioner) cukup akses modul bersangkutan. Selain itu tombol tidak tampil dan endpoint 403. Semua hapus = `DB::transaction()` + `lockForUpdate()` pada baris induk.
 2. **Matriks hapus** (yang ikut terhapus = FK `CASCADE`; pemblokir = FK `RESTRICT`):
 
 | Hapus | Ikut terhapus | Pemblokir / catatan |
 |---|---|---|
-| **Client** | `client_services`, `client_documents`, `client_status_histories`, `assessment_access_codes` → `assessment_responses` → `assessment_answers`/`assessment_quadrant_scores` (+ `assessment_drafts`), `schedule_series`, **`client_leaves`** → `client_leave_sessions`, **`schedules`** → `session_reports`, **`invoices`** → `payment_proofs`/`invoice_logs`, `client_packages` (lewat client), `package_conversions`, `credit_ledger` | Tidak ada. Kode client tidak dipakai ulang (counter tidak turun). File bukti bayar di storage privat dihapus sinkron tepat setelah commit. Client tidak bisa login portal ortu lagi |
+| **Client** | `client_services`, `client_documents`, `assessment_access_codes` → `assessment_responses` → `assessment_answers`/`assessment_quadrant_scores` (+ `assessment_drafts`), `schedule_series`, **`client_leaves`** → `client_leave_sessions`, **`schedules`** → `session_reports`, **`invoices`** → `payment_proofs`/`invoice_logs`, `client_packages` (lewat client), `package_conversions`, `credit_ledger` | **Hanya role `master`.** Kode client tidak dipakai ulang (counter tidak turun). File bukti bayar di storage privat dihapus sinkron tepat setelah commit. Client tidak bisa login portal ortu lagi |
 | **Invoice** (hanya `unpaid`) | `payment_proofs` (+ file), `invoice_logs` | Invoice belum lunas belum punya paket, jadi tidak ada paket/ledger/sesi yang terdampak. Saldo lebihan yang dipakai invoice itu (`balance_applied`) dikembalikan ke `clients.leftover_balance`. **Invoice `paid` / `void` tidak boleh dihapus** (service menolak 409): koreksi lewat **Void** (§6.5). Hapus invoice assessment membuka gating kuesioner bila tidak ada invoice assessment lain yang belum lunas |
 | **Sesi (jadwal)** | `session_reports` | Sesi `completed`/ber-ledger harus di-revert dulu (422) agar kredit konsisten; `credit_ledger.schedule_id` jadi NULL (`SET NULL`); ledger paket tetap |
 | **Master ber-FK**: `services`, `sensory_quadrants`, `master_packages`, `assessment_categories` / `assessment_sections` / `assessment_questions`, `roles` | `assessment_categories` → `assessment_sections` → `assessment_questions` (bila belum dipakai); `roles` → `role_permissions` | **Hanya bila belum pernah dipakai**: FK `RESTRICT` (`client_services`/`schedules.service_code`, `assessment_questions.quadrant_code`/`assessment_quadrant_scores`, `invoices`/`client_packages.master_package_id`, `assessment_access_codes`/`assessment_responses.category_id`, `assessment_answers.question_id`, `users.role_id`) menolak hapus. Service mengecek dulu dan mengembalikan 409 dengan alasan ramah ("sudah dipakai di N client"); FK adalah jaring pengaman. Untuk yang sudah dipakai: nonaktifkan (`is_active = 0`) |
 | **Master pilihan string**: `cancel_reasons`, `discharge_reasons`, `holidays` | Tidak ada | Langsung dihapus tanpa cek (transaksi menyimpan string, bukan FK) |
 | **Kode kuesioner** `issued` | invoice assessment pemicu yang **belum lunas** (dihapus service) | Hanya yang belum diisi **dan belum punya draft** (409 `draft_exists`). `submitted` tidak bisa dihapus selain lewat hapus client. Invoice assessment yang sudah `paid` dibiarkan (FK `SET NULL`) |
-| **Cabang** | Semua isi cabang: `clients` (dan seluruh turunannya di atas), `schedule_series`, `client_leaves`, `schedules`, `invoices`, `credit_ledger`, `client_status_histories`, `holidays` cabang itu, lalu akun `users` cabang itu (non-master) | Tidak ada pemblokir. Akun `master` (`branch_id` NULL) tidak tersentuh. Lihat alur di bawah |
+| **Cabang** | Semua isi cabang: `clients` (dan seluruh turunannya di atas), `schedule_series`, `client_leaves`, `schedules`, `invoices`, `credit_ledger`, `holidays` cabang itu, lalu akun `users` yang `branch_id`-nya = cabang itu | **Hanya role `master`.** Tidak ada pemblokir. Akun ber-`branch_id` NULL (semua cabang, mis. master) tidak tersentuh. Lihat alur di bawah |
 | **Staf** (`users`) | — | Tidak dihapus lewat UI (dinonaktifkan). Terhapus hanya lewat hapus cabang |
 
-3. **Alur hapus cabang** (`DeleteBranchAction`, **sinkron** dalam satu request; UI menampilkan loading dan boleh lama): (a) wajib konfirmasi mengetik kode cabang + role `can_delete`; (b) satu `DB::transaction()` **atomik (semua atau tidak sama sekali)** berisi urutan: `schedules` per batch (`chunkById(1000)` untuk menjaga memori) → `clients` per batch (cascade ke seluruh turunannya) → sisa `invoices`/`credit_ledger` cabang → `holidays` cabang → `users` non-master cabang (FK `users.branch_id` sengaja `RESTRICT`, dihapus eksplisit setelah semua sesinya hilang karena `schedules.therapist_id` `RESTRICT`) → baris `branches`; (c) setelah commit, file bukti bayar dihapus dari storage privat **sinkron** (daftar path dikumpulkan sebelum `DELETE`; kegagalan hapus file hanya dicatat di log aplikasi); (d) respons `200` berisi ringkasan jumlah client/sesi/invoice/akun yang terhapus, dan satu baris ke log aplikasi. Konfigurasi: `set_time_limit(0)` untuk rute ini dan `proxy_read_timeout` web server dinaikkan (mis. 300 dtk) hanya untuk `DELETE /branches/{id}`. Kedalaman cascade terpanjang (cabang → client → invoice → paket → ledger → reversal) < 15 tingkat batas InnoDB.
+3. **Alur hapus cabang** (`DeleteBranchAction`, **sinkron** dalam satu request; UI menampilkan loading dan boleh lama): (a) wajib konfirmasi mengetik kode cabang + role `master`; (b) satu `DB::transaction()` **atomik (semua atau tidak sama sekali)** berisi urutan: `schedules` per batch (`chunkById(1000)` untuk menjaga memori) → `clients` per batch (cascade ke seluruh turunannya) → sisa `invoices`/`credit_ledger` cabang → `holidays` cabang → `users` yang `branch_id`-nya cabang itu (FK `users.branch_id` sengaja `RESTRICT`, dihapus eksplisit setelah semua sesinya hilang karena `schedules.therapist_id` `RESTRICT`) → baris `branches`; (c) setelah commit, file bukti bayar dihapus dari storage privat **sinkron** (daftar path dikumpulkan sebelum `DELETE`; kegagalan hapus file hanya dicatat di log aplikasi); (d) respons `200` berisi ringkasan jumlah client/sesi/invoice/akun yang terhapus, dan satu baris ke log aplikasi. Konfigurasi: `set_time_limit(0)` untuk rute ini dan `proxy_read_timeout` web server dinaikkan (mis. 300 dtk) hanya untuk `DELETE /branches/{id}`. Kedalaman cascade terpanjang (cabang → client → invoice → paket → ledger → reversal) < 15 tingkat batas InnoDB.
 4. Tidak ada kolom/enum untuk menandai hapus: `invoice_logs.action` tidak punya `deleted`, tabel tidak punya `softDeletes`, view tidak memfilter `deleted_at`.
 
 ### 6.8 Cuti client (saldo jatah per paket)
@@ -1381,10 +1347,10 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
    - Setiap sesi dicek bentrok §6.4: lolos → `status = previous_status` (default `scheduled`), `cancel_reason`/`cancel_note` dikosongkan, `leave_id = NULL`, **`reverted_at` tetap NULL** (ini koreksi cuti, bukan revert sesi; tidak memakan jatah "revert 1x"), ledger `reversal` bila sesi punya baris `off_*` (`off_excused` → reversal bernilai 0; `off_penalty` hanya data lama). Bentrok → sesi dilewati: `leave_id = NULL`, tetap `cancelled` (bisa di-revert manual), dilaporkan di respons (`conflicted`).
    - Log: `return_date`/`return_note` terisi (akhiri lebih awal) atau `status = voided` + `void_reason/voided_at/voided_by` (void). Hari yang tidak lagi berlaku otomatis kembali ke jatah karena dihitung, bukan disimpan. Void tidak bisa dibatalkan (catat cuti baru bila perlu).
 3. **Tidak ada Off manual yang menghitung cuti** (fitur `counts_as_leave` dihapus). Revert pembatalan cuti (`POST /schedules/{id}/revert`) mengosongkan `leave_id` sehingga sesi tidak lagi tertaut log.
-4. **Saldo jatah cuti** (`GET /clients/{id}/leave-quota`): `quota = clients.leave_granted` (30), `used` = hari terpakai sejak `GREATEST(clients.leave_reset_at, leave_resets terakhir)` (lihat `client_leaves`), `remaining`, `over`; dihitung live (Q24), tanpa job. **Hanya Finance yang mengubahnya** (Reset Cuti Tahunan, butir 7); pembelian paket TIDAK menambah jatah cuti 30 hari (itu credit leave paket, berbeda).
-7. **Reset cuti tahunan** (`POST /leaves/annual-reset`, modul finance, tombol *Reset Cuti Tahunan*; dipakai di awal tahun): **menghanguskan seluruh cuti tersisa** dan mengembalikan SEMUA client ke 30 hari. Satu transaksi: `UPDATE clients SET leave_granted = 30, leave_reset_at = :hari_ini` + insert `leave_resets (reset_date, by, clients_count, forfeited_days)`; `forfeited_days = Σ GREATEST(0, leave_granted − terpakai)` (dihitung sebelum update, ditampilkan di dialog konfirmasi). Pemakaian cuti sebelum tanggal reset tidak dihitung lagi; hari cuti yang jatuh SETELAH tanggal reset tetap memotong saldo baru. Log cuti **tidak dihapus**. Tidak bisa dibatalkan; tanpa job terjadwal (manual oleh Finance).
-8. **Detail log** (`GET /leaves/{id}`): riwayat diturunkan dari kolom log: *Dicatat* (`created_at/by`, rentang, hari hitung, keterangan, catatan), *Diakhiri lebih awal* (`return_date`, `return_note`, `returned_at/by`), *Void* (`void_reason`, `voided_at/by`), plus daftar sesi terdampak (`client_leave_sessions` → status sesi sekarang: masih dibatalkan atau kembali ke jadwal). **Void ≠ hapus**: void mempertahankan log (status `voided` + alasan + pelaku + waktu) sedangkan sesi kembali dan hari kembali ke saldo; hapus log sudah tidak ada.
-6. **Sesi dibuat di rentang cuti yang sudah dicatat** (`POST /schedules`, sesi `type = therapy`): **ditolak 422 `client_on_leave`** bila tanggalnya jatuh di hari efektif log `active` client itu; Finance harus mengakhiri cuti lebih awal / void dulu. Sesi asesmen tidak terpengaruh. Seri berulang (`POST /schedules/bulk`, routine-replace) **melewati** tanggal hari efektif log cuti `active` client itu, seperti `holidays` (bukan error).
+4. **Saldo jatah cuti** (`GET /clients/{id}/leave-quota`): `quota = clients.leave_granted` (30), `used` = hari terpakai sejak `GREATEST(clients.leave_reset_at, leave_resets terakhir)` (lihat `client_leaves`), `remaining`, `over`; dihitung live (Q24), tanpa job. **Hanya Finance yang mengubahnya** (Reset Cuti Tahunan, butir 5); pembelian paket TIDAK menambah jatah cuti 30 hari (itu credit leave paket, berbeda).
+5. **Reset cuti tahunan** (`POST /leaves/annual-reset`, modul finance, tombol *Reset Cuti Tahunan*; dipakai di awal tahun): **menghanguskan seluruh cuti tersisa** dan mengembalikan SEMUA client ke 30 hari. Satu transaksi: `UPDATE clients SET leave_granted = 30, leave_reset_at = :hari_ini` + insert `leave_resets (reset_date, by, clients_count, forfeited_days)`; `forfeited_days = Σ GREATEST(0, leave_granted − terpakai)` (dihitung sebelum update, ditampilkan di dialog konfirmasi). Pemakaian cuti sebelum tanggal reset tidak dihitung lagi; hari cuti yang jatuh SETELAH tanggal reset tetap memotong saldo baru. Log cuti **tidak dihapus**. Tidak bisa dibatalkan; tanpa job terjadwal (manual oleh Finance).
+6. **Detail log** (`GET /leaves/{id}`): riwayat diturunkan dari kolom log: *Dicatat* (`created_at/by`, rentang, hari hitung, keterangan, catatan), *Diakhiri lebih awal* (`return_date`, `return_note`, `returned_at/by`), *Void* (`void_reason`, `voided_at/by`), plus daftar sesi terdampak (`client_leave_sessions` → status sesi sekarang: masih dibatalkan atau kembali ke jadwal). **Void ≠ hapus**: void mempertahankan log (status `voided` + alasan + pelaku + waktu) sedangkan sesi kembali dan hari kembali ke saldo; hapus log sudah tidak ada.
+7. **Sesi dibuat di rentang cuti yang sudah dicatat** (`POST /schedules`, sesi `type = therapy`): **ditolak 422 `client_on_leave`** bila tanggalnya jatuh di hari efektif log `active` client itu; Finance harus mengakhiri cuti lebih awal / void dulu. Sesi asesmen tidak terpengaruh. Seri berulang (`POST /schedules/bulk`, routine-replace) **melewati** tanggal hari efektif log cuti `active` client itu, seperti `holidays` (bukan error).
 
 ---
 
@@ -1426,13 +1392,13 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | kode client / kode login ortu (dulu `TDC-XXXX`) | `clients.client_code` (`AE-00001`) |
 | `clients[].dischargeReason / dischargeNote` | `clients.discharge_reason / discharge_note` |
 | `clients[].dateOfDiscontinue` (baru) | `clients.date_of_discontinue` |
-| perubahan status client | `client_status_histories` |
+| perubahan status client | `clients.status` / `status_changed_at` / `updated_by` (tanpa tabel riwayat) |
 | `schedules[].date / startTime / endTime / therapistId` | `schedules.session_date / start_time / end_time / therapist_id` |
 | `schedules[].creditPackageId` | `schedules.client_package_id` |
 | `schedules[].rescheduledFrom{…}` | `schedules.origin_date / origin_start_time / origin_end_time / origin_therapist_id` |
 | `schedules[].bookingNote / cancelNote` (dulu satu field `notes`) | `schedules.booking_note / cancel_note` |
 | `schedules[].historyNote / historyNoteBy` | `schedules.history_note / history_note_by` |
-| `staffUsers[].allBranches` | `users.all_branches` |
+| `staffUsers[].branchId` (`null` = semua cabang; flag `allBranches` dihapus) | `users.branch_id` (NULL = semua cabang) |
 | `schedules[].pendingFrom / pendingReason / pendingNote` | slot tetap + `pending_reason / pending_note / pending_at` |
 | `schedules[].activitySection / noteSection / homeworkSection` | `session_reports.*` |
 | `schedules[].recurrenceRule / isRecurring` | `schedule_series` + `schedules.series_id` |
@@ -1453,7 +1419,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `masterPackages[].invoiceCode` (baru) | `master_packages.invoice_code` |
 | kategori asesmen `typeCode` (baru) | `assessment_categories.type_code` |
 | hari libur (baru) | `holidays` |
-| flag hapus per role (baru) | `roles.can_delete` |
+| hapus data penting (`masterOnly`) | cek role `master` di policy (tanpa kolom) |
 | `therapists[]` + `staffUsers[]` | `users` |
 | `rolesList[]` / `rbacPermissions` | `roles` / `role_permissions` (+ `access_modules`) |
 | `master_services` / `master_quadrants` | `services` / `sensory_quadrants` |
@@ -1468,7 +1434,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `credits.records[].packages[].refunded` | `client_packages.is_refunded` |
 | `therapists[].maxSessionsPerMonth` | `users.max_sessions_per_month` |
 | `schedules[].leaveId` | `schedules.leave_id` |
-| dashboard (hitung di `useMemo`) | view `v_daily_revenue`, `v_daily_sessions`, `v_daily_pipeline`, `v_daily_credit_usage` |
+| dashboard (hitung di `useMemo`) | view `v_daily_revenue`, `v_daily_sessions`, `v_daily_credit_usage` |
 
 Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services/http/httpClient.js`.
 
@@ -1498,7 +1464,7 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 
 1. `branches`, `roles`, `access_modules`, `role_permissions`, `users`, `password_reset_otps`
 2. `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays`
-3. `client_code_counters`, `clients`, `leave_resets`, `client_services`, `client_documents`, `client_status_histories`
+3. `client_code_counters`, `clients`, `leave_resets`, `client_services`, `client_documents`
 4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_drafts`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`
 5. `invoice_counters`, `invoices`, `payment_proofs`, `client_packages` (+ kolom `converted_*_package_id` setelah tabelnya ada)
 6. `schedule_series`, `client_leaves`, `schedules` (FK `leave_id`), `client_leave_sessions`, `session_reports`
@@ -1509,7 +1475,7 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 9. Laravel bawaan: `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` (`php artisan cache:table`, `queue:table`, `queue:failed-table`, `queue:batches-table`, `session:table`). Semua dibuat apa adanya; tabel queue tidak dipakai (tidak ada job async)
 
 Seeder:
-- **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, cancel_reasons, discharge_reasons, master_packages (+ `invoice_code`), `client_code_counters` (5 grup: AE, FJ, KO, PT, UZ), `assessment_categories.type_code`, akun master awal (`roles.can_delete = 1` untuk master; modul akses baru `unreported_reports`, `holidays`, `branch_master`, `therapist_utilization`).
+- **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, cancel_reasons, discharge_reasons, master_packages (+ `invoice_code`), `client_code_counters` (5 grup: AE, FJ, KO, PT, UZ), `assessment_categories.type_code`, akun master awal (hapus data penting dicek lewat role `master`, tanpa kolom; modul akses baru `unreported_reports`, `holidays`, `branch_master`, `therapist_utilization`).
 - **Demo/staging**: konversi seed frontend (`frontend/src/data/*.seed.json`, `scripts/generate_demo_seed.py`) — tanggal relatif hari ini, ledger dibangun dari histori agar saldo konsisten.
 - **Uji integritas FK** (wajib di CI): hapus client/invoice/cabang/master pada data seed dan pastikan sesuai matriks §6.7 (tidak ada baris yatim, tidak ada FK error tak terduga, master terpakai ditolak).
 - Setelah seed demo: jalankan `credits:reconcile` sekali untuk memastikan saldo denormalisasi cocok dengan ledger.
@@ -1519,10 +1485,10 @@ Seeder:
 ## 10. Catatan implementasi Laravel
 
 - **Auth ganda**: guard `staff` (model `User`, Sanctum token) dan guard `client` (model `Client` sebagai `Authenticatable`, login dengan `client_code` + tanggal lahir anak + throttle/lockout). Token ability membedakan portal. Staf dengan `must_change_password = 1` hanya boleh memanggil endpoint ganti password sampai password diganti. Lupa password staf: OTP email (`password_reset_otps`, throttle) atau reset oleh Master dari User Management.
-- **Policy**: berbasis `role_permissions` (akses modul): punya akses modul = boleh semua aksi non-hapus di modul itu (termasuk Manager; void/renewal/koreksi saldo = modul `finance`). Aksi **hapus** tambahan butuh `roles.can_delete`. Tidak ada daftar role hardcode per aksi (`canManageSchedule` frontend diganti cek akses modul).
-- **Scope cabang**: global scope `BranchScope` pada model ber-`branch_id` untuk user non-master.
+- **Policy**: berbasis `role_permissions` (akses modul): punya akses modul = boleh semua aksi non-hapus di modul itu (termasuk Manager; void/renewal/koreksi saldo = modul `finance`). Hapus client dan cabang (data penting) khusus role `master`; hapus operasional cukup akses modul. Tidak ada daftar role hardcode per aksi (`canManageSchedule` frontend diganti cek akses modul).
+- **Scope cabang**: global scope `BranchScope` pada model ber-`branch_id` untuk user yang `branch_id`-nya terisi; user ber-`branch_id` NULL (semua cabang) tidak di-scope.
 - **Action class per use-case** (`CompleteSessionAction`, `CancelSessionAction`, `RevertSessionAction`, `VerifyPaymentAction`, `VoidInvoiceAction`, `ConvertPackageAction`, `TransitionClientAction`, `DeleteClientAction`, `DeleteBranchAction`) — padanan hook use-case frontend; semua aturan kredit mengikuti `frontend/src/domain/credit.js` (acuan test).
-- **Jejak pelaku**: trait/observer sederhana mengisi `created_by`/`updated_by` dari user terautentikasi; tidak ada service audit. Log khusus (`credit_ledger`, `invoice_logs`, `client_status_histories`, `package_conversions`) ditulis eksplisit oleh action class di transaksi yang sama.
+- **Jejak pelaku**: trait/observer sederhana mengisi `created_by`/`updated_by` dari user terautentikasi; tidak ada service audit. Log khusus (`credit_ledger`, `invoice_logs`, `package_conversions`) ditulis eksplisit oleh action class di transaksi yang sama.
 - **Optimistic lock**: request mengirim `version`; `update … where version = ?` → 0 baris = `409 Conflict` (frontend: `ApiError.isConflict`).
 - **Kuesioner publik**: `GET` / `PUT draft` / `POST responses` memakai throttle per IP + per kode (simpan draft ±60/menit); `PUT draft` dibatasi payload 256 KB. Merge patch jawaban dilakukan di service (`lockForUpdate` baris draft), bukan `JSON_SET` di SQL.
 - **Tanpa queue / job async**: semua proses sinkron di request, termasuk **hapus cabang/client** (cascade), **hapus file bukti bayar** (setelah commit), **email OTP lupa password** (dikirim langsung setelah commit; bila SMTP gagal/timeout 10 dtk → respons 503 "gagal mengirim email, coba lagi" dan baris OTP dibatalkan), dan sinkron Google Calendar di fase terakhir. Loading yang lama dapat diterima (keputusan 4 Okt 2026). **Tidak ada notifikasi otomatis** (WA tetap klik-kirim di frontend; email ortu hanya data). Tidak ada listener pengisi ringkasan.
@@ -1556,7 +1522,7 @@ Prinsip:
 | Setiap hari 03:30 | backup DB (cron sistem, bukan Laravel) | `mysqldump --single-transaction --routines --triggers` (atau Percona XtraBackup) + binary log untuk point-in-time recovery; simpan 14 hari lokal + salinan off-server | seluruh DB | **Ya** |
 | Tiap 6 bulan (alternatif: tiap 1 tahun; interval = konfigurasi) | backup arsip jangka panjang (cron sistem) | Dump penuh DB + file bukti bayar (storage privat) sebagai salinan arsip terpisah dari backup harian; simpan off-server dan uji pulih (restore test) saat tiap arsip dibuat. Tidak ada hapus permanen otomatis | seluruh DB + storage | Ya |
 | Setiap hari 04:00 | housekeeping Laravel | `sanctum:prune-expired --hours=24`, `otp:prune` (hapus `password_reset_otps` kedaluwarsa/terpakai), dan hapus baris `cache` yang sudah lewat `expiration` (driver `database` tidak menghapusnya otomatis) | `personal_access_tokens`, `password_reset_otps`, `cache` | Ya |
-| Minggu 04:30 | `db:analyze` | `ANALYZE TABLE schedules, clients, invoices, credit_ledger, client_status_histories` — menyegarkan statistik indeks agar optimizer tetap memilih indeks yang tepat saat data bertambah | tabel transaksi utama | Disarankan |
+| Minggu 04:30 | `db:analyze` | `ANALYZE TABLE schedules, clients, invoices, credit_ledger` — menyegarkan statistik indeks agar optimizer tetap memilih indeks yang tepat saat data bertambah | tabel transaksi utama | Disarankan |
 
 Contoh pendaftaran di `routes/console.php`:
 ```php
@@ -1588,7 +1554,7 @@ Tidak ada job async. Proses berikut dijalankan langsung di request (setelah comm
 
 | Proses | Dipicu oleh | Perilaku |
 |---|---|---|
-| Hapus cabang / client | Hapus oleh role `can_delete` | Cascade DB dalam satu transaksi atomik (§6.7); request boleh lama, timeout rute dinaikkan |
+| Hapus cabang / client | Hapus oleh role `master` | Cascade DB dalam satu transaksi atomik (§6.7); request boleh lama, timeout rute dinaikkan |
 | Hapus file bukti bayar | Setelah commit hapus client/cabang/invoice belum lunas | Hapus file storage privat sinkron; gagal → log aplikasi saja |
 | Email OTP lupa password | Permintaan OTP staf | Kirim sinkron setelah commit dengan timeout 10 dtk; gagal → 503 dan OTP dibatalkan |
 | Sinkron Google Calendar *(fase akhir)* | Buat/ubah/hapus sesi | Panggilan API sinkron setelah commit; gagal → log, sesi tetap tersimpan |
@@ -1624,8 +1590,8 @@ Aturan yang harus selalu benar; jadikan test (Feature test Laravel / SQL asserti
 **Hapus & akses**
 12. Hapus client/cabang tidak meninggalkan baris yatim di tabel mana pun (uji dengan query orphan per FK).
 13. Master ber-FK yang pernah dipakai tidak terhapus (FK `RESTRICT` + 409 dari service); master pilihan string terhapus tanpa cek.
-14. Akun non-master selalu punya `branch_id` (tepat 1 cabang), **kecuali** `all_branches = 1` (`branch_id` NULL, diatur Master); `master` selalu `branch_id` NULL; FK `users.branch_id` tidak pernah `SET NULL`.
-15. Hapus hanya untuk `roles.can_delete = 1` dengan akses modul; aksi non-hapus mengikuti akses modul.
+14. Cakupan cabang akun = `users.branch_id`: terisi = 1 cabang, NULL = semua cabang (semua role, diatur Master; tidak ada flag `all_branches`); FK `users.branch_id` tidak pernah `SET NULL`.
+15. Hapus client (inquiry/aktif) dan cabang hanya untuk role `master`; hapus operasional mengikuti akses modul. Tidak ada kolom `roles.can_delete`.
 
 **Operasional**
 16. Semua endpoint list memakai `page`/`per_page` (default 10, maks 50) atau cursor keyset untuk `credit_ledger`, `invoice_logs`, riwayat sesi.

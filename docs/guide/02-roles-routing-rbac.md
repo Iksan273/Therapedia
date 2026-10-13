@@ -8,7 +8,7 @@ Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login
 | Pintu masuk | Route | Cara |
 |---|---|---|
 | Welcome (pemilih portal) | `/` | `features/auth/pages/Welcome.js` |
-| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan atau "Semua Cabang"** (`allBranches`; tanpa itu terikat 1 cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
+| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan atau "Semua Cabang"** (`branchId` kosong/`null` = semua cabang; terisi = terikat 1 cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
 | Login form | `/login` | `features/auth/pages/Login.js`: email + password staf (preset demo memakai password demo `Therapedia2026!`); ortu dengan kode client |
 | Kuesioner ortu (publik) | `/assessment` | `features/assessment/pages/AssessmentFill.js`, kode kuesioner `{kode jenis asesmen}-{acak}` (mis. `SP2-K7M4QX`); `?code=` mengisi kolom kode |
 | Landing marketing | — (project terpisah `landing/`) | Tidak ada di router `frontend/`. Tombol "Go to Landing Page" di `/` membuka `VITE_LANDING_URL` |
@@ -24,7 +24,7 @@ Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login
 | `therapist` | Therapist | Data miliknya (`auth.therapistId`) | `/therapist` |
 | `client` | Orang tua | Data anaknya (`auth.clientId`) | `/client` |
 
-Role sistem = `SYSTEM_ROLE_IDS` di `domain/rbac.js`. Role lain = **role kustom** buatan Master di `/master/rbac`. Akun non-master terikat tepat 1 cabang, **kecuali** Master mencentang **Akses semua cabang** (`allBranches`) di User Management (berlaku untuk semua role non-master, termasuk terapis dan role kustom): akun itu berperilaku seperti Master untuk cabang (filter semua cabang, ganti `activeBranch`) memakai `hasAllBranchAccess(auth)` di `domain/auth.js` (`validateStaffBranch(role, branchId, allBranches)`).
+Role sistem = `SYSTEM_ROLE_IDS` di `domain/rbac.js`. Role lain = **role kustom** buatan Master di `/master/rbac`. Cakupan cabang akun ditentukan **hanya oleh `branchId`** (padanan `users.branch_id`): terisi = terikat 1 cabang, **kosong (`null`) = semua cabang**. Berlaku untuk semua role (termasuk Master, terapis, dan role kustom); Master mengaturnya di User Management lewat pilihan *Semua cabang* pada Penugasan Cabang. Tidak ada flag `allBranches`. Akun `branchId` kosong berperilaku seperti Master untuk cabang (filter semua cabang, ganti `activeBranch`) lewat `hasAllBranchAccess(auth)` di `domain/auth.js` (ortu `client` tidak pernah masuk kategori ini).
 
 ## Konfigurasi route (`frontend/src/app/router/routes.js`)
 Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
@@ -49,7 +49,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 - **`RequireAccess({ roles, modules })`** — grup. Lolos bila role ada di `roles` grup (akses bawaan role sistem) **atau** role staf mana pun (sistem maupun kustom, selain client) punya permission **salah satu** `modules` grup (`groupModules(group)`). Jadi modul yang diberikan Master di `/master/rbac` ikut terbuka. Gagal → redirect `/roles`.
 - **`RequireModule({ module })`** — per halaman. Semua role wajib punya permission modul halaman itu (Master selalu lolos). Mencabut modul di RBAC menutup halamannya, bukan hanya menyembunyikan menu.
 - **Menu sidebar** (`buildNavConfig`): menu bawaan role disaring permission, lalu ditambah menu modul lain yang diizinkan RBAC (`CUSTOM_ROLE_ITEMS`, daftar semua menu per modul). **Master melihat semua modul** (termasuk Schedule Dashboard, Assessment Master Data, Finance, dan modul Terapis). Modul terapis untuk non-terapis = mode simulasi: `ViewAsTherapistBar` + `useActingTherapist` (pilih terapis yang dilihat; key `viewAsTherapistId`).
-- Hak **aksi** mengikuti **akses modul** (keputusan klien): punya akses modul = boleh semua aksi di modul itu kecuali hapus. Mis. `canManageSchedule(hasPermission)` (`domain/schedule.js`) = akses `weekly_calendar`, sehingga Manager yang diberi modul itu ikut boleh mengubah status sesi. Aksi **hapus** tambahan butuh flag `canDelete` pada role (`canDeleteIn` di `domain/rbac.js`).
+- Hak **aksi** mengikuti **akses modul** (keputusan klien): punya akses modul = boleh semua aksi di modul itu, termasuk hapus operasional (hapus client & cabang khusus master). Mis. `canManageSchedule(hasPermission)` (`domain/schedule.js`) = akses `weekly_calendar`, sehingga Manager yang diberi modul itu ikut boleh mengubah status sesi. Hapus operasional (invoice belum lunas, sesi, jadwal rutin, libur, master data, kode kuesioner) juga cukup akses modul; hapus **data penting** (client inquiry/aktif dan cabang) dikunci `masterOnly` = hanya role `master` (`canDeleteIn` di `domain/rbac.js`). Tidak ada flag `canDelete` per role (revisi 13 Okt 2026).
 
 ## Navigasi (`app/layout/navConfig.js`)
 - `NAV_CONFIG[role]`: menu statis per role sistem (`to`, `label`, `icon`, `module`, `testid`). `module` boleh string atau array (salah satu cukup).
@@ -60,16 +60,16 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | Bagian | Lokasi |
 |---|---|
 | Modul (`ACCESS_MODULES`), role default (`DEFAULT_ROLES`), matriks default (`DEFAULT_PERMISSIONS`) | `domain/rbac.js` |
-| Cek permission pure: `roleHasPermission(role, permissions, module)` (master selalu boleh; key legacy `inquiry`/`schedule`/`therapist` dipetakan; key modul yang belum pernah disimpan memakai default role). **Hapus**: `roleCanDelete(roleId, rolesList)` + `canDeleteIn({ roleId, rolesList, permissions, moduleKey })` (flag `canDelete` eksplisit di role menang; default hanya master) | `domain/rbac.js` |
+| Cek permission pure: `roleHasPermission(role, permissions, module)` (master selalu boleh; key legacy `inquiry`/`schedule`/`therapist` dipetakan; key modul yang belum pernah disimpan memakai default role). **Hapus**: `canDeleteIn({ roleId, permissions, moduleKey, masterOnly })` (master selalu boleh; `masterOnly` = hanya master; selain itu cukup akses modul) | `domain/rbac.js` |
 | Matriks efektif `withDefaultPermissions(stored)` — modul baru otomatis memakai default tanpa Reset Demo Data | `domain/rbac.js`, dipakai `authStore` |
-| State: `rolesList`, `rbacPermissions`, CRUD role, `updateRolePermission`, `hasPermission(module)`, `canDelete(module)`, `setRoleCanDelete`; akun: `addStaffUser`, `setStaffActive`, `changeStaffPassword`, `resetStaffPassword`, `requestPasswordOtp`, `resetPasswordWithOtp` | `stores/authStore.js` |
+| State: `rolesList`, `rbacPermissions`, CRUD role, `updateRolePermission`, `hasPermission(module)`, `canDelete(module, { masterOnly })`; akun: `addStaffUser`, `setStaffActive`, `changeStaffPassword`, `resetStaffPassword`, `requestPasswordOtp`, `resetPasswordWithOtp` | `stores/authStore.js` |
 | UI matriks & role kustom (termasuk baris "Boleh menghapus data") | `features/master/pages/RoleModuleAccess.js` |
-| Tombol hapus per role: `DeleteButton` / `IfCanDelete` (tersembunyi bila tidak boleh) | `shared/components/DeleteControls.js` |
+| Tombol hapus: `DeleteButton` / `IfCanDelete` (prop `masterOnly` untuk client & cabang; tersembunyi bila tidak boleh) | `shared/components/DeleteControls.js` |
 | Modul baru: `unreported_reports` (monitoring laporan sesi), `holidays` (hari libur), `therapist_utilization` (utilisasi & jam kerja terapis; default master, manager, admin_schedule) | `domain/rbac.js` (`ACCESS_MODULES`, `DEFAULT_PERMISSIONS`) |
 | Tabel backend | `roles`, `access_modules`, `role_permissions` (`schema.md` §04-A) |
 
 ## Scoping cabang
-- `activeBranch` (`"all"` atau id cabang) di `useAuth()`. Akun tanpa akses semua cabang otomatis dikunci ke `auth.branchId`. Pada halaman, `isMaster = hasAllBranchAccess(auth)`.
+- `activeBranch` (`"all"` atau id cabang) di `useAuth()`. Akun ber-`branchId` terisi otomatis dikunci ke `auth.branchId`. Pada halaman, `isMaster = hasAllBranchAccess(auth)`.
 - Pola standar halaman list/dashboard:
   ```js
   const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");

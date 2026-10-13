@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { UserCog, Plus, KeyRound, UserX, UserCheck, Search, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
-import { Switch } from "@/shared/ui/switch";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
@@ -20,7 +19,10 @@ import {
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, activeBranches } from "@/domain/branch";
-import { generateTempPassword, hasAllBranchAccess, validateNewPassword, validateStaffBranch } from "@/domain/auth";
+import { generateTempPassword, hasAllBranchAccess, validateNewPassword } from "@/domain/auth";
+
+// Nilai sentinel Select untuk "Semua cabang"; disimpan sebagai branchId null (padanan users.branch_id NULL).
+const ALL_BRANCHES_VALUE = "all";
 
 const ROLE_OPTIONS = [
   { value: "manager", label: "Branch Manager" },
@@ -51,11 +53,9 @@ export default function UserManagement() {
     name: "",
     email: "",
     role: "admin_inquiry",
-    branchId: "branch-sby-timur",
-    allBranches: false, // akses semua cabang (semua role non-master)
+    branchId: "branch-sby-timur", // ALL_BRANCHES_VALUE = semua cabang (disimpan sebagai branchId null)
     title: "",
     specialty: "",
-    bio: "",
     password: generateTempPassword(), // password sementara dari Master; wajib diganti saat login pertama
   });
   const [form, setForm] = useState(emptyForm);
@@ -63,7 +63,7 @@ export default function UserManagement() {
   const [resetPw, setResetPw] = useState("");
 
   const filteredStaff = (staffUsers || []).filter((u) => {
-    if (branchFilter !== "all" && u.branchId !== branchFilter) return false;
+    if (branchFilter !== "all" && u.branchId && u.branchId !== branchFilter) return false; // akun semua cabang (branchId null) tampil di tiap cabang
     if (search.trim()) {
       const q = search.toLowerCase();
       return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
@@ -81,14 +81,8 @@ export default function UserManagement() {
       return;
     }
 
-    // Semua akun non-master terikat tepat 1 cabang; hanya Master yang boleh semua cabang (tanpa cabang)
-    const allBranches = form.role !== "master" && Boolean(form.allBranches);
-    const branchId = form.role === "master" || allBranches ? null : form.branchId;
-    const branchError = validateStaffBranch(form.role, branchId, allBranches);
-    if (branchError) {
-      toast.error(branchError);
-      return;
-    }
+    // Cabang kosong (null) = semua cabang; terisi = terikat 1 cabang. Master selalu semua cabang.
+    const branchId = form.role === "master" || form.branchId === ALL_BRANCHES_VALUE ? null : form.branchId;
     const emailTaken = (staffUsers || []).some((u) => u.id !== editingId && u.email.trim().toLowerCase() === form.email.trim().toLowerCase());
     if (emailTaken) {
       toast.error("Email sudah dipakai akun staff lain.");
@@ -97,7 +91,7 @@ export default function UserManagement() {
 
     if (editingId) {
       const { password: _pw, ...profile } = form;
-      updateStaffUser(editingId, { ...profile, name: form.name.trim(), email: form.email.trim(), branchId, allBranches });
+      updateStaffUser(editingId, { ...profile, name: form.name.trim(), email: form.email.trim(), branchId });
       toast.success(`Akun ${form.name} diperbarui.`);
       closeStaffDialog();
       return;
@@ -109,7 +103,7 @@ export default function UserManagement() {
       return;
     }
 
-    addStaffUser({ ...form, branchId, allBranches });
+    addStaffUser({ ...form, branchId });
     toast.success(`Akun ${form.name} dibuat. Password sementara: ${form.password} (wajib diganti saat login pertama).`, { duration: 9000 });
     closeStaffDialog();
   };
@@ -122,7 +116,7 @@ export default function UserManagement() {
 
   const openEditStaff = (u) => {
     setEditingId(u.id);
-    setForm({ ...emptyForm(), name: u.name, email: u.email, role: u.role, branchId: u.branchId || "branch-sby-timur", allBranches: Boolean(u.allBranches), title: u.title || "", specialty: u.specialty || "", bio: u.bio || "" });
+    setForm({ ...emptyForm(), name: u.name, email: u.email, role: u.role, branchId: u.branchId || ALL_BRANCHES_VALUE, title: u.title || "", specialty: u.specialty || "" });
     setAddOpen(true);
   };
 
@@ -391,20 +385,13 @@ export default function UserManagement() {
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Penugasan Cabang *</Label>
               {form.role === "master" && <p className="text-[11px] text-slate-500">Role Master berlaku untuk semua cabang.</p>}
-              {form.role !== "master" && (
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 min-h-10">
-                  <div>
-                    <Label htmlFor="staff-all-branches" className="text-xs font-bold text-slate-700 cursor-pointer">Akses semua cabang</Label>
-                    <p className="text-[11px] text-slate-500">Seperti Master: bisa melihat & berpindah antar cabang. Nonaktif = terikat 1 cabang.</p>
-                  </div>
-                  <Switch id="staff-all-branches" checked={Boolean(form.allBranches)} onCheckedChange={(v) => setForm({ ...form, allBranches: v })} data-testid="staff-all-branches-switch" />
-                </div>
-              )}
-              <Select value={form.branchId} disabled={form.role === "master" || Boolean(form.allBranches)} onValueChange={(val) => setForm({ ...form, branchId: val })}>
+              {form.role !== "master" && <p className="text-[11px] text-slate-500">Pilih satu cabang, atau "Semua cabang" agar akun bisa melihat & berpindah antar cabang.</p>}
+              <Select value={form.role === "master" ? ALL_BRANCHES_VALUE : form.branchId} disabled={form.role === "master"} onValueChange={(val) => setForm({ ...form, branchId: val })}>
                 <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
+                  <SelectItem value={ALL_BRANCHES_VALUE} data-testid="staff-branch-all">Semua cabang</SelectItem>
                   {activeBranches().map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.name} ({b.city})

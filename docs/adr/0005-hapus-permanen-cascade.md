@@ -14,7 +14,7 @@ Hapus sebelumnya soft delete (`deleted_at` + `deleted_by`). Akibatnya data "terh
    - Master ber-FK (`services`, `sensory_quadrants`, `master_packages`, `assessment_categories/sections/questions`, `roles`) → langsung terhapus **hanya bila belum pernah dipakai**; yang sudah dipakai ditolak (FK `RESTRICT`, service mengembalikan 409 dengan alasan; solusi: nonaktifkan).
    - Master pilihan string (`cancel_reasons`, `discharge_reasons`, `holidays`) → langsung terhapus tanpa cek karena transaksi menyimpan string, bukan FK.
 5. **Hapus cabang** → seluruh isi cabang: client (dan semua turunannya), jadwal, invoice, ledger, hari libur cabang, lalu akun staf/terapis cabang itu. Dijalankan **sinkron** dalam satu transaksi atomik dengan konfirmasi mengetik kode cabang. Akun `master` tidak tersentuh.
-6. Hanya role dengan `roles.can_delete` + akses modul yang boleh menghapus (tidak berubah dari ADR 0002).
+6. **Revisi 13 Okt 2026**: flag `roles.can_delete` dibuang. Hapus client (inquiry/aktif) dan cabang hanya role `master`; hapus operasional (invoice belum lunas, sesi, jadwal rutin, libur, master data, kode kuesioner) cukup akses modul.
 
 ## Desain database (ringkas; rinci di `schema.md` §04 dan §6.7)
 - Data milik induk memakai `ON DELETE CASCADE`: `clients.branch_id`, `schedules.{branch_id,client_id}`, `invoices.{client_id,branch_id}`, `client_packages.{client_id,converted_from_package_id}`, `credit_ledger.{client_id,branch_id,client_package_id,conversion_id,reverses_ledger_id}`, `package_conversions.*`, `invoice_logs.invoice_id`, dan semua anak client lainnya.

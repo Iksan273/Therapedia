@@ -233,7 +233,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
     onOpenChange(false);
   };
 
-  // Hapus sesi (soft delete; tombol hanya untuk role canDelete). Sesi completed harus di-revert dulu.
+  // Hapus sesi (permanen; tombol untuk role dengan akses modul kalender). Sesi completed harus di-revert dulu.
   const handleDeleteSession = () => {
     const result = sessionActions.deleteSession(schedule);
     if (!result.deleted) {
@@ -874,7 +874,7 @@ export const SessionDetailModal = ({ schedule, open, onOpenChange, clientLinkBas
             </div>
           ) : null}
 
-          {/* HAPUS SESI: hanya role canDelete */}
+          {/* HAPUS SESI: role dengan akses modul kalender */}
           {!readOnly && (
             <div className="pt-4 border-t border-slate-200 flex justify-end" data-testid="session-delete-section">
               <DeleteButton

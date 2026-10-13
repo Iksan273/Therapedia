@@ -56,7 +56,7 @@ export const PipelineCard = memo(function PipelineCard({ client: c, getService, 
         />
         {serviceIds.map((st) => (
           <span key={st} className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
-            {getService(st)?.shortLabel || st}
+            {getService(st)?.label || st}
           </span>
         ))}
         {c.gdriveClientLink && (

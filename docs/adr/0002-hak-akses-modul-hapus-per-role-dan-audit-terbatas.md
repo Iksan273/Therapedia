@@ -9,9 +9,9 @@ Jawaban klien atas `pertanyaan_klien.md` dan hasil meeting mengubah beberapa asu
 
 ## Keputusan
 1. **Hak akses = akses modul.** Role yang punya akses suatu modul boleh melakukan semua aksi di modul itu (lihat, tambah, ubah, aksi status), termasuk Manager. Tidak ada daftar role hardcode per aksi. Void invoice, renewal langsung, dan koreksi saldo = aksi modul finance.
-2. **Hapus dikendalikan flag `roles.can_delete`.** Semua modul punya fitur hapus (soft delete: `deleted_at`, `deleted_by`), tetapi tombol/endpoint hanya tersedia bila role punya `can_delete` **dan** akses modul. Staf tidak dihapus: dinonaktifkan.
-3. **Status client: otomatis hanya maju, manual bebas.** Admin boleh mengubah status ke tahap pipeline mana pun (koreksi outcome, reaktivasi). Setiap perubahan tercatat di `client_status_histories`; tidak ada tombol "revert outcome" khusus.
-4. **Audit hanya modul schedule & finance** (`audit_logs`). Modul lain memakai `created_by` / `updated_by` / `deleted_by`; pipeline memakai `client_status_histories`.
+2. **Hapus dikendalikan flag `roles.can_delete`** *(digantikan 13 Okt 2026: data penting hanya master, hapus operasional cukup akses modul; flag dibuang, lihat ADR 0005).* Semua modul punya fitur hapus (soft delete: `deleted_at`, `deleted_by`), tetapi tombol/endpoint hanya tersedia bila role punya `can_delete` **dan** akses modul. Staf tidak dihapus: dinonaktifkan.
+3. **Status client: otomatis hanya maju, manual bebas.** Admin boleh mengubah status ke tahap pipeline mana pun (koreksi outcome, reaktivasi). Perubahan status hanya menyimpan status terakhir (`clients.status`, `updated_by`; tabel riwayat dibuang 13 Okt 2026); tidak ada tombol "revert outcome" khusus.
+4. **Audit hanya modul schedule & finance** (`audit_logs`). Modul lain memakai `created_by` / `updated_by` / `deleted_by`; pipeline hanya status terakhir (tanpa tabel riwayat).
 5. **Kode client berurutan per grup huruf** (`AE-00001`) menjadi ID rekam medis sekaligus kode login ortu (bersama tanggal lahir anak), menggantikan `CLI-` dan `TDC-`.
 
 ## Alternatif yang ditolak

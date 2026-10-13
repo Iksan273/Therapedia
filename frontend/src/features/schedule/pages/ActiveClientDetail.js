@@ -252,6 +252,7 @@ export default function ActiveClientDetail() {
           )}
           <DeleteButton
             module="active_clients"
+            masterOnly
             label="Hapus Client"
             title={`Hapus ${client.clientName}?`}
             description="Client beserta seluruh sesi, invoice, kredit, dan log cutinya akan DIHAPUS PERMANEN dan tidak bisa dikembalikan. Client juga tidak bisa lagi login ke portal ortu."
