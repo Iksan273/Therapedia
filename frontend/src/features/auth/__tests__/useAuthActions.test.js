@@ -26,7 +26,7 @@ const { useAuth } = await import("@/stores/authStore");
 const { useAuthActions } = await import("@/features/auth/hooks/useAuthActions");
 const { tokenStore } = await import("@/services/http/tokenStore");
 
-// Bentuk respons setelah interceptor httpClient (semua key camelCase, termasuk kode modul)
+// Bentuk respons setelah interceptor httpClient (key camelCase). `permissions` = DAFTAR kode modul (data tidak jadi key)
 const staffPayload = (overrides = {}) => ({
   token: "5|secret-token",
   tokenType: "Bearer",
@@ -39,7 +39,7 @@ const staffPayload = (overrides = {}) => ({
     branchId: 2,
     branch: { id: 2, code: "CTL", name: "Citraland" },
     mustChangePassword: false,
-    permissions: { finance: true, activeClients: true, rbac: false, inquiryPipeline: false },
+    permissions: ["finance", "active_clients"],
     ...overrides,
   },
 });
@@ -66,7 +66,7 @@ beforeEach(async () => {
 });
 afterEach(() => act(() => root.unmount()));
 
-test("loginStaff: simpan token, pasang sesi, matriks modul dikembalikan ke snake_case", async () => {
+test("loginStaff: simpan token, pasang sesi, daftar izin dari server jadi peta kode modul", async () => {
   await mount();
   apiMock.post.mockResolvedValueOnce(staffPayload());
 
@@ -78,7 +78,7 @@ test("loginStaff: simpan token, pasang sesi, matriks modul dikembalikan ke snake
   expect(apiMock.post).toHaveBeenCalledWith("/auth/login", { email: "siti@therapedia.id", password: "Rahasia123" });
   expect(tokenStore.get()).toBe("5|secret-token");
   expect(session).toMatchObject({ role: "finance", staffName: "Siti Rahmawati", branchId: 2, mustChangePassword: false });
-  expect(ctx.auth.permissions).toEqual({ finance: true, active_clients: true, rbac: false, inquiry_pipeline: false });
+  expect(ctx.auth.permissions).toEqual({ finance: true, active_clients: true });
 
   // RBAC mengikuti matriks server, bukan matriks lokal
   expect(ctx.hasPermission("finance")).toBe(true);
@@ -92,7 +92,7 @@ test("loginStaff: simpan token, pasang sesi, matriks modul dikembalikan ke snake
 
 test("master: semua izin dan boleh hapus data penting", async () => {
   await mount();
-  apiMock.post.mockResolvedValueOnce(staffPayload({ role: { code: "master" }, branchId: null, branch: null, permissions: {} }));
+  apiMock.post.mockResolvedValueOnce(staffPayload({ role: { code: "master" }, branchId: null, branch: null, permissions: [] }));
 
   await act(async () => {
     await actions.loginStaff({ email: "master@therapedia.id", password: "x" });

@@ -49,17 +49,23 @@ class PermissionService
     }
 
     /**
-     * Matriks efektif untuk respons login: master selalu penuh (termasuk modul baru), role lain dari `role_permissions`.
+     * Kode modul yang diizinkan, urut `access_modules.sort_order`. Dipakai respons login/me.
+     * Berbentuk DAFTAR (bukan kamus): kode modul adalah data, tidak boleh jadi key objek JSON (konvensi key,
+     * implementation_detail.md §1.1). Master selalu penuh, termasuk modul baru.
      *
-     * @return array<string, bool>
+     * @return list<string>
      */
-    public function effectiveModules(User $user): array
+    public function allowedModuleCodes(User $user): array
     {
+        $codes = AccessModule::query()->orderBy('sort_order')->pluck('code');
+
         if ($this->isMaster($user)) {
-            return AccessModule::query()->orderBy('sort_order')->pluck('code')->mapWithKeys(fn ($code) => [$code => true])->all();
+            return $codes->values()->all();
         }
 
-        return $this->modules($user);
+        $allowed = $this->modules($user);
+
+        return $codes->filter(fn (string $code) => $allowed[$code] ?? false)->values()->all();
     }
 
     /** @return array<string, bool> kode modul => diizinkan */

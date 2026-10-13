@@ -12,9 +12,7 @@ import {
   hasAllBranchAccess,
   verifyOtp,
   apiErrorText,
-  clientSessionToAuth,
   homePathFor,
-  staffSessionToAuth,
 } from "@/domain/auth";
 import { canManageSchedule } from "@/domain/schedule";
 import { permissionMapAllows, roleHasPermission } from "@/domain/rbac";
@@ -105,36 +103,7 @@ describe("findClientForLogin (login ortu: kode + tanggal lahir)", () => {
 });
 
 // ---- Sesi dari Laravel API (mode API) ----
-describe("sesi API", () => {
-  const staffUser = {
-    id: 7,
-    name: "Siti",
-    email: "siti@therapedia.id",
-    role: { code: "finance", name: "Role Finance", badge: "Billing" },
-    branchId: 2,
-    branch: { id: 2, code: "CTL", name: "Citraland" },
-    mustChangePassword: false,
-    // httpClient mengubah semua key respons ke camelCase, termasuk kode modul
-    permissions: { finance: true, inquiryPipeline: false, therapistUtilization: true },
-  };
-
-  test("staffSessionToAuth mengembalikan kode modul ke snake_case", () => {
-    const auth = staffSessionToAuth(staffUser);
-    expect(auth.permissions).toEqual({ finance: true, inquiry_pipeline: false, therapist_utilization: true });
-    expect(auth).toMatchObject({ role: "finance", userId: 7, staffName: "Siti", branchId: 2, mustChangePassword: false, therapistId: null, clientId: null });
-  });
-
-  test("terapis memakai id akun sebagai therapistId; master tanpa cabang", () => {
-    expect(staffSessionToAuth({ ...staffUser, role: { code: "therapist" } }).therapistId).toBe("7");
-    expect(staffSessionToAuth({ ...staffUser, role: { code: "master" }, branchId: null, branch: null }).branchId).toBeNull();
-  });
-
-  test("clientSessionToAuth", () => {
-    expect(clientSessionToAuth({ id: 3, clientCode: "AE-00003", childName: "Raka", branchId: 1, branch: { name: "East" } })).toMatchObject({
-      role: "client", clientId: 3, clientCode: "AE-00003", childName: "Raka", permissions: null, mustChangePassword: false,
-    });
-  });
-
+describe("sesi API: tujuan login & helper", () => {
   test("homePathFor: role sistem, ortu, role kustom, tanpa role", () => {
     expect(homePathFor(null)).toBe("/login");
     expect(homePathFor("client")).toBe("/client");

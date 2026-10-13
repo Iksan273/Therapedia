@@ -76,7 +76,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 ### API
 | # | Endpoint | Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle email+IP | `email`, `password` | `users` R/U(`last_login_at`); `personal_access_tokens` C; `roles`,`role_permissions`,`branches` R | token + user (role, `branch_id`, matriks modul, `must_change_password`). 401/422 pesan **generik**, 429 |
+| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle email+IP | `email`, `password` | `users` R/U(`last_login_at`); `personal_access_tokens` C; `roles`,`role_permissions`,`branches` R | token + user (role, `branch_id`, `permissions` = **daftar kode modul** yang diizinkan, `must_change_password`). 422 pesan **generik**, 429 |
 | 1.2 | `POST /auth/client-login` | `ClientLoginAction` | publik, throttle + lockout per IP & per kode | `client_code`, `date_of_birth` | `clients` R/U(`last_login_at`); token C | token portal ortu + ringkasan client. Gagal selalu generik |
 | 1.3 | `POST /auth/logout` | hapus token aktif | login | — | `personal_access_tokens` D | 204 |
 | 1.4 | `GET /auth/me` | profil sesi | login | — | `users`/`clients`, `role_permissions` R | user/client + izin |
@@ -85,7 +85,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 1.7 ✚ | `POST /auth/reset-password` | `ResetPasswordWithOtpAction` | publik, throttle | `email`, `otp`, `password` | `password_reset_otps` R/U; `users` U; token D | 422 OTP salah/kedaluwarsa/terpakai |
 
 ### Core logic
-1. **Login staf:** cari user aktif → `Hash::check` → bila `is_active=0` tolak (pesan generik). Buat token ability `staff`; respons memuat matriks modul agar FE `hasPermission()` bekerja tanpa request tambahan. `must_change_password=1` → middleware memblokir semua endpoint selain 1.3/1.4/1.5 (403 `must_change_password`).
+1. **Login staf:** cari user aktif → `Hash::check` → bila `is_active=0` tolak (pesan generik). Buat token ability `staff`; respons memuat `permissions` berupa **daftar kode modul** (bukan kamus berkunci kode modul, konvensi key JSON) agar FE `hasPermission()` bekerja tanpa request tambahan. `must_change_password=1` → middleware memblokir semua endpoint selain 1.3/1.4/1.5 (403 `must_change_password`).
 2. **Login ortu:** cocokkan `client_code` + `date_of_birth` anak. Lockout per kode (mis. 5 gagal → 15 menit) dan per IP. Pesan gagal **tidak** menyebut bagian yang salah. Token ability `client`; client tanpa token staf tidak bisa menyentuh rute staf.
 3. **OTP:** simpan **hash** OTP (`otp_hash`), `expires_at` ±10 menit, `attempts` maks 5 lalu OTP hangus, `used_at` setelah dipakai. Kirim email **sinkron setelah commit** (timeout 10 dtk); SMTP gagal → hapus baris OTP + 503. Reset berhasil → hapus semua token user.
 4. Reset password oleh Master (2.5 di bawah) → password sementara + `must_change_password=1` + token user dihapus.
@@ -114,7 +114,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 2.5 ✚ | `POST /users/{id}/reset-password` | reset oleh Master | `user_management` | `password` | `users` U; token D | 204 |
 | 2.6 | `GET /therapists` | dropdown ringan terapis | login staf | `branch_id` | `users` R | tanpa paginasi |
 | 2.6b ✚ | `PATCH /therapists/{id}/capacity` | maks sesi/bulan terapis (`max_sessions_per_month`, CHECK 1..744) | `schedule_dashboard`/`user_management` | `max_sessions_per_month` | `users` U | tidak memblokir penjadwalan; dipakai utilisasi (S3) |
-| 2.7–2.12 | `GET/POST/PATCH/DELETE /roles`, `GET /access-modules`, `PUT /roles/{id}/permissions` | role & matriks | `rbac` | `code,name,badge,description`; `{module_code: bool}` | `roles`,`role_permissions` | role sistem: label/badge saja; hapus role dipakai → 409 `in_use` |
+| 2.7–2.12 | `GET/POST/PATCH/DELETE /roles`, `GET /access-modules`, `PUT /roles/{id}/permissions` | role & matriks | `rbac` | `code,name,badge,description`; `[{module_code, allowed}]` | `roles`,`role_permissions` | role sistem: label/badge saja; hapus role dipakai → 409 `in_use` |
 | 2.13 | `GET /branches` | daftar cabang (aktif+nonaktif) | login staf | — | `branches` | dipakai filter cabang semua halaman |
 | 2.14–2.16 | `POST/PUT/PATCH(active) /branches` | tambah/ubah/aktifkan | `branch_master` | `name,code,city,address,phone` | `branches` | `code` 2–10 huruf/angka unik; nonaktif tidak muncul di pilihan baru, riwayat tetap |
 | 2.17 ✚ | `GET /branches/{id}/delete-impact` | pratinjau dampak hapus | `branch_master`+hapus | — | count di `clients,schedules,invoices,users,holidays` | untuk dialog konfirmasi |
@@ -212,7 +212,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 5.7 | `POST /clients/{id}/assessment-codes` | `IssueAssessmentCodeAction` | `inquiry_pipeline` | `category_id`, `expires_at?`, `invoice_required` (default 1) | `assessment_access_codes` C; `clients` U (maju ke `assessment_scheduled`); bila `invoice_required` + `invoices` C (S2) | satu client boleh banyak kode |
 | 5.8 ✚ | `DELETE /assessment-codes/{id}` | hapus kode | `inquiry_pipeline`+hapus | — | kode D; invoice assessment pemicu yang **belum lunas** D (yang `paid` dibiarkan, FK SET NULL) | 409 bila `submitted`; **409 `draft_exists`** bila sudah punya draft |
 | 5.9 | `GET /public/assessments/{code}` | `OpenAssessmentAction` | publik, throttle IP | — | kode, client, kategori/section/soal, `invoices`, `assessment_drafts` R | 404 generik; 409 `already_submitted`; 410 `expired`; **403 `proof_required`** (+id & no. invoice); respons memuat **draft** bila ada |
-| 5.9b ✚ | `PUT /public/assessments/{code}/draft` | `SaveAssessmentDraftAction` | publik, throttle IP + kode | `answers` (patch `{question_id:{t,v?}}`, `null`=hapus), `last_section_id`, `consent?`, `version` | `assessment_drafts` C/U | 409 `version_conflict`; 422 payload > 256 KB |
+| 5.9b ✚ | `PUT /public/assessments/{code}/draft` | `SaveAssessmentDraftAction` | publik, throttle IP + kode | `answers` (patch **array** `[{question_id, t, v?}]`, `v: null` = hapus; bukan kamus berkunci id soal), `last_section_id`, `consent?`, `version` | `assessment_drafts` C/U | 409 `version_conflict`; 422 payload > 256 KB |
 | 5.10 | `POST /public/assessments/{code}/responses` | `SubmitAssessmentAction` | publik, throttle | `answers[]` (yang belum di draft), `consent` | `assessment_responses` C; `assessment_answers` C; `assessment_quadrant_scores` C; kode U(`submitted`); `assessment_drafts` D | 409 sudah diisi; 422 `incomplete` (+daftar soal wajib kosong) |
 | 5.11 | `GET /clients/{id}/assessment-responses`, `GET /assessment-responses/{id}` | hasil | `inquiry_*`,`therapist_module` | — | responses/answers/scores R | **ortu tidak melihat hasil** |
 | 7.x ✚ | `POST /invoices/{id}/proof` (varian publik) | upload bukti dari `/assessment` | publik dikunci kode kuesioner | `file` (JPG/PNG/PDF ≤5 MB) + `code` | `payment_proofs`, `invoices.proof_upload_count` | **Diselesaikan di Sprint 2** (modul Finance); S1 hanya membaca status gating |

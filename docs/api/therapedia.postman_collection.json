@@ -63,7 +63,7 @@
                                     "  const res = pm.response.json();",
                                     "  pm.environment.set('token', res.data.token);",
                                     "  pm.test('Token tersimpan ke variabel token', function () { pm.expect(res.data.token).to.be.a('string'); });",
-                                    "  pm.test('Memuat matriks modul', function () { pm.expect(res.data.user.permissions).to.be.an('object'); });",
+                                    "  pm.test('Memuat daftar kode modul yang diizinkan', function () { pm.expect(res.data.user.permissions).to.be.an('array'); });",
                                     "}"
                                 ]
                             }
@@ -103,7 +103,7 @@
                                 "login"
                             ]
                         },
-                        "description": "Login staf. Sukses 200: `data.token`, `data.user` (role, cabang, `permissions`, `must_change_password`).\n\nGagal: 422 dengan pesan yang sama untuk email salah / password salah / akun nonaktif. 5 kali gagal dari email+IP yang sama → 429 `too_many_attempts` (+ `retry_after` detik). Token berlaku 24 jam."
+                        "description": "Login staf. Sukses 200: `data.token`, `data.user` (role, cabang, `permissions` = daftar kode modul yang diizinkan, `must_change_password`).\n\nGagal: 422 dengan pesan yang sama untuk email salah / password salah / akun nonaktif. 5 kali gagal dari email+IP yang sama → 429 `too_many_attempts` (+ `retry_after` detik). Token berlaku 24 jam."
                     },
                     "response": []
                 },

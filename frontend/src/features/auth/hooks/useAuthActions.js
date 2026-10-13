@@ -1,7 +1,7 @@
 import { api } from "@/services/http/httpClient";
 import { tokenStore } from "@/services/http/tokenStore";
 import { ENDPOINTS } from "@/services/api/endpoints";
-import { clientSessionToAuth, staffSessionToAuth } from "@/domain/auth";
+import { clientSessionToAuth, staffSessionToAuth } from "@/services/api/mappers/authMapper";
 import { useAuth } from "@/stores/authStore";
 
 // Use-case auth mode API (M1): satu fungsi = satu endpoint. Menyentuh token (services) + sesi (authStore), jadi lewat hook.

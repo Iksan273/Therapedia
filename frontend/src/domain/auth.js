@@ -1,7 +1,6 @@
 // Domain akun staf: password sementara + wajib ganti, lupa password via OTP email, akun nonaktif.
 // Mode demo menyimpan password polos di localStorage (hanya prototype); backend: hash + email OTP (schema.md `users`,
 // `password_reset_otps`). Tidak ada lupa password untuk orang tua: admin yang menginformasikan kode client.
-import { keysToSnake } from "@/shared/lib/caseConverter";
 
 // Password bawaan akun seed/demo yang belum pernah diatur ulang.
 export const DEMO_PASSWORD = "Therapedia2026!";
@@ -91,9 +90,8 @@ export const findClientForLogin = (clients = [], code, dob) => {
 // Berlaku untuk semua role staf (master, terapis, role kustom); diatur Master di User Management. Ortu (`client`) bukan staf.
 export const hasAllBranchAccess = (user) => Boolean(user?.role) && user.role !== "client" && !user.branchId;
 
-// ---- Sesi dari Laravel API (mode API) ----
-// Respons `POST /auth/login` | `/auth/client-login` | `GET /auth/me` sudah berbentuk camelCase (interceptor httpClient),
-// KECUALI key matriks modul: key itu kode modul snake_case (`inquiry_pipeline`) dan harus dikembalikan ke bentuk aslinya.
+// ---- Tujuan setelah login (mode API & demo) ----
+// Pemetaan payload API → state `auth` ada di `services/api/mappers/authMapper.js` (domain tidak mengenal bentuk payload API).
 
 // Halaman awal tiap role sistem setelah login.
 export const STAFF_HOME = {
@@ -125,36 +123,6 @@ export const homePathFor = (role, hasPermission = () => false) => {
   const hit = CUSTOM_ROLE_HOME.find(([moduleKey]) => hasPermission(moduleKey));
   return hit ? hit[1] : "/login";
 };
-
-// `data.user` dari login/me staf → bentuk state `auth`. `therapistId` memakai id akun terapis.
-export const staffSessionToAuth = (user) => ({
-  role: user.role.code,
-  userId: user.id,
-  staffName: user.name,
-  email: user.email,
-  branchId: user.branchId ?? null,
-  branchName: user.branch?.name ?? null,
-  therapistId: user.role.code === "therapist" ? String(user.id) : null,
-  clientId: null,
-  mustChangePassword: Boolean(user.mustChangePassword),
-  permissions: keysToSnake(user.permissions || {}),
-});
-
-// `data.client` dari login/me ortu → bentuk state `auth`.
-export const clientSessionToAuth = (client) => ({
-  role: "client",
-  userId: null,
-  staffName: null,
-  email: null,
-  branchId: client.branchId ?? null,
-  branchName: client.branch?.name ?? null,
-  therapistId: null,
-  clientId: client.id,
-  clientCode: client.clientCode,
-  childName: client.childName,
-  mustChangePassword: false,
-  permissions: null,
-});
 
 // Pesan galat dari ApiError untuk ditampilkan di form: utamakan pesan field, lalu pesan umum.
 export const apiErrorText = (error, fields = []) => {

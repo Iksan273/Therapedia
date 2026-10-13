@@ -8,6 +8,10 @@ import { tokenStore } from "@/services/http/tokenStore";
 // - Request body & params: camelCase → snake_case
 // - Response data: snake_case → camelCase
 // - Error: dinormalisasi jadi ApiError; 401 menghapus token & memicu onUnauthorized
+//
+// SATU format key, tanpa pengecualian: snake_case di kabel, camelCase di frontend; konversi hanya terjadi di sini.
+// Karena semua key ikut dikonversi, kontrak API melarang data (kode modul, id, kode alasan) menjadi key objek:
+// kamus diganti array (mis. `permissions: ["finance"]`, matriks RBAC `[{ module_code, allowed }]`).
 export const httpClient = axios.create({
   baseURL: ENV.API_BASE_URL,
   timeout: ENV.API_TIMEOUT_MS,
@@ -44,10 +48,12 @@ httpClient.interceptors.response.use(
 );
 
 // Helper ringkas: mengembalikan `data` (Laravel API Resource membungkus payload di `data`)
-const unwrap = (res) => (res.data && "data" in res.data ? res.data.data : res.data);
+// Hanya objek yang punya `data`; string/angka/kosong (mis. respons 204) dikembalikan apa adanya.
+export const unwrap = (res) => (res.data && typeof res.data === "object" && "data" in res.data ? res.data.data : res.data);
 
+// `options.signal` (AbortSignal) meneruskan pembatalan request, kompatibel dengan `queryFn({ signal })` react-query.
 export const api = {
-  get: (url, params) => httpClient.get(url, { params }).then(unwrap),
+  get: (url, params, options = {}) => httpClient.get(url, { params, signal: options.signal }).then(unwrap),
   post: (url, body) => httpClient.post(url, body).then(unwrap),
   put: (url, body) => httpClient.put(url, body).then(unwrap),
   patch: (url, body) => httpClient.patch(url, body).then(unwrap),
@@ -55,5 +61,6 @@ export const api = {
   // Upload file (bukti bayar, dokumen): kirim FormData apa adanya (key tidak dikonversi)
   upload: (url, formData) => httpClient.post(url, formData).then(unwrap),
   // Endpoint list ber-pagination: kembalikan { items, meta } (format paginator Laravel)
-  list: (url, params) => httpClient.get(url, { params }).then((res) => ({ items: res.data.data ?? [], meta: res.data.meta ?? null })),
+  list: (url, params, options = {}) =>
+    httpClient.get(url, { params, signal: options.signal }).then((res) => ({ items: res.data.data ?? [], meta: res.data.meta ?? null })),
 };

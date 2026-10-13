@@ -31,6 +31,7 @@ Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md
 | Hal | Aturan |
 |---|---|
 | Base URL | `/api/v1`, JSON, UTF-8. Body/query camelCase dari frontend diubah ke snake_case oleh `httpClient` (sudah ada); respons snake_case → camelCase |
+| Konvensi key JSON | **Satu format, tanpa pengecualian**: snake_case di kabel (API), camelCase di frontend; konversi otomatis hanya di `httpClient`. Karena semua key ikut dikonversi, **data (kode modul, id, kode alasan) tidak boleh menjadi key objek**: kamus diganti array. Contoh: `permissions: ["finance", "active_clients"]`, matriks RBAC `[{ "module_code": "finance", "allowed": true }]`, draft jawaban kuesioner `[{ "question_id": 12, "value": ... }]` |
 | Auth | Sanctum bearer token. Dua guard: `staff` (model `User`) dan `client` (model `Client`, portal ortu). Ability token membedakan portal. Rute publik hanya `/public/*` dan `/auth/*` login |
 | Cabang | Semua endpoint berdata cabang memakai `BranchScope`: non-master hanya melihat/mengubah `branch_id` miliknya; master boleh `?branch_id=` (kosong/`all` = semua) |
 | Hak akses | `PermissionService` membaca `role_permissions` (memo per request). Ditulis sebagai **`modul:<kode>`**: punya akses modul = boleh semua aksi non-hapus; **`+hapus-master`** = hapus client/cabang hanya role `master` (hapus operasional cukup akses modul; tanpa kolom `can_delete`). Kode modul: `revenue, inquiry_pipeline, inquiry_dashboard, weekly_calendar, schedule_dashboard, active_clients, finance, user_management, branch_master, rbac, therapist_module, unreported_reports, holidays` |
@@ -101,7 +102,7 @@ Layar: `/login`, `/roles` (demo), portal ortu. Fitur: F1.
 
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle per email+IP | `email`, `password` | `users` R,U (`last_login_at`); `personal_access_tokens` C; `roles`, `role_permissions`, `branches` R | token + user (role, `branch_id`, matriks modul, `must_change_password`). 422/401 pesan generik, 429 |
+| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle per email+IP | `email`, `password` | `users` R,U (`last_login_at`); `personal_access_tokens` C; `roles`, `role_permissions`, `branches` R | token + user (role, `branch_id`, `permissions` = **daftar kode modul** yang diizinkan, `must_change_password`). 422 pesan generik, 429 |
 | 1.2 | `POST /auth/client-login` | `ClientLoginAction` | publik, throttle + lockout per IP & per kode | `client_code`, `date_of_birth` | `clients` R,U (`last_login_at`); `personal_access_tokens` C | token portal ortu + ringkasan client. Pesan gagal **selalu generik** (tidak menyebut mana yang salah) |
 | 1.3 | `POST /auth/logout` | hapus token aktif | login | — | `personal_access_tokens` D | 204 |
 | 1.4 | `GET /auth/me` | profil sesi | login | — | `users`/`clients` R; `role_permissions` R | user/client + izin |
@@ -135,7 +136,7 @@ Layar: `/master/users`, `/master/rbac`, `/master/branches`. Fitur: F2 + Master C
 | 2.9 | `PATCH /roles/{id}` | ubah label/badge | `rbac` | | `roles` U | role sistem: label/badge saja |
 | 2.10 | `DELETE /roles/{id}` | hapus role | `rbac` + hapus | | `roles` D; `role_permissions` D (cascade); `users` R | 409 `in_use` bila masih ada akun; role sistem ditolak |
 | 2.11 | `GET /access-modules` | daftar modul (seed) | `rbac` | | `access_modules` R | |
-| 2.12 | `PUT /roles/{id}/permissions` | simpan matriks (batch) atau `PATCH` satu modul | `rbac` | `{ module_code: bool }` | `role_permissions` upsert | permission di-cache memo per request |
+| 2.12 | `PUT /roles/{id}/permissions` | simpan matriks (batch) atau `PATCH` satu modul | `rbac` | `[{ module_code, allowed }]` | `role_permissions` upsert | permission di-cache memo per request |
 
 ### 4.3 Master Cabang
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |

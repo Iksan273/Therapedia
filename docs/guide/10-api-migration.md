@@ -14,6 +14,9 @@ Target backend: **Laravel 12 + MySQL 8 + Sanctum**, tanpa Redis dan tanpa queue 
 | Use-case | `features/*/hooks/use*Actions.js` | tiap fungsi = satu endpoint transaksional |
 | React Query | `app/providers/AppProviders.js` | `QueryClient` sudah terpasang |
 
+## Format key JSON (satu aturan, tanpa pengecualian)
+snake_case di kabel, camelCase di frontend; konversi otomatis hanya di `services/http/httpClient.js` (tidak ada opsi pengecualian). Konsekuensinya, kontrak API **tidak boleh memakai data sebagai key objek** (kode modul, id, kode alasan): kamus diganti array. Contoh: `permissions: ["finance"]`; matriks RBAC `[{ module_code, allowed }]`; draft jawaban kuesioner `[{ question_id, ... }]`. Pemetaan payload API → state hidup di `services/api/mappers/` (domain tidak mengenal bentuk payload API). `api.get/list` menerima `{ signal }` untuk pembatalan request (react-query).
+
 ## Prinsip
 1. Halaman tidak berubah saat pindah ke API: **interface store & hook use-case tetap**, implementasi di dalamnya yang diganti (skill `react-architecture` §3).
 2. Aksi lintas tabel = **satu endpoint transaksional** (complete, cancel, verify, transition). Frontend tidak merangkai beberapa request.
@@ -122,7 +125,7 @@ Aktif bila `VITE_DATA_SOURCE=api` (salin `frontend/.env.example` ke `.env.local`
 |---|---|
 | Hook use-case | `features/auth/hooks/useAuthActions.js`: `loginStaff`, `loginClient`, `changePassword`, `requestPasswordOtp`, `resetPasswordWithOtp` |
 | Store | `stores/authStore.js`: `applySession`, `markPasswordChanged`, `logout` (cabut token di server), pulihkan sesi lewat `GET /auth/me`, handler 401 (`setUnauthorizedHandler`) |
-| Izin | `hasPermission`/`canDelete` membaca matriks server (`auth.permissions`, key snake_case; interceptor meng-camelCase-kan key respons, jadi `staffSessionToAuth` mengembalikannya dengan `keysToSnake`). Master selalu boleh; hapus client/cabang `masterOnly` |
+| Izin | Server mengirim `permissions` sebagai **daftar kode modul** yang diizinkan; `services/api/mappers/authMapper.js` (`staffSessionToAuth`) mengubahnya jadi peta `auth.permissions` yang dibaca `hasPermission`/`canDelete`. Master selalu boleh; hapus client/cabang `masterOnly` |
 | Halaman | `Login.js` (staf + ortu, dialog ganti password wajib dan lupa password OTP), `RootRedirect.js` ("/" tanpa beranda), guard → `/login`, `AccessDenied` untuk akun yang tidak berhak |
 | Galat | Login gagal = 422 (bukan 401, agar tidak memicu handler logout); 429 lockout; 503 email OTP gagal; pesan dari server ditampilkan apa adanya |
 **Batasan sementara (modul lain masih localStorage):** halaman selain auth belum membaca data dari API sampai modulnya dimigrasi (sprint 1 hari 6+). Akibatnya setelah login API: `branchId` berupa id numerik server (belum cocok dengan id cabang demo), portal ortu/terapis belum menemukan datanya, dan halaman User/RBAC masih memakai data lokal sampai M2 dimigrasi.

@@ -33,10 +33,8 @@ export const ENDPOINTS = {
     gdriveLinks: (id) => `/clients/${id}/gdrive-links`,
     assessmentCodes: (id) => `/clients/${id}/assessment-codes`,
     assessmentResponses: (id) => `/clients/${id}/assessment-responses`,
-    discharge: (id) => `/clients/${id}/discharge`,
     renewals: (id) => `/clients/${id}/renewals`,
     credits: (id) => `/clients/${id}/credits`,
-    pipelineLogs: (id) => `/clients/${id}/pipeline-logs`,
   },
   publicAssessment: {
     byCode: (code) => `/public/assessments/${code}`,
@@ -67,7 +65,6 @@ export const ENDPOINTS = {
     report: (id) => `/schedules/${id}/report`,
     complete: (id) => `/schedules/${id}/complete`,
     cancel: (id) => `/schedules/${id}/cancel`,
-    off: (id) => `/schedules/${id}/off`,
     reschedule: (id) => `/schedules/${id}/reschedule`,
     markPending: (id) => `/schedules/${id}/mark-pending`,
     dropPending: (id) => `/schedules/${id}/drop-pending`,

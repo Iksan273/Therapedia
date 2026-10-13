@@ -40,7 +40,8 @@ class StaffSessionResource extends JsonResource
                 'name' => $this->branch->name,
             ] : null,
             'must_change_password' => (bool) $this->must_change_password,
-            'permissions' => $permissions->effectiveModules($this->resource),
+            // Daftar kode modul yang diizinkan (bukan kamus berkunci kode modul; lihat PermissionService::allowedModuleCodes)
+            'permissions' => $permissions->allowedModuleCodes($this->resource),
         ];
     }
 }

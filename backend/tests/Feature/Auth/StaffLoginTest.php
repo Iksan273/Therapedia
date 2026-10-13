@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\AuthFixtures;
 use Tests\TestCase;
@@ -28,11 +29,20 @@ class StaffLoginTest extends TestCase
             ->assertJsonPath('data.user.is_master', false)
             ->assertJsonPath('data.user.branch.code', 'EAST')
             ->assertJsonPath('data.user.must_change_password', false)
-            ->assertJsonPath('data.user.permissions.finance', true)
-            ->assertJsonPath('data.user.permissions.weekly_calendar', true)
-            ->assertJsonPath('data.user.permissions.revenue', false)
-            ->assertJsonPath('data.user.permissions.rbac', false)
             ->assertJsonMissingPath('data.user.password');
+
+        // Izin = DAFTAR kode modul (bukan kamus berkunci kode modul), urut access_modules.sort_order.
+        $permissions = $res->json('data.user.permissions');
+        $this->assertTrue(array_is_list($permissions));
+        $this->assertContains('finance', $permissions);
+        $this->assertContains('weekly_calendar', $permissions);
+        $this->assertNotContains('revenue', $permissions);
+        $this->assertNotContains('rbac', $permissions);
+        $this->assertSame(
+            array_values(array_intersect(array_keys(RbacSeeder::MODULES), $permissions)),
+            $permissions,
+            'urutan harus mengikuti sort_order modul'
+        );
 
         $this->assertNotEmpty($res->json('data.token'));
         $this->assertNotNull($staff->fresh()->last_login_at);
@@ -49,9 +59,8 @@ class StaffLoginTest extends TestCase
             ->assertJsonPath('data.user.branch_id', null)
             ->assertJsonPath('data.user.branch', null);
 
-        $permissions = $res->json('data.user.permissions');
-        $this->assertCount(14, $permissions);
-        $this->assertNotContains(false, $permissions);
+        // Master: semua modul, termasuk yang tidak ada di tabel role_permissions
+        $this->assertSame(array_keys(RbacSeeder::MODULES), $res->json('data.user.permissions'));
     }
 
     public function test_email_is_case_insensitive_and_trimmed(): void
@@ -120,7 +129,7 @@ class StaffLoginTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.type', 'staff')
             ->assertJsonPath('data.user.role.code', 'therapist')
-            ->assertJsonPath('data.user.permissions.therapist_module', true);
+            ->assertJsonPath('data.user.permissions', ['therapist_module']);
     }
 
     public function test_me_without_token_is_401(): void
