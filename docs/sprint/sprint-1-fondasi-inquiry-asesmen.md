@@ -104,14 +104,16 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 
 ## 5. M2 User, role/RBAC, cabang (Hari 5–6)
 
+> **Status backend: selesai 13 Okt 2026** (53 test di `tests/Feature/Organization`). Kontrak final ada di `implementation_detail.md` §4. Aturan keamanan: akun/role master hanya oleh master; master aktif terakhir tidak bisa diturunkan/dinonaktifkan; role sendiri tidak bisa diubah; `rbac` tidak bisa dicabut dari role sendiri; matriks izin bentuk array (`{ permissions: [{ module_code, allowed }] }`). Hapus cabang tetap Sprint 4.
+
 ### API
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Catatan |
 |---|---|---|---|---|---|---|
 | 2.1 | `GET /users` | daftar staf (filter `branch_id,role,is_active,q`) | `user_management` | — | `users`,`roles`,`branches` R | `idx_users_branch_role` |
-| 2.2 | `POST /users` | `CreateUserAction` | `user_management` | `name,email,role_id,branch_id,password(temp),title,specialty,phone` | `users` C(`must_change_password=1`) | email unik; `branch_id` wajib untuk semua role kecuali master (1 cabang) |
+| 2.2 | `POST /users` | `CreateUserAction` | `user_management` | `name,email,role_id,branch_id?,password?,title,specialty,phone` | `users` C (`must_change_password=1`) | email unik; `branch_id` NULL = semua cabang (master selalu NULL; pengatur 1 cabang terkunci); `password` kosong → sementara dikembalikan sekali (`temporary_password`) |
 | 2.3 | `GET/PATCH /users/{id}` | detail / ubah | `user_management` | field berubah | `users` | tidak boleh mengosongkan `branch_id` non-master |
 | 2.4 | `PATCH /users/{id}/active` | (non)aktif | `user_management` | `is_active` | `users` U; token D | staf **tidak dihapus** lewat UI |
-| 2.5 ✚ | `POST /users/{id}/reset-password` | reset oleh Master | `user_management` | `password` | `users` U; token D | 204 |
+| 2.5 | `POST /users/{id}/reset-password` | reset oleh Master/pengatur | `user_management` | `password?` | `users` U; token D | 200 + `temporary_password` sekali bila otomatis; akun sendiri 422 |
 | 2.6 | `GET /therapists` | dropdown ringan terapis | login staf | `branch_id` | `users` R | tanpa paginasi |
 | 2.6b ✚ | `PATCH /therapists/{id}/capacity` | maks sesi/bulan terapis (`max_sessions_per_month`, CHECK 1..744) | `schedule_dashboard`/`user_management` | `max_sessions_per_month` | `users` U | tidak memblokir penjadwalan; dipakai utilisasi (S3) |
 | 2.7–2.12 | `GET/POST/PATCH/DELETE /roles`, `GET /access-modules`, `PUT /roles/{id}/permissions` | role & matriks | `rbac` | `code,name,badge,description`; `[{module_code, allowed}]` | `roles`,`role_permissions` | role sistem: label/badge saja; hapus role dipakai → 409 `in_use` |
@@ -121,7 +123,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 2.18 | `DELETE /branches/{id}` | **dikerjakan Sprint 4** | | | | |
 
 ### Core logic
-- **Matriks RBAC:** `PUT /roles/{id}/permissions` = upsert batch; role `master` selalu punya semua modul. Kode modul: `revenue, inquiry_pipeline, inquiry_dashboard, weekly_calendar, schedule_dashboard, active_clients, finance, user_management, branch_master, rbac, therapist_module, unreported_reports, holidays`.
+- **Matriks RBAC:** `PUT /roles/{id}/permissions` = upsert batch; role `master` selalu punya semua modul. Kode modul: `revenue, branch_performance, inquiry_pipeline, inquiry_dashboard, assessment_master, inquiry_master_data, weekly_calendar, schedule_dashboard, active_clients, finance, user_management, branch_master, rbac, therapist_module, unreported_reports, holidays, therapist_utilization` (17 modul; `assessment_master`, `inquiry_master_data`, dan `branch_performance` dipisah dari `inquiry_pipeline`/`revenue` agar hak aksesnya bisa diatur sendiri).
 - **Cabang:** `code` dipakai sebagai kode invoice/dsb (tidak diubah setelah dipakai); `is_active=0` hanya menyembunyikan dari pilihan baru.
 - **Pengaman master dipakai:** semua DELETE master memanggil `InUseGuard` (cek FK pemakai) → 409 `in_use` dengan pesan "dipakai di N data"; FK `RESTRICT` jaring pengaman.
 

@@ -15,6 +15,8 @@ export const ENDPOINTS = {
   users: {
     list: "/users",
     detail: (id) => `/users/${id}`,
+    setActive: (id) => `/users/${id}/active`,
+    resetPassword: (id) => `/users/${id}/reset-password`,
   },
   roles: {
     list: "/roles",
@@ -24,6 +26,7 @@ export const ENDPOINTS = {
   },
   therapists: {
     list: "/therapists",
+    capacity: (id) => `/therapists/${id}/capacity`,
   },
   clients: {
     list: "/clients",
@@ -57,6 +60,7 @@ export const ENDPOINTS = {
     list: "/branches",
     detail: (id) => `/branches/${id}`,
     setActive: (id) => `/branches/${id}/active`,
+    deleteImpact: (id) => `/branches/${id}/delete-impact`,
   },
   schedules: {
     list: "/schedules",

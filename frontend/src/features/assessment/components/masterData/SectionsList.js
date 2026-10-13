@@ -100,7 +100,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
 
-                          <IfCanDelete module="inquiry_pipeline">
+                          <IfCanDelete module="assessment_master">
                           <Button aria-label="Hapus domain ini"
                             size="icon"
                             variant="ghost"
@@ -211,7 +211,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                     <Copy className="w-3.5 h-3.5" />
                                   </Button>
 
-                                  <IfCanDelete module="inquiry_pipeline">
+                                  <IfCanDelete module="assessment_master">
                                   <Button aria-label="Hapus butir pertanyaan"
                                     size="icon"
                                     variant="ghost"

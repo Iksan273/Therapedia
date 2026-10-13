@@ -21,13 +21,13 @@ const queryClient = new QueryClient({
   },
 });
 
-// Urutan provider: Auth paling luar (dipakai semua), lalu store domain.
-// Store domain tidak saling memanggil; orkestrasi lintas domain ada di hook use-case tiap feature.
+// Urutan provider: Auth paling luar (dipakai semua; store mode API membaca sesi dari sini untuk menentukan kapan boleh
+// memanggil API), lalu store domain. Store domain tidak saling memanggil; orkestrasi lintas domain ada di hook use-case tiap feature.
 export default function AppProviders({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <BranchesProvider>
       <AuthProvider>
+      <BranchesProvider>
         <TherapistsProvider>
           <ClientsProvider>
             <SchedulesProvider>
@@ -45,8 +45,8 @@ export default function AppProviders({ children }) {
             </SchedulesProvider>
           </ClientsProvider>
         </TherapistsProvider>
-      </AuthProvider>
       </BranchesProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

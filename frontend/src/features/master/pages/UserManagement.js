@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { TablePagination, usePagination } from "@/shared/components/TablePagination";
+import { TablePagination } from "@/shared/components/TablePagination";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
 import { UserCog, Plus, KeyRound, UserX, UserCheck, Search, Pencil } from "lucide-react";
@@ -19,41 +19,39 @@ import {
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, activeBranches } from "@/domain/branch";
-import { generateTempPassword, hasAllBranchAccess, validateNewPassword } from "@/domain/auth";
+import { apiErrorText, generateTempPassword, hasAllBranchAccess, validateNewPassword } from "@/domain/auth";
+import { useStaffAdmin } from "@/features/master/hooks/useStaffAdmin";
 
 // Nilai sentinel Select untuk "Semua cabang"; disimpan sebagai branchId null (padanan users.branch_id NULL).
 const ALL_BRANCHES_VALUE = "all";
 
-const ROLE_OPTIONS = [
-  { value: "manager", label: "Branch Manager" },
-  { value: "admin_inquiry", label: "Admin Inquiry & Intake" },
-  { value: "admin_schedule", label: "Admin Schedule & Timetable" },
-  { value: "finance", label: "Role Finance (Billing & Verification)" },
-  { value: "therapist", label: "Clinical Therapist" },
-];
-
 export default function UserManagement() {
   const { confirm, confirmDialog } = useConfirm();
-  const { staffUsers, addStaffUser, updateStaffUser, setStaffActive, resetStaffPassword, activeBranch, auth, rolesList } = useAuth();
+  const { activeBranch, auth } = useAuth();
   const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
-  const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "branch-sby-timur");
-
-  const roleOptions = useMemo(() => {
-    return (rolesList || []).map((r) => ({
-      value: r.id,
-      label: `${r.label} (${r.badge || r.id})`,
-    }));
-  }, [rolesList]);
+  const defaultBranch = isMaster ? (activeBranch || "all") : (auth?.branchId || activeBranch || "all");
 
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState(defaultBranch);
+  // Data akun: mode demo = localStorage (filter di klien), mode API = Laravel (filter & paginasi di server)
+  const { users, pagination, isLoading, rolesList, isEmailTaken, addStaff, updateStaff, setStaffActive, resetPassword } = useStaffAdmin({ branchFilter, search });
+
+  // Hanya Master yang boleh memberi role Master (server menolak selain itu dengan 403).
+  const roleOptions = useMemo(
+    () =>
+      rolesList
+        .filter((r) => r.id !== "master" || auth?.role === "master")
+        .map((r) => ({ value: r.id, label: `${r.label} (${r.badge || r.id})` })),
+    [rolesList, auth?.role]
+  );
+  const [saving, setSaving] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editingId, setEditingId] = useState(null); // id staf yang sedang diubah (null = tambah baru)
   const emptyForm = () => ({
     name: "",
     email: "",
     role: "admin_inquiry",
-    branchId: "branch-sby-timur", // ALL_BRANCHES_VALUE = semua cabang (disimpan sebagai branchId null)
+    branchId: activeBranches()[0]?.id ?? ALL_BRANCHES_VALUE, // ALL_BRANCHES_VALUE = semua cabang (disimpan sebagai branchId null)
     title: "",
     specialty: "",
     password: generateTempPassword(), // password sementara dari Master; wajib diganti saat login pertama
@@ -62,19 +60,8 @@ export default function UserManagement() {
   const [resetTarget, setResetTarget] = useState(null); // staf yang password-nya direset Master
   const [resetPw, setResetPw] = useState("");
 
-  const filteredStaff = (staffUsers || []).filter((u) => {
-    if (branchFilter !== "all" && u.branchId && u.branchId !== branchFilter) return false; // akun semua cabang (branchId null) tampil di tiap cabang
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
-    }
-    return true;
-  });
-
-  // Staff Table Pagination (kembali ke halaman 1 saat filter berubah)
-  const staffPg = usePagination(filteredStaff, 8, `${branchFilter}|${search}`);
-
-  const handleAddSubmit = (e) => {
+  // Daftar sudah difilter & dipaginasi oleh useStaffAdmin (klien di mode demo, server di mode API).
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim()) {
       toast.error("Nama lengkap dan email staff wajib diisi.");
@@ -83,29 +70,36 @@ export default function UserManagement() {
 
     // Cabang kosong (null) = semua cabang; terisi = terikat 1 cabang. Master selalu semua cabang.
     const branchId = form.role === "master" || form.branchId === ALL_BRANCHES_VALUE ? null : form.branchId;
-    const emailTaken = (staffUsers || []).some((u) => u.id !== editingId && u.email.trim().toLowerCase() === form.email.trim().toLowerCase());
-    if (emailTaken) {
+    if (isEmailTaken(form.email, editingId)) {
       toast.error("Email sudah dipakai akun staff lain.");
       return;
     }
 
-    if (editingId) {
-      const { password: _pw, ...profile } = form;
-      updateStaffUser(editingId, { ...profile, name: form.name.trim(), email: form.email.trim(), branchId });
-      toast.success(`Akun ${form.name} diperbarui.`);
+    if (!editingId) {
+      const pwError = validateNewPassword(form.password);
+      if (pwError) {
+        toast.error(`Password sementara: ${pwError}`);
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      if (editingId) {
+        const { password: _pw, ...profile } = form;
+        await updateStaff(editingId, { ...profile, name: form.name.trim(), email: form.email.trim(), branchId });
+        toast.success(`Akun ${form.name} diperbarui.`);
+      } else {
+        const { temporaryPassword } = await addStaff({ ...form, branchId });
+        toast.success(`Akun ${form.name} dibuat. Password sementara: ${temporaryPassword} (wajib diganti saat login pertama).`, { duration: 9000 });
+      }
       closeStaffDialog();
-      return;
+    } catch (err) {
+      // Galat server (email dipakai, cabang nonaktif, role Master oleh non-Master, ...) ditampilkan apa adanya
+      toast.error(apiErrorText(err, ["email", "role_id", "branch_id", "password", "name"]));
+    } finally {
+      setSaving(false);
     }
-
-    const pwError = validateNewPassword(form.password);
-    if (pwError) {
-      toast.error(`Password sementara: ${pwError}`);
-      return;
-    }
-
-    addStaffUser({ ...form, branchId });
-    toast.success(`Akun ${form.name} dibuat. Password sementara: ${form.password} (wajib diganti saat login pertama).`, { duration: 9000 });
-    closeStaffDialog();
   };
 
   const closeStaffDialog = () => {
@@ -121,16 +115,23 @@ export default function UserManagement() {
   };
 
   // Master mengatur ulang password staf (lupa password / bantuan): password sementara baru + wajib ganti
-  const handleResetSubmit = (e) => {
+  const handleResetSubmit = async (e) => {
     e.preventDefault();
     const pwError = validateNewPassword(resetPw);
     if (pwError) {
       toast.error(`Password sementara: ${pwError}`);
       return;
     }
-    resetStaffPassword(resetTarget.id, resetPw);
-    toast.success(`Password ${resetTarget.name} diatur ulang: ${resetPw} (wajib diganti saat login berikutnya).`, { duration: 9000 });
-    setResetTarget(null);
+    setSaving(true);
+    try {
+      const { temporaryPassword } = await resetPassword(resetTarget.id, resetPw);
+      toast.success(`Password ${resetTarget.name} diatur ulang: ${temporaryPassword} (wajib diganti saat login berikutnya).`, { duration: 9000 });
+      setResetTarget(null);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["password"]));
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Staf yang berhenti dinonaktifkan (tidak dihapus): riwayat sesi dan data tetap utuh, akun tidak bisa login.
@@ -144,8 +145,12 @@ export default function UserManagement() {
       });
       if (!ok) return;
     }
-    setStaffActive(user.id, !active);
-    toast.info(active ? `Akun ${user.name} dinonaktifkan.` : `Akun ${user.name} diaktifkan kembali.`);
+    try {
+      await setStaffActive(user.id, !active);
+      toast.info(active ? `Akun ${user.name} dinonaktifkan.` : `Akun ${user.name} diaktifkan kembali.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
   return (
@@ -224,9 +229,23 @@ export default function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {staffPg.pageItems.map((u) => {
+              {isLoading && users.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-xs font-medium text-slate-400" data-testid="staff-loading">
+                    Memuat data staf…
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && users.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-xs font-medium text-slate-400" data-testid="staff-empty">
+                    Tidak ada akun staf yang cocok dengan filter.
+                  </TableCell>
+                </TableRow>
+              )}
+              {users.map((u) => {
                 const br = BRANCHES.find((b) => b.id === u.branchId);
-                const roleObj = (rolesList || []).find((r) => r.id === u.role);
+                const roleObj = rolesList.find((r) => r.id === u.role);
                 const roleLabel = roleObj ? roleObj.label : u.role;
                 return (
                   <TableRow key={u.id} className="border-b border-slate-100 hover:bg-sky-50/30 transition-colors">
@@ -293,9 +312,9 @@ export default function UserManagement() {
         </CardContent>
 
         <TablePagination
-          {...staffPg}
-          onPageChange={staffPg.setPage}
-          onPageSizeChange={staffPg.setPageSize}
+          {...pagination}
+          onPageChange={pagination.setPage}
+          onPageSizeChange={pagination.setPageSize}
           noun="staff"
         />
       </Card>
@@ -318,7 +337,7 @@ export default function UserManagement() {
             </div>
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => setResetTarget(null)}>Batal</Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="reset-password-submit">Atur Ulang Password</Button>
+              <Button type="submit" disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="reset-password-submit">Atur Ulang Password</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -432,8 +451,8 @@ export default function UserManagement() {
               <Button type="button" variant="outline" className="border-slate-200" onClick={closeStaffDialog}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
-                {editingId ? "Simpan Perubahan" : "Simpan Staff Baru"}
+              <Button type="submit" disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="staff-form-submit">
+                {saving ? "Menyimpan…" : editingId ? "Simpan Perubahan" : "Simpan Staff Baru"}
               </Button>
             </DialogFooter>
           </form>

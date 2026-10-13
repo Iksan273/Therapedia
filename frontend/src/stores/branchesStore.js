@@ -1,6 +1,13 @@
 import React, { createContext, useContext } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
 import { DEFAULT_BRANCHES, newBranchId, syncBranches } from "@/domain/branch";
+import { isStaffSession } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
+import { api } from "@/services/http/httpClient";
+import { ENDPOINTS } from "@/services/api/endpoints";
+import { branchFromApi, branchToApi } from "@/services/api/mappers/organizationMapper";
+import { useAuth } from "@/stores/authStore";
 
 const BranchesContext = createContext(null);
 
@@ -19,9 +26,8 @@ function branchesReducer(state, action) {
   }
 }
 
-// Master data cabang (dikelola Master). Hapus = permanen beserta seluruh isi cabang (hook useBranchDeleteActions, ADR 0005);
-// cabang yang hanya tidak beroperasi lagi cukup dinonaktifkan.
-export const BranchesProvider = ({ children }) => {
+// ---- Mode demo (localStorage)
+const LocalBranchesProvider = ({ children }) => {
   const [branches, dispatch] = usePersistentReducer("branches", branchesReducer, () => DEFAULT_BRANCHES);
   syncBranches(branches); // registry domain (`BRANCHES`, `branchName`) selalu mengikuti store
 
@@ -48,5 +54,45 @@ export const BranchesProvider = ({ children }) => {
     <BranchesContext.Provider value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch }}>{children}</BranchesContext.Provider>
   );
 };
+
+// ---- Mode API (Laravel): `GET /branches` dibaca semua staf (aktif + nonaktif; dipakai filter & combo box di semua halaman).
+// Tulis (tambah/ubah/aktif) butuh modul `branch_master`. Mutasi mengembalikan Promise dan melempar `ApiError`
+// (`message`, `fieldErrors`) untuk ditampilkan komponen. Hapus cabang permanen dikerjakan Sprint 4 (server membalas 501).
+export const BRANCHES_QUERY_KEY = ["branches"];
+
+const ApiBranchesProvider = ({ children }) => {
+  const { auth } = useAuth();
+  const queryClient = useQueryClient();
+  const enabled = isStaffSession(auth);
+
+  const { data } = useQuery({
+    queryKey: BRANCHES_QUERY_KEY,
+    queryFn: ({ signal }) => api.get(ENDPOINTS.branches.list, undefined, { signal }).then((rows) => rows.map(branchFromApi)),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+  const branches = React.useMemo(() => data ?? [], [data]);
+  syncBranches(branches);
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: BRANCHES_QUERY_KEY });
+
+  const create = useMutation({ mutationFn: (form) => api.post(ENDPOINTS.branches.list, branchToApi(form)), onSuccess: refresh });
+  const update = useMutation({ mutationFn: ({ id, patch }) => api.patch(ENDPOINTS.branches.detail(id), branchToApi(patch)), onSuccess: refresh });
+  const toggle = useMutation({ mutationFn: ({ id, isActive }) => api.patch(ENDPOINTS.branches.setActive(id), { isActive }), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: (id) => api.delete(ENDPOINTS.branches.detail(id)), onSuccess: refresh });
+
+  const addBranch = async (form) => branchFromApi(await create.mutateAsync(form));
+  const updateBranch = async (id, patch) => branchFromApi(await update.mutateAsync({ id, patch }));
+  const setBranchActive = async (id, isActive) => branchFromApi(await toggle.mutateAsync({ id, isActive }));
+  const deleteBranch = (id) => remove.mutateAsync(id);
+
+  return (
+    <BranchesContext.Provider value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch }}>{children}</BranchesContext.Provider>
+  );
+};
+
+// Master data cabang (dikelola Master). Hapus = permanen beserta seluruh isi cabang (hook useBranchDeleteActions, ADR 0005);
+// cabang yang hanya tidak beroperasi lagi cukup dinonaktifkan.
+export const BranchesProvider = isApiMode() ? ApiBranchesProvider : LocalBranchesProvider;
 
 export const useBranches = () => useContext(BranchesContext);

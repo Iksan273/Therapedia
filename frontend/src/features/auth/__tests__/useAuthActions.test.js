@@ -77,7 +77,7 @@ test("loginStaff: simpan token, pasang sesi, daftar izin dari server jadi peta k
 
   expect(apiMock.post).toHaveBeenCalledWith("/auth/login", { email: "siti@therapedia.id", password: "Rahasia123" });
   expect(tokenStore.get()).toBe("5|secret-token");
-  expect(session).toMatchObject({ role: "finance", staffName: "Siti Rahmawati", branchId: 2, mustChangePassword: false });
+  expect(session).toMatchObject({ role: "finance", staffName: "Siti Rahmawati", branchId: "2", mustChangePassword: false });
   expect(ctx.auth.permissions).toEqual({ finance: true, active_clients: true });
 
   // RBAC mengikuti matriks server, bukan matriks lokal
@@ -87,7 +87,7 @@ test("loginStaff: simpan token, pasang sesi, daftar izin dari server jadi peta k
   expect(ctx.hasPermission("inquiry_pipeline")).toBe(false);
   expect(ctx.canDelete("finance")).toBe(true); // hapus operasional = akses modul
   expect(ctx.canDelete("finance", { masterOnly: true })).toBe(false); // hapus client/cabang hanya master
-  expect(ctx.activeBranch).toBe(2); // staf ber-cabang terkunci di cabangnya
+  expect(ctx.activeBranch).toBe("2"); // staf ber-cabang terkunci di cabangnya (id string)
 });
 
 test("master: semua izin dan boleh hapus data penting", async () => {
@@ -132,7 +132,7 @@ test("loginClient: sesi ortu tanpa matriks izin", async () => {
 
   expect(apiMock.post).toHaveBeenCalledWith("/auth/client-login", { clientCode: "AE-00003", dateOfBirth: "2018-05-17" });
   expect(tokenStore.get()).toBe("9|ortu");
-  expect(ctx.auth).toMatchObject({ role: "client", clientId: 3, clientCode: "AE-00003", permissions: null });
+  expect(ctx.auth).toMatchObject({ role: "client", clientId: "3", clientCode: "AE-00003", permissions: null });
 });
 
 test("logout mode API: cabut token di server, hapus token & sesi lokal", async () => {

@@ -2,6 +2,8 @@
 // bukan di `domain/`). Respons `POST /auth/login` | `/auth/client-login` | `GET /auth/me` sudah camelCase karena
 // interceptor httpClient (konversi key otomatis, satu-satunya mekanisme).
 //
+// Id entity server dijadikan string di frontend (lihat organizationMapper.js), termasuk `branchId`/`therapistId` sesi.
+//
 // Konvensi kontrak: key objek = nama field saja. Data (kode modul, id) tidak pernah jadi key, jadi `permissions` dari
 // server berupa DAFTAR kode modul (`["finance", "active_clients"]`) dan kode itu utuh karena berada di nilai, bukan key.
 
@@ -11,10 +13,12 @@ export const permissionsFromList = (codes) => Object.fromEntries((Array.isArray(
 // `data.user` dari login/me staf → bentuk state `auth`. `therapistId` memakai id akun terapis.
 export const staffSessionToAuth = (user) => ({
   role: user.role.code,
+  roleName: user.role.name ?? null,
+  roleBadge: user.role.badge ?? null,
   userId: user.id,
   staffName: user.name,
   email: user.email,
-  branchId: user.branchId ?? null,
+  branchId: user.branchId == null ? null : String(user.branchId),
   branchName: user.branch?.name ?? null,
   therapistId: user.role.code === "therapist" ? String(user.id) : null,
   clientId: null,
@@ -28,10 +32,10 @@ export const clientSessionToAuth = (client) => ({
   userId: null,
   staffName: null,
   email: null,
-  branchId: client.branchId ?? null,
+  branchId: client.branchId == null ? null : String(client.branchId),
   branchName: client.branch?.name ?? null,
   therapistId: null,
-  clientId: client.id,
+  clientId: String(client.id),
   clientCode: client.clientCode,
   childName: client.childName,
   mustChangePassword: false,

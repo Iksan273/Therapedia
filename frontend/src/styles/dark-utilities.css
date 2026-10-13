@@ -353,6 +353,7 @@
 .dark .text-violet-600 { color: rgba(167, 139, 250, 1); }
 .dark .text-violet-700 { color: rgba(196, 181, 253, 1); }
 .dark .text-violet-800 { color: rgba(221, 214, 254, 1); }
+.dark .text-violet-800\/90 { color: rgba(221, 214, 254, 0.9); }
 .dark .text-violet-900 { color: rgba(221, 214, 254, 1); }
 .dark .text-violet-950 { color: rgba(221, 214, 254, 1); }
 .dark .text-yellow-900 { color: rgba(254, 240, 138, 1); }

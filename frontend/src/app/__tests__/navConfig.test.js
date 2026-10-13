@@ -44,3 +44,50 @@ describe("menu sidebar mengikuti RBAC", () => {
     expect(navFor("admin_inquiry")).not.toContain("/finance");
   });
 });
+
+describe("modul akses terpisah: Assessment Master Data, Master Layanan & Kuadran, Performa All-Branch", () => {
+  const NEW_MODULES = ["assessment_master", "inquiry_master_data", "branch_performance"];
+
+  test("terdaftar di ACCESS_MODULES dan setiap role punya nilai untuk semuanya", () => {
+    const keys = ACCESS_MODULES.map((m) => m.key);
+    NEW_MODULES.forEach((m) => expect(keys).toContain(m));
+    Object.entries(DEFAULT_PERMISSIONS).forEach(([role, perms]) => {
+      keys.forEach((key) => expect(typeof perms[key], `${role}.${key}`).toBe("boolean"));
+    });
+  });
+
+  test("default: admin_inquiry tetap membuka dua halaman master inquiry, manager tidak, Performa All-Branch hanya master", () => {
+    expect(navFor("admin_inquiry")).toEqual(expect.arrayContaining(["/admin-inquiry/assessments", "/admin-inquiry/master-data"]));
+    expect(navFor("manager")).not.toContain("/admin-inquiry/assessments");
+    expect(navFor("manager")).not.toContain("/admin-inquiry/master-data");
+    expect(navFor("master")).toContain("/master/branch-performance");
+    ["manager", "admin_inquiry", "admin_schedule", "finance", "therapist"].forEach((role) => expect(navFor(role)).not.toContain("/master/branch-performance"));
+  });
+
+  test("tiga modul dapat diberikan/dicabut terpisah dari inquiry_pipeline dan revenue", () => {
+    // Punya inquiry_pipeline TIDAK otomatis membuka halaman master inquiry
+    const noMaster = navFor("admin_inquiry", { assessment_master: false, inquiry_master_data: false });
+    expect(noMaster).toContain("/admin-inquiry/pipeline");
+    expect(noMaster).not.toContain("/admin-inquiry/assessments");
+    expect(noMaster).not.toContain("/admin-inquiry/master-data");
+
+    // Hanya assessment_master: menu Assessment Master Data saja
+    const onlyAssessment = navFor("admin_inquiry", { inquiry_master_data: false });
+    expect(onlyAssessment).toContain("/admin-inquiry/assessments");
+    expect(onlyAssessment).not.toContain("/admin-inquiry/master-data");
+
+    // Punya revenue TIDAK membuka Performa All-Branch; sebaliknya modul barunya tidak membuka Revenue
+    expect(navFor("manager")).toContain("/manager/revenue");
+    expect(navFor("manager")).not.toContain("/master/branch-performance");
+    expect(navFor("manager", { branch_performance: true })).toContain("/master/branch-performance");
+    const onlyPerformance = navFor("finance", { revenue: false, branch_performance: true });
+    expect(onlyPerformance).toContain("/master/branch-performance");
+    expect(onlyPerformance).not.toContain("/master/revenue");
+  });
+
+  test("role kustom mendapat menu dari modul barunya sendiri", () => {
+    const hasPermission = (m) => m === "inquiry_master_data";
+    const items = buildNavConfig({ role: "koordinator", roleObj: { id: "koordinator", label: "Koordinator", badge: "K" }, hasPermission }).items.map((i) => i.to);
+    expect(items).toEqual(["/admin-inquiry/master-data"]);
+  });
+});

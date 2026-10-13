@@ -163,7 +163,7 @@ class StaffLoginTest extends TestCase
         $this->postJson('/api/v1/auth/login', ['email' => $staff->email, 'password' => self::PASSWORD])
             ->assertJsonPath('data.user.must_change_password', true);
 
-        $this->getJson('/api/v1/branches', $this->bearer($token))
+        $this->getJson('/api/v1/clients', $this->bearer($token))
             ->assertStatus(403)
             ->assertJsonPath('code', 'must_change_password');
 
@@ -176,6 +176,6 @@ class StaffLoginTest extends TestCase
         ], $this->bearer($token))->assertNoContent();
 
         // Lolos middleware: kerangka endpoint belum diimplementasi → 501, bukan 403.
-        $this->getJson('/api/v1/branches', $this->bearer($token))->assertStatus(501);
+        $this->getJson('/api/v1/clients', $this->bearer($token))->assertStatus(501);
     }
 }

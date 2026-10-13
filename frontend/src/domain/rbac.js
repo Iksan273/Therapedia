@@ -3,8 +3,11 @@
 
 export const ACCESS_MODULES = [
   { key: "revenue", label: "Dashboard Revenue", desc: "Akses omzet & analitik finansial all-branch", category: "Financial" },
+  { key: "branch_performance", label: "Performa Inquiry All-Branch", desc: "Performa inquiry & intake seluruh cabang (KPI, tren, konversi, drop-off)", category: "Financial" },
   { key: "inquiry_pipeline", label: "Inquiry Pipeline", desc: "Intake client baru & kanban pipeline", category: "Inquiry" },
   { key: "inquiry_dashboard", label: "Inquiry Dashboard", desc: "Ringkasan statistik & KPI inquiry", category: "Inquiry" },
+  { key: "assessment_master", label: "Assessment Master Data", desc: "Mesin kuesioner: kategori, section, dan soal asesmen", category: "Inquiry" },
+  { key: "inquiry_master_data", label: "Master Layanan & Kuadran", desc: "Master layanan, kuadran sensori, alasan Cancel / Off (termasuk Therapist Off), dan alasan Discharge", category: "Inquiry" },
   { key: "weekly_calendar", label: "Weekly Calendar", desc: "Manajemen timetable mingguan & booking slot", category: "Scheduling" },
   { key: "schedule_dashboard", label: "Schedule Dashboard", desc: "Ringkasan statistik & KPI penjadwalan", category: "Scheduling" },
   { key: "active_clients", label: "Active Client", desc: "Roster client aktif & Birthday Hub", category: "Scheduling" },
@@ -66,8 +69,11 @@ export const DEFAULT_ROLES = [
 export const DEFAULT_PERMISSIONS = {
   master: {
     revenue: true,
+    branch_performance: true,
     inquiry_pipeline: true,
     inquiry_dashboard: true,
+    assessment_master: true,
+    inquiry_master_data: true,
     weekly_calendar: true,
     schedule_dashboard: true,
     active_clients: true,
@@ -85,8 +91,11 @@ export const DEFAULT_PERMISSIONS = {
   },
   manager: {
     revenue: true,
+    branch_performance: false,
     inquiry_pipeline: true,
     inquiry_dashboard: true,
+    assessment_master: false,
+    inquiry_master_data: false,
     weekly_calendar: true,
     schedule_dashboard: true,
     active_clients: true,
@@ -104,8 +113,11 @@ export const DEFAULT_PERMISSIONS = {
   },
   admin_inquiry: {
     revenue: false,
+    branch_performance: false,
     inquiry_pipeline: true,
     inquiry_dashboard: true,
+    assessment_master: true,
+    inquiry_master_data: true,
     weekly_calendar: false,
     schedule_dashboard: false,
     active_clients: false,
@@ -123,8 +135,11 @@ export const DEFAULT_PERMISSIONS = {
   },
   admin_schedule: {
     revenue: false,
+    branch_performance: false,
     inquiry_pipeline: false,
     inquiry_dashboard: false,
+    assessment_master: false,
+    inquiry_master_data: false,
     weekly_calendar: true,
     schedule_dashboard: true,
     active_clients: true,
@@ -142,8 +157,11 @@ export const DEFAULT_PERMISSIONS = {
   },
   finance: {
     revenue: true,
+    branch_performance: false,
     inquiry_pipeline: false,
     inquiry_dashboard: false,
+    assessment_master: false,
+    inquiry_master_data: false,
     weekly_calendar: false,
     schedule_dashboard: false,
     active_clients: true,
@@ -161,8 +179,11 @@ export const DEFAULT_PERMISSIONS = {
   },
   therapist: {
     revenue: false,
+    branch_performance: false,
     inquiry_pipeline: false,
     inquiry_dashboard: false,
+    assessment_master: false,
+    inquiry_master_data: false,
     weekly_calendar: false,
     schedule_dashboard: false,
     active_clients: false,

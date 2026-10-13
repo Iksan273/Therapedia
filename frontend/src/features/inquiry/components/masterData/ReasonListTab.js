@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { EmptyState } from "@/shared/components/EmptyState";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 
-const EMPTY = { open: false, editingValue: null, value: "", label: "", active: true };
+const EMPTY = { open: false, editingValue: null, value: "", label: "", active: true, flagged: false };
 
 const slugify = (text) =>
   text
@@ -23,11 +23,13 @@ const slugify = (text) =>
 // CRUD daftar pilihan cepat alasan (cancel / discharge). Data transaksi menyimpan alasan sebagai string,
 // jadi menghapus pilihan tidak merusak riwayat; hanya label lama tampil sebagai kodenya.
 // `codeMode` = kode wajib, singkat, HURUF BESAR (mis. S, OL, SCA). Kode itulah yang disimpan di transaksi dan tampil di riwayat.
-export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, onDelete, testId, codeMode = false, reservedCodes = [] }) {
+// `flag` (opsional) = penanda tambahan pada tiap pilihan: { key, label, help }. Contoh Alasan Cancel / Off: { key: "therapistOff",
+// label: "Therapist Off", help: "..." }. Nilainya ikut dikirim di onAdd/onUpdate sebagai boolean `item[key]`.
+export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, onDelete, testId, codeMode = false, reservedCodes = [], flag = null }) {
   const { confirm, confirmDialog } = useConfirm();
   const [dialog, setDialog] = useState(EMPTY);
 
-  const openEdit = (r) => setDialog({ open: true, editingValue: r.value, value: r.value, label: r.label, active: r.active !== false });
+  const openEdit = (r) => setDialog({ open: true, editingValue: r.value, value: r.value, label: r.label, active: r.active !== false, flagged: flag ? Boolean(r[flag.key]) : false });
 
   const save = () => {
     const label = dialog.label.trim();
@@ -36,7 +38,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
       return;
     }
     if (dialog.editingValue) {
-      onUpdate(dialog.editingValue, { label, active: dialog.active });
+      onUpdate(dialog.editingValue, { label, active: dialog.active, ...(flag ? { [flag.key]: dialog.flagged } : {}) });
       toast.success(`${noun} "${label}" diperbarui.`);
     } else {
       const code = codeMode ? dialog.value.trim().toUpperCase() : slugify(dialog.value || label);
@@ -48,7 +50,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
         toast.error(`Kode "${code}" sudah dipakai.`);
         return;
       }
-      onAdd({ value: code, label, active: dialog.active });
+      onAdd({ value: code, label, active: dialog.active, ...(flag ? { [flag.key]: dialog.flagged } : {}) });
       toast.success(`${noun} "${label}" ditambahkan.`);
     }
     setDialog(EMPTY);
@@ -86,6 +88,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
                 {codeMode && <TableHead className="text-xs font-bold">Kode</TableHead>}
                 <TableHead className="text-xs font-bold">Nama</TableHead>
                 {!codeMode && <TableHead className="text-xs font-bold">Kode</TableHead>}
+                {flag && <TableHead className="text-xs font-bold">{flag.label}</TableHead>}
                 <TableHead className="text-xs font-bold text-center">Aktif</TableHead>
                 <TableHead className="text-xs font-bold text-right">Aksi</TableHead>
               </TableRow>
@@ -96,6 +99,17 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
                   {codeMode && <TableCell data-label="Kode" className="font-mono text-xs font-black text-slate-900">{r.value}</TableCell>}
                   <TableCell data-nolabel className="min-w-[200px] text-xs font-bold text-slate-900">{r.label}</TableCell>
                   {!codeMode && <TableCell data-label="Kode" className="font-mono text-[11px] text-slate-600">{r.value}</TableCell>}
+                  {flag && (
+                    <TableCell data-label={flag.label} className="text-xs">
+                      {r[flag.key] ? (
+                        <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-800" data-testid={`${testId}-flag-${r.value}`}>
+                          {flag.label}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell data-label="Aktif" className="text-center">
                     <Switch
                       checked={r.active !== false}
@@ -110,7 +124,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
                     <Button aria-label={`Edit ${noun}`} size="icon" variant="ghost" className="cursor-pointer" onClick={() => openEdit(r)} data-testid={`edit-${testId}-${r.value}`}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <IfCanDelete module="inquiry_pipeline">
+                    <IfCanDelete module="inquiry_master_data">
                     <Button
                       aria-label={`Hapus ${noun}`}
                       size="icon"
@@ -157,6 +171,15 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
               <Label className="text-xs font-bold">Aktif</Label>
               <Switch checked={dialog.active} onCheckedChange={(v) => setDialog((p) => ({ ...p, active: v }))} />
             </div>
+            {flag && (
+              <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-violet-900">{flag.label}</Label>
+                  <Switch checked={dialog.flagged} onCheckedChange={(v) => setDialog((p) => ({ ...p, flagged: v }))} aria-label={flag.label} data-testid={`${testId}-flag-switch`} />
+                </div>
+                {flag.help && <p className="mt-1.5 text-[11px] leading-relaxed text-violet-800/90">{flag.help}</p>}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(EMPTY)}>

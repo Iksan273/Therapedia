@@ -17,13 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { useAuth } from "@/stores/authStore";
 import { ACCESS_MODULES } from "@/domain/rbac";
+import { apiErrorText } from "@/domain/auth";
+import { useRoleAdmin } from "@/features/master/hooks/useRoleAdmin";
 import { cn } from "@/shared/lib/utils";
 
 export default function RoleModuleAccess() {
   const { confirm, confirmDialog } = useConfirm();
-  const { rolesList, addRole, updateRole, deleteRole, rbacPermissions, updateRolePermission, staffUsers } = useAuth();
+  // Data role & matriks: mode demo = localStorage, mode API = Laravel (matriks dikirim sebagai array kode modul)
+  const { rolesList, addRole, updateRole, deleteRole, rbacPermissions, updateRolePermission, usersCountOf, isLoading } = useRoleAdmin();
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("matrix"); // 'matrix' | 'roles'
   const [searchRole, setSearchRole] = useState("");
 
@@ -61,20 +64,25 @@ export default function RoleModuleAccess() {
     );
   });
 
-  const handleTogglePermission = (roleId, moduleKey, currentAllowed) => {
-    updateRolePermission(roleId, moduleKey, !currentAllowed);
-    toast.success(`Hak akses '${moduleKey}' untuk role '${roleId}' diperbarui.`);
+  const handleTogglePermission = async (roleId, moduleKey, currentAllowed) => {
+    try {
+      await updateRolePermission(roleId, moduleKey, !currentAllowed);
+      toast.success(`Hak akses '${moduleKey}' untuk role '${roleId}' diperbarui.`);
+    } catch (err) {
+      toast.error(apiErrorText(err)); // mis. role Master terkunci / tidak boleh mencabut RBAC dari role sendiri
+    }
   };
 
-  const handleAddSubmit = (e) => {
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
     if (!addForm.label.trim()) {
       toast.error("Nama Role wajib diisi!");
       return;
     }
 
+    setSaving(true);
     try {
-      const created = addRole(addForm);
+      const created = await addRole(addForm);
       toast.success(`Role '${created.label}' berhasil ditambahkan!`);
       setAddModalOpen(false);
       setAddForm({
@@ -88,7 +96,9 @@ export default function RoleModuleAccess() {
         }, {}),
       });
     } catch (err) {
-      toast.error(err.message || "Gagal menambahkan role baru");
+      toast.error(apiErrorText(err, ["name", "code", "permissions"]) || "Gagal menambahkan role baru");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -102,14 +112,21 @@ export default function RoleModuleAccess() {
     setEditModalOpen(true);
   };
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editingRole || !editForm.label.trim()) return;
 
-    updateRole(editingRole.id, editForm);
-    toast.success(`Role '${editForm.label}' berhasil diperbarui!`);
-    setEditModalOpen(false);
-    setEditingRole(null);
+    setSaving(true);
+    try {
+      await updateRole(editingRole.id, editForm);
+      toast.success(`Role '${editForm.label}' berhasil diperbarui!`);
+      setEditModalOpen(false);
+      setEditingRole(null);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["name"]));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDeleteRole = async (role) => {
@@ -118,17 +135,17 @@ export default function RoleModuleAccess() {
       return;
     }
     // Master ber-FK: role yang masih dipakai akun staf tidak bisa dihapus (pindahkan staf ke role lain dulu)
-    const usedBy = staffUsers.filter((u) => u.role === role.id).length;
+    const usedBy = usersCountOf(role.id);
     if (usedBy > 0) {
       toast.error(`Role '${role.label}' masih dipakai ${usedBy} akun staf. Pindahkan akunnya ke role lain dulu.`);
       return;
     }
     if (await confirm({ title: "Hapus role?", description: `Role '${role.label}' akan dihapus permanen.` })) {
       try {
-        deleteRole(role.id);
+        await deleteRole(role.id);
         toast.info(`Role '${role.label}' telah dihapus.`);
       } catch (err) {
-        toast.error(err.message);
+        toast.error(apiErrorText(err)); // 409 bila masih dipakai akun (pesan memuat jumlah akun)
       }
     }
   };
@@ -147,7 +164,7 @@ export default function RoleModuleAccess() {
             RBAC & CRUD Role Management
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola daftar peran pengguna (Role List CRUD) dan tentukan hak akses ke 10 modul operasional Therapedia.
+            Kelola daftar peran pengguna (Role List CRUD) dan tentukan hak akses ke {ACCESS_MODULES.length} modul operasional Therapedia.
           </p>
         </div>
 
@@ -173,6 +190,12 @@ export default function RoleModuleAccess() {
         </div>
       </div>
 
+      {isLoading && (
+        <p className="text-xs font-medium text-slate-400" data-testid="rbac-loading">
+          Memuat data role…
+        </p>
+      )}
+
       {/* Navigation Tabs */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-2">
         <div className="flex items-center gap-2">
@@ -188,7 +211,7 @@ export default function RoleModuleAccess() {
             data-testid="tab-matrix-button"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            <span>Matriks Hak Akses Modul (10 Modul)</span>
+            <span>Matriks Hak Akses Modul ({ACCESS_MODULES.length} Modul)</span>
           </button>
 
           <button
@@ -213,13 +236,13 @@ export default function RoleModuleAccess() {
         <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-sm font-bold text-slate-900">Matriks Hak Akses 10 Modul Operasional</CardTitle>
+              <CardTitle className="text-sm font-bold text-slate-900">Matriks Hak Akses {ACCESS_MODULES.length} Modul Operasional</CardTitle>
               <CardDescription className="text-xs text-slate-500">
                 Aktifkan atau nonaktifkan switch modul untuk masing-masing role secara real-time.
               </CardDescription>
             </div>
             <span className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-xl shadow-2xs">
-              {rolesList?.length || 0} Active Roles &bull; 10 Access Modules
+              {rolesList?.length || 0} Active Roles &bull; {ACCESS_MODULES.length} Access Modules
             </span>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
@@ -383,7 +406,7 @@ export default function RoleModuleAccess() {
               <Plus className="w-5 h-5 text-emerald-600" /> Buat Peran (Role) Baru
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Tambahkan role kustom baru ke dalam sistem Therapedia dan tentukan izin awal untuk 10 modul.
+              Tambahkan role kustom baru ke dalam sistem Therapedia dan tentukan izin awal untuk {ACCESS_MODULES.length} modul.
             </DialogDescription>
           </DialogHeader>
 
@@ -432,7 +455,7 @@ export default function RoleModuleAccess() {
 
             {/* Initial Permissions Selector */}
             <div className="pt-2 border-t border-slate-200">
-              <Label className="text-xs font-bold text-slate-900 block mb-2">Akses Modul Awal (10 Modul):</Label>
+              <Label className="text-xs font-bold text-slate-900 block mb-2">Akses Modul Awal ({ACCESS_MODULES.length} Modul):</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 rounded-xl bg-slate-50 border border-slate-200">
                 {ACCESS_MODULES.map((m) => {
                   const isChecked = Boolean(addForm.initialPermissions[m.key]);
@@ -461,7 +484,7 @@ export default function RoleModuleAccess() {
               <Button type="button" variant="outline" className="border-slate-200" onClick={() => setAddModalOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+              <Button type="submit" disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
                 Simpan Role Baru
               </Button>
             </DialogFooter>
@@ -513,7 +536,7 @@ export default function RoleModuleAccess() {
               <Button type="button" variant="outline" className="border-slate-200" onClick={() => setEditModalOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
+              <Button type="submit" disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white font-bold">
                 Simpan Perubahan
               </Button>
             </DialogFooter>

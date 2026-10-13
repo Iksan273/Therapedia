@@ -48,6 +48,34 @@ class PermissionService
         return ! $masterOnly && $this->allows($user, $module);
     }
 
+    /** @var list<string>|null */
+    private ?array $moduleOrder = null;
+
+    /** Buang memo izin sebuah role (dipanggil saat matriks diubah, agar perubahan langsung berlaku di proses yang sama). */
+    public function forgetRole(int $roleId): void
+    {
+        unset($this->memo[$roleId]);
+    }
+
+    /** Semua kode modul, urut `access_modules.sort_order` (dimemo per request). @return list<string> */
+    public function moduleCodes(): array
+    {
+        return $this->moduleOrder ??= AccessModule::query()->orderBy('sort_order')->pluck('code')->all();
+    }
+
+    /**
+     * Urutkan sebagian kode modul mengikuti `sort_order`, membuang kode yang tidak dikenal.
+     *
+     * @param  iterable<string>  $codes
+     * @return list<string>
+     */
+    public function sortModuleCodes(iterable $codes): array
+    {
+        $wanted = array_flip(is_array($codes) ? $codes : iterator_to_array($codes, false));
+
+        return array_values(array_filter($this->moduleCodes(), fn (string $code) => isset($wanted[$code])));
+    }
+
     /**
      * Kode modul yang diizinkan, urut `access_modules.sort_order`. Dipakai respons login/me.
      * Berbentuk DAFTAR (bukan kamus): kode modul adalah data, tidak boleh jadi key objek JSON (konvensi key,

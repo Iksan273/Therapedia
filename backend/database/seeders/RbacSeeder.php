@@ -17,8 +17,11 @@ class RbacSeeder extends Seeder
     /** kode => [label, category, description] (urutan = sort_order) */
     public const MODULES = [
         'revenue' => ['Dashboard Revenue', 'Financial', 'Akses omzet & analitik finansial all-branch'],
+        'branch_performance' => ['Performa Inquiry All-Branch', 'Financial', 'Performa inquiry & intake seluruh cabang (KPI, tren, konversi, drop-off)'],
         'inquiry_pipeline' => ['Inquiry Pipeline', 'Inquiry', 'Intake client baru & kanban pipeline'],
         'inquiry_dashboard' => ['Inquiry Dashboard', 'Inquiry', 'Ringkasan statistik & KPI inquiry'],
+        'assessment_master' => ['Assessment Master Data', 'Inquiry', 'Mesin kuesioner: kategori, section, dan soal asesmen'],
+        'inquiry_master_data' => ['Master Layanan & Kuadran', 'Inquiry', 'Master layanan, kuadran sensori, alasan Cancel / Off (termasuk Therapist Off), dan alasan Discharge'],
         'weekly_calendar' => ['Weekly Calendar', 'Scheduling', 'Manajemen timetable mingguan & booking slot'],
         'schedule_dashboard' => ['Schedule Dashboard', 'Scheduling', 'Ringkasan statistik & KPI penjadwalan'],
         'active_clients' => ['Active Client', 'Scheduling', 'Roster client aktif & Birthday Hub'],
@@ -46,7 +49,7 @@ class RbacSeeder extends Seeder
     public const ALLOWED = [
         'master' => ['*'],
         'manager' => ['revenue', 'inquiry_pipeline', 'inquiry_dashboard', 'weekly_calendar', 'schedule_dashboard', 'active_clients', 'unreported_reports', 'therapist_utilization'],
-        'admin_inquiry' => ['inquiry_pipeline', 'inquiry_dashboard','active_clients','weekly_calendar'],
+        'admin_inquiry' => ['inquiry_pipeline', 'inquiry_dashboard', 'assessment_master', 'inquiry_master_data', 'active_clients', 'weekly_calendar'],
         'admin_schedule' => ['weekly_calendar', 'schedule_dashboard', 'active_clients', 'unreported_reports', 'holidays'],
         'finance' => ['holidays', 'active_clients', 'finance','weekly_calendar'],
         'therapist' => ['therapist_module'],

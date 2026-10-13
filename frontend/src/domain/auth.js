@@ -90,6 +90,10 @@ export const findClientForLogin = (clients = [], code, dob) => {
 // Berlaku untuk semua role staf (master, terapis, role kustom); diatur Master di User Management. Ortu (`client`) bukan staf.
 export const hasAllBranchAccess = (user) => Boolean(user?.role) && user.role !== "client" && !user.branchId;
 
+// Sesi staf yang boleh memanggil endpoint staf (data organisasi: cabang, terapis, akun, role). Ortu (`client`) dan sesi
+// dengan password sementara (server memblokir endpoint selain auth) tidak.
+export const isStaffSession = (auth) => Boolean(auth?.role) && auth.role !== "client" && !auth.mustChangePassword;
+
 // ---- Tujuan setelah login (mode API & demo) ----
 // Pemetaan payload API → state `auth` ada di `services/api/mappers/authMapper.js` (domain tidak mengenal bentuk payload API).
 

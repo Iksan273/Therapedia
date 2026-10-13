@@ -21,7 +21,8 @@ test("permissionsFromList: kode modul utuh (snake_case) karena berada di nilai, 
 test("staffSessionToAuth memetakan profil dan izin", () => {
   const auth = staffSessionToAuth(staffUser);
   expect(auth.permissions).toEqual({ finance: true, inquiry_pipeline: true, therapist_utilization: true });
-  expect(auth).toMatchObject({ role: "finance", userId: 7, staffName: "Siti", branchId: 2, branchName: "Citraland", mustChangePassword: false, therapistId: null, clientId: null });
+  // id entity server menjadi string di frontend (nilai Select Radix harus string; id demo juga string)
+  expect(auth).toMatchObject({ role: "finance", roleName: "Role Finance", roleBadge: "Billing", userId: 7, staffName: "Siti", branchId: "2", branchName: "Citraland", mustChangePassword: false, therapistId: null, clientId: null });
 });
 
 test("terapis memakai id akun sebagai therapistId; master tanpa cabang", () => {
@@ -36,7 +37,7 @@ test("password sementara terbawa ke state", () => {
 test("clientSessionToAuth", () => {
   expect(clientSessionToAuth({ id: 3, clientCode: "AE-00003", childName: "Raka", branchId: 1, branch: { name: "East" } })).toMatchObject({
     role: "client",
-    clientId: 3,
+    clientId: "3",
     clientCode: "AE-00003",
     childName: "Raka",
     permissions: null,

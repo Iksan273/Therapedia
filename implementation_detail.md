@@ -34,7 +34,7 @@ Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md
 | Konvensi key JSON | **Satu format, tanpa pengecualian**: snake_case di kabel (API), camelCase di frontend; konversi otomatis hanya di `httpClient`. Karena semua key ikut dikonversi, **data (kode modul, id, kode alasan) tidak boleh menjadi key objek**: kamus diganti array. Contoh: `permissions: ["finance", "active_clients"]`, matriks RBAC `[{ "module_code": "finance", "allowed": true }]`, draft jawaban kuesioner `[{ "question_id": 12, "value": ... }]` |
 | Auth | Sanctum bearer token. Dua guard: `staff` (model `User`) dan `client` (model `Client`, portal ortu). Ability token membedakan portal. Rute publik hanya `/public/*` dan `/auth/*` login |
 | Cabang | Semua endpoint berdata cabang memakai `BranchScope`: non-master hanya melihat/mengubah `branch_id` miliknya; master boleh `?branch_id=` (kosong/`all` = semua) |
-| Hak akses | `PermissionService` membaca `role_permissions` (memo per request). Ditulis sebagai **`modul:<kode>`**: punya akses modul = boleh semua aksi non-hapus; **`+hapus-master`** = hapus client/cabang hanya role `master` (hapus operasional cukup akses modul; tanpa kolom `can_delete`). Kode modul: `revenue, inquiry_pipeline, inquiry_dashboard, weekly_calendar, schedule_dashboard, active_clients, finance, user_management, branch_master, rbac, therapist_module, unreported_reports, holidays` |
+| Hak akses | `PermissionService` membaca `role_permissions` (memo per request). Ditulis sebagai **`modul:<kode>`**: punya akses modul = boleh semua aksi non-hapus; **`+hapus-master`** = hapus client/cabang hanya role `master` (hapus operasional cukup akses modul; tanpa kolom `can_delete`). Kode modul: `revenue, branch_performance, inquiry_pipeline, inquiry_dashboard, assessment_master, inquiry_master_data, weekly_calendar, schedule_dashboard, active_clients, finance, user_management, branch_master, rbac, therapist_module, unreported_reports, holidays, therapist_utilization` (17 modul; `assessment_master`, `inquiry_master_data`, dan `branch_performance` dipisah dari `inquiry_pipeline`/`revenue` agar hak aksesnya bisa diatur sendiri) |
 | Transaksi | Setiap endpoint tulis lintas tabel = satu `DB::transaction()` + `lockForUpdate()` pada baris induk; log khusus (`credit_ledger`, `invoice_logs`, `package_conversions`) ditulis di transaksi yang sama |
 | Optimistic lock | Entity ber-`version` (`clients`, `schedules`, `invoices`, `client_packages`, `session_reports`, `assessment_categories`): request kirim `version`; tidak cocok → **409** `{code:"version_conflict"}` |
 | Jejak pelaku | Trait/observer mengisi `created_by`/`updated_by` dari user terautentikasi; frontend tidak mengirim pelaku |
@@ -121,31 +121,31 @@ Layar: `/master/users`, `/master/rbac`, `/master/branches`. Fitur: F2 + Master C
 ### 4.1 User staf & terapis
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 2.1 | `GET /users` | daftar staf (filter `branch_id`, `role`, `is_active`, `q`) + pagination | `user_management` | — | `users` R, `roles` R, `branches` R | `idx_users_branch_role` |
-| 2.2 | `POST /users` | `CreateUserAction` | `user_management` | `name,email,role_id,branch_id,password(temp),title,specialty,phone` | `users` C (`must_change_password = 1`) | 422: email unik; `branch_id` wajib untuk semua role kecuali master (1 cabang) |
-| 2.3 | `GET /users/{id}` · `PATCH /users/{id}` | detail / ubah (nama, role, cabang, atribut klinis) | `user_management` | `version` tidak ada (last-write) | `users` R,U | tidak boleh mengosongkan `branch_id` non-master |
-| 2.4 | `PATCH /users/{id}/active` | nonaktifkan / aktifkan | `user_management` | `is_active` | `users` U, `personal_access_tokens` D (saat nonaktif) | staf **tidak dihapus** lewat UI |
-| 2.5 | `POST /users/{id}/reset-password` ✚ | Master mengatur password sementara | `user_management` | `password` | `users` U (`must_change_password = 1`), `personal_access_tokens` D | 204 |
-| 2.6 | `GET /therapists` | daftar ringan terapis (id, nama, cabang, spesialisasi) untuk dropdown | login staf | `branch_id` | `users` R (role terapis, aktif) | tanpa pagination (≤ puluhan) |
+| 2.1 | `GET /users` | daftar staf (filter `branch_id` (akun semua cabang ikut tampil), `role` (kode), `is_active`, `q` prefix nama/email) + pagination 10/hal | `user_management` | — | `users` R, `roles` R, `branches` R | pengatur terikat 1 cabang hanya melihat akun cabangnya |
+| 2.2 | `POST /users` | `CreateUserAction` | `user_management` | `name,email,role_id,branch_id?,password?,title,specialty,phone` | `users` C (`must_change_password = 1`) | `branch_id` NULL = **semua cabang** (role master selalu NULL; pengatur 1 cabang terkunci ke cabangnya; cabang harus aktif). `password` kosong → dibuatkan sementara dan dikembalikan **sekali** di `temporary_password`. 422 email unik; 403 bila bukan master memberi role master |
+| 2.3 | `GET /users/{id}` · `PATCH /users/{id}` | detail / ubah (nama, email, role, cabang, atribut klinis; **tanpa password**) | `user_management` | field berubah (PATCH, tanpa `version`) | `users` R,U | tidak boleh mengubah role sendiri (`cannot_change_own_role`) atau menurunkan master aktif terakhir (`last_master`); akun master hanya oleh master; akun cabang lain = 404 |
+| 2.4 | `PATCH /users/{id}/active` | nonaktifkan / aktifkan | `user_management` | `is_active` | `users` U, `personal_access_tokens` D (saat nonaktif) | staf **tidak dihapus** (tidak ada `DELETE /users`). 422 `cannot_deactivate_self`, `last_master` |
+| 2.5 | `POST /users/{id}/reset-password` | Master/pengatur mengatur password sementara | `user_management` | `password?` | `users` U (`must_change_password = 1`), `personal_access_tokens` D | 200 + `temporary_password` sekali bila dibuatkan otomatis. Akun sendiri → 422 `use_change_password` |
+| 2.6 | `GET /therapists` | daftar ringan terapis aktif (id, nama, title, specialty, `branch_id`, `max_sessions_per_month`; **tanpa email/telepon**) | login staf | `branch_id` | `users` R (role terapis, aktif) | tanpa pagination; terapis semua cabang (NULL) tampil di tiap cabang. `PATCH /therapists/{id}/capacity` (`max_sessions_per_month` 1..744 atau null; modul `therapist_utilization` atau `user_management`; akun cabang lain 404) |
 
 ### 4.2 Role & matriks akses
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 2.7 | `GET /roles` | daftar role + jumlah akun | `rbac` | — | `roles` R, `users` R (count) | |
-| 2.8 | `POST /roles` | buat role kustom | `rbac` | `code,name,badge,description` | `roles` C | `is_system = 0` |
-| 2.9 | `PATCH /roles/{id}` | ubah label/badge | `rbac` | | `roles` U | role sistem: label/badge saja |
-| 2.10 | `DELETE /roles/{id}` | hapus role | `rbac` + hapus | | `roles` D; `role_permissions` D (cascade); `users` R | 409 `in_use` bila masih ada akun; role sistem ditolak |
-| 2.11 | `GET /access-modules` | daftar modul (seed) | `rbac` | | `access_modules` R | |
-| 2.12 | `PUT /roles/{id}/permissions` | simpan matriks (batch) atau `PATCH` satu modul | `rbac` | `[{ module_code, allowed }]` | `role_permissions` upsert | permission di-cache memo per request |
+| 2.7 | `GET /roles` | daftar role + `users_count` + `permissions` (**daftar kode modul** yang diizinkan, master selalu semua) | **baca: `rbac` atau `user_management`** (pengelola akun butuh daftar role); tulis (2.8–2.12): hanya `rbac` | — | `roles` R, `role_permissions` R, `users` R (count) | tanpa pagination |
+| 2.8 | `POST /roles` | `CreateRoleAction`: buat role kustom | `rbac` | `name, code?, badge, description, permissions[]` | `roles` C, `role_permissions` C (**14 baris lengkap**) | `is_system = 0`; `code` kosong → slug dari nama, unik (`_2`, `_3`); `permissions` = daftar kode modul awal |
+| 2.9 | `PATCH /roles/{id}` | ubah nama/badge/deskripsi | `rbac` | `name?, badge?, description?` | `roles` U | kode role tidak dapat diubah; role sistem pun boleh ganti label |
+| 2.10 | `DELETE /roles/{id}` | `DeleteRoleAction` | `rbac` | | `roles` D; `role_permissions` D (cascade) | 422 `system_role`; 409 `in_use` (+ jumlah akun) bila masih dipakai |
+| 2.11 | `GET /access-modules` | daftar modul (seed, urut `sort_order`) | `rbac` | | `access_modules` R | |
+| 2.12 | `PUT /roles/{id}/permissions` | `SyncRolePermissionsAction`: simpan matriks (upsert per modul; modul yang tidak dikirim tidak berubah) | `rbac` | `{ permissions: [{ module_code, allowed }] }` (**array**, bukan kamus berkunci kode modul) | `role_permissions` upsert | role `master` terkunci (422 `role_locked`); tidak boleh mencabut `rbac` dari role sendiri (422 `cannot_remove_own_rbac`); berlaku langsung tanpa login ulang |
 
 ### 4.3 Master Cabang
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 2.13 | `GET /branches` | daftar cabang (aktif + nonaktif) | login staf | — | `branches` R | dipakai filter cabang semua halaman |
+| 2.13 | `GET /branches` | daftar cabang (aktif + nonaktif; `?active=1` hanya aktif) | login staf | — | `branches` R | dipakai filter cabang semua halaman; tanpa pagination |
 | 2.14 | `POST /branches` | tambah | `branch_master` | `name,code,city,address,phone` | `branches` C | 422: `code` 2–10 huruf/angka unik, `name` unik |
 | 2.15 | `PUT /branches/{id}` | ubah | `branch_master` | idem | `branches` U | |
 | 2.16 | `PATCH /branches/{id}/active` | aktif/nonaktif | `branch_master` | `is_active` | `branches` U | nonaktif: tak muncul di pilihan baru, riwayat tetap |
-| 2.17 ✚ | `GET /branches/{id}/delete-impact` | pratinjau dampak hapus (jumlah client, sesi, invoice, akun, libur) | `branch_master` + hapus | | `clients`,`schedules`,`invoices`,`users`,`holidays` R (count) | untuk dialog konfirmasi |
+| 2.17 | `GET /branches/{id}/delete-impact` | pratinjau dampak hapus | `branch_master` + **hanya master** (403 lainnya) | | `clients`,`schedules`,`invoices`,`users`,`holidays` R (count) | respons: data cabang + `impact {clients, schedules, invoices, staff, holidays}` |
 | 2.18 | `DELETE /branches/{id}` | `DeleteBranchAction` (sinkron, atomik, §14) | `branch_master` + hapus | `confirm_code` = kode cabang | cascade: `schedules`, `clients`(+turunan), `invoices`, `credit_ledger`, `holidays`, `users` non-master, `branches` D | 200 + ringkasan jumlah terhapus; 422 bila `confirm_code` salah. Timeout rute dinaikkan |
 
 ---
@@ -156,9 +156,9 @@ Layar: `/admin-inquiry/master-data`, `/finance` (tab paket), `/admin-schedule/ho
 
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 3.1 | `GET /master/services` · `POST` · `PUT /{code}` · `DELETE /{code}` | layanan intake | baca: login staf; tulis: `inquiry_pipeline`/`inquiry_dashboard`; hapus: +hapus | `code,label,category,description,is_active,sort_order` | `services` C,U,D | DELETE: 409 `in_use` bila ada `client_services`/`schedules.service_code` → nonaktifkan |
+| 3.1 | `GET /master/services` · `POST` · `PUT /{code}` · `DELETE /{code}` | layanan intake | baca: login staf; tulis: `inquiry_master_data`; hapus: +hapus | `code,label,category,description,is_active,sort_order` | `services` C,U,D | DELETE: 409 `in_use` bila ada `client_services`/`schedules.service_code` → nonaktifkan |
 | 3.2 | `GET /master/quadrants` · `POST` · `PUT /{code}` · `DELETE /{code}` | kuadran sensori | idem | `code,title,full_name,description,color,sort_order` | `sensory_quadrants` | DELETE: 409 bila dipakai `assessment_questions`/`assessment_quadrant_scores`; minimal 1 kuadran |
-| 3.3 | `GET /master/cancel-reasons` ✚ · `POST` · `PUT /{code}` · `DELETE /{code}` | pilihan cepat alasan cancel dan **Therapist Off** (TANPA FK; filter `?therapist_off=0` atau `1`) | tulis: `weekly_calendar` atau `inquiry_*`; hapus: +hapus | `code,label,is_active,is_therapist_off,sort_order` | `cancel_reasons` | DELETE tanpa pengecekan (transaksi menyimpan string) |
+| 3.3 | `GET /master/cancel-reasons` ✚ · `POST` · `PUT /{code}` · `DELETE /{code}` | **satu daftar** alasan Cancel / Off; Therapist Off hanyalah alasan ber-`is_therapist_off = 1` (UI: satu tab dengan saklar "Therapist Off"; kode unik; TANPA FK; filter opsional `?therapist_off=0` atau `1`) | tulis: `inquiry_master_data`; hapus: +hapus | `code,label,is_active,is_therapist_off,sort_order` | `cancel_reasons` | DELETE tanpa pengecekan (transaksi menyimpan string) |
 | 3.4 | `GET /master/discharge-reasons` ✚ · `POST` · `PUT` · `DELETE` | idem untuk discharge | idem | idem | `discharge_reasons` | idem |
 | 3.5 | `GET /master/packages` · `POST` · `PUT /{id}` · `PATCH /{id}/active` ✚ · `DELETE /{id}` ✚ | katalog paket kredit | `finance`; hapus +hapus | `name,invoice_code(unik,≠ASM),credits,price,description,is_active` | `master_packages` C,U,D | harga diubah tidak memengaruhi invoice/paket lama (snapshot). DELETE: 409 `in_use` bila ada `invoices`/`client_packages.master_package_id` |
 | 3.6 | `GET /holidays` · `POST` · `PUT /{id}` · `DELETE /{id}` ✚ | hari libur | `holidays`; hapus +hapus | `holiday_date,name,branch_id(null=semua)` | `holidays` C,U,D | UNIQUE (tanggal, cabang) → 422. Menambah libur **tidak** mengubah sesi yang sudah ada; sesi terdampak bisa dihitung di respons (`affected_sessions`) |
@@ -209,10 +209,10 @@ Layar: `/admin-inquiry/assessments` (mesin), Client Detail (kode), `/assessment`
 ### 7.1 Mesin kuesioner (Master/admin dengan akses inquiry)
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 5.1 | `GET /assessment-categories` | template + section + soal (satu query form) | `inquiry_*` | `with=sections.questions` | `assessment_categories`, `assessment_sections`, `assessment_questions` R (`idx_questions_form`) | |
-| 5.2 | `POST /assessment-categories` · `PATCH /{id}` | buat/ubah template | `inquiry_*` | `name,type_code(unik),domain,is_active,version` | `assessment_categories` C,U | `type_code` jangan diubah setelah ada kode terbit; 409 version |
-| 5.3 | `DELETE /assessment-categories/{id}` | hapus template | `inquiry_*` + hapus | | `assessment_categories` D → cascade `sections`/`questions` | 409 `in_use` bila ada kode/respons memakai kategori itu; minimal 1 kategori |
-| 5.4 ✚ | `POST /assessment-categories/{id}/sections` · `PATCH`/`DELETE /assessment-sections/{id}` | kelola section | `inquiry_*` (+hapus) | `title,lead_text,sort_order` | `assessment_sections` | DELETE cascade soal (bila belum dijawab) |
+| 5.1 | `GET /assessment-categories` | template + section + soal (satu query form) | **baca: `assessment_master` atau `inquiry_pipeline`** (admin inquiry memilih kategori saat menerbitkan kode); tulis 5.2–5.5: hanya `assessment_master` | `with=sections.questions` | `assessment_categories`, `assessment_sections`, `assessment_questions` R (`idx_questions_form`) | |
+| 5.2 | `POST /assessment-categories` · `PATCH /{id}` | buat/ubah template | `assessment_master` | `name,type_code(unik),domain,is_active,version` | `assessment_categories` C,U | `type_code` jangan diubah setelah ada kode terbit; 409 version |
+| 5.3 | `DELETE /assessment-categories/{id}` | hapus template | `assessment_master` + hapus | | `assessment_categories` D → cascade `sections`/`questions` | 409 `in_use` bila ada kode/respons memakai kategori itu; minimal 1 kategori |
+| 5.4 ✚ | `POST /assessment-categories/{id}/sections` · `PATCH`/`DELETE /assessment-sections/{id}` | kelola section | `assessment_master` (+hapus) | `title,lead_text,sort_order` | `assessment_sections` | DELETE cascade soal (bila belum dijawab) |
 | 5.5 ✚ | `POST /assessment-sections/{id}/questions` · `PATCH`/`DELETE /assessment-questions/{id}` · `PUT /assessment-sections/{id}/questions/order` | kelola soal (12 tipe) | `inquiry_*` (+hapus) | `question_type,question,options,range_*,quadrant_code,is_required,sort_order` | `assessment_questions` | DELETE: 409 `in_use` bila sudah ada `assessment_answers`; nonaktifkan/biarkan |
 
 ### 7.2 Kode kuesioner
@@ -395,7 +395,7 @@ Semua angka dari **VIEW** atau agregasi terindeks, selalu dengan filter cabang +
 | 11.1 | `GET /dashboards/revenue` | Revenue (master/manager) + tabel transaksi dengan pencarian nama/ortu/kode/no. invoice | `revenue` | view `v_daily_revenue` ← `invoices` (`status = 'paid'`, `idx_inv_paid_date`); daftar transaksi: `invoices` + `clients` | `void` tidak masuk omzet; Q11, pagination 10 untuk tabel transaksi |
 | 11.2 | `GET /dashboards/inquiry` | Inquiry Dashboard | `inquiry_dashboard` | `clients` | lihat 4.13 |
 | 11.3 | `GET /dashboards/schedule` | Schedule Dashboard (KPI sesi, beban terapis, alasan cancel, distribusi layanan) | `schedule_dashboard` | `v_daily_sessions` (termasuk `sessions_cancel_counted`, `sessions_cancel_therapist_off` untuk Cancellation Rate & Therapist Off Rate), `v_daily_credit_usage`, agregasi `schedules.cancel_reason` | Therapist Off adalah bagian dari cancel keseluruhan |
-| 11.4 | `GET /dashboards/branch-performance` | Performa Inquiry & Intake All-Branch (filter rentang waktu, KPI, chart per cabang, tren 6 bulan, matriks konversi/drop-off) | `revenue` (master) | `clients` R (intake per `created_at`, status saat ini) | rasio konversi = admitted ÷ total intake (sekali di KPI + matriks, tanpa chart duplikat); cabang dinamis dari `branches` |
+| 11.4 | `GET /dashboards/branch-performance` | Performa Inquiry & Intake All-Branch (filter rentang waktu, KPI, chart per cabang, tren 6 bulan, matriks konversi/drop-off) | `branch_performance` (default master; terpisah dari `revenue`) | `clients` R (intake per `created_at`, status saat ini) | rasio konversi = admitted ÷ total intake (sekali di KPI + matriks, tanpa chart duplikat); cabang dinamis dari `branches` |
 | 11.5 | `GET /dashboards/therapist-summary` | (lihat 9.2) | | | |
 | 11.6 | `GET /dashboards/client-analytics` | (lihat 8.5) | | | |
 
@@ -480,7 +480,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 `StaffLoginAction`, `ClientLoginAction`, `ChangePasswordAction`, `RequestPasswordOtpAction`, `ResetPasswordWithOtpAction`, `CreateUserAction`, `DeleteBranchAction`, `CreateClientAction`, `SyncClientServicesAction`, `TransitionClientAction`, `DeleteClientAction`, `IssueAssessmentCodeAction`, `OpenAssessmentAction`, `SubmitAssessmentAction`, `CreateScheduleAction`, `CreateRecurringSchedulesAction`, `CompleteSessionAction`, `CancelSessionAction`, `RescheduleSessionAction`, `RevertSessionAction`, `Bulk{Complete,Cancel,Reschedule,Revert}Action`, `SaveSessionReportAction`, `IssueInvoiceAction`, `UploadPaymentProofAction`, `VerifyPaymentAction`, `VoidInvoiceAction`, `DeleteInvoiceAction`, `DirectRenewalAction`, `ConvertPackageAction`, `AdjustCreditAction`. Aturan kredit/status mengikuti `frontend/src/domain/credit.js`, `schedule.js`, `client.js` (acuan test; fungsi frontend dipertahankan sebagai spesifikasi).
 
 ### 17.3 Katalog kode error domain
-`version_conflict`, `schedule_conflict`, `holiday`, `already_reverted`, `already_submitted`, `expired`, `proof_required`, `incomplete`, `draft_exists`, `invoice_not_deletable`, `invoice_not_voidable`, `in_use`, `quota_credit_insufficient`, `proof_limit_reached`, `replacement_invalid`, `convert_not_allowed`, `confirm_code_mismatch`.
+`version_conflict`, `schedule_conflict`, `holiday`, `system_role`, `role_locked`, `cannot_change_own_role`, `cannot_deactivate_self`, `cannot_remove_own_rbac`, `last_master`, `use_change_password`, `too_many_attempts`, `already_reverted`, `already_submitted`, `expired`, `proof_required`, `incomplete`, `draft_exists`, `invoice_not_deletable`, `invoice_not_voidable`, `in_use`, `quota_credit_insufficient`, `proof_limit_reached`, `replacement_invalid`, `convert_not_allowed`, `confirm_code_mismatch`.
 
 ### 17.4 Checklist test per modul (ringkas)
 | Modul | Wajib diuji |

@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "7c1f0c52-therapedia-api-v1",
         "name": "Therapedia API v1",
-        "description": "Koleksi endpoint backend Therapedia (Laravel 12 + Sanctum).\n\nStatus: M1 Auth (siap diuji). Endpoint modul lain ditambahkan per sprint.\n\nCara pakai:\n1. Jalankan backend: `php artisan serve` (default http://127.0.0.1:8000).\n2. Import koleksi ini + file environment `therapedia.local.postman_environment.json`, lalu pilih environment \"Therapedia Local\".\n3. Jalankan `1.1 Login staf` dulu: token otomatis tersimpan ke variabel `token` dan dipakai request lain.\n\nAkun master dari seeder: master@gmail.com / 123.\n\nCatatan: request yang butuh login memakai header Authorization: Bearer {{token}} (atau {{client_token}} untuk portal ortu). Bila 401 \"Sesi berakhir\": pastikan environment \"Therapedia Local\" TERPILIH dan variabel `token` terisi. Bila kosong, salin `data.token` dari respons login lalu tempel ke variabel `token`.",
+        "description": "Koleksi endpoint backend Therapedia (Laravel 12 + Sanctum).\n\nStatus: M1 Auth dan M2 (user, role & matriks izin, cabang, terapis) siap diuji. Endpoint modul lain ditambahkan per sprint.\n\nCara pakai:\n1. Jalankan backend: `php artisan serve` (default http://127.0.0.1:8000).\n2. Import koleksi ini + file environment `therapedia.local.postman_environment.json`, lalu pilih environment \"Therapedia Local\".\n3. Jalankan `1.1 Login staf` dulu: token otomatis tersimpan ke variabel `token` dan dipakai request lain.\n\nAkun master dari seeder: master@gmail.com / 123.\n\nCatatan: request yang butuh login memakai header Authorization: Bearer {{token}} (atau {{client_token}} untuk portal ortu). Bila 401 \"Sesi berakhir\": pastikan environment \"Therapedia Local\" TERPILIH dan variabel `token` terisi. Bila kosong, salin `data.token` dari respons login lalu tempel ke variabel `token`.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "auth": {
@@ -678,6 +678,1173 @@
                         "description": "422 `errors.otp`: Kode OTP terdiri dari 6 angka."
                     },
                     "response": []
+                }
+            ]
+        },
+        {
+            "name": "5. User Staf (M2, modul user_management)",
+            "item": [
+                {
+                    "name": "5.1 Daftar user (filter + pagination)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/users?role=&is_active=&q=&page=1&per_page=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "role",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "q",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Filter opsional: `role` (kode, mis. therapist), `is_active` (1/0), `q` (prefix nama atau email), `branch_id` (akun semua cabang ikut tampil), `page`, `per_page` (default 10, maks 50).\nRespons: `{ data: [...], meta: { total, page, per_page, last_page } }`. Pengatur yang terikat 1 cabang hanya melihat akun cabangnya.\nTanpa modul `user_management` → 403."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.2 Tambah user (password kosong = dibuatkan)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/users",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users"
+                            ]
+                        },
+                        "description": "`role_id`: ambil dari **6.1 Daftar role** (mis. id role `admin_inquiry`). `branch_id`: dari **7.1 Daftar cabang**; `null` = semua cabang (role master selalu null).\nTanpa `password` → dibuatkan password sementara dan dikembalikan SEKALI di `temporary_password` (disimpan ke variabel `temp_password`). Akun wajib ganti password saat login pertama.\nError: 422 email sudah dipakai / cabang tidak aktif; 403 bila bukan master memberi role master.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Staf Uji\",\n  \"email\": \"uji.{{$timestamp}}@therapedia.test\",\n  \"role_id\": 2,\n  \"branch_id\": 1,\n  \"title\": \"\",\n  \"specialty\": \"\",\n  \"phone\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                                    "if (pm.response.code === 201) {",
+                                    "  const res = pm.response.json();",
+                                    "  pm.environment.set('user_id', String(res.data.id));",
+                                    "  pm.environment.set('user_email', res.data.email);",
+                                    "  pm.environment.set('temp_password', res.data.temporary_password || '');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.3 Detail user",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users",
+                                "{{user_id}}"
+                            ]
+                        },
+                        "description": "Memakai `user_id` dari 5.2. Tidak memuat password. Akun cabang lain → 404 (bagi pengatur terikat cabang)."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.4 Ubah user (PATCH)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/users/{{user_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users",
+                                "{{user_id}}"
+                            ]
+                        },
+                        "description": "Hanya field yang dikirim yang berubah. Boleh: `name, email, role_id, branch_id, phone, title, specialty`. Password TIDAK diubah di sini (pakai 5.7).\nDitolak: mengubah role sendiri (422 `cannot_change_own_role`), menurunkan master aktif terakhir (422 `last_master`), akun master oleh non-master (403).",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Staf Uji (Diubah)\",\n  \"title\": \"S.Ft\",\n  \"specialty\": \"Okupasi\",\n  \"phone\": \"0812\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.5 Nonaktifkan user",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/users/{{user_id}}/active",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users",
+                                "{{user_id}}",
+                                "active"
+                            ]
+                        },
+                        "description": "Semua token akun dihapus (langsung keluar dari semua perangkat) dan tidak bisa login. Staf tidak pernah dihapus (tidak ada `DELETE /users`).\nDitolak: diri sendiri (422 `cannot_deactivate_self`), master aktif terakhir (422 `last_master`).",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_active\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.6 Aktifkan user",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/users/{{user_id}}/active",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users",
+                                "{{user_id}}",
+                                "active"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_active\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.7 Reset password user",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/users/{{user_id}}/reset-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "users",
+                                "{{user_id}}",
+                                "reset-password"
+                            ]
+                        },
+                        "description": "Mengatur password sementara baru; akun wajib menggantinya saat login berikutnya dan semua tokennya dihapus. Body `password` opsional; kosong = dibuatkan dan dikembalikan sekali di `temporary_password`.\nAkun sendiri → 422 `use_change_password` (pakai ganti password).",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code === 200) { pm.environment.set('temp_password', pm.response.json().data.temporary_password || ''); }"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "6. Role & Matriks Izin (M2, modul rbac)",
+            "item": [
+                {
+                    "name": "6.1 Daftar role",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/roles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "roles"
+                            ]
+                        },
+                        "description": "Semua role + `users_count` + `permissions` (**daftar kode modul** yang diizinkan, bukan kamus). Master selalu semua modul. Baca boleh modul `rbac` atau `user_management`; tanpa keduanya → 403. Tulis (6.3–6.7) hanya `rbac`."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.2 Daftar modul akses",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/access-modules",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "access-modules"
+                            ]
+                        },
+                        "description": "14 modul (kolom matriks), urut `sort_order`: `code, label, category, description`."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.3 Buat role kustom",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/roles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "roles"
+                            ]
+                        },
+                        "description": "`code` kosong → dibuat dari nama (slug, unik). `permissions` = daftar kode modul awal; modul lain tidak diizinkan. Disimpan ke variabel `role_id`.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Koordinator Uji {{$timestamp}}\",\n  \"badge\": \"Koordinasi\",\n  \"description\": \"Role uji dari Apidog\",\n  \"permissions\": [\n    \"weekly_calendar\",\n    \"active_clients\"\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                    "  const res = pm.response.json();",
+                                    "  pm.environment.set('role_id', String(res.data.id));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.4 Detail role",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/roles/{{role_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "roles",
+                                "{{role_id}}"
+                            ]
+                        },
+                        "description": ""
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.5 Ubah nama/badge role",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/roles/{{role_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "roles",
+                                "{{role_id}}"
+                            ]
+                        },
+                        "description": "Kode role tidak dapat diubah. Role sistem pun boleh diganti labelnya.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Koordinator Uji (Diubah)\",\n  \"badge\": \"Koordinasi 2\",\n  \"description\": \"Diubah\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.6 Simpan matriks izin role",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/roles/{{role_id}}/permissions",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "roles",
+                                "{{role_id}}",
+                                "permissions"
+                            ]
+                        },
+                        "description": "Body berupa **array** `[{ module_code, allowed }]` (bukan kamus berkunci kode modul). Modul yang tidak dikirim tidak berubah. Berlaku langsung tanpa login ulang.\nDitolak: role master (422 `role_locked`); mencabut `rbac` dari role sendiri (422 `cannot_remove_own_rbac`); kode modul tidak dikenal / dobel (422).",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"permissions\": [\n    {\n      \"module_code\": \"finance\",\n      \"allowed\": true\n    },\n    {\n      \"module_code\": \"weekly_calendar\",\n      \"allowed\": false\n    }\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.7 Hapus role kustom",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/roles/{{role_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "roles",
+                                "{{role_id}}"
+                            ]
+                        },
+                        "description": "204 bila tidak dipakai. Role sistem → 422 `system_role`; masih dipakai akun → 409 `in_use` (pesan memuat jumlah akun)."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 204', function () { pm.response.to.have.status(204); });"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "7. Master Cabang (M2)",
+            "item": [
+                {
+                    "name": "7.1 Daftar cabang",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches"
+                            ]
+                        },
+                        "description": "Dibaca SEMUA staf login (tanpa modul), aktif + nonaktif. `?active=1` hanya yang aktif. Untuk mengisi `branch_id` di 5.2."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.2 Tambah cabang",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches"
+                            ]
+                        },
+                        "description": "Butuh modul `branch_master`. `code` 2-10 huruf/angka (otomatis huruf besar), unik; `name` unik. Disimpan ke variabel `branch_id`.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Cabang Uji {{$timestamp}}\",\n  \"code\": \"UJI{{$randomInt}}\",\n  \"city\": \"Surabaya\",\n  \"address\": \"Jl. Uji No. 1\",\n  \"phone\": \"031-000\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                    "  const res = pm.response.json();",
+                                    "  pm.environment.set('branch_id', String(res.data.id));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.3 Ubah cabang (PUT)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}"
+                            ]
+                        },
+                        "description": "Juga tersedia `PATCH`. Kode/nama unik mengabaikan cabang itu sendiri.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Cabang Uji (Diubah) {{$timestamp}}\",\n  \"address\": \"Alamat baru\",\n  \"phone\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.4 Nonaktifkan cabang",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}/active",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}",
+                                "active"
+                            ]
+                        },
+                        "description": "Cabang nonaktif tidak muncul di pilihan baru (mis. tidak bisa dipilih untuk akun baru); riwayat tetap.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_active\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.5 Aktifkan cabang",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}/active",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}",
+                                "active"
+                            ]
+                        },
+                        "description": "",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_active\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.6 Pratinjau dampak hapus cabang",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}/delete-impact",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}",
+                                "delete-impact"
+                            ]
+                        },
+                        "description": "HANYA role master (modul `branch_master` saja → 403). Respons: data cabang + `impact { clients, schedules, invoices, staff, holidays }`."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.7 Hapus cabang (belum aktif: 501)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}"
+                            ]
+                        },
+                        "description": "Hapus permanen + cascade dikerjakan di Sprint 4. Sekarang: master → 501 `not_implemented` (data aman); non-master → 403."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('501 belum diimplementasi (Sprint 4)', function () { pm.response.to.have.status(501); });"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "8. Terapis (M2)",
+            "item": [
+                {
+                    "name": "8.1 Daftar terapis (dropdown)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/therapists",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "therapists"
+                            ]
+                        },
+                        "description": "Dibaca semua staf. Hanya terapis aktif; field ringan tanpa email/telepon. `?branch_id=` (master): terapis semua cabang selalu ikut tampil. Menyimpan id terapis pertama ke variabel `therapist_id`."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code === 200) {",
+                                    "  const list = pm.response.json().data;",
+                                    "  if (list.length) { pm.environment.set('therapist_id', String(list[0].id)); }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "8.2 Ubah kapasitas terapis",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/therapists/{{therapist_id}}/capacity",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "therapists",
+                                "{{therapist_id}}",
+                                "capacity"
+                            ]
+                        },
+                        "description": "Maks sesi per bulan (1 sesi = 1 jam), 1..744; `null` = kembali ke bawaan. Butuh modul `therapist_utilization` atau `user_management`. Tidak memblokir penjadwalan.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"max_sessions_per_month\": 120\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
                 }
             ]
         }

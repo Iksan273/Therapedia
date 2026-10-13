@@ -255,7 +255,9 @@ const AppLayout = () => {
     }
   };
 
-  const currentRoleObj = rolesList?.find((r) => r.id === auth?.role);
+  const currentRoleObj = isApiMode() && auth?.roleName
+    ? { id: auth.role, label: auth.roleName, badge: auth.roleBadge || "" }
+    : rolesList?.find((r) => r.id === auth?.role);
   const config = buildNavConfig({ role: auth.role, roleObj: currentRoleObj, hasPermission });
 
   let identity = config.title;

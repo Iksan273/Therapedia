@@ -128,6 +128,21 @@ Aktif bila `VITE_DATA_SOURCE=api` (salin `frontend/.env.example` ke `.env.local`
 | Izin | Server mengirim `permissions` sebagai **daftar kode modul** yang diizinkan; `services/api/mappers/authMapper.js` (`staffSessionToAuth`) mengubahnya jadi peta `auth.permissions` yang dibaca `hasPermission`/`canDelete`. Master selalu boleh; hapus client/cabang `masterOnly` |
 | Halaman | `Login.js` (staf + ortu, dialog ganti password wajib dan lupa password OTP), `RootRedirect.js` ("/" tanpa beranda), guard → `/login`, `AccessDenied` untuk akun yang tidak berhak |
 | Galat | Login gagal = 422 (bukan 401, agar tidak memicu handler logout); 429 lockout; 503 email OTP gagal; pesan dari server ditampilkan apa adanya |
+### M2 User, Role/RBAC, Cabang, Terapis: terintegrasi (13 Okt 2026)
+Aktif bila `VITE_DATA_SOURCE=api`. Mode demo tetap memakai localStorage; implementasi dipilih per build (`isApiMode()`), jadi halaman dan pemanggilnya sama.
+| Bagian | Implementasi |
+|---|---|
+| Store cabang | `stores/branchesStore.js`: `GET /branches` (react-query, dibaca semua staf; dipakai semua filter/combo box lewat `BRANCHES`/`activeBranches()`); tambah/ubah/aktif async dan melempar `ApiError` |
+| Store terapis | `stores/therapistsStore.js`: `GET /therapists`; kapasitas `PATCH /therapists/{id}/capacity` |
+| Hook admin | `features/master/hooks/useStaffAdmin.js` (daftar dipaginasi **server**: `page`, `per_page`, `q`, `branch_id`; tambah/ubah/aktif/reset password), `useRoleAdmin.js` (role + matriks izin, saklar optimistis), `useBranchDeleteActions.js` (pratinjau dampak dari server) |
+| Mapper | `services/api/mappers/organizationMapper.js` (cabang, terapis, akun, role, matriks) |
+| Halaman | `UserManagement`, `RoleModuleAccess`, `BranchManagement` memanggil hook; semua mutasi `await` dan galat server (422/403/409) ditampilkan sebagai toast |
+| Id | Id entity server dijadikan **string** di frontend (`"1"`); kode role tetap menjadi `id` role di frontend (sama dengan `auth.role`), id server di `serverId` |
+| Matriks izin | Dikirim/diterima sebagai **array** `[{ moduleCode, allowed }]`; di server `permissions` role = daftar kode modul |
+| Sesi | `auth` memuat `roleName`/`roleBadge` (label sidebar role kustom); `refreshSession()` dipanggil bila Master mengubah izin role akunnya sendiri; `queryClient.clear()` saat logout |
+Urutan provider: `AuthProvider` kini di luar `BranchesProvider`/`TherapistsProvider` (store API membaca sesi untuk menentukan kapan boleh memanggil API; sesi tersimpan tanpa token dianggap kosong).
+Hapus cabang permanen: server membalas 501 sampai Sprint 4; halaman menjelaskan dan menyarankan Nonaktifkan.
+
 **Batasan sementara (modul lain masih localStorage):** halaman selain auth belum membaca data dari API sampai modulnya dimigrasi (sprint 1 hari 6+). Akibatnya setelah login API: `branchId` berupa id numerik server (belum cocok dengan id cabang demo), portal ortu/terapis belum menemukan datanya, dan halaman User/RBAC masih memakai data lokal sampai M2 dimigrasi.
 
 ## Urutan migrasi yang disarankan

@@ -1,4 +1,5 @@
 import React, { createContext, useContext } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePersistentState } from "@/shared/hooks/usePersistentState";
 import { ACCESS_MODULES, DEFAULT_PERMISSIONS, DEFAULT_ROLES, permissionMapAllows, roleHasPermission, withDefaultPermissions } from "@/domain/rbac";
 import DEFAULT_STAFF from "@/data/staffUsers.seed.json";
@@ -18,6 +19,8 @@ const EMPTY_AUTH = {
   branchId: null, // null = semua cabang (staf); lihat hasAllBranchAccess
   // Hanya mode API: id akun, status password sementara, dan matriks modul dari server ({ kode_modul: boolean }).
   userId: null,
+  roleName: null, // nama & badge role dari server (label sidebar untuk role kustom)
+  roleBadge: null,
   mustChangePassword: false,
   permissions: null,
 };
@@ -25,7 +28,11 @@ const EMPTY_AUTH = {
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [auth, setAuth] = usePersistentState("auth", () => EMPTY_AUTH);
+  const queryClient = useQueryClient();
+  const [storedAuth, setAuth] = usePersistentState("auth", () => EMPTY_AUTH);
+  // Mode API: sesi tersimpan tanpa token tidak valid. Dianggap kosong sejak render pertama agar store lain tidak sempat
+  // memanggil API dengan sesi basi (sisa localStorage dibersihkan oleh efek di bawah).
+  const auth = isApiMode() && !tokenStore.get() ? EMPTY_AUTH : storedAuth;
   const [activeBranch, setActiveBranch] = usePersistentState("activeBranch", () => "all");
   const [staffUsers, setStaffUsers] = usePersistentState("staffUsers", () => DEFAULT_STAFF);
   const [rolesList, setRolesList] = usePersistentState("rolesList", () => DEFAULT_ROLES);
@@ -59,6 +66,14 @@ export const AuthProvider = ({ children }) => {
   const clearSession = () => {
     setAuth(EMPTY_AUTH);
     setActiveBranch("all");
+    queryClient.clear(); // data server milik sesi sebelumnya tidak boleh tampil di login berikutnya
+  };
+
+  // Muat ulang profil + matriks modul dari server (mis. setelah Master mengubah hak akses role akun yang sedang login).
+  const refreshSession = async () => {
+    if (!isApiMode() || !tokenStore.get()) return;
+    const me = await api.get(ENDPOINTS.auth.me);
+    applySession(me.type === "client" ? clientSessionToAuth(me.client) : staffSessionToAuth(me.user));
   };
 
   // Selesai ganti password wajib: server sudah menghapus penanda; sinkronkan state lokal.
@@ -78,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     if (!isApiMode()) return undefined;
     setUnauthorizedHandler(() => clearSession());
     if (!tokenStore.get()) {
-      if (auth?.role) clearSession();
+      if (storedAuth?.role) clearSession();
       return undefined;
     }
     let cancelled = false;
@@ -232,6 +247,7 @@ export const AuthProvider = ({ children }) => {
         auth,
         login,
         applySession,
+        refreshSession,
         markPasswordChanged,
         logout,
         activeBranch,

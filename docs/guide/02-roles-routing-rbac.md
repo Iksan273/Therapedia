@@ -37,10 +37,10 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 
 | Grup | `roles` (sistem) | Halaman → `module` RBAC |
 |---|---|---|
-| `/master` | master | `revenue`→revenue, `branch-performance`→revenue, `branches`→branch_master, `users`→user_management, `rbac`→rbac |
+| `/master` | master | `revenue`→revenue, `branch-performance`→branch_performance (terpisah dari revenue), `branches`→branch_master, `users`→user_management, `rbac`→rbac |
 | `/manager` | manager | `revenue`→revenue |
 | `/finance` | master, finance | index→finance |
-| `/admin-inquiry` | master, manager, admin_inquiry, therapist | index/`dashboard`→inquiry_dashboard; `pipeline`, `pipeline/:id`, `clients/:id`, `assessments`, `master-data`, `parent-assessment/:id`→inquiry_pipeline |
+| `/admin-inquiry` | master, manager, admin_inquiry, therapist | index/`dashboard`→inquiry_dashboard; `pipeline`, `pipeline/:id`, `clients/:id`, `parent-assessment/:id`→inquiry_pipeline, `assessments`→assessment_master, `master-data`→inquiry_master_data |
 | `/admin-schedule` | master, manager, admin_schedule, finance | index→schedule_dashboard, `calendar`→weekly_calendar, `clients`, `clients/:id`→active_clients, `unreported-reports`→unreported_reports (monitoring laporan sesi), `holidays`→holidays, `therapist-utilization`→therapist_utilization (jam kerja & Availability/Utilization) |
 | `/therapist` | therapist | semua→therapist_module (index My Schedule, `summary`, `team-calendar` = Kalender Tim read-only, `clients/:id`, `parent-assessment/:id`) |
 | `/client` | client | index (tanpa modul) |
@@ -65,7 +65,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | State: `rolesList`, `rbacPermissions`, CRUD role, `updateRolePermission`, `hasPermission(module)`, `canDelete(module, { masterOnly })`; akun: `addStaffUser`, `setStaffActive`, `changeStaffPassword`, `resetStaffPassword`, `requestPasswordOtp`, `resetPasswordWithOtp` | `stores/authStore.js` |
 | UI matriks & role kustom (termasuk baris "Boleh menghapus data") | `features/master/pages/RoleModuleAccess.js` |
 | Tombol hapus: `DeleteButton` / `IfCanDelete` (prop `masterOnly` untuk client & cabang; tersembunyi bila tidak boleh) | `shared/components/DeleteControls.js` |
-| Modul baru: `unreported_reports` (monitoring laporan sesi), `holidays` (hari libur), `therapist_utilization` (utilisasi & jam kerja terapis; default master, manager, admin_schedule) | `domain/rbac.js` (`ACCESS_MODULES`, `DEFAULT_PERMISSIONS`) |
+| Modul baru: `unreported_reports` (monitoring laporan sesi), `holidays` (hari libur), `therapist_utilization` (utilisasi & jam kerja terapis; default master, manager, admin_schedule), **`assessment_master`** (Assessment Master Data; default master, admin_inquiry), **`inquiry_master_data`** (Master Layanan & Kuadran + alasan Cancel / Off + alasan Discharge; default master, admin_inquiry), **`branch_performance`** (Performa Inquiry All-Branch; default master). Ketiganya dulu ikut `inquiry_pipeline`/`revenue`; kini bisa diberikan dan dicabut sendiri lewat RBAC. Hak hapus operasional di halaman itu mengikuti modul halamannya | `domain/rbac.js` (`ACCESS_MODULES`, `DEFAULT_PERMISSIONS`) |
 | Tabel backend | `roles`, `access_modules`, `role_permissions` (`schema.md` §04-A) |
 
 ## Scoping cabang

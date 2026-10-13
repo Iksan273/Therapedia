@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
+import { readPersisted } from "@/services/storage/localStore";
 import { DEFAULT_DISCHARGE_REASONS, INTAKE_SERVICES, dischargeReasonLabel } from "@/domain/client";
 import { DEFAULT_CANCEL_REASONS, DEFAULT_THERAPIST_OFF_REASONS, cancelReasonCode, cancelReasonLabel } from "@/domain/schedule";
 
@@ -100,8 +101,23 @@ const SEED_QUADRANTS = [
 
 const seedServices = () => INTAKE_SERVICES.map((s) => ({ ...s, active: true }));
 const seedQuadrants = () => SEED_QUADRANTS.map((q) => ({ ...q }));
-const seedCancelReasons = () => DEFAULT_CANCEL_REASONS.map((r) => ({ ...r, active: true }));
-const seedTherapistOffReasons = () => DEFAULT_THERAPIST_OFF_REASONS.map((r) => ({ ...r, active: true }));
+const seedBaseCancelReasons = () => DEFAULT_CANCEL_REASONS.map((r) => ({ ...r, active: true, therapistOff: false }));
+const seedTherapistOffReasons = () => DEFAULT_THERAPIST_OFF_REASONS.map((r) => ({ ...r, active: true, therapistOff: true }));
+
+// SATU daftar alasan Cancel / Off (padanan tabel `cancel_reasons`): alasan Therapist Off hanyalah alasan yang ditandai
+// `therapistOff = true` (padanan kolom `is_therapist_off`), bukan daftar lain. Data demo lama tersimpan di dua key
+// (`master_cancel_off_codes` + `master_therapist_off_codes`): digabung otomatis agar perubahan user tidak hilang.
+const initCancelReasons = () => {
+  const legacyBase = readPersisted("master_cancel_off_codes");
+  const legacyOff = readPersisted("master_therapist_off_codes");
+  if (Array.isArray(legacyBase) || Array.isArray(legacyOff)) {
+    return [
+      ...(Array.isArray(legacyBase) ? legacyBase : seedBaseCancelReasons()).map((r) => ({ ...r, therapistOff: false })),
+      ...(Array.isArray(legacyOff) ? legacyOff : seedTherapistOffReasons()).map((r) => ({ ...r, therapistOff: true })),
+    ];
+  }
+  return [...seedBaseCancelReasons(), ...seedTherapistOffReasons()];
+};
 const seedDischargeReasons = () => DEFAULT_DISCHARGE_REASONS.map((r) => ({ ...r, active: true }));
 
 // Reducer generik untuk daftar master yang dikunci oleh `idKey`.
@@ -125,13 +141,12 @@ const reasonsReducer = makeListReducer("value");
 export const MasterDataProvider = ({ children }) => {
   const [services, dispatchServices] = usePersistentReducer("master_services", servicesReducer, seedServices);
   const [quadrants, dispatchQuadrants] = usePersistentReducer("master_quadrants", quadrantsReducer, seedQuadrants);
-  const [cancelReasons, dispatchCancel] = usePersistentReducer("master_cancel_off_codes", reasonsReducer, seedCancelReasons); // satu daftar alasan Cancel / Off (key baru: tiap alasan punya CODE)
-  const [therapistOffReasons, dispatchTherapistOff] = usePersistentReducer("master_therapist_off_codes", reasonsReducer, seedTherapistOffReasons); // master Therapist Off (ber-CODE), ikut jadi pilihan Cancel / Off
+  const [cancelReasons, dispatchCancel] = usePersistentReducer("master_cancel_reasons", reasonsReducer, initCancelReasons); // satu daftar alasan Cancel / Off ber-CODE; `therapistOff` menandai alasan terapis berhalangan
   const [dischargeReasons, dispatchDischarge] = usePersistentReducer("master_discharge_reasons", reasonsReducer, seedDischargeReasons);
 
   const value = useMemo(() => {
     const quadrantMap = Object.fromEntries(quadrants.map((q) => [q.code, q]));
-    const allCancelReasons = [...cancelReasons, ...therapistOffReasons.map((r) => ({ ...r, therapistOff: true }))];
+    const therapistOffReasons = cancelReasons.filter((r) => r.therapistOff);
     const therapistOffCodes = therapistOffReasons.map((r) => r.value);
     return {
       services,
@@ -150,21 +165,17 @@ export const MasterDataProvider = ({ children }) => {
       deleteQuadrant: (id) => dispatchQuadrants({ type: "DELETE", id }),
 
       // Pilihan cepat alasan. Data transaksi menyimpan string (code atau teks custom), bukan relasi ke daftar ini.
-      // `cancelReasons` = alasan Cancel / Off + alasan Therapist Off (dipakai form, label, dan grafik); `baseCancelReasons` = hanya daftar Cancel / Off
-      cancelReasons: allCancelReasons,
-      baseCancelReasons: cancelReasons,
-      activeCancelReasons: allCancelReasons.filter((r) => r.active !== false),
+      // `cancelReasons` = SATU daftar alasan Cancel / Off (dipakai form, label, dan grafik); `therapistOffReasons`/`therapistOffCodes`
+      // turunan dari item yang ditandai `therapistOff` (dasar Therapist Off Rate; tetap terhitung di Cancellation Rate keseluruhan)
+      cancelReasons,
+      activeCancelReasons: cancelReasons.filter((r) => r.active !== false),
       therapistOffReasons,
       therapistOffCodes,
-      getCancelReasonLabel: (val) => cancelReasonLabel(val, allCancelReasons),
+      getCancelReasonLabel: (val) => cancelReasonLabel(val, cancelReasons),
       getCancelReasonCode: (val) => cancelReasonCode(val),
-      addCancelReason: (item) => dispatchCancel({ type: "ADD", item }),
+      addCancelReason: (item) => dispatchCancel({ type: "ADD", item: { therapistOff: false, ...item } }),
       updateCancelReason: (id, patch) => dispatchCancel({ type: "UPDATE", id, patch }),
       deleteCancelReason: (id) => dispatchCancel({ type: "DELETE", id }),
-
-      addTherapistOffReason: (item) => dispatchTherapistOff({ type: "ADD", item }),
-      updateTherapistOffReason: (id, patch) => dispatchTherapistOff({ type: "UPDATE", id, patch }),
-      deleteTherapistOffReason: (id) => dispatchTherapistOff({ type: "DELETE", id }),
 
       dischargeReasons,
       activeDischargeReasons: dischargeReasons.filter((r) => r.active !== false),
@@ -173,7 +184,7 @@ export const MasterDataProvider = ({ children }) => {
       updateDischargeReason: (id, patch) => dispatchDischarge({ type: "UPDATE", id, patch }),
       deleteDischargeReason: (id) => dispatchDischarge({ type: "DELETE", id }),
     };
-  }, [services, quadrants, cancelReasons, therapistOffReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchTherapistOff, dispatchDischarge]);
+  }, [services, quadrants, cancelReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchDischarge]);
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
 };

@@ -89,7 +89,7 @@ export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestion
                   <Pencil className="w-3.5 h-3.5" /> Ubah Nama
                 </Button>
 
-                <IfCanDelete module="inquiry_pipeline">
+                <IfCanDelete module="assessment_master">
                 <Button
                   size="sm"
                   variant="ghost"

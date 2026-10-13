@@ -17,6 +17,7 @@ import { IfCanDelete } from "@/shared/components/DeleteControls";
 import { useBranchDeleteActions } from "@/features/master/hooks/useBranchDeleteActions";
 import { useAuth } from "@/stores/authStore";
 import { branchCodeOf, validateBranch } from "@/domain/branch";
+import { apiErrorText } from "@/domain/auth";
 
 const EMPTY_FORM = { name: "", code: "", city: "Surabaya", address: "", phone: "" };
 
@@ -26,7 +27,7 @@ export default function BranchManagement() {
   const { branches, addBranch, updateBranch, setBranchActive } = useBranches();
   const { clients } = useClients();
   const { auth } = useAuth();
-  const { impactOf, deleteBranchCascade } = useBranchDeleteActions();
+  const { loadImpact, deleteBranchCascade } = useBranchDeleteActions();
   const { confirm, confirmDialog } = useConfirm();
   const by = auth?.staffName || auth?.role || null;
 
@@ -34,6 +35,7 @@ export default function BranchManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null); // branch yang diedit, null = tambah
   const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
   const clientCount = useMemo(() => {
     const map = new Map();
@@ -58,30 +60,44 @@ export default function BranchManagement() {
     setDialogOpen(true);
   };
 
-  const handleSubmit = (e) => {
+  // Mode API: tambah/ubah ke server (async). Validasi klien tetap jalan lebih dulu; galat server (kode/nama dipakai, dst.) ditampilkan.
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const error = validateBranch(form, branches, editing?.id || null);
     if (error) {
       toast.error(error);
       return;
     }
-    if (editing) {
-      updateBranch(editing.id, { name: form.name.trim(), code: form.code.trim().toUpperCase(), city: form.city.trim(), address: form.address.trim(), phone: form.phone.trim() }, by);
-      toast.success(`Cabang ${form.name.trim()} diperbarui.`);
-    } else {
-      const created = addBranch(form, by);
-      toast.success(`Cabang ${created.name} ditambahkan.`);
+    setSaving(true);
+    try {
+      if (editing) {
+        await updateBranch(editing.id, { name: form.name.trim(), code: form.code.trim().toUpperCase(), city: form.city.trim(), address: form.address.trim(), phone: form.phone.trim() }, by);
+        toast.success(`Cabang ${form.name.trim()} diperbarui.`);
+      } else {
+        const created = await addBranch(form, by);
+        toast.success(`Cabang ${created.name} ditambahkan.`);
+      }
+      setDialogOpen(false);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["code", "name", "city", "address", "phone"]));
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
   };
 
   // Hapus cabang PERMANEN beserta seluruh isinya; wajib mengetik kode cabang
   const [deleting, setDeleting] = useState(null); // { branch, impact }
   const [confirmCode, setConfirmCode] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
-  const openDelete = (b) => {
-    setDeleting({ branch: b, impact: impactOf(b.id) });
+  // Dampak (jumlah data yang ikut terhapus) dimuat dulu: dari store di mode demo, dari server di mode API.
+  const openDelete = async (b) => {
     setConfirmCode("");
+    try {
+      const impact = await loadImpact(b);
+      setDeleting({ branch: b, impact });
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
   // Hapus sinkron (tanpa job async): tombol terkunci "Menghapus…" selama proses; di fase API ini menunggu respons DELETE yang boleh lama
   const confirmDelete = async () => {
@@ -93,7 +109,15 @@ export default function BranchManagement() {
     setDeleteBusy(true);
     let impact;
     try {
-      impact = await Promise.resolve(deleteBranchCascade(branch));
+      impact = await deleteBranchCascade(branch);
+    } catch (err) {
+      // Server belum menyediakan hapus cabang permanen (Sprint 4): jelaskan dan sarankan nonaktifkan
+      toast.error(
+        err?.status === 501
+          ? "Hapus cabang permanen belum aktif di server (dijadwalkan Sprint 4). Gunakan Nonaktifkan untuk saat ini."
+          : apiErrorText(err)
+      );
+      return;
     } finally {
       setDeleteBusy(false);
     }
@@ -111,8 +135,12 @@ export default function BranchManagement() {
       confirmLabel: next ? "Aktifkan" : "Nonaktifkan",
     });
     if (!ok) return;
-    setBranchActive(b.id, next, by);
-    toast.success(`Cabang ${b.name} ${next ? "diaktifkan" : "dinonaktifkan"}.`);
+    try {
+      await setBranchActive(b.id, next, by);
+      toast.success(`Cabang ${b.name} ${next ? "diaktifkan" : "dinonaktifkan"}.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
   return (
@@ -267,7 +295,7 @@ export default function BranchManagement() {
               <Button type="button" variant="outline" className="border-slate-200" onClick={() => setDialogOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="branch-form-submit">
+              <Button type="submit" disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="branch-form-submit">
                 {editing ? "Simpan Perubahan" : "Tambah Cabang"}
               </Button>
             </DialogFooter>

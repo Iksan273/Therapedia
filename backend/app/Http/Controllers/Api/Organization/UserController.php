@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api\Organization;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Organization\ResetUserPasswordRequest;
+use App\Http\Requests\Organization\SetActiveRequest;
+use App\Http\Requests\Organization\StoreUserRequest;
+use App\Http\Requests\Organization\UpdateUserRequest;
+use App\Http\Resources\Organization\UserResource;
+use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
 /**
- * User staf & terapis (M2, modul user_management).
- * Tipis: validasi (Form Request) di sini nanti, logika bisnis di UserService / Action.
+ * Akun staf & terapis (M2, modul user_management). Tipis: validasi di Form Request, aturan di UserService/Action.
+ * Staf tidak dihapus lewat UI: tidak ada endpoint DELETE (berhenti = PATCH /users/{id}/active).
  */
 class UserController extends Controller
 {
@@ -18,28 +23,46 @@ class UserController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->paginate($request->query())]);
+        return response()->json($this->service->paginate($request, $request->user()));
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreUserRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->create($request->all())], 201);
+        $result = $this->service->create($request->user(), $request->validated());
+
+        return response()->json(['data' => $this->payload($result)], 201);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function show(Request $request, string $user): JsonResponse
     {
-        return response()->json(['data' => $this->service->find($id)]);
+        return response()->json(['data' => (new UserResource($this->service->find($request->user(), (int) $user)))->resolve()]);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateUserRequest $request, string $user): JsonResponse
     {
-        return response()->json(['data' => $this->service->update($id, $request->all())]);
+        $updated = $this->service->update($request->user(), (int) $user, $request->validated());
+
+        return response()->json(['data' => (new UserResource($updated))->resolve()]);
     }
 
-    public function destroy(Request $request, string $id): Response
+    public function setActive(SetActiveRequest $request, string $user): JsonResponse
     {
-        $this->service->delete($id);
+        $updated = $this->service->setActive($request->user(), (int) $user, $request->boolean('is_active'));
 
-        return response()->noContent();
+        return response()->json(['data' => (new UserResource($updated))->resolve()]);
+    }
+
+    /** Respons memuat `temporary_password` SEKALI bila dibuatkan otomatis (tidak disimpan di tempat lain). */
+    public function resetPassword(ResetUserPasswordRequest $request, string $user): JsonResponse
+    {
+        $result = $this->service->resetPassword($request->user(), (int) $user, $request->validated('password'));
+
+        return response()->json(['data' => $this->payload($result)]);
+    }
+
+    /** @param  array{user: User, temporary_password: ?string}  $result */
+    private function payload(array $result): array
+    {
+        return (new UserResource($result['user']))->resolve() + ['temporary_password' => $result['temporary_password']];
     }
 }
