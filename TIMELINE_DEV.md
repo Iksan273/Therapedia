@@ -188,13 +188,13 @@ Rujukan modul = `implementation_detail.md` §2. Estimasi harian ±; sisa/kelebih
 
 **Progres** = hari rencana kumulatif yang selesai ÷ 40. Diperbarui tiap Jumat sore di tabel §7.
 
-| Termin | Porsi | Nilai (bruto) | Pemicu | Tanggal target |
-|---|---|---|---|---|
-| 1 (DP) | 30% | Rp 5.250.000 | Awal pekerjaan | Sebelum/di Senin 12 Okt (**konfirmasi sudah dibayar?**) |
-| **2 (Progres 50%)** | 30% | Rp 5.250.000 | **Checkpoint 50%**: akhir D4 | Jumat 6 Nov dicapai · diverifikasi di UAT #3 **Sabtu 7 Nov** · **tagih Senin 9 Nov** |
-| 3 (Pelunasan) | 40% | Rp 7.000.000 | UAT disetujui + siap go-live | Sign-off **Sabtu 28 Nov** · tagih Senin 30 Nov · dibayar sebelum go-live (target ≤ 4 Des) |
+| Termin | Porsi | Pemicu | Tanggal target |
+|---|---|---|---|
+| 1 (DP) | 30% | Awal pekerjaan | Sebelum/di Senin 12 Okt (**konfirmasi sudah dibayar?**) |
+| **2 (Progres 50%)** | 30% | **Checkpoint 50%**: akhir D4 | Jumat 6 Nov dicapai · diverifikasi di UAT #3 **Sabtu 7 Nov** · **tagih Senin 9 Nov** |
+| 3 (Pelunasan) | 40% | UAT disetujui + siap go-live | Sign-off **Sabtu 28 Nov** · tagih Senin 30 Nov · dibayar sebelum go-live (target ≤ 4 Des) |
 
-Nilai dan pajak 2,5% mengikuti `docs/Invoice_Therapedia_001_logo.docx` (nilai proyek Rp 17.500.000; netto per termin 5.118.750 / 5.118.750 / 6.825.000).
+Rincian nilai dan pajak ada di dokumen invoice terpisah (tidak disimpan di repo).
 
 **Kriteria Checkpoint 50% (objektif, agar tidak diperdebatkan):**
 1. Progres tertimbang ≥ 20/40 hari rencana di tabel §7 (D1–D4 selesai).

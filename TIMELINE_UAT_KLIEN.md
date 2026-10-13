@@ -76,16 +76,14 @@ Developer tidak mengubah build di tengah sesi kecuali bug Kritis yang menghalang
 
 ## 4. Pembayaran: kapan Termin 2?
 
-Mengikuti Invoice Therapedia 001: nilai proyek Rp 17.500.000, pajak 2,5% disetor dari nilai proyek.
+Pembayaran mengikuti termin 30% / 30% / 40%. Nilai dan rinciannya ada di dokumen invoice terpisah.
 
-| Termin | Porsi | Nilai | Pembayaran dibayarkan (setelah pajak 2,5%) | **Kapan** |
-|---|---|---|---|---|
-| **1 — DP** | 30% | Rp 5.250.000 | Rp 5.118.750 | Di awal pekerjaan, **12 Okt 2026** *(mohon konfirmasi bila sudah dibayar)* |
-| **2 — Progres 50%** | 30% | Rp 5.250.000 | Rp 5.118.750 | **Checkpoint tercapai Jumat 6 Nov**, diverifikasi bersama di **UAT #3 Sabtu 7 Nov**, **invoice terbit Senin 9 Nov 2026** |
-| **3 — Pelunasan** | 40% | Rp 7.000.000 | Rp 6.825.000 | Setelah UAT disetujui (**sign-off Sabtu 28 Nov**), invoice Senin 30 Nov, pembayaran **sebelum go-live Senin 7 Des** (target paling lambat Jumat 4 Des) |
-| | 100% | Rp 17.500.000 | Rp 17.062.500 | |
+| Termin | Porsi | **Kapan** |
+|---|---|---|
+| **1 — DP** | 30% | Di awal pekerjaan, **12 Okt 2026** *(mohon konfirmasi bila sudah dibayar)* |
+| **2 — Progres 50%** | 30% | **Checkpoint tercapai Jumat 6 Nov**, diverifikasi bersama di **UAT #3 Sabtu 7 Nov**, **invoice terbit Senin 9 Nov 2026** |
+| **3 — Pelunasan** | 40% | Setelah UAT disetujui (**sign-off Sabtu 28 Nov**), invoice Senin 30 Nov, pembayaran **sebelum go-live Senin 7 Des** (target paling lambat Jumat 4 Des) |
 
-### Apa yang dimaksud "progres 50%"?
 Termin 2 jatuh tempo **bila semua hal berikut terpenuhi** (bukan sekadar tanggal):
 1. Progres rencana kerja mencapai **20 dari 40 hari** (akhir minggu ke-4, 6 Nov).
 2. Bagian ini sudah berjalan dan Anda uji di UAT #1–#3: **login dan hak akses, master data dan cabang, intake/client/kuesioner, penjadwalan**.
