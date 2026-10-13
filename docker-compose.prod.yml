@@ -59,7 +59,10 @@ services:
       MYSQL_USER: ${MYSQL_USER:?isi MYSQL_USER di .env}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?isi MYSQL_PASSWORD di .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?isi MYSQL_ROOT_PASSWORD di .env}
-    # Tidak dipublikasikan ke host/internet. Akses lewat: docker compose -f docker-compose.prod.yml exec mysql mysql ...
+    # Hanya di loopback VPS (127.0.0.1), TIDAK terlihat dari internet. Untuk DBeaver/Workbench dari laptop: SSH tunnel
+    # ke 127.0.0.1:3307 (docs/guide/14-runbook-deploy-vps.md). Atau lewat: docker compose -f docker-compose.prod.yml exec mysql mysql ...
+    ports:
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/therapedia.cnf:ro
