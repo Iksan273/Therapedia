@@ -362,7 +362,7 @@ export default function RoleModuleAccess() {
 
                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                       <div className="text-xs font-semibold text-slate-500">
-                        Akses Modul: <strong className="text-emerald-700 font-bold">{enabledCount} / 10</strong>
+                        Akses Modul: <strong className="text-emerald-700 font-bold">{enabledCount} / {ACCESS_MODULES.length}</strong>
                       </div>
 
                       <div className="flex items-center gap-1.5">
