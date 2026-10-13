@@ -31,7 +31,7 @@ npm run lint     # ESLint + batas lapisan (0 error)
 npm run build    # wajib lolos sebelum menyatakan selesai
 npm run gen:dark # buat ulang src/styles/dark-utilities.css (otomatis sebelum dev/build)
 ```
-Masuk app: `/roles` → pilih role, atau kode client + tanggal lahir anak (mis. `AE-00006`, tombol "Isi Demo" mengisi keduanya) untuk portal ortu. Kuesioner publik: `/assessment` dengan kode kuesioner (mis. `ASM-2016` dari seed demo, atau yang diterbitkan: `{kode jenis}-{acak}`). Akun staf demo: email dari `/login` + password `Therapedia2026!`.
+Masuk app: **tidak ada halaman beranda**, `/` selalu mengarah ke `/login` (atau ke halaman awal role bila sudah login). Mode API (`VITE_DATA_SOURCE=api`, `frontend/.env.local`): login staf = email + password dari backend (akun master dari seeder), ortu = kode client + tanggal lahir anak. Mode demo (`local`, default tanpa `.env.local`): `/roles` → pilih role (Role Switcher, hanya mode demo), atau kode client + tanggal lahir anak (mis. `AE-00006`, tombol "Isi Demo" mengisi keduanya) untuk portal ortu. Kuesioner publik: `/assessment` dengan kode kuesioner (mis. `ASM-2016` dari seed demo, atau yang diterbitkan: `{kode jenis}-{acak}`). Akun staf demo: email dari `/login` + password `Therapedia2026!`.
 
 ## Domain singkat
 - **7 role**: `master`, `manager`, `admin_inquiry`, `admin_schedule`, `finance`, `therapist`, `client` (ortu) + role kustom (RBAC per modul).
@@ -136,7 +136,7 @@ config/env.js data/ (seed demo)
 22. Nama action/hook = nama use-case (calon endpoint), bukan operasi storage.
 
 #### Mode gelap
-- Class `dark` dipasang di `<html>` oleh `useAppTheme()` (dipanggil sekali di `AppLayout`); halaman publik (`/assessment`, `/roles`) tetap terang. Preferensi tersimpan di key `ui_theme`.
+- Class `dark` dipasang di `<html>` oleh `useAppTheme()` (dipanggil sekali di `AppLayout`); halaman publik (`/login`, `/assessment`, `/roles`) tetap terang. Preferensi tersimpan di key `ui_theme`.
 - Pakai token (`bg-background`, `text-muted-foreground`, …) atau class warna Tailwind biasa: padanan gelap `bg-white`, `*-slate-*`, dan warna `*-50..300 / 600..950` dihasilkan otomatis dari `scripts/gen-dark-css.cjs`. Warna di luar itu (hex arbitrary, inline style, varian `[&_…]`) tidak ikut: tambahkan `dark:` manual atau aturan di `index.css`.
 - Jangan edit `dark-utilities.css` manual (dihasilkan).
 
@@ -147,6 +147,6 @@ config/env.js data/ (seed demo)
 
 ### Checklist sebelum selesai
 - [ ] `npm run lint` 0 error · `npm test` lolos · `npm run build` lolos
-- [ ] Cek di browser dengan role terkait (`/roles`), termasuk refresh & tampilan ≤768px
+- [ ] Cek di browser dengan role terkait (login, atau `/roles` di mode demo), termasuk refresh & tampilan ≤768px
 - [ ] Route baru ada di smoke test; aturan domain baru ada test-nya
 - [ ] Docs `docs/guide/*` (dan `schema.md` bila menyentuh data) diperbarui

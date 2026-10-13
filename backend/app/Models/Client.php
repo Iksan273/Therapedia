@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BranchScoped;
 use App\Models\Concerns\TracksActors;
+use App\Models\Concerns\Versioned;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,7 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class Client extends Authenticatable
 {
-    use BranchScoped, HasApiTokens, TracksActors;
+    use BranchScoped, HasApiTokens, TracksActors, Versioned;
 
     protected $table = 'clients';
 

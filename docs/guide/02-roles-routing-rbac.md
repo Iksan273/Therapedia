@@ -7,9 +7,9 @@ Auth saat ini **simulasi**, tetapi alurnya mengikuti keputusan klien: staf login
 
 | Pintu masuk | Route | Cara |
 |---|---|---|
-| Welcome (pemilih portal) | `/` | `features/auth/pages/Welcome.js` |
-| Pilih role cepat | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan atau "Semua Cabang"** (`branchId` kosong/`null` = semua cabang; terisi = terikat 1 cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
-| Login form | `/login` | `features/auth/pages/Login.js`: email + password staf (preset demo memakai password demo `Therapedia2026!`); ortu dengan kode client |
+| Pintu masuk `/` | `/` | `features/auth/pages/RootRedirect.js`: **tidak ada halaman beranda**. Belum login → `/login`; sudah login → halaman awal role (`homePathFor` di `domain/auth.js`; role kustom → modul pertama yang terbuka) |
+| Pilih role cepat (**hanya mode demo**, tidak terdaftar bila `VITE_DATA_SOURCE=api`) | `/roles` | `features/auth/pages/RoleSelect.js`: kartu role; manager, admin inquiry, admin schedule, dan finance **pilih cabang penugasan atau "Semua Cabang"** (`branchId` kosong/`null` = semua cabang; terisi = terikat 1 cabang); terapis pilih nama; ortu masukkan **kode client** (`clientCode`, mis. `AE-00006`) |
+| Login form | `/login` | `features/auth/pages/Login.js`: email + password staf; ortu dengan kode client + tanggal lahir anak. **Mode API**: `POST /auth/login` / `/auth/client-login` lewat `useAuthActions`, token Sanctum di `tokenStore`, matriks modul dari server (`auth.permissions`), password sementara → dialog ganti password wajib, lupa password via OTP email. **Mode demo**: akun demo (preset 1-klik, password `Therapedia2026!`). Sesi API dipulihkan saat refresh lewat `GET /auth/me`; 401 → sesi dibersihkan → `/login` |
 | Kuesioner ortu (publik) | `/assessment` | `features/assessment/pages/AssessmentFill.js`, kode kuesioner `{kode jenis asesmen}-{acak}` (mis. `SP2-K7M4QX`); `?code=` mengisi kolom kode |
 | Landing marketing | — (project terpisah `landing/`) | Tidak ada di router `frontend/`. Tombol "Go to Landing Page" di `/` membuka `VITE_LANDING_URL` |
 
@@ -31,7 +31,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 
 | Daftar | Isi | Guard |
 |---|---|---|
-| `PUBLIC_ROUTES` | `/`, `/roles`, `/login`, `/assessment` | tanpa guard, tanpa layout |
+| `PUBLIC_ROUTES` | `/` (redirect), `/roles` (hanya mode demo), `/login`, `/assessment` | tanpa guard, tanpa layout |
 | `STANDALONE_ROUTES` | `/print/client/:id` (PrintClientReport) | `RequireAccess` (semua role staf), tanpa `AppLayout` |
 | `PROTECTED_GROUPS` | grup ber-`AppLayout`: `/master`, `/manager`, `/finance`, `/admin-inquiry`, `/admin-schedule`, `/therapist`, `/client` | `RequireAccess` per grup + `RequireModule` per halaman |
 
@@ -46,7 +46,7 @@ Router dibangun dari data, bukan JSX manual. `AppRouter.js` membaca tiga daftar:
 | `/client` | client | index (tanpa modul) |
 
 ## Guard (`app/router/guards.js`)
-- **`RequireAccess({ roles, modules })`** — grup. Lolos bila role ada di `roles` grup (akses bawaan role sistem) **atau** role staf mana pun (sistem maupun kustom, selain client) punya permission **salah satu** `modules` grup (`groupModules(group)`). Jadi modul yang diberikan Master di `/master/rbac` ikut terbuka. Gagal → redirect `/roles`.
+- **`RequireAccess({ roles, modules })`** — grup. Lolos bila role ada di `roles` grup (akses bawaan role sistem) **atau** role staf mana pun (sistem maupun kustom, selain client) punya permission **salah satu** `modules` grup (`groupModules(group)`). Jadi modul yang diberikan Master di `/master/rbac` ikut terbuka. Tanpa sesi (atau mode API dengan password sementara) → redirect `/login`; sudah login tapi tidak berhak → halaman "tidak ada akses" (`shared/components/AccessDenied`), bukan redirect, agar tidak berputar bila halaman awal role juga ditutup.
 - **`RequireModule({ module })`** — per halaman. Semua role wajib punya permission modul halaman itu (Master selalu lolos). Mencabut modul di RBAC menutup halamannya, bukan hanya menyembunyikan menu.
 - **Menu sidebar** (`buildNavConfig`): menu bawaan role disaring permission, lalu ditambah menu modul lain yang diizinkan RBAC (`CUSTOM_ROLE_ITEMS`, daftar semua menu per modul). **Master melihat semua modul** (termasuk Schedule Dashboard, Assessment Master Data, Finance, dan modul Terapis). Modul terapis untuk non-terapis = mode simulasi: `ViewAsTherapistBar` + `useActingTherapist` (pilih terapis yang dilihat; key `viewAsTherapistId`).
 - Hak **aksi** mengikuti **akses modul** (keputusan klien): punya akses modul = boleh semua aksi di modul itu, termasuk hapus operasional (hapus client & cabang khusus master). Mis. `canManageSchedule(hasPermission)` (`domain/schedule.js`) = akses `weekly_calendar`, sehingga Manager yang diberi modul itu ikut boleh mengubah status sesi. Hapus operasional (invoice belum lunas, sesi, jadwal rutin, libur, master data, kode kuesioner) juga cukup akses modul; hapus **data penting** (client inquiry/aktif dan cabang) dikunci `masterOnly` = hanya role `master` (`canDeleteIn` di `domain/rbac.js`). Tidak ada flag `canDelete` per role (revisi 13 Okt 2026).

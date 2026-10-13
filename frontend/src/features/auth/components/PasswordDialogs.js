@@ -5,23 +5,38 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { OTP_ERROR_MESSAGES, OTP_LENGTH, validateNewPassword } from "@/domain/auth";
+import { OTP_ERROR_MESSAGES, OTP_LENGTH, apiErrorText, validateNewPassword } from "@/domain/auth";
 import { fmtDate } from "@/shared/lib/format";
 
 // Ganti password wajib: muncul saat login pertama / setelah password diatur ulang oleh Master. Tidak bisa ditutup tanpa mengganti.
-export function ForcePasswordChangeDialog({ staff, onSubmit, onCancel }) {
+// `askCurrentPassword` (mode API): server mewajibkan password saat ini. `onSubmit(passwordBaru, passwordSaatIni)` boleh async;
+// galatnya (ApiError) ditampilkan di dialog.
+export function ForcePasswordChangeDialog({ staff, onSubmit, onCancel, askCurrentPassword = false }) {
+  const [current, setCurrent] = useState("");
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (askCurrentPassword && !current) {
+      setError("Masukkan password saat ini.");
+      return;
+    }
     const invalid = validateNewPassword(pw, confirm);
     if (invalid) {
       setError(invalid);
       return;
     }
-    onSubmit(pw);
+    setSubmitting(true);
+    try {
+      await onSubmit(pw, current);
+    } catch (err) {
+      setError(apiErrorText(err, ["current_password", "password"]));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -36,6 +51,12 @@ export function ForcePasswordChangeDialog({ staff, onSubmit, onCancel }) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
+          {askCurrentPassword && (
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700">Password saat ini *</Label>
+              <Input type="password" autoComplete="current-password" className="border-slate-200 bg-slate-50 text-xs" value={current} onChange={(e) => { setCurrent(e.target.value); setError(""); }} data-testid="current-password-input" />
+            </div>
+          )}
           <div className="space-y-1">
             <Label className="text-xs font-bold text-slate-700">Password baru *</Label>
             <Input type="password" autoComplete="new-password" className="border-slate-200 bg-slate-50 text-xs" value={pw} onChange={(e) => { setPw(e.target.value); setError(""); }} data-testid="new-password-input" />
@@ -47,7 +68,7 @@ export function ForcePasswordChangeDialog({ staff, onSubmit, onCancel }) {
           {error && <p className="text-xs font-semibold text-rose-600" data-testid="password-change-error">{error}</p>}
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>Batal</Button>
-            <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="password-change-submit">Simpan & Masuk</Button>
+            <Button type="submit" disabled={submitting} className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="password-change-submit">{submitting ? "Menyimpan..." : "Simpan & Masuk"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -65,6 +86,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const close = (next) => {
     onOpenChange(next);
@@ -79,33 +101,47 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
     }
   };
 
-  const handleRequest = (e) => {
+  // requestOtp / resetWithOtp boleh sinkron (demo) atau async (API). Galat permintaan OTP (429 terlalu sering, 503 email
+  // gagal terkirim) ditampilkan apa adanya; respons sukses selalu generik.
+  const handleRequest = async (e) => {
     e.preventDefault();
     if (!email.trim()) {
       setError("Masukkan email akun staf.");
       return;
     }
-    const res = requestOtp(email);
-    setDemoOtp(res.otp ? { code: res.otp, expiresAt: res.expiresAt } : null);
-    setStep("reset");
-    setError("");
-    toast.info("Jika email terdaftar, kode OTP dikirim ke email tersebut.");
+    setSubmitting(true);
+    try {
+      const res = await requestOtp(email.trim());
+      setDemoOtp(res?.otp ? { code: res.otp, expiresAt: res.expiresAt } : null);
+      setStep("reset");
+      setError("");
+      toast.info("Jika email terdaftar, kode OTP dikirim ke email tersebut.");
+    } catch (err) {
+      setError(apiErrorText(err, ["email"]));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleReset = (e) => {
+  const handleReset = async (e) => {
     e.preventDefault();
     const invalid = validateNewPassword(pw, confirm);
     if (invalid) {
       setError(invalid);
       return;
     }
-    const res = resetWithOtp({ email, otp, newPassword: pw });
-    if (!res.ok) {
-      setError(res.reason === "invalid" && res.attemptsLeft != null ? `${OTP_ERROR_MESSAGES.invalid} Sisa percobaan: ${res.attemptsLeft}.` : OTP_ERROR_MESSAGES[res.reason] || "Gagal mengatur ulang password.");
-      return;
+    setSubmitting(true);
+    try {
+      const res = await resetWithOtp({ email: email.trim(), otp, newPassword: pw });
+      if (!res.ok) {
+        setError(res.message || (res.reason === "invalid" && res.attemptsLeft != null ? `${OTP_ERROR_MESSAGES.invalid} Sisa percobaan: ${res.attemptsLeft}.` : OTP_ERROR_MESSAGES[res.reason] || "Gagal mengatur ulang password."));
+        return;
+      }
+      toast.success("Password berhasil diganti. Silakan masuk dengan password baru.");
+      close(false);
+    } finally {
+      setSubmitting(false);
     }
-    toast.success("Password berhasil diganti. Silakan masuk dengan password baru.");
-    close(false);
   };
 
   return (
@@ -131,7 +167,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
             {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => close(false)}>Batal</Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="forgot-request-otp">Kirim Kode OTP</Button>
+              <Button type="submit" disabled={submitting} className="bg-sky-600 hover:bg-sky-700 text-white font-bold" data-testid="forgot-request-otp">{submitting ? "Mengirim..." : "Kirim Kode OTP"}</Button>
             </DialogFooter>
           </form>
         ) : (
@@ -160,7 +196,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
             {error && <p className="text-xs font-semibold text-rose-600" data-testid="forgot-error">{error}</p>}
             <DialogFooter className="gap-2">
               <Button type="button" variant="outline" onClick={() => setStep("email")}>Kembali</Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" disabled={otp.length < OTP_LENGTH} data-testid="forgot-reset-submit">Ganti Password</Button>
+              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold" disabled={otp.length < OTP_LENGTH || submitting} data-testid="forgot-reset-submit">{submitting ? "Menyimpan..." : "Ganti Password"}</Button>
             </DialogFooter>
           </form>
         )}

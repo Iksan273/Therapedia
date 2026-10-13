@@ -115,6 +115,18 @@ Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2
 | Log invoice | Tombol **Log** membaca `GET invoices.logs(id)` (sekarang `invoice.logs` di store) |
 | Upload bukti | Kirim file asli via `api.upload` (multipart), bukan dataURL |
 
+## Status integrasi frontend per modul
+### M1 Auth — terintegrasi (13 Okt 2026)
+Aktif bila `VITE_DATA_SOURCE=api` (salin `frontend/.env.example` ke `.env.local`; backend `php artisan serve`). Mode `local` (default) tetap memakai akun demo.
+| Bagian | Implementasi |
+|---|---|
+| Hook use-case | `features/auth/hooks/useAuthActions.js`: `loginStaff`, `loginClient`, `changePassword`, `requestPasswordOtp`, `resetPasswordWithOtp` |
+| Store | `stores/authStore.js`: `applySession`, `markPasswordChanged`, `logout` (cabut token di server), pulihkan sesi lewat `GET /auth/me`, handler 401 (`setUnauthorizedHandler`) |
+| Izin | `hasPermission`/`canDelete` membaca matriks server (`auth.permissions`, key snake_case; interceptor meng-camelCase-kan key respons, jadi `staffSessionToAuth` mengembalikannya dengan `keysToSnake`). Master selalu boleh; hapus client/cabang `masterOnly` |
+| Halaman | `Login.js` (staf + ortu, dialog ganti password wajib dan lupa password OTP), `RootRedirect.js` ("/" tanpa beranda), guard → `/login`, `AccessDenied` untuk akun yang tidak berhak |
+| Galat | Login gagal = 422 (bukan 401, agar tidak memicu handler logout); 429 lockout; 503 email OTP gagal; pesan dari server ditampilkan apa adanya |
+**Batasan sementara (modul lain masih localStorage):** halaman selain auth belum membaca data dari API sampai modulnya dimigrasi (sprint 1 hari 6+). Akibatnya setelah login API: `branchId` berupa id numerik server (belum cocok dengan id cabang demo), portal ortu/terapis belum menemukan datanya, dan halaman User/RBAC masih memakai data lokal sampai M2 dimigrasi.
+
 ## Urutan migrasi yang disarankan
 1. Backend: migration sesuai `schema.md` §09 + seeder master dari `src/domain/*`.
 2. Auth: login staf & ortu via Sanctum; `tokenStore`; `setUnauthorizedHandler` → logout + redirect.

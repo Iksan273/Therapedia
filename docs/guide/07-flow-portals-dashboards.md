@@ -21,7 +21,7 @@ Semua data difilter berdasarkan `auth.therapistId`.
 - Sisa kredit total + per paket (`remainingCredit / totalCredit`).
 - **Tidak ada** kartu/daftar kode kuesioner di portal ortu dan tidak ada upload bukti bayar: admin mengirim kode kuesioner lewat WhatsApp, ortu mengisinya di `/assessment` (kode diketik manual). Finance yang menandai lunas.
 - Riwayat terapi: **hanya sesi `completed`**. Tombol **View Report nonaktif** bila laporan belum diisi terapis (`isReportEmpty`: label "Laporan belum tersedia"); modal laporan tidak lagi memakai teks placeholder. **Export laporan** per sesi dan "Export Laporan" (sesuai filter) membuka dokumen cetak (`shared/lib/reportExport.js`, simpan sebagai PDF lewat dialog cetak). Filter tanggal "Dari–Sampai" (`DateFilterPicker`, `filterSessionsByDate`) + reset; list dibatasi tinggi `min(520px, 60vh)`, pagination 10/20/50.
-- Login dengan **kode client** (`clientCode`, mis. `AE-00006`) + **tanggal lahir anak** (input date, `findClientForLogin`, error generik) di `/roles` atau `/login` (demo ikut memakai tanggal lahir; backend sama + throttle 5 gagal, reset 10 menit).
+- Login dengan **kode client** (`clientCode`, mis. `AE-00006`) + **tanggal lahir anak** (input date, `findClientForLogin`, error generik) di `/login` (mode demo juga lewat `/roles`; demo ikut memakai tanggal lahir; backend sama + throttle 5 gagal, reset 10 menit).
 - Target utama: **mobile** (ortu membuka dari HP).
 
 ## C. Dashboard eksekutif
@@ -49,7 +49,7 @@ Pola dashboard:
 ## E. Halaman publik / pendukung
 | Route | Halaman |
 |---|---|
-| `/` | `Welcome.js`: pemilih portal |
+| `/` | `RootRedirect.js`: ke `/login` atau halaman awal role (tidak ada beranda) |
 | Landing (project `landing/`, bukan route `frontend/`) | `landing/src/pages/Home.js` + `landing/src/components/*` (Hero, Programs, Team, Branches, WhyUs, Knowledge, Contact, Footer). **Dua bahasa (Indonesia / Inggris)**: `landing/src/i18n/LanguageContext.js` (`useLang`, `L(en, id)`, pilihan disimpan di localStorage key `landing_lang`, default Indonesia) + pengalih `LanguageToggle` di header. Konten Inggris dari `data/landingData.js`, terjemahan Indonesia di `data/landingDataId.js` (kunci = id item) |
 | `/assessment` | `AssessmentFill.js` (lihat 04) |
 | `/print/client/:id` | `features/therapist/pages/PrintClientReport.js`: laporan cetak client (route mandiri tanpa `AppLayout`, untuk semua role staf; `STANDALONE_ROUTES` di `app/router/routes.js`) |

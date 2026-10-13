@@ -1,6 +1,6 @@
 # 09 — Resep Perubahan Umum
 
-Setiap resep diakhiri **Verifikasi**. Minimal (di `frontend/`): `npm run lint` (0 error), `npm test`, `npm run build`, lalu cek manual role terkait lewat `/roles` (termasuk lebar mobile).
+Setiap resep diakhiri **Verifikasi**. Minimal (di `frontend/`): `npm run lint` (0 error), `npm test`, `npm run build`, lalu cek manual role terkait lewat login (mode demo: `/roles`) (termasuk lebar mobile).
 
 ## 1. Tambah halaman di modul ber-role
 1. Buat `frontend/src/features/<modul>/pages/<NamaHalaman>.js`; sub-komponen di `features/<modul>/components/<sub>/`.
@@ -8,7 +8,7 @@ Setiap resep diakhiri **Verifikasi**. Minimal (di `frontend/`): `npm run lint` (
 3. `app/layout/navConfig.js`: tambah item ke `NAV_CONFIG[role]` (`to`, `label`, `icon` lucide, `module`, `testid: "nav-<role>-<slug>"`). Untuk role kustom, tambahkan juga ke `CUSTOM_ROLE_ITEMS` bila modulnya baru.
 4. Kontainer halaman `data-testid="<slug>-page"`; data per cabang pakai pola scoping (02).
 5. Tambahkan path ke `CASES` di `src/app/__tests__/routes.smoke.test.js`.
-6. **Verifikasi**: menu muncul hanya untuk role yang benar; URL langsung dengan role lain → `/roles`; smoke test lolos.
+6. **Verifikasi**: menu muncul hanya untuk role yang benar; URL langsung dengan role lain → halaman "tidak ada akses"; smoke test lolos.
 
 ## 2. Tambah aksi / mutasi data
 1. **Aturan** → fungsi pure di `domain/<entity>.js` + test di `domain/__tests__/`.

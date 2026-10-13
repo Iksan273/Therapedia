@@ -31,6 +31,9 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["src/**/*.test.{js,jsx}"],
+    // Test selalu memakai data demo (localStorage), tidak terpengaruh .env.local developer (mis. VITE_DATA_SOURCE=api).
+    // Test mode API meng-mock config/env sendiri (lihat features/auth/__tests__/useAuthActions.test.js).
+    env: { VITE_DATA_SOURCE: "local" },
   },
   build: {
     outDir: "dist",

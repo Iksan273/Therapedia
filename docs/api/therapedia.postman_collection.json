@@ -1,0 +1,695 @@
+{
+    "info": {
+        "_postman_id": "7c1f0c52-therapedia-api-v1",
+        "name": "Therapedia API v1",
+        "description": "Koleksi endpoint backend Therapedia (Laravel 12 + Sanctum).\n\nStatus: M1 Auth (siap diuji). Endpoint modul lain ditambahkan per sprint.\n\nCara pakai:\n1. Jalankan backend: `php artisan serve` (default http://127.0.0.1:8000).\n2. Import koleksi ini + file environment `therapedia.local.postman_environment.json`, lalu pilih environment \"Therapedia Local\".\n3. Jalankan `1.1 Login staf` dulu: token otomatis tersimpan ke variabel `token` dan dipakai request lain.\n\nAkun master dari seeder: master@gmail.com / 123.\n\nCatatan: request yang butuh login memakai header Authorization: Bearer {{token}} (atau {{client_token}} untuk portal ortu). Bila 401 \"Sesi berakhir\": pastikan environment \"Therapedia Local\" TERPILIH dan variabel `token` terisi. Bila kosong, salin `data.token` dari respons login lalu tempel ke variabel `token`.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "0. Health",
+            "item": [
+                {
+                    "name": "0.1 Health check",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{host}}/up",
+                            "host": [
+                                "{{host}}"
+                            ],
+                            "path": [
+                                "up"
+                            ]
+                        },
+                        "description": "Cek aplikasi hidup. Respons 200."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "1. Auth Staf",
+            "item": [
+                {
+                    "name": "1.1 Login staf",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login berhasil (200)', function () { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code === 200) {",
+                                    "  const res = pm.response.json();",
+                                    "  pm.environment.set('token', res.data.token);",
+                                    "  pm.test('Token tersimpan ke variabel token', function () { pm.expect(res.data.token).to.be.a('string'); });",
+                                    "  pm.test('Memuat matriks modul', function () { pm.expect(res.data.user.permissions).to.be.an('object'); });",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{staff_email}}\",\n  \"password\": \"{{staff_password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Login staf. Sukses 200: `data.token`, `data.user` (role, cabang, `permissions`, `must_change_password`).\n\nGagal: 422 dengan pesan yang sama untuk email salah / password salah / akun nonaktif. 5 kali gagal dari email+IP yang sama → 429 `too_many_attempts` (+ `retry_after` detik). Token berlaku 24 jam."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "1.2 Profil sesi (me)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('Tipe staff', function () { pm.expect(pm.response.json().data.type).to.eql('staff'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Profil + izin modul pemilik token. Tanpa token → 401. Boleh dipanggil saat `must_change_password = true`."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "1.3 Ganti password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"current_password\": \"{{staff_password}}\",\n  \"password\": \"PasswordBaru123\",\n  \"password_confirmation\": \"PasswordBaru123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/change-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "change-password"
+                            ]
+                        },
+                        "description": "Sukses 204 (tanpa isi). Aturan password baru: minimal 8 karakter, ada huruf dan angka, konfirmasi sama, beda dari password lama. Token milik perangkat lain dihapus; token ini tetap berlaku.\n\nPERHATIAN: setelah berhasil, password akun berubah. Ubah variabel `staff_password` di environment sesuai password baru, atau kembalikan lewat request ini lagi (current_password = PasswordBaru123).\n\nBila akun `must_change_password = true`, ini satu-satunya endpoint (selain me/logout) yang boleh dipakai."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "1.4 Logout staf",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Sukses 204. Hanya token yang dipakai yang dihapus (perangkat lain tetap login)."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2. Auth Orang Tua (Portal)",
+            "item": [
+                {
+                    "name": "2.1 Login ortu",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "  const res = pm.response.json();",
+                                    "  pm.environment.set('client_token', res.data.token);",
+                                    "  pm.test('Token ortu tersimpan ke variabel client_token', function () { pm.expect(res.data.token).to.be.a('string'); });",
+                                    "} else {",
+                                    "  pm.test('Gagal: 422 (data salah) atau 429 (terkunci)', function () { pm.expect([422, 429]).to.include(pm.response.code); });",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"client_code\": \"{{client_code}}\",\n  \"date_of_birth\": \"{{client_dob}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/client-login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "client-login"
+                            ]
+                        },
+                        "description": "Login portal ortu: kode client + tanggal lahir anak (yyyy-MM-dd). Butuh data client di database (belum ada dari seeder; akan ada setelah modul Client/Inquiry, atau isi manual lewat tinker).\n\nGagal: 422 dengan pesan generik (tidak menyebut mana yang salah). 5 gagal per kode (atau 20 per IP) → 429, terkunci 15 menit."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2.2 Profil sesi ortu (me)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{client_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{client_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Memakai `client_token`. Respons `data.type = client` + ringkasan client (tanpa tanggal lahir/hasil asesmen)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2.3 Logout ortu",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{client_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{client_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Sukses 204."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "3. Lupa Password (OTP Email)",
+            "item": [
+                {
+                    "name": "3.1 Minta OTP",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{staff_email}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/forgot-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "forgot-password"
+                            ]
+                        },
+                        "description": "Selalu 204 (walau email tidak terdaftar/nonaktif, tidak membocorkan akun). Email OTP 6 digit berlaku 10 menit dikirim sinkron.\n\nBatas: 3 permintaan per email per 10 menit, 10 per IP per jam (429 `too_many_attempts`). Email gagal terkirim → 503.\n\nDengan `MAIL_MAILER=log`, OTP dibaca dari `storage/logs/laravel.log`."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "3.2 Reset password dengan OTP",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{staff_email}}\",\n  \"otp\": \"123456\",\n  \"password\": \"PasswordBaru123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/reset-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "reset-password"
+                            ]
+                        },
+                        "description": "Ganti `otp` dengan kode dari email. Sukses 204: password diganti dan SEMUA token akun dihapus (login ulang).\n\nOTP salah/kedaluwarsa/terpakai → 422 pesan generik. 5 kali salah → OTP hangus (minta kode baru). Password baru: minimal 8 karakter, huruf + angka."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "4. Uji Kasus Gagal (negatif)",
+            "item": [
+                {
+                    "name": "4.1 Login password salah (422)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('422 + pesan generik', function () {",
+                                    "  pm.response.to.have.status(422);",
+                                    "  pm.expect(pm.response.json().message).to.eql('Email atau password salah.');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{staff_email}}\",\n  \"password\": \"salah12345\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "HATI-HATI: menjalankan ini 5 kali berturut-turut mengunci email+IP selama 60 detik (429)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4.2 Login tanpa isi (validasi 422)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('422 dengan errors per field', function () {",
+                                    "  pm.response.to.have.status(422);",
+                                    "  pm.expect(pm.response.json().errors).to.have.property('email');",
+                                    "  pm.expect(pm.response.json().errors).to.have.property('password');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Bentuk error validasi: `{ message, errors: { field: [pesan] } }` (dipakai frontend sebagai fieldErrors)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4.3 Me tanpa token (401)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('401', function () { pm.response.to.have.status(401); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        },
+                        "description": "Tanpa Authorization → 401 `{ message }`."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4.4 Token ortu ke rute staf (403)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('403 forbidden', function () { pm.response.to.have.status(403); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{client_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{client_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches"
+                            ]
+                        },
+                        "description": "Token portal ortu (ability `client`) tidak boleh mengakses rute staf → 403."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4.5 OTP bukan 6 digit (422)",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{staff_email}}\",\n  \"otp\": \"12ab\",\n  \"password\": \"PasswordBaru123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/reset-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "reset-password"
+                            ]
+                        },
+                        "description": "422 `errors.otp`: Kode OTP terdiri dari 6 angka."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "host",
+            "value": "http://127.0.0.1:8000"
+        },
+        {
+            "key": "base_url",
+            "value": "{{host}}/api/v1"
+        }
+    ]
+}

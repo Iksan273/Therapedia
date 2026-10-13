@@ -64,7 +64,7 @@ COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
 RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
 # Variabel VITE_* ditanam ke bundle saat build (bukan saat container jalan). Satu origin dengan API -> path relatif.
-ARG VITE_DATA_SOURCE=local
+ARG VITE_DATA_SOURCE=api
 ARG VITE_API_BASE_URL=/api/v1
 ARG VITE_API_TIMEOUT_MS=15000
 ARG VITE_LANDING_URL=

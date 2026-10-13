@@ -1,7 +1,8 @@
 import { lazy } from "react";
-import Welcome from "@/features/auth/pages/Welcome";
+import RootRedirect from "@/features/auth/pages/RootRedirect";
+import { isApiMode } from "@/config/env";
 
-// Semua halaman (kecuali Welcome) di-lazy agar tiap modul jadi chunk terpisah.
+// Semua halaman (kecuali RootRedirect) di-lazy agar tiap modul jadi chunk terpisah.
 const Login = lazy(() => import("@/features/auth/pages/Login"));
 const RoleSelect = lazy(() => import("@/features/auth/pages/RoleSelect"));
 const AssessmentFill = lazy(() => import("@/features/assessment/pages/AssessmentFill"));
@@ -33,10 +34,11 @@ const FinancePortal = lazy(() => import("@/features/finance/pages/FinancePortal"
 
 const STAFF_ROLES = ["master", "manager", "admin_inquiry", "admin_schedule", "finance", "therapist"];
 
-// Route publik (tanpa AppLayout & tanpa guard)
+// Route publik (tanpa AppLayout & tanpa guard). Tidak ada halaman beranda: "/" hanya mengarahkan ke /login
+// (atau ke halaman awal role bila sudah login). Role Switcher (/roles) hanya di mode demo (VITE_DATA_SOURCE=local).
 export const PUBLIC_ROUTES = [
-  { path: "/", Component: Welcome },
-  { path: "/roles", Component: RoleSelect },
+  { path: "/", Component: RootRedirect },
+  ...(isApiMode() ? [] : [{ path: "/roles", Component: RoleSelect }]),
   { path: "/login", Component: Login },
   { path: "/assessment", Component: AssessmentFill },
 ];

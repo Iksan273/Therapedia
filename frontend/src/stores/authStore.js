@@ -1,9 +1,13 @@
 import React, { createContext, useContext } from "react";
 import { usePersistentState } from "@/shared/hooks/usePersistentState";
-import { ACCESS_MODULES, DEFAULT_PERMISSIONS, DEFAULT_ROLES, canDeleteIn, roleHasPermission, withDefaultPermissions } from "@/domain/rbac";
+import { ACCESS_MODULES, DEFAULT_PERMISSIONS, DEFAULT_ROLES, permissionMapAllows, roleHasPermission, withDefaultPermissions } from "@/domain/rbac";
 import DEFAULT_STAFF from "@/data/staffUsers.seed.json";
-import { findStaffByEmail, generateOtp, generateTempPassword, hasAllBranchAccess, makeOtpRequest, verifyOtp } from "@/domain/auth";
+import { clientSessionToAuth, findStaffByEmail, generateOtp, generateTempPassword, hasAllBranchAccess, makeOtpRequest, staffSessionToAuth, verifyOtp } from "@/domain/auth";
 import { nowIso } from "@/shared/lib/id";
+import { isApiMode } from "@/config/env";
+import { api, setUnauthorizedHandler } from "@/services/http/httpClient";
+import { tokenStore } from "@/services/http/tokenStore";
+import { ENDPOINTS } from "@/services/api/endpoints";
 
 const EMPTY_AUTH = {
   role: null,
@@ -11,6 +15,10 @@ const EMPTY_AUTH = {
   clientId: null,
   staffName: null,
   branchId: null, // null = semua cabang (staf); lihat hasAllBranchAccess
+  // Hanya mode API: id akun, status password sementara, dan matriks modul dari server ({ kode_modul: boolean }).
+  userId: null,
+  mustChangePassword: false,
+  permissions: null,
 };
 
 const AuthContext = createContext(null);
@@ -41,10 +49,50 @@ export const AuthProvider = ({ children }) => {
     }
   }, [auth, activeBranch, setActiveBranch]);
 
-  const logout = () => {
+  // Mode API: sesi berasal dari token Sanctum. `applySession` dipanggil hook login / pemulihan sesi (`me`).
+  const applySession = (session) => {
+    setAuth({ ...EMPTY_AUTH, ...session });
+    setActiveBranch(session.role !== "client" && session.branchId ? session.branchId : "all");
+  };
+
+  const clearSession = () => {
     setAuth(EMPTY_AUTH);
     setActiveBranch("all");
   };
+
+  // Selesai ganti password wajib: server sudah menghapus penanda; sinkronkan state lokal.
+  const markPasswordChanged = () => setAuth((prev) => ({ ...prev, mustChangePassword: false }));
+
+  const logout = () => {
+    if (isApiMode() && tokenStore.get()) {
+      // Cabut token di server (best effort), lalu hapus token lokal. Header token dibaca saat request dikirim.
+      api.post(ENDPOINTS.auth.logout).catch(() => {}).finally(() => tokenStore.clear());
+    }
+    clearSession();
+  };
+
+  // Mode API: pasang handler 401 (token hilang/kedaluwarsa → sesi dibersihkan, guard mengarahkan ke /login) dan pulihkan
+  // sesi dari token yang tersimpan (profil + matriks modul terbaru).
+  React.useEffect(() => {
+    if (!isApiMode()) return undefined;
+    setUnauthorizedHandler(() => clearSession());
+    if (!tokenStore.get()) {
+      if (auth?.role) clearSession();
+      return undefined;
+    }
+    let cancelled = false;
+    api
+      .get(ENDPOINTS.auth.me)
+      .then((me) => {
+        if (cancelled) return;
+        applySession(me.type === "client" ? clientSessionToAuth(me.client) : staffSessionToAuth(me.user));
+      })
+      .catch(() => {}); // 401 sudah ditangani handler; galat jaringan: pertahankan sesi tersimpan
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hanya saat aplikasi dimuat
+  }, []);
 
   // Akun baru: password sementara dari Master + wajib ganti saat login pertama. Staf non-master terikat 1 cabang.
   const addStaffUser = (user) => {
@@ -164,16 +212,26 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
-  const hasPermission = (moduleKey) => roleHasPermission(auth?.role, rbacPermissions, moduleKey);
+  // Mode API: matriks dari server (login/me); mode demo: matriks lokal (RBAC localStorage).
+  const hasPermission = (moduleKey) =>
+    isApiMode() && auth?.permissions
+      ? permissionMapAllows(auth?.role, auth.permissions, moduleKey)
+      : roleHasPermission(auth?.role, rbacPermissions, moduleKey);
 
   // Hapus operasional = akses modul; hapus data penting (`masterOnly`: client, cabang) = hanya master.
-  const canDelete = (moduleKey, { masterOnly = false } = {}) => canDeleteIn({ roleId: auth?.role, permissions: rbacPermissions, moduleKey, masterOnly });
+  const canDelete = (moduleKey, { masterOnly = false } = {}) => {
+    if (auth?.role === "master") return true;
+    if (masterOnly) return false;
+    return hasPermission(moduleKey);
+  };
 
   return (
     <AuthContext.Provider
       value={{
         auth,
         login,
+        applySession,
+        markPasswordChanged,
         logout,
         activeBranch,
         setActiveBranch,

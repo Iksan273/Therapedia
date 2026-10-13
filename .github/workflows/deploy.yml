@@ -134,7 +134,8 @@ jobs:
           cache-from: type=gha,scope=app
           cache-to: type=gha,scope=app,mode=max
       # Variabel VITE_* ditanam saat build. Atur di Settings > Secrets and variables > Actions > Variables.
-      # Tanpa variabel: data demo localStorage (local) dan API di path relatif /api/v1 (satu origin).
+      # Tanpa variabel: mode API (Laravel) di path relatif /api/v1 (satu origin). VPS/UAT memang selalu API;
+      # demo localStorage hidup di Vercel (VITE_DATA_SOURCE=local di sana). Variabel hanya perlu untuk menimpa default.
       - name: Build & push web (Nginx + frontend)
         uses: docker/build-push-action@v6
         with:
@@ -143,7 +144,7 @@ jobs:
           target: web
           push: true
           build-args: |
-            VITE_DATA_SOURCE=${{ vars.VITE_DATA_SOURCE || 'local' }}
+            VITE_DATA_SOURCE=${{ vars.VITE_DATA_SOURCE || 'api' }}
             VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || '/api/v1' }}
             VITE_LANDING_URL=${{ vars.VITE_LANDING_URL }}
           tags: |

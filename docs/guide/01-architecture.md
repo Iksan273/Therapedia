@@ -46,7 +46,7 @@ app/
   layout/AppLayout.js    sidebar + header + Outlet
   layout/navConfig.js    menu per role + buildNavConfig()
 features/
-  auth/        pages: Welcome, Login, RoleSelect
+  auth/        pages: Login, RootRedirect ("/"), RoleSelect (demo) · hooks: useAuthActions (login API) · components: PasswordDialogs
   inquiry/     pages: DashboardInquiry, InquiryPipeline, ClientDetailInquiry, InquiryMasterData
                components: dashboard/, pipeline/, clientDetail/ · hooks: useClientOutcomeActions
   assessment/  pages: AssessmentFill (publik), AssessmentMasterData, ParentAssessmentView

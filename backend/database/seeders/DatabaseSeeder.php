@@ -2,24 +2,21 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * Seeder WAJIB (aman dijalankan ulang, juga di server UAT/produksi): cabang, RBAC, master data, akun master.
+ * Seeder demo (client/jadwal contoh) dipisah dan belum dibuat.
+ */
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            BranchSeeder::class,
+            RbacSeeder::class,
+            MasterDataSeeder::class,
+            MasterUserSeeder::class,
         ]);
     }
 }

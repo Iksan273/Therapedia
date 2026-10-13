@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AccessModule;
 use App\Models\RolePermission;
 use App\Models\User;
 
@@ -45,6 +46,20 @@ class PermissionService
         }
 
         return ! $masterOnly && $this->allows($user, $module);
+    }
+
+    /**
+     * Matriks efektif untuk respons login: master selalu penuh (termasuk modul baru), role lain dari `role_permissions`.
+     *
+     * @return array<string, bool>
+     */
+    public function effectiveModules(User $user): array
+    {
+        if ($this->isMaster($user)) {
+            return AccessModule::query()->orderBy('sort_order')->pluck('code')->mapWithKeys(fn ($code) => [$code => true])->all();
+        }
+
+        return $this->modules($user);
     }
 
     /** @return array<string, bool> kode modul => diizinkan */

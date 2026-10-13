@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -8,7 +8,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ChevronLeft,
   Crown,
   Building2,
   ClipboardList,
@@ -28,8 +27,14 @@ import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { LOGIN } from "@/shared/constants/testIds/auth";
 import { ForcePasswordChangeDialog, ForgotPasswordDialog } from "@/features/auth/components/PasswordDialogs";
-import { CLIENT_LOGIN_ERROR, DEMO_PASSWORD, checkStaffCredentials, findClientForLogin, findStaffByEmail } from "@/domain/auth";
+import { useAuthActions } from "@/features/auth/hooks/useAuthActions";
+import { CLIENT_LOGIN_ERROR, DEMO_PASSWORD, STAFF_HOME, apiErrorText, checkStaffCredentials, findClientForLogin, findStaffByEmail, homePathFor } from "@/domain/auth";
+import { permissionMapAllows } from "@/domain/rbac";
+import { isApiMode } from "@/config/env";
 import { cn } from "@/shared/lib/utils";
+
+// Mode API: login lewat Laravel (token Sanctum). Mode demo (VITE_DATA_SOURCE=local): data localStorage + akun demo.
+const API_MODE = isApiMode();
 
 // Quick Preset Accounts for seamless evaluation
 const PRESET_ACCOUNTS = [
@@ -93,25 +98,38 @@ const PRESET_ACCOUNTS = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, setActiveBranch, staffUsers, changeStaffPassword, requestPasswordOtp, resetPasswordWithOtp } = useAuth();
+  const { auth, login, logout, setActiveBranch, staffUsers, changeStaffPassword, requestPasswordOtp, resetPasswordWithOtp } = useAuth();
   const { clients } = useClients();
+  const authActions = useAuthActions();
 
   // Mode: "staff" or "client"
   const [activeTab, setActiveTab] = useState("staff");
 
-  // Staff Form State
-  const [email, setEmail] = useState("master@therapedia.id");
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  // Staff Form State (mode API: kosong; mode demo: terisi akun demo)
+  const [email, setEmail] = useState(API_MODE ? "" : "master@therapedia.id");
+  const [password, setPassword] = useState(API_MODE ? "" : DEMO_PASSWORD);
   const [pendingStaff, setPendingStaff] = useState(null); // akun dengan password sementara → wajib ganti
   const [forgotOpen, setForgotOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [staffError, setStaffError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Client Form State
-  const [clientCode, setClientCode] = useState("AE-00006");
+  const [clientCode, setClientCode] = useState(API_MODE ? "" : "AE-00006");
   const [clientDob, setClientDob] = useState("");
   const [clientError, setClientError] = useState("");
+
+  // Mode API: sudah punya sesi → langsung ke halaman role. Sesi dengan password sementara (belum diganti) → buka dialog ganti password.
+  useEffect(() => {
+    if (!API_MODE || !auth?.role) return;
+    if (auth.mustChangePassword) {
+      setPendingStaff({ name: auth.staffName });
+      return;
+    }
+    navigate(homePathFor(auth.role, (m) => permissionMapAllows(auth.role, auth.permissions, m)), { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hanya saat halaman dibuka
+  }, []);
 
   // Isi Demo: kode + tanggal lahir client demo (tanggal lahir seed bisa bergeser, jadi dibaca dari data)
   const fillClientDemo = () => {
@@ -119,15 +137,6 @@ export default function Login() {
     setClientCode("AE-00006");
     setClientDob(demo?.dob || "");
     setClientError("");
-  };
-
-  const STAFF_HOME = {
-    master: "/master/revenue",
-    manager: "/manager/revenue",
-    admin_inquiry: "/admin-inquiry/pipeline",
-    admin_schedule: "/admin-schedule/calendar",
-    finance: "/finance",
-    therapist: "/therapist",
   };
 
   const completeStaffLogin = (staff) => {
@@ -139,17 +148,40 @@ export default function Login() {
     });
     if (staff.branchId) setActiveBranch(staff.branchId);
     toast.success(`Selamat datang kembali, ${staff.name}!`);
-    navigate(STAFF_HOME[staff.role] || "/");
+    navigate(STAFF_HOME[staff.role] || "/login");
+  };
+
+  // Mode API: sesi sudah dipasang hook login; tinggal arahkan ke halaman awal role (role kustom: modul pertama yang terbuka).
+  const completeApiLogin = (session) => {
+    toast.success(`Selamat datang kembali, ${session.staffName}!`);
+    navigate(homePathFor(session.role, (m) => permissionMapAllows(session.role, session.permissions, m)), { replace: true });
   };
 
   // Handle Staff Login: email + password. Password sementara (diatur Master) wajib diganti; akun nonaktif ditolak.
-  const handleStaffSubmit = (e) => {
+  const handleStaffSubmit = async (e) => {
     e.preventDefault();
     setStaffError("");
 
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
       setStaffError("Silakan masukkan alamat email akun staf.");
+      return;
+    }
+
+    if (API_MODE) {
+      setSubmitting(true);
+      try {
+        const session = await authActions.loginStaff({ email: trimmedEmail, password });
+        if (session.mustChangePassword) {
+          setPendingStaff({ name: session.staffName });
+        } else {
+          completeApiLogin(session);
+        }
+      } catch (err) {
+        setStaffError(apiErrorText(err, ["email", "password"]));
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
@@ -176,7 +208,19 @@ export default function Login() {
     completeStaffLogin(staff);
   };
 
-  const handleForcedPasswordChange = (newPassword) => {
+  // Mode API: password saat ini = yang baru diketik di form login (atau diisi di dialog bila halaman dibuka ulang).
+  // Galat dari server dilempar ke dialog agar ditampilkan di sana.
+  const handleForcedPasswordChange = async (newPassword, currentPassword) => {
+    if (API_MODE) {
+      await authActions.changePassword({ currentPassword: currentPassword || password, password: newPassword });
+      const name = pendingStaff?.name;
+      setPendingStaff(null);
+      setPassword(newPassword);
+      toast.success("Password berhasil diganti.");
+      toast.success(`Selamat datang, ${name || "staf"}!`);
+      navigate(homePathFor(auth.role, (m) => permissionMapAllows(auth.role, auth.permissions, m)), { replace: true });
+      return;
+    }
     changeStaffPassword(pendingStaff.id, newPassword);
     const staff = pendingStaff;
     setPendingStaff(null);
@@ -185,12 +229,32 @@ export default function Login() {
     completeStaffLogin(staff);
   };
 
+  // Batal di dialog ganti password: mode API tidak boleh lanjut tanpa mengganti, jadi sesi diakhiri.
+  const handleForcedPasswordCancel = () => {
+    setPendingStaff(null);
+    if (API_MODE) logout();
+  };
+
   // Handle Client Login
-  const handleClientSubmit = (e) => {
+  const handleClientSubmit = async (e) => {
     e.preventDefault();
     setClientError("");
     if (!clientCode.trim() || !clientDob) {
       setClientError("Silakan masukkan kode client dan tanggal lahir anak.");
+      return;
+    }
+
+    if (API_MODE) {
+      setSubmitting(true);
+      try {
+        const session = await authActions.loginClient({ clientCode: clientCode.trim(), dateOfBirth: clientDob });
+        toast.success(`Selamat datang kembali, keluarga ${session.childName}!`);
+        navigate("/client", { replace: true });
+      } catch (err) {
+        setClientError(apiErrorText(err, ["client_code", "date_of_birth"]));
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
@@ -238,23 +302,22 @@ export default function Login() {
       {/* Top Navigation */}
       <header className="relative z-10 w-full border-b border-slate-200/60 bg-white/70 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#007AFF] transition-colors group"
-            data-testid="login-back-to-home"
-          >
-            <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-            <span>Kembali ke Halaman Utama</span>
-          </Link>
+          <div className="inline-flex items-center gap-2.5">
+            <img src="/images/therapedia_logo.png" alt="" className="w-7 h-7 object-contain" />
+            <span className="text-sm font-black tracking-tight text-slate-800">Therapedia</span>
+          </div>
 
-          <Link
-            to="/roles"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#007AFF] hover:text-[#0062cc] bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 px-3 py-1.5 rounded-xl transition-all"
-            data-testid="login-to-role-switcher"
-          >
-            <span>Buka Role Switcher</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          {/* Role Switcher hanya ada di mode demo */}
+          {!API_MODE && (
+            <Link
+              to="/roles"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#007AFF] hover:text-[#0062cc] bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/80 px-3 py-1.5 rounded-xl transition-all"
+              data-testid="login-to-role-switcher"
+            >
+              <span>Buka Role Switcher</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
         </div>
       </header>
 
@@ -412,15 +475,17 @@ export default function Login() {
 
                       <Button size="lg"
                         type="submit"
+                        disabled={submitting}
                         className="w-full bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold shadow-md shadow-[#007AFF]/25 transition-all cursor-pointer mt-2"
                         data-testid={LOGIN.submitButton}
                       >
-                        <span>Masuk ke Dashboard Staf</span>
-                        <ArrowRight className="w-4 h-4 ml-1.5" />
+                        <span>{submitting ? "Memproses..." : "Masuk ke Dashboard Staf"}</span>
+                        {!submitting && <ArrowRight className="w-4 h-4 ml-1.5" />}
                       </Button>
                     </form>
 
-                    {/* Quick 1-Click Demo Accounts Presets */}
+                    {/* Quick 1-Click Demo Accounts Presets (hanya mode demo) */}
+                    {!API_MODE && (
                     <div className="mt-6 pt-5 border-t border-slate-200/80">
                       <div className="flex items-center justify-between mb-2.5">
                         <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
@@ -460,6 +525,7 @@ export default function Login() {
                         })}
                       </div>
                     </div>
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div
@@ -476,13 +542,15 @@ export default function Login() {
                           <label className="block text-xs font-bold text-slate-700">
                             Kode Unik Akses Client
                           </label>
-                          <button
-                            type="button"
-                            onClick={fillClientDemo}
-                            className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline"
-                          >
-                            Isi Demo: AE-00006
-                          </button>
+                          {!API_MODE && (
+                            <button
+                              type="button"
+                              onClick={fillClientDemo}
+                              className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline"
+                            >
+                              Isi Demo: AE-00006
+                            </button>
+                          )}
                         </div>
                         <div className="relative">
                           <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -527,11 +595,12 @@ export default function Login() {
 
                       <Button size="lg"
                         type="submit"
+                        disabled={submitting}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer mt-2"
                         data-testid="login-client-submit-button"
                       >
                         <HeartHandshake className="w-4 h-4 mr-1.5" />
-                        <span>Masuk ke Portal Orang Tua</span>
+                        <span>{submitting ? "Memproses..." : "Masuk ke Portal Orang Tua"}</span>
                       </Button>
 
                       {/* Parent Portal Info Card */}
@@ -559,13 +628,15 @@ export default function Login() {
       <footer className="relative z-10 w-full border-t border-slate-200/60 bg-white/50 backdrop-blur-xs py-4">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between text-xs text-slate-500">
           <span>Therapedia Multisite Pediatric Healthcare</span>
-          <Link to="/" className="text-sky-600 font-bold hover:underline">
-            Home Screen
-          </Link>
         </div>
       </footer>
-      <ForcePasswordChangeDialog staff={pendingStaff} onSubmit={handleForcedPasswordChange} onCancel={() => setPendingStaff(null)} />
-      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} requestOtp={requestPasswordOtp} resetWithOtp={resetPasswordWithOtp} />
+      <ForcePasswordChangeDialog staff={pendingStaff} askCurrentPassword={API_MODE && !password} onSubmit={handleForcedPasswordChange} onCancel={handleForcedPasswordCancel} />
+      <ForgotPasswordDialog
+        open={forgotOpen}
+        onOpenChange={setForgotOpen}
+        requestOtp={API_MODE ? authActions.requestPasswordOtp : requestPasswordOtp}
+        resetWithOtp={API_MODE ? authActions.resetPasswordWithOtp : resetPasswordWithOtp}
+      />
     </div>
   );
 }

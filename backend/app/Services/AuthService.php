@@ -2,52 +2,75 @@
 
 namespace App\Services;
 
-use App\Exceptions\NotImplementedException;
+use App\Actions\Auth\ChangePasswordAction;
+use App\Actions\Auth\ClientLoginAction;
+use App\Actions\Auth\RequestPasswordOtpAction;
+use App\Actions\Auth\ResetPasswordWithOtpAction;
+use App\Actions\Auth\StaffLoginAction;
+use App\Http\Resources\Auth\ClientSessionResource;
+use App\Http\Resources\Auth\StaffSessionResource;
+use App\Models\Client;
+use App\Models\User;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Login staf & ortu, logout, profil sesi, ganti/lupa password (M1).
- *
- * SKELETON setup: tanda tangan method saja; logika (transaksi, aturan bisnis) diisi per use-case.
- * Acuan aturan: schema.md §06 dan frontend/src/domain/*.
+ * Login staf & ortu, logout, profil sesi, ganti/lupa password (M1). Controller → service → Action (aturan di Action).
  */
 class AuthService
 {
-    /** StaffLoginAction: throttle, token ability `staff`, `must_change_password` */
-    public function login(string $email, string $password): mixed
+    public function __construct(
+        private readonly StaffLoginAction $staffLogin,
+        private readonly ClientLoginAction $clientLogin,
+        private readonly ChangePasswordAction $changePassword,
+        private readonly RequestPasswordOtpAction $requestPasswordOtp,
+        private readonly ResetPasswordWithOtpAction $resetPasswordWithOtp,
+    ) {}
+
+    /** @return array{token: string, token_type: string, user: array<string, mixed>} */
+    public function login(string $email, string $password, ?string $ip = null): array
     {
-        throw new NotImplementedException('AuthService::login');
+        return ($this->staffLogin)($email, $password, $ip);
     }
 
-    /** ClientLoginAction: lockout, token ability `client`, pesan gagal generik */
-    public function clientLogin(string $clientCode, string $dateOfBirth): mixed
+    /** @return array{token: string, token_type: string, client: array<string, mixed>} */
+    public function clientLogin(string $clientCode, string $dateOfBirth, ?string $ip = null): array
     {
-        throw new NotImplementedException('AuthService::clientLogin');
+        return ($this->clientLogin)($clientCode, $dateOfBirth, $ip);
     }
 
-    public function logout(mixed $user): void
+    /** Hapus token yang dipakai saat ini (perangkat lain tetap login). */
+    public function logout(User|Client $user): void
     {
-        throw new NotImplementedException('AuthService::logout');
+        $token = $user->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
     }
 
-    /** profil + izin modul */
-    public function me(mixed $user): mixed
+    /** @return array<string, mixed> `{ type: staff|client, user|client: {...} }` */
+    public function me(User|Client $user): array
     {
-        throw new NotImplementedException('AuthService::me');
+        if ($user instanceof Client) {
+            return ['type' => 'client', 'client' => (new ClientSessionResource($user->loadMissing('branch')))->resolve()];
+        }
+
+        return ['type' => 'staff', 'user' => (new StaffSessionResource($user->loadMissing(['role', 'branch'])))->resolve()];
     }
 
-    public function changePassword(mixed $user, string $current, string $new): void
+    public function changePassword(User $user, string $current, string $new): void
     {
-        throw new NotImplementedException('AuthService::changePassword');
+        ($this->changePassword)($user, $current, $new);
     }
 
-    /** OTP email sinkron; respons selalu generik */
-    public function requestPasswordOtp(string $email): void
+    /** OTP email sinkron; respons selalu generik. */
+    public function requestPasswordOtp(string $email, ?string $ip = null): void
     {
-        throw new NotImplementedException('AuthService::requestPasswordOtp');
+        ($this->requestPasswordOtp)($email, $ip);
     }
 
     public function resetPasswordWithOtp(string $email, string $otp, string $password): void
     {
-        throw new NotImplementedException('AuthService::resetPasswordWithOtp');
+        ($this->resetPasswordWithOtp)($email, $otp, $password);
     }
 }

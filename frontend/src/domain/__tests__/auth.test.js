@@ -11,9 +11,13 @@ import {
   validateNewPassword,
   hasAllBranchAccess,
   verifyOtp,
+  apiErrorText,
+  clientSessionToAuth,
+  homePathFor,
+  staffSessionToAuth,
 } from "@/domain/auth";
 import { canManageSchedule } from "@/domain/schedule";
-import { roleHasPermission } from "@/domain/rbac";
+import { permissionMapAllows, roleHasPermission } from "@/domain/rbac";
 
 describe("password & akun staf", () => {
   test("validateNewPassword: panjang, huruf+angka, konfirmasi", () => {
@@ -97,5 +101,60 @@ describe("findClientForLogin (login ortu: kode + tanggal lahir)", () => {
     expect(findClientForLogin(clients, "AE-00006", "2021-02-15")).toBeNull();
     expect(findClientForLogin(clients, "AE-00007", "2021-02-14")).toBeNull();
     expect(findClientForLogin(clients, "AE-00006", "")).toBeNull();
+  });
+});
+
+// ---- Sesi dari Laravel API (mode API) ----
+describe("sesi API", () => {
+  const staffUser = {
+    id: 7,
+    name: "Siti",
+    email: "siti@therapedia.id",
+    role: { code: "finance", name: "Role Finance", badge: "Billing" },
+    branchId: 2,
+    branch: { id: 2, code: "CTL", name: "Citraland" },
+    mustChangePassword: false,
+    // httpClient mengubah semua key respons ke camelCase, termasuk kode modul
+    permissions: { finance: true, inquiryPipeline: false, therapistUtilization: true },
+  };
+
+  test("staffSessionToAuth mengembalikan kode modul ke snake_case", () => {
+    const auth = staffSessionToAuth(staffUser);
+    expect(auth.permissions).toEqual({ finance: true, inquiry_pipeline: false, therapist_utilization: true });
+    expect(auth).toMatchObject({ role: "finance", userId: 7, staffName: "Siti", branchId: 2, mustChangePassword: false, therapistId: null, clientId: null });
+  });
+
+  test("terapis memakai id akun sebagai therapistId; master tanpa cabang", () => {
+    expect(staffSessionToAuth({ ...staffUser, role: { code: "therapist" } }).therapistId).toBe("7");
+    expect(staffSessionToAuth({ ...staffUser, role: { code: "master" }, branchId: null, branch: null }).branchId).toBeNull();
+  });
+
+  test("clientSessionToAuth", () => {
+    expect(clientSessionToAuth({ id: 3, clientCode: "AE-00003", childName: "Raka", branchId: 1, branch: { name: "East" } })).toMatchObject({
+      role: "client", clientId: 3, clientCode: "AE-00003", childName: "Raka", permissions: null, mustChangePassword: false,
+    });
+  });
+
+  test("homePathFor: role sistem, ortu, role kustom, tanpa role", () => {
+    expect(homePathFor(null)).toBe("/login");
+    expect(homePathFor("client")).toBe("/client");
+    expect(homePathFor("master")).toBe("/master/revenue");
+    expect(homePathFor("finance")).toBe("/finance");
+    expect(homePathFor("koordinator", (m) => m === "weekly_calendar")).toBe("/admin-schedule/calendar");
+    expect(homePathFor("koordinator", () => false)).toBe("/login");
+  });
+
+  test("apiErrorText mengutamakan pesan field", () => {
+    expect(apiErrorText({ fieldErrors: { otp: "Kode OTP salah." }, message: "umum" }, ["otp"])).toBe("Kode OTP salah.");
+    expect(apiErrorText({ fieldErrors: {}, message: "umum" }, ["otp"])).toBe("umum");
+    expect(apiErrorText({}, [])).toBe("Terjadi kesalahan. Coba lagi.");
+  });
+
+  test("permissionMapAllows: master selalu boleh, key lama dipetakan", () => {
+    expect(permissionMapAllows("master", {}, "rbac")).toBe(true);
+    expect(permissionMapAllows("finance", { finance: true }, "finance")).toBe(true);
+    expect(permissionMapAllows("finance", { finance: true }, "rbac")).toBe(false);
+    expect(permissionMapAllows("admin_inquiry", { inquiry_dashboard: true }, "inquiry")).toBe(true); // key lama
+    expect(permissionMapAllows(null, { finance: true }, "finance")).toBe(false);
   });
 });

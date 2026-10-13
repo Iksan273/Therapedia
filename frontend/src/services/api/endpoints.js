@@ -8,6 +8,9 @@ export const ENDPOINTS = {
     clientLogin: "/auth/client-login",
     logout: "/auth/logout",
     me: "/auth/me",
+    changePassword: "/auth/change-password",
+    forgotPassword: "/auth/forgot-password",
+    resetPassword: "/auth/reset-password",
   },
   users: {
     list: "/users",

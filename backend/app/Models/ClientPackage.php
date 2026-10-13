@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Models\Concerns\TracksActors;
+use App\Models\Concerns\Versioned;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClientPackage extends Model
 {
-    use TracksActors;
+    use TracksActors, Versioned;
 
     protected $table = 'client_packages';
 

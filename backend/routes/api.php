@@ -64,7 +64,8 @@ Route::prefix('v1')->group(function () {
     });
 
     // ---- Staf
-    Route::middleware(['auth:sanctum', 'ability:staff'])->group(function () {
+    // `password.changed`: staf berpassword sementara hanya boleh memanggil auth/* (change-password, me, logout).
+    Route::middleware(['auth:sanctum', 'ability:staff', 'password.changed'])->group(function () {
         Route::post('auth/change-password', [AuthController::class, 'changePassword']);
 
         // Helper: baca = login staf; tulis = akses modul.

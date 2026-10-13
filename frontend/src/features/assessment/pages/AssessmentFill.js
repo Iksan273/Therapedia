@@ -239,8 +239,8 @@ export default function AssessmentFill() {
   return (
     <div className="min-h-screen bg-slate-50/80 py-8 px-3 sm:px-6">
       <div className={cn("mx-auto space-y-6 transition-all", stage === "form" ? "max-w-4xl" : "max-w-xl")}>
-        <Link to="/" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#007AFF] transition-colors" data-testid="assessment-back-link">
-          <ArrowLeft className="w-4 h-4" /> Kembali ke pemilihan portal
+        <Link to="/login" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#007AFF] transition-colors" data-testid="assessment-back-link">
+          <ArrowLeft className="w-4 h-4" /> Kembali ke halaman masuk
         </Link>
 
         {/* Brand Header */}
@@ -567,9 +567,9 @@ export default function AssessmentFill() {
               )}
 
               <div className="pt-2">
-                <Link to="/">
+                <Link to="/login">
                   <Button variant="outline" className="border-slate-200 font-semibold w-full sm:w-auto">
-                    Kembali ke Beranda
+                    Ke Halaman Masuk
                   </Button>
                 </Link>
               </div>

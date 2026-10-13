@@ -1,7 +1,8 @@
 import React, { Suspense, useState, useEffect } from "react";
 import { hasAllBranchAccess } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Home, RotateCcw, LogOut, Menu, UserCircle2, Building2, ShieldAlert, PanelLeftClose, PanelLeftOpen, Maximize2, Minimize2, Expand, Shrink } from "lucide-react";
+import { RotateCcw, LogOut, Menu, UserCircle2, Building2, ShieldAlert, PanelLeftClose, PanelLeftOpen, Maximize2, Minimize2, Expand, Shrink } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/shared/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
@@ -136,7 +137,8 @@ const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
   </div>
 );
 
-const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => (
+// Reset data demo menghapus localStorage: hanya relevan (dan aman) di mode demo. Di mode API data ada di server.
+const ResetDemoButton = ({ testid = "reset-demo-data-button" }) => isApiMode() ? null : (
   <AlertDialog>
     <AlertDialogTrigger asChild>
       <Button
@@ -273,16 +275,13 @@ const AppLayout = () => {
     identity = auth.staffName;
   }
 
+  // Mode API: tombol ini = Keluar (kembali ke /login). Mode demo: ganti role lewat Role Switcher.
   const handleSwitchRole = () => {
     setMobileNavOpen(false);
     logout();
-    navigate("/roles");
+    navigate(isApiMode() ? "/login" : "/roles");
   };
-
-  const handleGoHome = () => {
-    setMobileNavOpen(false);
-    navigate("/");
-  };
+  const switchRoleLabel = isApiMode() ? "Keluar" : "Switch Active Role";
 
   const isStaff = ["master", "manager", "admin_inquiry", "admin_schedule", "finance", "therapist"].includes(auth.role);
   const canSwitchBranch = hasAllBranchAccess(auth);
@@ -323,16 +322,7 @@ const AppLayout = () => {
             data-testid="switch-role-button"
           >
             <LogOut className="w-4 h-4 text-slate-400" />
-            Switch Active Role
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2.5 font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100/80 h-8.5 transition-colors"
-            onClick={handleGoHome}
-            data-testid="layout-go-home-button"
-          >
-            <Home className="w-3.5 h-3.5 text-slate-400" />
-            Halaman Utama (Home)
+            {switchRoleLabel}
           </Button>
         </div>
       </aside>
@@ -389,16 +379,7 @@ const AppLayout = () => {
                       data-testid="mobile-switch-role-button"
                     >
                       <LogOut className="w-4 h-4 text-slate-400" />
-                      Switch Active Role
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2.5 font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 h-8.5"
-                      onClick={handleGoHome}
-                      data-testid="mobile-go-home-button"
-                    >
-                      <Home className="w-3.5 h-3.5 text-slate-400" />
-                      Halaman Utama (Home)
+                      {switchRoleLabel}
                     </Button>
                   </div>
                 </SheetContent>

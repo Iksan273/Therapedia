@@ -165,8 +165,8 @@ Di tab **Variables**:
 
 | Alamat | Harus muncul |
 |---|---|
-| `http://IP-VPS` | Frontend Therapedia |
-| `http://IP-VPS/roles` | Halaman pilih role (tetap tampil saat refresh) |
+| `http://IP-VPS` | Frontend Therapedia (otomatis ke halaman login) |
+| `http://IP-VPS/login` | Halaman login (tetap tampil saat refresh) |
 | `http://IP-VPS/up` | Halaman hijau dari Laravel (200) |
 
 5. Cek di VPS sebagai `deploy` (lihat catatan user `deploy` di [bagian 7](#7-pemakaian-sehari-hari)):
@@ -291,6 +291,17 @@ Port MySQL tertutup. Lewat terminal:
 ```bash
 docker compose -f docker-compose.prod.yml exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
 ```
+
+### Akses MySQL dari laptop (DBeaver / MySQL Workbench)
+
+Port MySQL di VPS hanya terbuka di `127.0.0.1:3307` (loopback), jadi dari laptop harus lewat **SSH tunnel**. Jangan membuka 3306 ke internet.
+
+1. **Kunci SSH laptop** (sekali, PowerShell): `ssh-keygen -t ed25519 -f $HOME\.ssh	herapedia_vps`. Salin isi `therapedia_vps.pub`, lalu di VPS (root) tambahkan ke `/home/deploy/.ssh/authorized_keys` (satu baris, ditambah di baris baru).
+2. **Kredensial database**: di VPS `grep -E '^MYSQL_(DATABASE|USER|PASSWORD)=' /opt/therapedia/.env`.
+3. **DBeaver**: koneksi MySQL baru, tab Main: Host `127.0.0.1`, Port `3307`, Database/User/Password dari langkah 2. Tab **SSH**: centang *Use SSH Tunnel*, Host = IP VPS, Port 22, User `deploy`, Auth *Public Key*, pilih berkas `therapedia_vps` (private).
+4. **MySQL Workbench**: *Connection Method* = *Standard TCP/IP over SSH*. SSH Hostname = `IP-VPS:22`, SSH Username = `deploy`, SSH Key File = `therapedia_vps`. MySQL Hostname `127.0.0.1`, Port `3307`, Username/Password dari langkah 2.
+
+Hati-hati: ini koneksi ke database **server** dengan data nyata. Pakai untuk membaca atau memeriksa; jangan mengubah struktur tabel lewat GUI (struktur hanya lewat migration).
 
 ### Rollback
 

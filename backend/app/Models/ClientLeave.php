@@ -4,13 +4,14 @@ namespace App\Models;
 
 use App\Models\Concerns\BranchScoped;
 use App\Models\Concerns\TracksActors;
+use App\Models\Concerns\Versioned;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClientLeave extends Model
 {
-    use BranchScoped, TracksActors;
+    use BranchScoped, TracksActors, Versioned;
 
     protected $table = 'client_leaves';
 

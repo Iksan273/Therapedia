@@ -218,3 +218,13 @@ export const canDeleteIn = ({ roleId, permissions, moduleKey, masterOnly = false
   if (masterOnly) return false;
   return roleHasPermission(roleId, permissions, moduleKey);
 };
+
+// ---- Matriks izin dari server (mode API) ----
+// Login/`me` membawa matriks `{ kode_modul: boolean }` (snake_case, sama dengan `access_modules.code`). Master selalu boleh.
+// Key modul lama (inquiry/schedule/therapist) dipetakan ke gabungan key baru, sama seperti `roleHasPermission`.
+export function permissionMapAllows(roleId, permissionMap, moduleKey) {
+  if (!roleId) return false;
+  if (roleId === "master") return true;
+  const keys = LEGACY_MODULE_KEYS[moduleKey] || [moduleKey];
+  return keys.some((k) => Boolean(permissionMap?.[k]));
+}

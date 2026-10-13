@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\ClientLoginRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\StaffLoginRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,20 +15,20 @@ use Illuminate\Http\Response;
 
 /**
  * Login staf & ortu, logout, profil sesi, ganti/lupa password (M1).
- * Tipis: validasi (Form Request) di sini nanti, logika bisnis di AuthService / Action.
+ * Tipis: validasi di Form Request, aturan bisnis di Action lewat AuthService.
  */
 class AuthController extends Controller
 {
     public function __construct(private readonly AuthService $service) {}
 
-    public function login(Request $request): JsonResponse
+    public function login(StaffLoginRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->login((string) $request->input('email'), (string) $request->input('password'))]);
+        return response()->json(['data' => $this->service->login($request->validated('email'), $request->validated('password'), $request->ip())]);
     }
 
-    public function clientLogin(Request $request): JsonResponse
+    public function clientLogin(ClientLoginRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->clientLogin((string) $request->input('client_code'), (string) $request->input('date_of_birth'))]);
+        return response()->json(['data' => $this->service->clientLogin($request->validated('client_code'), $request->validated('date_of_birth'), $request->ip())]);
     }
 
     public function logout(Request $request): Response
@@ -38,23 +43,23 @@ class AuthController extends Controller
         return response()->json(['data' => $this->service->me($request->user())]);
     }
 
-    public function changePassword(Request $request): Response
+    public function changePassword(ChangePasswordRequest $request): Response
     {
-        $this->service->changePassword($request->user(), (string) $request->input('current_password'), (string) $request->input('password'));
+        $this->service->changePassword($request->user(), $request->validated('current_password'), $request->validated('password'));
 
         return response()->noContent();
     }
 
-    public function forgotPassword(Request $request): Response
+    public function forgotPassword(ForgotPasswordRequest $request): Response
     {
-        $this->service->requestPasswordOtp((string) $request->input('email'));
+        $this->service->requestPasswordOtp($request->validated('email'), $request->ip());
 
         return response()->noContent();
     }
 
-    public function resetPassword(Request $request): Response
+    public function resetPassword(ResetPasswordRequest $request): Response
     {
-        $this->service->resetPasswordWithOtp((string) $request->input('email'), (string) $request->input('otp'), (string) $request->input('password'));
+        $this->service->resetPasswordWithOtp($request->validated('email'), $request->validated('otp'), $request->validated('password'));
 
         return response()->noContent();
     }
