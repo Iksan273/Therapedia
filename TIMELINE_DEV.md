@@ -46,7 +46,7 @@ Rujukan modul = `implementation_detail.md` §2. Estimasi harian ±; sisa/kelebih
 
 | Hari | Pekerjaan | Hari |
 |---|---|---|
-| Sen | Repo Laravel 11 baru (bukan `backend/` legacy), Sanctum, `.env` (`CACHE/SESSION=database`, `QUEUE=sync`, tanpa Redis), struktur `Actions/`, CI (lint + test), deploy otomatis ke env UAT (satu-satunya lingkungan; tanpa staging) + HTTPS. Mulai migration | 0,5 + 0,5 |
+| Sen | Repo Laravel 12 baru (bukan `backend/` legacy), Sanctum, `.env` (`CACHE/SESSION=database`, `QUEUE=sync`, tanpa Redis), struktur `Actions/`, CI (lint + test), deploy otomatis ke env UAT (satu-satunya lingkungan; tanpa staging) + HTTPS. Mulai migration | 0,5 + 0,5 |
 | Sel | Migration lanjut: 37 tabel `schema.md` §09, FK CASCADE/RESTRICT/SET NULL §6.7, generated column WIB, CHECK, 6 view, `invoice_logs`, `package_conversions`. Seeder wajib: cabang, role, `access_modules`, `role_permissions` (dari `domain/rbac.js`), layanan, kuadran, alasan Cancel/Off (+KODE, flag Therapist Off), alasan discharge, paket (`leaveQuota`, `invoice_code`), akun master | 0,5 + 0,5 |
 | Rab–Kam | Inti: trait `created_by/updated_by`, `BranchScope`, `PermissionService` + policy (akses modul; hapus client & cabang hanya `master`), optimistic lock (`version` → 409), format error + kode domain (§1.2, §17.3) cocok dengan `ApiError`, Resource camel/snake, pagination `page/per_page` (default 10) + keyset, pencarian prefix nama/ortu/kode | 1,25 |
 | Kam–Jum | Auth: login staf (throttle), password sementara + `must_change_password`, OTP email (sinkron, 5 percobaan, kedaluwarsa), reset oleh Master, login ortu (`client_code` + tgl lahir, throttle/lockout, pesan generik), logout, `me` | 0,75 |

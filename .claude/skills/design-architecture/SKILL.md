@@ -20,7 +20,7 @@ Skill ini dipakai untuk **keputusan desain**, bukan untuk mengetik kode. Hasil a
           └──────────────────────────────────────────────────────────────┘
                           │ fase API: services/http + services/api/endpoints.js
                           ▼
-          Laravel 11: Controller → FormRequest → Action/Service (transaksi) → Model
+          Laravel 12: Controller → FormRequest → Action/Service (transaksi) → Model
                           ▼
           MySQL 8 (schema.md) — juga untuk cache dan session (driver database; tanpa Redis, tanpa queue — semua sinkron)
           Laravel Scheduler: job malam (schema.md §11)

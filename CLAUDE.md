@@ -4,7 +4,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 
 ## Status project
 - **Sekarang**: frontend (React + Vite) di `frontend/`, arsitektur feature-based + domain layer. Data mode demo di **localStorage** (seed JSON); login = simulasi role. Lapisan HTTP untuk API sudah siap (`frontend/src/services/http`).
-- **Berikutnya**: backend **Laravel 11 + MySQL 8 + Sanctum** (tanpa Redis dan tanpa queue/job async: cache/session driver `database`, semua proses sinkron) sesuai `schema.md` v2. Kode baru harus **siap API** (`docs/guide/10-api-migration.md`).
+- **Berikutnya**: backend **Laravel 12 + MySQL 8 + Sanctum** (tanpa Redis dan tanpa queue/job async: cache/session driver `database`, semua proses sinkron) sesuai `schema.md` v2. Kode baru harus **siap API** (`docs/guide/10-api-migration.md`).
 - Deploy: **frontend + backend satu stack Docker di VPS** (image `web` Nginx melayani SPA + proxy `/api` ke Laravel; CI/CD GitHub Actions → GHCR → VPS, ADR 0006, `docs/guide/13-docker-deploy.md`). `frontend/vercel.json` opsional. **Landing page = project sendiri** di `landing/` (Vite + React, deploy terpisah via `landing/vercel.json`); tautan antar-project lewat env `VITE_APP_URL` (landing) dan `VITE_LANDING_URL` (frontend).
 
 ## Peta repo
@@ -18,7 +18,7 @@ Sistem operasional klinik tumbuh kembang anak **Therapedia Developmental Center*
 | `schema.md` | Desain database v2: 35 tabel domain (+1 fase akhir) + 7 view, indeks berbasis query, ledger kredit, **log invoice** (tanpa audit log) |
 | `.claude/skills/` | Skill project: `design-architecture`, `react-architecture`, `database-design` |
 | `PROJECT_CONTEXT_FOR_PROPOSAL_AI.md`, `docs/*.docx` | Dokumen bisnis/proposal: referensi scope fitur |
-| `backend/` | Root project **Laravel 11** (sengaja kosong sampai dibuat: `make laravel-new`). Kode lama Emergent sudah dihapus |
+| `backend/` | Root project **Laravel 12** (setup 13 Okt 2026: 37 migration + 6 view sesuai `schema.md`, model + relasi, `routes/api.php` + controller kerangka, `app/Services`; logika use-case belum). Lihat `implementation_detail.md` §1.3 |
 | `docker/`, `docker-compose*.yml`, `.env.example`, `Makefile`, `.github/workflows/` | Docker (PHP-FPM + Nginx + MySQL 8, tanpa Redis/queue) dan CI/CD auto-deploy ke VPS UAT. Panduan: `docs/guide/13-docker-deploy.md` |
 | `.emergent/` | **Legacy** platform Emergent. Abaikan |
 
@@ -31,7 +31,7 @@ npm run lint     # ESLint + batas lapisan (0 error)
 npm run build    # wajib lolos sebelum menyatakan selesai
 npm run gen:dark # buat ulang src/styles/dark-utilities.css (otomatis sebelum dev/build)
 ```
-Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk portal ortu. Kuesioner publik: `/assessment` dengan kode kuesioner (mis. `ASM-2016` dari seed demo, atau yang diterbitkan: `{kode jenis}-{acak}`). Akun staf demo: email dari `/login` + password `Therapedia2026!`.
+Masuk app: `/roles` → pilih role, atau kode client + tanggal lahir anak (mis. `AE-00006`, tombol "Isi Demo" mengisi keduanya) untuk portal ortu. Kuesioner publik: `/assessment` dengan kode kuesioner (mis. `ASM-2016` dari seed demo, atau yang diterbitkan: `{kode jenis}-{acak}`). Akun staf demo: email dari `/login` + password `Therapedia2026!`.
 
 ## Domain singkat
 - **7 role**: `master`, `manager`, `admin_inquiry`, `admin_schedule`, `finance`, `therapist`, `client` (ortu) + role kustom (RBAC per modul).
@@ -47,6 +47,8 @@ Masuk app: `/roles` → pilih role, atau kode client (mis. `AE-00006`) untuk por
 | `design-architecture` | Merancang fitur/modul baru, aturan bisnis lintas modul, menentukan letak kode, menulis ADR |
 | `react-architecture` | Membuat/mengubah halaman, komponen, store, hook use-case, route; memindahkan store ke API |
 | `database-design` | Menambah/mengubah tabel, kolom, indeks, migration, jejak perubahan, performa query, memperbarui `schema.md` |
+| `laravel-best-practices`, `testing-best-practices`, `infer-conventions` | Skill resmi Laravel Boost untuk kode backend: Eloquent/N+1, validasi, security, migration, test endpoint. **Aturan proyek menang** (tanpa Redis/queue/Horizon, `schema.md` §10). MCP `laravel-boost` (`.mcp.json`: search-docs, log, tinker; alat database butuh DB `mysql` di Docker) |
+| `laravel` | Menulis kode backend Laravel 12 (routing, Eloquent, migration, Sanctum, validasi, API Resource). Pihak ketiga (`rawveg/skillsforge-marketplace`, dipasang lewat `boost:add-skill`; salinan di `backend/.ai/skills/`). **Aturan proyek menang**: tanpa Redis/queue/Horizon (`schema.md` §10), Action per use-case, hapus permanen cascade |
 
 ## Aturan inti
 1. Bahasa: UI, komentar kode, dan docs **bahasa Indonesia**; istilah teknis & operasional klinik boleh English.

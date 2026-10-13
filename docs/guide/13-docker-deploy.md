@@ -1,6 +1,6 @@
 # 13 — Docker & Deploy Otomatis ke VPS
 
-Setup Docker untuk backend **Laravel 11 + MySQL 8** (tanpa Redis, tanpa queue worker; lihat `schema.md` §10–§11) dan alur **push → test → build → deploy otomatis** ke VPS. Satu-satunya lingkungan server adalah **UAT di VPS** (dipakai developer, tester, dan klien; lihat `TIMELINE_DEV.md` §5). **Frontend dan backend satu stack**: image `web` (Nginx) melayani SPA di `/` dan meneruskan `/api/*` + `/up` ke Laravel, jadi satu origin (tanpa CORS) dan satu hostname. Landing page (`landing/`) tetap project terpisah (Vercel). Keputusan: ADR 0006.
+Setup Docker untuk backend **Laravel 12 + MySQL 8** (tanpa Redis, tanpa queue worker; lihat `schema.md` §10–§11) dan alur **push → test → build → deploy otomatis** ke VPS. Satu-satunya lingkungan server adalah **UAT di VPS** (dipakai developer, tester, dan klien; lihat `TIMELINE_DEV.md` §5). **Frontend dan backend satu stack**: image `web` (Nginx) melayani SPA di `/` dan meneruskan `/api/*` + `/up` ke Laravel, jadi satu origin (tanpa CORS) dan satu hostname. Landing page (`landing/`) tetap project terpisah (Vercel). Keputusan: ADR 0006.
 
 > Status: build image `app` dan `web` (termasuk build frontend), menaikkan stack prod di lokal (`up --wait` exit 0), migrate, serta routing `/`, `/up`, `/api/*` **sudah diuji di lokal**. Workflow CI/CD dan `vps-setup.sh` sudah ditulis (sintaks divalidasi) tetapi **belum pernah berjalan di GitHub/VPS**. Jalankan checklist §8 saat pertama kali.
 
@@ -22,7 +22,7 @@ MySQL memakai image resmi `mysql:8.0` (tidak dibangun CI) dengan data di volume,
 ## 1. Isi repo
 
 ```
-backend/                 Laravel 11 (kosong sampai `make laravel-new`)
+backend/                 Laravel 12 (sudah dibuat; kerangka migration/model/controller ada, lihat implementation_detail §1.3)
 docker/
   php/Dockerfile         target: dev | prod | web  (PHP 8.3-FPM Alpine; web = Nginx + build frontend dari stage node)
   php/conf/              php.ini, opcache dev/prod, pool PHP-FPM
@@ -48,7 +48,7 @@ Butuh Docker Desktop (Windows/Mac) atau Docker Engine + Compose v2 (Linux).
 
 ```bash
 cp .env.example .env                 # isi password DB
-make laravel-new                     # buat Laravel 11 di backend/ (sekali; tanpa make: ./docker/scripts/laravel-new.sh)
+make laravel-new                     # buat Laravel di backend/ (sekali, sudah dilakukan; tanpa make: ./docker/scripts/laravel-new.sh)
 cp docker/env/backend.dev.env.example backend/.env    # samakan DB_PASSWORD dengan .env root
 docker compose up -d --build
 docker compose exec app php artisan key:generate

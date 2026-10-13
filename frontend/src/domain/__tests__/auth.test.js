@@ -3,6 +3,7 @@ import {
   MAX_OTP_ATTEMPTS,
   OTP_TTL_MS,
   checkStaffCredentials,
+  findClientForLogin,
   findStaffByEmail,
   generateOtp,
   generateTempPassword,
@@ -84,5 +85,17 @@ describe("hak aksi jadwal mengikuti akses modul (bukan daftar role)", () => {
     expect(canManageSchedule(has("custom"))).toBe(true);
     expect(canManageSchedule(has("plain"))).toBe(false);
     expect(canManageSchedule(undefined)).toBe(false);
+  });
+});
+
+describe("findClientForLogin (login ortu: kode + tanggal lahir)", () => {
+  const clients = [{ id: "c1", clientCode: "AE-00006", dob: "2021-02-14" }];
+  test("cocok: kode (case-insensitive) + tanggal lahir", () => {
+    expect(findClientForLogin(clients, " ae-00006 ", "2021-02-14")?.id).toBe("c1");
+  });
+  test("salah satu salah atau kosong = null", () => {
+    expect(findClientForLogin(clients, "AE-00006", "2021-02-15")).toBeNull();
+    expect(findClientForLogin(clients, "AE-00007", "2021-02-14")).toBeNull();
+    expect(findClientForLogin(clients, "AE-00006", "")).toBeNull();
   });
 });

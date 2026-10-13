@@ -1,6 +1,6 @@
 # 10 — Integrasi Laravel API
 
-Target backend: **Laravel 11 + MySQL 8 + Sanctum**, tanpa Redis dan tanpa queue (cache & session memakai driver `database`; semua proses sinkron; cron terjadwal dijelaskan di `schema.md` §11). Desain database lengkap (tabel, indeks, jejak perubahan, alur transaksi): **`schema.md`**. Dokumen ini memetakan frontend → API.
+Target backend: **Laravel 12 + MySQL 8 + Sanctum**, tanpa Redis dan tanpa queue (cache & session memakai driver `database`; semua proses sinkron; cron terjadwal dijelaskan di `schema.md` §11). Desain database lengkap (tabel, indeks, jejak perubahan, alur transaksi): **`schema.md`**. Dokumen ini memetakan frontend → API.
 
 ## Yang sudah siap di frontend
 | Bagian | File | Fungsi |

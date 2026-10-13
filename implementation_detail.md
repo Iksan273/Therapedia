@@ -1,4 +1,4 @@
-# Implementation Detail Backend Therapedia (Laravel 11 + MySQL 8)
+# Implementation Detail Backend Therapedia (Laravel 12 + MySQL 8)
 
 Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md`, dan `docs/guide/10-api-migration.md`. Isinya: **API apa saja yang dibutuhkan tiap modul, dan tabel apa yang dipakai tiap API**, supaya bisa langsung dipecah menjadi route, FormRequest, Action class, dan test. Untuk review: baca §1 (konvensi), lalu modul yang relevan (§3 dst.).
 
@@ -59,6 +59,16 @@ Dokumen ini turunan dari `schema.md` (FINAL, 4 Okt 2026), `technical_workflow.md
 
 ### 1.3 Struktur kode (disarankan)
 `routes/api.php` per modul → `Http/Controllers/Api/<Modul>/*Controller` (tipis) → `Http/Requests/*Request` (validasi) → `Actions/<Modul>/*Action` (satu use-case, berisi transaksi, mengikuti `frontend/src/domain/*` sebagai acuan test) → `Http/Resources/*Resource`. Policy berbasis modul di `PermissionService`; query list di `Queries/*Query` (indeks sesuai `schema.md` §01).
+
+**Status setup (13 Okt 2026, kerangka saja, tanpa logika use-case):**
+| Lapisan | Sudah ada | Lokasi |
+|---|---|---|
+| Migration | 37 tabel domain (urutan §09; FK melingkar di `..._add_deferred_foreign_keys`), `sessions`, 6 view (`..._create_dashboard_views`), Sanctum | `backend/database/migrations/` |
+| Model | 37 model Eloquent: `$fillable`, `casts`, relasi `belongsTo`/`hasMany`; trait `TracksActors` (`created_by`/`updated_by`) dan `BranchScoped` (`branch_id` NULL = semua cabang) | `backend/app/Models/` |
+| Service | **Per aggregate** (controller → service → Action untuk transaksi besar): `AuthService`, `UserService`, `RoleService`, `BranchService`, `MasterDataService`, `ClientService`, `AssessmentService`, `ScheduleService`, `LeaveService`, `InvoiceService`, `CreditService`, `DashboardService`, `PortalService` (tanda tangan method saja, melempar `NotImplementedException` → 501). Pembantu lintas use-case: `PermissionService`, `ClientCodeService`, `InvoiceNumberService` (jalan); `ScheduleConflictService`, `ClientStatusService` (kerangka) | `backend/app/Services/` |
+| Middleware | `module:<kode>` (`EnsureModuleAccess`), alias `ability` Sanctum | `backend/app/Http/Middleware/`, `bootstrap/app.php` |
+| API | 26 controller tipis (memanggil service; sementara balas 501 `not_implemented`), 113 route di `/api/v1` | `backend/app/Http/Controllers/Api/`, `routes/api.php` |
+Belum: Action per use-case, Form Request, API Resource, seeder, policy per entity, test fitur. Migration diuji `migrate:fresh` + `rollback` (MariaDB 10.4 sebagai pengganti MySQL 8; uji ulang di MySQL 8 Docker).
 
 ---
 

@@ -28,7 +28,7 @@ import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { LOGIN } from "@/shared/constants/testIds/auth";
 import { ForcePasswordChangeDialog, ForgotPasswordDialog } from "@/features/auth/components/PasswordDialogs";
-import { DEMO_PASSWORD, checkStaffCredentials, findStaffByEmail } from "@/domain/auth";
+import { CLIENT_LOGIN_ERROR, DEMO_PASSWORD, checkStaffCredentials, findClientForLogin, findStaffByEmail } from "@/domain/auth";
 import { cn } from "@/shared/lib/utils";
 
 // Quick Preset Accounts for seamless evaluation
@@ -110,7 +110,16 @@ export default function Login() {
 
   // Client Form State
   const [clientCode, setClientCode] = useState("AE-00006");
+  const [clientDob, setClientDob] = useState("");
   const [clientError, setClientError] = useState("");
+
+  // Isi Demo: kode + tanggal lahir client demo (tanggal lahir seed bisa bergeser, jadi dibaca dari data)
+  const fillClientDemo = () => {
+    const demo = clients.find((c) => c.clientCode === "AE-00006");
+    setClientCode("AE-00006");
+    setClientDob(demo?.dob || "");
+    setClientError("");
+  };
 
   const STAFF_HOME = {
     master: "/master/revenue",
@@ -180,19 +189,14 @@ export default function Login() {
   const handleClientSubmit = (e) => {
     e.preventDefault();
     setClientError("");
-    const input = clientCode.trim().toUpperCase();
-
-    if (!input) {
-      setClientError("Silakan masukkan kode unik client Anda.");
+    if (!clientCode.trim() || !clientDob) {
+      setClientError("Silakan masukkan kode client dan tanggal lahir anak.");
       return;
     }
 
-    const client = clients.find(
-      (c) => c.clientCode && c.clientCode.toUpperCase() === input
-    );
-
+    const client = findClientForLogin(clients, clientCode, clientDob);
     if (!client) {
-      setClientError("Kode client tidak terdaftar. Gunakan kode demo: AE-00006");
+      setClientError(CLIENT_LOGIN_ERROR);
       return;
     }
 
@@ -474,10 +478,7 @@ export default function Login() {
                           </label>
                           <button
                             type="button"
-                            onClick={() => {
-                              setClientCode("AE-00006");
-                              setClientError("");
-                            }}
+                            onClick={fillClientDemo}
                             className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline"
                           >
                             Isi Demo: AE-00006
@@ -501,6 +502,21 @@ export default function Login() {
                         <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
                           Kode ini tertera pada bukti pendaftaran atau tagihan invoice yang diberikan oleh pihak klinis.
                         </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Lahir Anak</label>
+                        <Input
+                          type="date"
+                          value={clientDob}
+                          onChange={(e) => {
+                            setClientDob(e.target.value);
+                            setClientError("");
+                          }}
+                          className="bg-slate-50 border-slate-200 focus:bg-white text-xs font-bold"
+                          data-testid="login-client-dob-input"
+                          required
+                        />
                       </div>
 
                       {clientError && (

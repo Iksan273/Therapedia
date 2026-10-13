@@ -21,7 +21,7 @@ Semua data difilter berdasarkan `auth.therapistId`.
 - Sisa kredit total + per paket (`remainingCredit / totalCredit`).
 - **Tidak ada** kartu/daftar kode kuesioner di portal ortu dan tidak ada upload bukti bayar: admin mengirim kode kuesioner lewat WhatsApp, ortu mengisinya di `/assessment` (kode diketik manual). Finance yang menandai lunas.
 - Riwayat terapi: **hanya sesi `completed`**. Tombol **View Report nonaktif** bila laporan belum diisi terapis (`isReportEmpty`: label "Laporan belum tersedia"); modal laporan tidak lagi memakai teks placeholder. **Export laporan** per sesi dan "Export Laporan" (sesuai filter) membuka dokumen cetak (`shared/lib/reportExport.js`, simpan sebagai PDF lewat dialog cetak). Filter tanggal "Dari–Sampai" (`DateFilterPicker`, `filterSessionsByDate`) + reset; list dibatasi tinggi `min(520px, 60vh)`, pagination 10/20/50.
-- Login dengan **kode client** (`clientCode`, mis. `AE-00006`) di `/roles` atau `/login` (demo; backend: kode + tanggal lahir anak).
+- Login dengan **kode client** (`clientCode`, mis. `AE-00006`) + **tanggal lahir anak** (input date, `findClientForLogin`, error generik) di `/roles` atau `/login` (demo ikut memakai tanggal lahir; backend sama + throttle 5 gagal, reset 10 menit).
 - Target utama: **mobile** (ortu membuka dari HP).
 
 ## C. Dashboard eksekutif

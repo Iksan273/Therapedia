@@ -1,9 +1,9 @@
 ---
 name: database-design
-description: Desain database MySQL 8 + Laravel 11 untuk Therapedia — penamaan, tipe data, indeks komposit berbasis query, ledger kredit append-only, optimistic locking, jejak perubahan, partisi, dan tabel ringkasan dashboard. Pakai saat menambah/mengubah tabel atau kolom, menulis migration, mendesain query/indeks, membahas performa DB, atau memperbarui schema.md.
+description: Desain database MySQL 8 + Laravel 12 untuk Therapedia — penamaan, tipe data, indeks komposit berbasis query, ledger kredit append-only, optimistic locking, jejak perubahan, partisi, dan tabel ringkasan dashboard. Pakai saat menambah/mengubah tabel atau kolom, menulis migration, mendesain query/indeks, membahas performa DB, atau memperbarui schema.md.
 ---
 
-# Database Design — Therapedia (MySQL 8 · Laravel 11)
+# Database Design — Therapedia (MySQL 8 · Laravel 12)
 
 Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolom/indeks wajib memperbarui `schema.md` + mapping di `docs/guide/03-data-model.md` & `docs/guide/10-api-migration.md`.
 

@@ -76,6 +76,16 @@ export const checkStaffCredentials = (staff, password) => {
   return { ok: true, mustChangePassword: Boolean(staff.mustChangePassword) };
 };
 
+// Login ortu: kode client + tanggal lahir anak (`yyyy-MM-dd`, dari input date). Gagal selalu generik (tidak menyebut
+// mana yang salah). Backend: `POST /auth/client-login` + throttle/lockout (5 gagal, reset 10 menit).
+export const CLIENT_LOGIN_ERROR = "Kode client atau tanggal lahir anak tidak sesuai.";
+export const findClientForLogin = (clients = [], code, dob) => {
+  const c = String(code || "").trim().toUpperCase();
+  const d = String(dob || "").trim();
+  if (!c || !d) return null;
+  return clients.find((x) => x.clientCode && x.clientCode.toUpperCase() === c && String(x.dob || "").slice(0, 10) === d) || null;
+};
+
 // Cakupan cabang staf hanya ditentukan `branchId` (padanan `users.branch_id`): terisi = 1 cabang, kosong (null) = semua cabang.
 // Berlaku untuk semua role staf (master, terapis, role kustom); diatur Master di User Management. Ortu (`client`) bukan staf.
 export const hasAllBranchAccess = (user) => Boolean(user?.role) && user.role !== "client" && !user.branchId;

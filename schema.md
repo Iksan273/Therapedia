@@ -1,6 +1,6 @@
 # Skema Database Therapedia — v2
 
-**One Gate Integrated Clinic System** · MySQL 8.0.22+ (InnoDB) · Laravel 11 · Sanctum · **tanpa Redis dan tanpa antrean/queue worker** (cache & session memakai MySQL; semua proses berjalan sinkron di request)
+**One Gate Integrated Clinic System** · MySQL 8.0.22+ (InnoDB) · Laravel 12 · Sanctum · **tanpa Redis dan tanpa antrean/queue worker** (cache & session memakai MySQL; semua proses berjalan sinkron di request)
 
 Dokumen ini adalah sumber kebenaran desain database backend. Skema mencakup **seluruh fitur prototype frontend** (`frontend/`): intake & pipeline, mesin asesmen, penjadwalan + kredit, finance, portal terapis, portal orang tua, dashboard, RBAC, dan **jejak perubahan ringan**: kolom `created_by`/`updated_by` di semua modul, `credit_ledger` untuk kredit, dan **`invoice_logs` khusus invoice**. Tidak ada tabel audit log (ADR 0004).
 

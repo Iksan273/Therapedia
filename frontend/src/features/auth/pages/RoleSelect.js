@@ -10,7 +10,7 @@ import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { activeBranches } from "@/domain/branch";
-import { hasAllBranchAccess } from "@/domain/auth";
+import { CLIENT_LOGIN_ERROR, findClientForLogin, hasAllBranchAccess } from "@/domain/auth";
 import { useBranches } from "@/stores/branchesStore";
 import { cn } from "@/shared/lib/utils";
 
@@ -124,6 +124,7 @@ export default function RoleSelect() {
 
   const [expanded, setExpanded] = useState(null); // 'manager' | 'admin_inquiry' | 'admin_schedule' | 'finance' | 'therapist' | null
   const [code, setCode] = useState("");
+  const [dob, setDob] = useState("");
   const [codeError, setCodeError] = useState("");
 
   const enterRole = (payload, path) => {
@@ -138,10 +139,9 @@ export default function RoleSelect() {
 
   const handleClientLogin = (e) => {
     e.preventDefault();
-    const input = code.trim().toUpperCase();
-    const client = clients.find((c) => c.clientCode && c.clientCode.toUpperCase() === input);
+    const client = findClientForLogin(clients, code, dob);
     if (!client) {
-      setCodeError("Kode client tidak ditemukan. Silakan coba kode demo: AE-00006");
+      setCodeError(CLIENT_LOGIN_ERROR);
       return;
     }
     login({ role: "client", clientId: client.id });
@@ -151,6 +151,7 @@ export default function RoleSelect() {
 
   const fillDemoCode = () => {
     setCode("AE-00006");
+    setDob(clients.find((c) => c.clientCode === "AE-00006")?.dob || "");
     setCodeError("");
   };
 
@@ -356,7 +357,7 @@ export default function RoleSelect() {
                 data-testid="client-login-form"
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-slate-700">Masukkan Kode Unik Client</p>
+                  <p className="text-xs font-bold text-slate-700">Masukkan Kode Client &amp; Tanggal Lahir Anak</p>
                   <button
                     type="button"
                     onClick={fillDemoCode}
@@ -365,7 +366,7 @@ export default function RoleSelect() {
                     Gunakan Demo: AE-00006
                   </button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <div className="relative flex-1">
                     <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <Input
@@ -379,6 +380,17 @@ export default function RoleSelect() {
                       data-testid="client-access-code-input"
                     />
                   </div>
+                  <Input
+                    type="date"
+                    aria-label="Tanggal lahir anak"
+                    className="sm:w-44 bg-slate-50 border-slate-200 focus:bg-white text-xs font-bold"
+                    value={dob}
+                    onChange={(e) => {
+                      setDob(e.target.value);
+                      setCodeError("");
+                    }}
+                    data-testid="client-dob-input"
+                  />
                   <Button
                     type="submit"
                     className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 shadow-sm shadow-sky-600/20"
