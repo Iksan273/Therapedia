@@ -19,6 +19,9 @@ class QuadrantResource extends JsonResource
             'description' => $this->description,
             'color' => $this->color,
             'sort_order' => (int) $this->sort_order,
+            // Pemakaian asli (soal yang memakai kuadran, skor hasil); hanya ada di respons baca (index/show)
+            'question_count' => $this->when(isset($this->question_count), fn () => (int) $this->question_count),
+            'score_count' => $this->when(isset($this->score_count), fn () => (int) $this->score_count),
         ];
     }
 }

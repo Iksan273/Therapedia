@@ -20,6 +20,14 @@ test("layanan: code → value, isActive → active; code hanya dikirim saat tamb
   expect(serviceToApi({ label: "OT", category: "Terapi" })).not.toHaveProperty("isActive");
 });
 
+test("pemakaian asli dari server: layanan = client + jadwal, kuadran = soal + skor; tanpa hitungan → tidak ada field", () => {
+  expect(serviceFromApi({ code: "ot", label: "OT", category: "T", isActive: true, clientCount: 2, scheduleCount: 5 }).usageCount).toBe(7);
+  expect(serviceFromApi({ code: "ot", label: "OT", category: "T", isActive: true })).not.toHaveProperty("usageCount");
+
+  expect(quadrantFromApi({ code: "AV", title: "A", questionCount: 12, scoreCount: 3 })).toMatchObject({ questionCount: 12, usageCount: 15 });
+  expect(quadrantFromApi({ code: "AV", title: "A" })).not.toHaveProperty("questionCount");
+});
+
 test("kuadran: kunci tetap code, fullName jatuh ke title", () => {
   expect(quadrantFromApi({ code: "AV", title: "Avoiding", fullName: null, description: null, color: "blue", sortOrder: 1 })).toMatchObject({
     code: "AV",

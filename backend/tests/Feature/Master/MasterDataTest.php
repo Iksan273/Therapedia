@@ -88,6 +88,32 @@ class MasterDataTest extends TestCase
         $this->assertDatabaseHas('services', ['code' => $code]);
     }
 
+    public function test_service_and_quadrant_lists_report_real_usage_counts(): void
+    {
+        $code = DB::table('services')->value('code');
+        $client = $this->makeClient();
+        DB::table('client_services')->insert(['client_id' => $client->id, 'service_code' => $code]);
+        DB::table('schedules')->insert([
+            'branch_id' => $client->branch_id, 'client_id' => $client->id, 'therapist_id' => $this->master->id, 'service_code' => $code,
+            'session_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '10:00', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // staf cabang lain tetap melihat jumlah asli (semua cabang), bukan jumlah yang disaring BranchScope
+        $row = collect($this->actAs($this->makeStaff('admin_inquiry'))->getJson('/api/v1/master/services')->json('data'))->firstWhere('code', $code);
+        $this->assertSame(1, $row['client_count']);
+        $this->assertSame(1, $row['schedule_count']);
+
+        $unused = collect($this->getJson('/api/v1/master/services')->json('data'))->first(fn ($s) => $s['code'] !== $code);
+        $this->assertSame(0, $unused['client_count']);
+        $this->assertSame(0, $unused['schedule_count']);
+
+        $this->getJson("/api/v1/master/services/{$code}")->assertOk()->assertJsonPath('data.client_count', 1);
+
+        $quadrant = collect($this->getJson('/api/v1/master/quadrants')->json('data'))->first();
+        $this->assertSame(0, $quadrant['question_count']);
+        $this->assertSame(0, $quadrant['score_count']);
+    }
+
     public function test_service_used_by_a_schedule_cannot_be_deleted(): void
     {
         $code = DB::table('services')->value('code');

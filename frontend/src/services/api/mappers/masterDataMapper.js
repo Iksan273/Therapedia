@@ -17,6 +17,8 @@ export const serviceFromApi = (s) => ({
   description: s.description || "",
   active: Boolean(s.isActive),
   sortOrder: s.sortOrder ?? 0,
+  // Pemakaian asli dari database (client + jadwal); hanya ada di respons baca. Dipakai pengaman hapus halaman.
+  ...(s.clientCount === undefined ? {} : { usageCount: (s.clientCount ?? 0) + (s.scheduleCount ?? 0) }),
 });
 
 // `code` hanya dikirim saat tambah (server melarang mengubah kode)
@@ -37,6 +39,8 @@ export const quadrantFromApi = (q) => ({
   description: q.description || "",
   color: q.color || "slate",
   sortOrder: q.sortOrder ?? 0,
+  // Pemakaian asli: `questionCount` = jumlah soal (badge "N soal"), `usageCount` = soal + skor hasil (pengaman hapus)
+  ...(q.questionCount === undefined ? {} : { questionCount: q.questionCount ?? 0, usageCount: (q.questionCount ?? 0) + (q.scoreCount ?? 0) }),
 });
 
 export const quadrantToApi = (item, { create = false } = {}) => ({

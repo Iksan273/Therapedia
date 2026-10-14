@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\CancelReason;
+use App\Models\SensoryQuadrant;
+use App\Models\Service;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -23,7 +26,7 @@ class MasterDataService
      */
     public function all(string $model, Request $request): Collection
     {
-        $query = $model::query()->orderBy('sort_order')->orderBy('code');
+        $query = $this->withUsage($model::query())->orderBy('sort_order')->orderBy('code');
 
         if (filter_var($request->query('active'), FILTER_VALIDATE_BOOLEAN)) {
             $query->where('is_active', true);
@@ -39,7 +42,31 @@ class MasterDataService
     /** @param  class-string<Model>  $model */
     public function find(string $model, string $code): Model
     {
-        return $model::query()->findOrFail($code);
+        return $this->withUsage($model::query())->findOrFail($code);
+    }
+
+    /**
+     * Jumlah pemakaian asli dari database (semua cabang, tanpa BranchScope) untuk halaman Master Data: layanan
+     * (`client_count`, `schedule_count`) dan kuadran (`question_count`, `score_count`). Master lain tidak punya hitungan.
+     *
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
+    private function withUsage(Builder $query): Builder
+    {
+        $unscoped = fn ($q) => $q->withoutGlobalScopes();
+
+        return match ($query->getModel()::class) {
+            Service::class => $query->withCount([
+                'clientServicesViaServiceCode as client_count' => $unscoped,
+                'schedulesViaServiceCode as schedule_count' => $unscoped,
+            ]),
+            SensoryQuadrant::class => $query->withCount([
+                'assessmentQuestionsViaQuadrantCode as question_count' => $unscoped,
+                'assessmentQuadrantScoresViaQuadrantCode as score_count' => $unscoped,
+            ]),
+            default => $query,
+        };
     }
 
     /** @param  class-string<Model>  $model */

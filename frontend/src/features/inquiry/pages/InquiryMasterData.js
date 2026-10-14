@@ -21,6 +21,7 @@ import { useSchedules } from "@/stores/schedulesStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { cn } from "@/shared/lib/utils";
 import { apiErrorText } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
 
 const EMPTY_SERVICE = {
   open: false,
@@ -80,9 +81,14 @@ export default function InquiryMasterData() {
     return services.slice(start, start + PAGE_SIZE);
   }, [services, currentServicePage]);
 
-  // Jumlah pemakaian tiap layanan / kuadran, dipakai untuk badge dan pengaman hapus
+  // Jumlah pemakaian tiap layanan / kuadran, dipakai untuk badge dan pengaman hapus.
+  // Mode API: angka asli dari server (`usageCount` / `questionCount` di item master). Mode demo: dihitung dari store lokal.
   const serviceUsage = useMemo(() => {
     const usage = {};
+    if (isApiMode()) {
+      services.forEach((s) => { usage[s.value] = s.usageCount ?? 0; });
+      return usage;
+    }
     clients.forEach((c) => {
       const list = c.serviceTypes && c.serviceTypes.length > 0 ? c.serviceTypes : c.serviceType ? [c.serviceType] : [];
       list.forEach((v) => {
@@ -93,10 +99,15 @@ export default function InquiryMasterData() {
       if (s.serviceType) usage[s.serviceType] = (usage[s.serviceType] || 0) + 1;
     });
     return usage;
-  }, [clients, schedules]);
+  }, [clients, schedules, services]);
 
+  // Badge "N soal" = jumlah soal; pengaman hapus memakai `quadrantBlockers` (soal + skor hasil di mode API)
   const quadrantUsage = useMemo(() => {
     const usage = {};
+    if (isApiMode()) {
+      quadrants.forEach((q) => { usage[q.code] = q.questionCount ?? 0; });
+      return usage;
+    }
     categories.forEach((cat) => {
       questionsOf(cat).forEach((q) => {
         const code = q.quadrant || "SN";
@@ -104,7 +115,7 @@ export default function InquiryMasterData() {
       });
     });
     return usage;
-  }, [categories]);
+  }, [categories, quadrants]);
 
   const categoryOptions = useMemo(
     () => Array.from(new Set(["Asesmen", "Konsultasi", "Terapi", ...services.map((s) => s.category).filter(Boolean)])),
@@ -465,7 +476,7 @@ export default function InquiryMasterData() {
           <ReasonListTab
             noun="alasan cancel / off"
             icon={CalendarX2}
-            hint="Satu daftar alasan Cancel / Off sesi dan reschedule menggantung. Tiap alasan punya KODE singkat (mis. S, OL, SCA, MCU, FM, TI, H): kode itu yang disimpan dan tampil di riwayat/detail semua modul; nama hanya untuk pilihan di form. Alasan karena TERAPIS berhalangan (mis. TO, TS) ditandai Therapist Off. User juga bisa memilih “Lainnya” dan mengetik alasan sendiri (disimpan sebagai teks)."
+            hint="Pilihan alasan Cancel / Off sesi."
             codeMode
             items={cancelReasons}
             onAdd={addCancelReason}
