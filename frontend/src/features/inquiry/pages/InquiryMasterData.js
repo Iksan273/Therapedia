@@ -23,12 +23,17 @@ import { cn } from "@/shared/lib/utils";
 import { apiErrorText } from "@/domain/auth";
 import { isApiMode } from "@/config/env";
 
+// Kategori layanan: tiga pilihan tetap + "Lainnya" (ketik sendiri, `otherCategory`)
+const SERVICE_CATEGORIES = ["Asesmen", "Terapi", "Konsultasi"];
+const OTHER_CATEGORY = "__other";
+
 const EMPTY_SERVICE = {
   open: false,
   editingValue: null,
   value: "",
   label: "",
   category: "Asesmen",
+  otherCategory: false,
   description: "",
   active: true,
 };
@@ -117,22 +122,20 @@ export default function InquiryMasterData() {
     return usage;
   }, [categories, quadrants]);
 
-  const categoryOptions = useMemo(
-    () => Array.from(new Set(["Asesmen", "Konsultasi", "Terapi", ...services.map((s) => s.category).filter(Boolean)])),
-    [services]
-  );
-
   // ---------- Layanan ----------
-  const openEditService = (srv) =>
+  const openEditService = (srv) => {
+    const category = srv.category || "Asesmen";
     setSvcDialog({
       open: true,
       editingValue: srv.value,
       value: srv.value,
       label: srv.label || "",
-      category: srv.category || "Asesmen",
+      category,
+      otherCategory: !SERVICE_CATEGORIES.includes(category), // kategori lama di luar tiga pilihan tampil sebagai "Lainnya"
       description: srv.description || "",
       active: srv.active !== false,
     });
+  };
 
   // Mutasi master bisa menolak (mode API: 422 kode ganda, 409 masih dipakai): pesan server ditampilkan sebagai toast.
   const saveService = async () => {
@@ -141,9 +144,14 @@ export default function InquiryMasterData() {
       toast.error("Nama layanan wajib diisi.");
       return;
     }
+    const category = svcDialog.category.trim();
+    if (!category) {
+      toast.error("Kategori layanan wajib diisi.");
+      return;
+    }
     const payload = {
       label,
-      category: svcDialog.category.trim() || "Lainnya",
+      category,
       description: svcDialog.description.trim(),
       active: svcDialog.active,
     };
@@ -536,16 +544,31 @@ export default function InquiryMasterData() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Kategori</Label>
-              <Input
-                list="service-category-options"
-                value={svcDialog.category}
-                onChange={(e) => setSvcDialog((p) => ({ ...p, category: e.target.value }))}
-              />
-              <datalist id="service-category-options">
-                {categoryOptions.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
+              <Select
+                value={svcDialog.otherCategory ? OTHER_CATEGORY : svcDialog.category}
+                onValueChange={(v) =>
+                  setSvcDialog((p) => (v === OTHER_CATEGORY ? { ...p, otherCategory: true, category: "" } : { ...p, otherCategory: false, category: v }))
+                }
+              >
+                <SelectTrigger className="text-xs font-semibold" data-testid="service-category-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {SERVICE_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c} className="text-xs font-bold">{c}</SelectItem>
+                  ))}
+                  <SelectItem value={OTHER_CATEGORY} className="text-xs font-bold">Lainnya (ketik sendiri)</SelectItem>
+                </SelectContent>
+              </Select>
+              {svcDialog.otherCategory && (
+                <Input
+                  value={svcDialog.category}
+                  maxLength={50}
+                  placeholder="mis. Parent Coaching"
+                  onChange={(e) => setSvcDialog((p) => ({ ...p, category: e.target.value }))}
+                  data-testid="service-category-input"
+                />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Deskripsi</Label>
