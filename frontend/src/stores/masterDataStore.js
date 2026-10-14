@@ -1,8 +1,22 @@
 import React, { createContext, useContext, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
 import { readPersisted } from "@/services/storage/localStore";
 import { DEFAULT_DISCHARGE_REASONS, INTAKE_SERVICES, dischargeReasonLabel } from "@/domain/client";
 import { DEFAULT_CANCEL_REASONS, DEFAULT_THERAPIST_OFF_REASONS, cancelReasonCode, cancelReasonLabel } from "@/domain/schedule";
+import { isStaffSession } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
+import { api } from "@/services/http/httpClient";
+import { ENDPOINTS } from "@/services/api/endpoints";
+import {
+  quadrantFromApi,
+  quadrantToApi,
+  reasonFromApi,
+  reasonToApi,
+  serviceFromApi,
+  serviceToApi,
+} from "@/services/api/mappers/masterDataMapper";
+import { useAuth } from "@/stores/authStore";
 
 const MasterDataContext = createContext(null);
 
@@ -138,55 +152,152 @@ const servicesReducer = makeListReducer("value");
 const quadrantsReducer = makeListReducer("code");
 const reasonsReducer = makeListReducer("value");
 
-export const MasterDataProvider = ({ children }) => {
+// Nilai context dari data + aksi tulis. Dipakai kedua mode, jadi halaman tidak peduli sumber datanya. Aksi tulis di mode API
+// mengembalikan Promise dan melempar `ApiError` (`message`, `fieldErrors`); di mode demo sinkron (halaman cukup `await`).
+const buildMasterValue = ({ services, quadrants, cancelReasons, dischargeReasons }, actions) => {
+  const quadrantMap = Object.fromEntries(quadrants.map((q) => [q.code, q]));
+  const therapistOffReasons = cancelReasons.filter((r) => r.therapistOff);
+  const therapistOffCodes = therapistOffReasons.map((r) => r.value);
+  return {
+    services,
+    // Layanan yang boleh dipilih di form; yang nonaktif tetap bisa dilabeli lewat getService
+    activeServices: services.filter((s) => s.active !== false),
+    getService: (val) => services.find((s) => s.value === val),
+    addService: actions.addService,
+    updateService: actions.updateService,
+    deleteService: actions.deleteService,
+
+    quadrants,
+    quadrantMap,
+    getQuadrant: (code) => quadrantMap[code],
+    addQuadrant: actions.addQuadrant,
+    updateQuadrant: actions.updateQuadrant,
+    deleteQuadrant: actions.deleteQuadrant,
+
+    // Pilihan cepat alasan. Data transaksi menyimpan string (code atau teks custom), bukan relasi ke daftar ini.
+    // `cancelReasons` = SATU daftar alasan Cancel / Off (dipakai form, label, dan grafik); `therapistOffReasons`/`therapistOffCodes`
+    // turunan dari item yang ditandai `therapistOff` (dasar Therapist Off Rate; tetap terhitung di Cancellation Rate keseluruhan)
+    cancelReasons,
+    activeCancelReasons: cancelReasons.filter((r) => r.active !== false),
+    therapistOffReasons,
+    therapistOffCodes,
+    getCancelReasonLabel: (val) => cancelReasonLabel(val, cancelReasons),
+    getCancelReasonCode: (val) => cancelReasonCode(val),
+    addCancelReason: actions.addCancelReason,
+    updateCancelReason: actions.updateCancelReason,
+    deleteCancelReason: actions.deleteCancelReason,
+
+    dischargeReasons,
+    activeDischargeReasons: dischargeReasons.filter((r) => r.active !== false),
+    getDischargeReasonLabel: (val) => dischargeReasonLabel(val, dischargeReasons),
+    addDischargeReason: actions.addDischargeReason,
+    updateDischargeReason: actions.updateDischargeReason,
+    deleteDischargeReason: actions.deleteDischargeReason,
+  };
+};
+
+// ---- Mode demo (localStorage)
+const LocalMasterDataProvider = ({ children }) => {
   const [services, dispatchServices] = usePersistentReducer("master_services", servicesReducer, seedServices);
   const [quadrants, dispatchQuadrants] = usePersistentReducer("master_quadrants", quadrantsReducer, seedQuadrants);
   const [cancelReasons, dispatchCancel] = usePersistentReducer("master_cancel_reasons", reasonsReducer, initCancelReasons); // satu daftar alasan Cancel / Off ber-CODE; `therapistOff` menandai alasan terapis berhalangan
   const [dischargeReasons, dispatchDischarge] = usePersistentReducer("master_discharge_reasons", reasonsReducer, seedDischargeReasons);
 
-  const value = useMemo(() => {
-    const quadrantMap = Object.fromEntries(quadrants.map((q) => [q.code, q]));
-    const therapistOffReasons = cancelReasons.filter((r) => r.therapistOff);
-    const therapistOffCodes = therapistOffReasons.map((r) => r.value);
-    return {
-      services,
-      // Layanan yang boleh dipilih di form; yang nonaktif tetap bisa dilabeli lewat getService
-      activeServices: services.filter((s) => s.active !== false),
-      getService: (val) => services.find((s) => s.value === val),
-      addService: (item) => dispatchServices({ type: "ADD", item }),
-      updateService: (id, patch) => dispatchServices({ type: "UPDATE", id, patch }),
-      deleteService: (id) => dispatchServices({ type: "DELETE", id }),
-
-      quadrants,
-      quadrantMap,
-      getQuadrant: (code) => quadrantMap[code],
-      addQuadrant: (item) => dispatchQuadrants({ type: "ADD", item }),
-      updateQuadrant: (id, patch) => dispatchQuadrants({ type: "UPDATE", id, patch }),
-      deleteQuadrant: (id) => dispatchQuadrants({ type: "DELETE", id }),
-
-      // Pilihan cepat alasan. Data transaksi menyimpan string (code atau teks custom), bukan relasi ke daftar ini.
-      // `cancelReasons` = SATU daftar alasan Cancel / Off (dipakai form, label, dan grafik); `therapistOffReasons`/`therapistOffCodes`
-      // turunan dari item yang ditandai `therapistOff` (dasar Therapist Off Rate; tetap terhitung di Cancellation Rate keseluruhan)
-      cancelReasons,
-      activeCancelReasons: cancelReasons.filter((r) => r.active !== false),
-      therapistOffReasons,
-      therapistOffCodes,
-      getCancelReasonLabel: (val) => cancelReasonLabel(val, cancelReasons),
-      getCancelReasonCode: (val) => cancelReasonCode(val),
-      addCancelReason: (item) => dispatchCancel({ type: "ADD", item: { therapistOff: false, ...item } }),
-      updateCancelReason: (id, patch) => dispatchCancel({ type: "UPDATE", id, patch }),
-      deleteCancelReason: (id) => dispatchCancel({ type: "DELETE", id }),
-
-      dischargeReasons,
-      activeDischargeReasons: dischargeReasons.filter((r) => r.active !== false),
-      getDischargeReasonLabel: (val) => dischargeReasonLabel(val, dischargeReasons),
-      addDischargeReason: (item) => dispatchDischarge({ type: "ADD", item }),
-      updateDischargeReason: (id, patch) => dispatchDischarge({ type: "UPDATE", id, patch }),
-      deleteDischargeReason: (id) => dispatchDischarge({ type: "DELETE", id }),
-    };
-  }, [services, quadrants, cancelReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchDischarge]);
+  const value = useMemo(
+    () =>
+      buildMasterValue(
+        { services, quadrants, cancelReasons, dischargeReasons },
+        {
+          addService: (item) => dispatchServices({ type: "ADD", item }),
+          updateService: (id, patch) => dispatchServices({ type: "UPDATE", id, patch }),
+          deleteService: (id) => dispatchServices({ type: "DELETE", id }),
+          addQuadrant: (item) => dispatchQuadrants({ type: "ADD", item }),
+          updateQuadrant: (id, patch) => dispatchQuadrants({ type: "UPDATE", id, patch }),
+          deleteQuadrant: (id) => dispatchQuadrants({ type: "DELETE", id }),
+          addCancelReason: (item) => dispatchCancel({ type: "ADD", item: { therapistOff: false, ...item } }),
+          updateCancelReason: (id, patch) => dispatchCancel({ type: "UPDATE", id, patch }),
+          deleteCancelReason: (id) => dispatchCancel({ type: "DELETE", id }),
+          addDischargeReason: (item) => dispatchDischarge({ type: "ADD", item }),
+          updateDischargeReason: (id, patch) => dispatchDischarge({ type: "UPDATE", id, patch }),
+          deleteDischargeReason: (id) => dispatchDischarge({ type: "DELETE", id }),
+        }
+      ),
+    [services, quadrants, cancelReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchDischarge]
+  );
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
 };
+
+// ---- Mode API (Laravel M3): `GET /master/*` dibaca semua staf; tulis butuh modul `inquiry_master_data`. Hapus layanan/kuadran
+// yang dipakai dijawab 409 `in_use` (pesan server ditampilkan halaman); alasan Cancel/Off dan Discharge dihapus bebas.
+export const MASTER_QUERY_KEYS = {
+  services: ["master", "services"],
+  quadrants: ["master", "quadrants"],
+  cancelReasons: ["master", "cancel-reasons"],
+  dischargeReasons: ["master", "discharge-reasons"],
+};
+
+const EMPTY_LIST = [];
+
+// Satu resource master: daftar (react-query) + tambah/ubah/hapus. Mutasi mengembalikan item hasil pemetaan.
+function useMasterResource({ enabled, queryKey, endpoints, fromApi, toApi }) {
+  const queryClient = useQueryClient();
+  const { data } = useQuery({
+    queryKey,
+    queryFn: ({ signal }) => api.get(endpoints.list, undefined, { signal }).then((rows) => rows.map(fromApi)),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+  const refresh = () => queryClient.invalidateQueries({ queryKey });
+
+  const create = useMutation({ mutationFn: (item) => api.post(endpoints.list, toApi(item, { create: true })), onSuccess: refresh });
+  const update = useMutation({ mutationFn: ({ id, patch }) => api.patch(endpoints.detail(id), toApi(patch)), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: (id) => api.delete(endpoints.detail(id)), onSuccess: refresh });
+
+  return {
+    items: data ?? EMPTY_LIST,
+    add: async (item) => fromApi(await create.mutateAsync(item)),
+    update: async (id, patch) => fromApi(await update.mutateAsync({ id, patch })),
+    remove: (id) => remove.mutateAsync(id),
+  };
+}
+
+const ApiMasterDataProvider = ({ children }) => {
+  const { auth } = useAuth();
+  const enabled = isStaffSession(auth);
+
+  const services = useMasterResource({ enabled, queryKey: MASTER_QUERY_KEYS.services, endpoints: ENDPOINTS.master.services, fromApi: serviceFromApi, toApi: serviceToApi });
+  const quadrants = useMasterResource({ enabled, queryKey: MASTER_QUERY_KEYS.quadrants, endpoints: ENDPOINTS.master.quadrants, fromApi: quadrantFromApi, toApi: quadrantToApi });
+  const cancel = useMasterResource({
+    enabled,
+    queryKey: MASTER_QUERY_KEYS.cancelReasons,
+    endpoints: ENDPOINTS.master.cancelReasons,
+    fromApi: reasonFromApi,
+    toApi: (item, opts) => reasonToApi(item, { ...opts, withTherapistOff: true }),
+  });
+  const discharge = useMasterResource({ enabled, queryKey: MASTER_QUERY_KEYS.dischargeReasons, endpoints: ENDPOINTS.master.dischargeReasons, fromApi: reasonFromApi, toApi: reasonToApi });
+
+  const value = buildMasterValue(
+    { services: services.items, quadrants: quadrants.items, cancelReasons: cancel.items, dischargeReasons: discharge.items },
+    {
+      addService: services.add,
+      updateService: services.update,
+      deleteService: services.remove,
+      addQuadrant: quadrants.add,
+      updateQuadrant: quadrants.update,
+      deleteQuadrant: quadrants.remove,
+      addCancelReason: cancel.add,
+      updateCancelReason: cancel.update,
+      deleteCancelReason: cancel.remove,
+      addDischargeReason: discharge.add,
+      updateDischargeReason: discharge.update,
+      deleteDischargeReason: discharge.remove,
+    }
+  );
+
+  return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
+};
+
+export const MasterDataProvider = isApiMode() ? ApiMasterDataProvider : LocalMasterDataProvider;
 
 export const useMasterData = () => useContext(MasterDataContext);

@@ -39,8 +39,8 @@ export default function ClientDetailInquiry() {
   const navigate = useNavigate();
   const { clients, updateClient } = useClients();
   const { schedules } = useSchedules();
-  const { getInvoicesForClient, getRecordForClient, getMasterPackages } = useCredits();
-  const masterPackages = getMasterPackages();
+  const { getInvoicesForClient, getRecordForClient, getActiveMasterPackages } = useCredits();
+  const masterPackages = getActiveMasterPackages(); // pilihan layanan invoice assessment: hanya paket yang masih dijual
   const outcomeActions = useClientOutcomeActions();
   const codeActions = useQuestionnaireCodeActions();
   const deleteActions = useClientDeleteActions();

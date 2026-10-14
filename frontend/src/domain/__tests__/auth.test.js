@@ -13,6 +13,7 @@ import {
   verifyOtp,
   apiErrorText,
   homePathFor,
+  validateStaffDeletion,
 } from "@/domain/auth";
 import { canManageSchedule } from "@/domain/schedule";
 import { permissionMapAllows, roleHasPermission } from "@/domain/rbac";
@@ -125,5 +126,35 @@ describe("sesi API: tujuan login & helper", () => {
     expect(permissionMapAllows("finance", { finance: true }, "rbac")).toBe(false);
     expect(permissionMapAllows("admin_inquiry", { inquiry_dashboard: true }, "inquiry")).toBe(true); // key lama
     expect(permissionMapAllows(null, { finance: true }, "finance")).toBe(false);
+  });
+});
+
+describe("validateStaffDeletion", () => {
+  const master = { id: "usr-000", name: "Master", role: "master", isActive: true };
+  const finance = { id: "usr-005", name: "Rina", role: "finance" };
+  const staffUsers = [master, finance];
+  const actor = { role: "master", userId: "usr-000", name: "Master" };
+
+  test("hanya Master yang boleh menghapus", () => {
+    expect(validateStaffDeletion({ actor: { role: "manager", userId: "x" }, target: finance, staffUsers })).toMatch(/Hanya Master/);
+    expect(validateStaffDeletion({ actor, target: finance, staffUsers })).toBeNull();
+  });
+
+  test("tidak boleh menghapus diri sendiri (id, atau nama bila sesi demo tanpa id)", () => {
+    expect(validateStaffDeletion({ actor, target: master, staffUsers })).toMatch(/sendiri/);
+    expect(validateStaffDeletion({ actor: { role: "master", userId: null, name: "Master" }, target: master, staffUsers })).toMatch(/sendiri/);
+  });
+
+  test("Master aktif terakhir tidak boleh dihapus, master lain yang aktif boleh", () => {
+    const other = { id: "usr-099", name: "Master 2", role: "master", isActive: true };
+    expect(validateStaffDeletion({ actor: { role: "master", userId: "usr-099" }, target: master, staffUsers: [master, other] })).toBeNull();
+    const inactive = { ...other, isActive: false };
+    expect(validateStaffDeletion({ actor: { role: "master", userId: "usr-099" }, target: master, staffUsers: [master, inactive] })).toMatch(/terakhir/);
+  });
+
+  test("terapis yang punya jadwal ditolak dengan jumlahnya", () => {
+    const therapist = { id: "usr-007", name: "Maya", role: "therapist" };
+    expect(validateStaffDeletion({ actor, target: therapist, staffUsers, scheduleCount: 3 })).toMatch(/3 jadwal/);
+    expect(validateStaffDeletion({ actor, target: therapist, staffUsers, scheduleCount: 0 })).toBeNull();
   });
 });

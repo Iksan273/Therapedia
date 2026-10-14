@@ -12,10 +12,11 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * Akun staf & terapis (M2, modul user_management). Tipis: validasi di Form Request, aturan di UserService/Action.
- * Staf tidak dihapus lewat UI: tidak ada endpoint DELETE (berhenti = PATCH /users/{id}/active).
+ * Berhenti = PATCH /users/{id}/active. DELETE /users/{id}: hanya Master, hanya akun tanpa jadwal/laporan sesi.
  */
 class UserController extends Controller
 {
@@ -50,6 +51,13 @@ class UserController extends Controller
         $updated = $this->service->setActive($request->user(), (int) $user, $request->boolean('is_active'));
 
         return response()->json(['data' => (new UserResource($updated))->resolve()]);
+    }
+
+    public function destroy(Request $request, string $user): Response
+    {
+        $this->service->delete($request->user(), (int) $user);
+
+        return response()->noContent();
     }
 
     /** Respons memuat `temporary_password` SEKALI bila dibuatkan otomatis (tidak disimpan di tempat lain). */

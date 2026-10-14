@@ -44,6 +44,7 @@ import {
   newCreditRecord,
   nextInvoiceNumber,
   packageInvoiceCode,
+  masterPackageUsage,
   proofUploadsLeft,
   proofUploadsUsed,
   summarizeCreditRecord,
@@ -580,5 +581,22 @@ describe("log invoice", () => {
     expect(isInvoiceConverted(next)).toBe(true);
     expect(invoiceConversionCount(appendInvoiceLog(next, { action: "converted" }))).toBe(2);
     expect(lastInvoiceConversion(next).by).toBe("Finance");
+  });
+});
+
+describe("masterPackageUsage", () => {
+  const credits = {
+    records: [{ packages: [{ packageId: "pkg-reguler" }, { packageId: "pkg-vip" }] }, { packages: [{ packageId: "pkg-reguler" }] }],
+    invoices: [{ packageId: "pkg-reguler" }, { packageId: "pkg-vip" }],
+  };
+
+  test("menghitung paket client dan invoice yang merujuk master", () => {
+    expect(masterPackageUsage(credits, "pkg-reguler")).toEqual({ packages: 2, invoices: 1 });
+    expect(masterPackageUsage(credits, "pkg-vip")).toEqual({ packages: 1, invoices: 1 });
+  });
+
+  test("master yang belum dipakai dan data kosong → 0", () => {
+    expect(masterPackageUsage(credits, "pkg-baru")).toEqual({ packages: 0, invoices: 0 });
+    expect(masterPackageUsage(undefined, "pkg-baru")).toEqual({ packages: 0, invoices: 0 });
   });
 });

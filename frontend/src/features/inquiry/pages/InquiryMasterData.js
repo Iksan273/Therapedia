@@ -20,6 +20,7 @@ import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { cn } from "@/shared/lib/utils";
+import { apiErrorText } from "@/domain/auth";
 
 const EMPTY_SERVICE = {
   open: false,
@@ -122,7 +123,8 @@ export default function InquiryMasterData() {
       active: srv.active !== false,
     });
 
-  const saveService = () => {
+  // Mutasi master bisa menolak (mode API: 422 kode ganda, 409 masih dipakai): pesan server ditampilkan sebagai toast.
+  const saveService = async () => {
     const label = svcDialog.label.trim();
     if (!label) {
       toast.error("Nama layanan wajib diisi.");
@@ -135,23 +137,36 @@ export default function InquiryMasterData() {
       active: svcDialog.active,
     };
 
-    if (svcDialog.editingValue) {
-      updateService(svcDialog.editingValue, payload);
-      toast.success(`Layanan "${label}" diperbarui.`);
-    } else {
-      const code = slugify(svcDialog.value || label);
-      if (!code) {
-        toast.error("Kode layanan tidak valid.");
-        return;
+    try {
+      if (svcDialog.editingValue) {
+        await updateService(svcDialog.editingValue, payload);
+        toast.success(`Layanan "${label}" diperbarui.`);
+      } else {
+        const code = slugify(svcDialog.value || label);
+        if (!code) {
+          toast.error("Kode layanan tidak valid.");
+          return;
+        }
+        if (services.some((s) => s.value === code)) {
+          toast.error(`Kode layanan "${code}" sudah dipakai.`);
+          return;
+        }
+        await addService({ value: code, ...payload });
+        toast.success(`Layanan "${label}" ditambahkan.`);
       }
-      if (services.some((s) => s.value === code)) {
-        toast.error(`Kode layanan "${code}" sudah dipakai.`);
-        return;
-      }
-      addService({ value: code, ...payload });
-      toast.success(`Layanan "${label}" ditambahkan.`);
+      setSvcDialog(EMPTY_SERVICE);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["code", "label", "category"]));
     }
-    setSvcDialog(EMPTY_SERVICE);
+  };
+
+  const toggleService = async (srv, checked) => {
+    try {
+      await updateService(srv.value, { active: checked });
+      toast.success(`"${srv.label}" ${checked ? "diaktifkan" : "dinonaktifkan"}.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
   const removeService = async (srv) => {
@@ -161,8 +176,12 @@ export default function InquiryMasterData() {
       return;
     }
     if (!(await confirm({ title: "Hapus layanan?", description: `Layanan "${srv.label}" akan dihapus dari daftar.` }))) return;
-    deleteService(srv.value);
-    toast.success(`Layanan "${srv.label}" dihapus.`);
+    try {
+      await deleteService(srv.value);
+      toast.success(`Layanan "${srv.label}" dihapus.`);
+    } catch (err) {
+      toast.error(apiErrorText(err)); // 409 bila masih dipakai client / jadwal
+    }
   };
 
   // ---------- Kuadran ----------
@@ -177,7 +196,7 @@ export default function InquiryMasterData() {
       color: q.color || "blue",
     });
 
-  const saveQuadrant = () => {
+  const saveQuadrant = async () => {
     const title = quadDialog.title.trim();
     if (!title) {
       toast.error("Nama kuadran wajib diisi.");
@@ -190,38 +209,43 @@ export default function InquiryMasterData() {
       color: quadDialog.color,
     };
 
-    if (quadDialog.editingCode) {
-      updateQuadrant(quadDialog.editingCode, payload);
-      toast.success(`Kuadran ${quadDialog.editingCode} diperbarui.`);
-    } else {
-      const code = quadDialog.code.trim().toUpperCase();
-      if (!/^[A-Z0-9]{1,4}$/.test(code)) {
-        toast.error("Kode kuadran harus 1-4 karakter huruf/angka.");
-        return;
+    try {
+      if (quadDialog.editingCode) {
+        await updateQuadrant(quadDialog.editingCode, payload);
+        toast.success(`Kuadran ${quadDialog.editingCode} diperbarui.`);
+      } else {
+        const code = quadDialog.code.trim().toUpperCase();
+        if (!/^[A-Z0-9]{1,4}$/.test(code)) {
+          toast.error("Kode kuadran harus 1-4 karakter huruf/angka.");
+          return;
+        }
+        if (quadrants.some((q) => q.code === code)) {
+          toast.error(`Kode kuadran "${code}" sudah dipakai.`);
+          return;
+        }
+        await addQuadrant({ code, ...payload });
+        toast.success(`Kuadran ${code} ditambahkan.`);
       }
-      if (quadrants.some((q) => q.code === code)) {
-        toast.error(`Kode kuadran "${code}" sudah dipakai.`);
-        return;
-      }
-      addQuadrant({ code, ...payload });
-      toast.success(`Kuadran ${code} ditambahkan.`);
+      setQuadDialog(EMPTY_QUADRANT);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["code", "title", "full_name"]));
     }
-    setQuadDialog(EMPTY_QUADRANT);
   };
 
+  // Kuadran yang belum dipakai boleh dihapus semua (tidak ada batas minimal).
   const removeQuadrant = async (q) => {
     const used = quadrantUsage[q.code] || 0;
     if (used > 0) {
       toast.error(`Kuadran ${q.code} dipakai di ${used} butir soal. Pindahkan soalnya ke kuadran lain terlebih dahulu.`);
       return;
     }
-    if (quadrants.length <= 1) {
-      toast.error("Minimal harus ada 1 kuadran.");
-      return;
-    }
     if (!(await confirm({ title: "Hapus kuadran?", description: `Kuadran ${q.code} - ${q.title} akan dihapus.` }))) return;
-    deleteQuadrant(q.code);
-    toast.success(`Kuadran ${q.code} dihapus.`);
+    try {
+      await deleteQuadrant(q.code);
+      toast.success(`Kuadran ${q.code} dihapus.`);
+    } catch (err) {
+      toast.error(apiErrorText(err)); // 409 bila dipakai soal / skor hasil asesmen
+    }
   };
 
   return (
@@ -301,10 +325,7 @@ export default function InquiryMasterData() {
                         <TableCell data-label="Status" className="text-center">
                           <Switch
                             checked={srv.active !== false}
-                            onCheckedChange={(checked) => {
-                              updateService(srv.value, { active: checked });
-                              toast.success(`"${srv.label}" ${checked ? "diaktifkan" : "dinonaktifkan"}.`);
-                            }}
+                            onCheckedChange={(checked) => toggleService(srv, checked)}
                             aria-label={`Aktifkan ${srv.label}`}
                           />
                         </TableCell>

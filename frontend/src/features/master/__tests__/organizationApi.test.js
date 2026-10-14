@@ -367,6 +367,25 @@ describe("akun staf", () => {
     expect(reset.temporaryPassword).toBe("ResetPw99");
   });
 
+  test("hapus akun: DELETE /users/{id}, daftar disegarkan; galat server (409) diteruskan ke halaman", async () => {
+    await mount();
+    await loginAs();
+    apiMock.delete.mockResolvedValueOnce("");
+
+    await act(async () => {
+      await ctx.staff.deleteStaff("11");
+    });
+    expect(apiMock.delete).toHaveBeenCalledWith("/users/11");
+    await vi.waitFor(() => expect(apiMock.list.mock.calls.length).toBeGreaterThan(1)); // invalidasi → ambil ulang
+
+    apiMock.delete.mockRejectedValueOnce(Object.assign(new Error("Akun dipakai di 3 jadwal."), { status: 409 }));
+    let error;
+    await act(async () => {
+      await ctx.staff.deleteStaff("12").catch((e) => { error = e; });
+    });
+    expect(error.message).toBe("Akun dipakai di 3 jadwal.");
+  });
+
   test("keunikan email diputuskan server (tidak ada cek di klien)", async () => {
     await mount();
     await loginAs();

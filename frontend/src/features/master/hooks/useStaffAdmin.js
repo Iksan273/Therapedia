@@ -2,25 +2,28 @@ import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePagination } from "@/shared/components/TablePagination";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
-import { isStaffSession } from "@/domain/auth";
+import { isStaffSession, validateStaffDeletion } from "@/domain/auth";
 import { isApiMode } from "@/config/env";
 import { api } from "@/services/http/httpClient";
 import { ENDPOINTS } from "@/services/api/endpoints";
 import { staffUserFromApi, staffUserToApi } from "@/services/api/mappers/organizationMapper";
 import { useAuth } from "@/stores/authStore";
+import { useSchedules } from "@/stores/schedulesStore";
 import { useRolesQuery } from "@/features/master/hooks/useRoleAdmin";
 
 export const STAFF_QUERY_KEY = "staff-users";
 const PAGE_SIZE = 10;
 
 // Hook use-case halaman User Management. Dua implementasi dengan bentuk keluaran yang sama:
-//   { users, pagination, isLoading, rolesList, addStaff, updateStaff, setStaffActive, resetPassword, isEmailTaken }
+//   { users, pagination, isLoading, rolesList, addStaff, updateStaff, setStaffActive, deleteStaff, resetPassword, isEmailTaken }
 // `branchFilter` ("all" = semua cabang) dan `search` berasal dari halaman. Mutasi async dan melempar `ApiError`
-// (fieldErrors: email, roleId, branchId, password) untuk ditampilkan halaman.
+// (fieldErrors: email, roleId, branchId, password) untuk ditampilkan halaman. `deleteStaff` hanya Master dan menolak
+// terapis yang punya jadwal (409 di server, `validateStaffDeletion` di demo).
 
 // ---- Mode demo: filter + paginasi di sisi klien atas data localStorage.
 function useStaffAdminLocal({ branchFilter, search }) {
-  const { staffUsers, addStaffUser, updateStaffUser, setStaffActive, resetStaffPassword, rolesList } = useAuth();
+  const { staffUsers, addStaffUser, updateStaffUser, setStaffActive, removeStaffUser, resetStaffPassword, rolesList, auth } = useAuth();
+  const { schedules } = useSchedules();
 
   const filtered = useMemo(
     () =>
@@ -45,6 +48,14 @@ function useStaffAdminLocal({ branchFilter, search }) {
     addStaff: async (form) => ({ user: addStaffUser(form), temporaryPassword: form.password }),
     updateStaff: async (id, profile) => updateStaffUser(id, profile),
     setStaffActive: async (id, active) => setStaffActive(id, active),
+    deleteStaff: async (id) => {
+      const target = (staffUsers || []).find((u) => u.id === id);
+      if (!target) throw new Error("Akun tidak ditemukan.");
+      const scheduleCount = target.therapistId ? schedules.filter((s) => s.therapistId === target.therapistId).length : 0;
+      const error = validateStaffDeletion({ actor: { role: auth?.role, userId: auth?.userId, name: auth?.staffName }, target, staffUsers, scheduleCount });
+      if (error) throw new Error(error);
+      removeStaffUser(id);
+    },
     resetPassword: async (id, password) => {
       resetStaffPassword(id, password);
       return { temporaryPassword: password };
@@ -87,6 +98,7 @@ function useStaffAdminApi({ branchFilter, search }) {
   const create = useMutation({ mutationFn: (body) => api.post(ENDPOINTS.users.list, body), onSuccess: refresh });
   const update = useMutation({ mutationFn: ({ id, body }) => api.patch(ENDPOINTS.users.detail(id), body), onSuccess: refresh });
   const toggle = useMutation({ mutationFn: ({ id, isActive }) => api.patch(ENDPOINTS.users.setActive(id), { isActive }), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: (id) => api.delete(ENDPOINTS.users.detail(id)), onSuccess: refresh });
   const reset = useMutation({ mutationFn: ({ id, password }) => api.post(ENDPOINTS.users.resetPassword(id), password ? { password } : {}), onSuccess: refresh });
 
   return {
@@ -102,6 +114,7 @@ function useStaffAdminApi({ branchFilter, search }) {
     },
     updateStaff: async (id, form) => staffUserFromApi(await update.mutateAsync({ id, body: staffUserToApi(form, rolesList) })),
     setStaffActive: async (id, active) => staffUserFromApi(await toggle.mutateAsync({ id, isActive: active })),
+    deleteStaff: (id) => remove.mutateAsync(id),
     resetPassword: async (id, password) => {
       const res = await reset.mutateAsync({ id, password });
       return { temporaryPassword: res.temporaryPassword ?? password };

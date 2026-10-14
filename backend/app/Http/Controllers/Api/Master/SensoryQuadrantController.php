@@ -2,43 +2,44 @@
 
 namespace App\Http\Controllers\Api\Master;
 
+use App\Actions\Master\DeleteQuadrantAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Master\QuadrantRequest;
+use App\Http\Resources\Master\QuadrantResource;
+use App\Models\SensoryQuadrant;
 use App\Services\MasterDataService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-/**
- * Kuadran sensori (M3).
- * Tipis: validasi (Form Request) di sini nanti, logika bisnis di MasterDataService / Action.
- */
+/** Kuadran sensori (M3). Baca: semua staf login. Tulis: modul inquiry_master_data. Hapus dipakai → 409 `in_use`. */
 class SensoryQuadrantController extends Controller
 {
     public function __construct(private readonly MasterDataService $service) {}
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->paginate('quadrants', $request->query())]);
+        return response()->json(['data' => QuadrantResource::collection($this->service->all(SensoryQuadrant::class, $request))->resolve()]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function show(string $code): JsonResponse
     {
-        return response()->json(['data' => $this->service->create('quadrants', $request->all())], 201);
+        return response()->json(['data' => (new QuadrantResource($this->service->find(SensoryQuadrant::class, $code)))->resolve()]);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function store(QuadrantRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->find('quadrants', $id)]);
+        return response()->json(['data' => (new QuadrantResource($this->service->create(SensoryQuadrant::class, $request->validated())))->resolve()], 201);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(QuadrantRequest $request, string $code): JsonResponse
     {
-        return response()->json(['data' => $this->service->update('quadrants', $id, $request->all())]);
+        return response()->json(['data' => (new QuadrantResource($this->service->update(SensoryQuadrant::class, $code, $request->validated())))->resolve()]);
     }
 
-    public function destroy(Request $request, string $id): Response
+    public function destroy(string $code, DeleteQuadrantAction $delete): Response
     {
-        $this->service->delete('quadrants', $id);
+        $delete($code);
 
         return response()->noContent();
     }

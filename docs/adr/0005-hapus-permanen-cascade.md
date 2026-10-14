@@ -19,6 +19,7 @@ Hapus sebelumnya soft delete (`deleted_at` + `deleted_by`). Akibatnya data "terh
 ## Desain database (ringkas; rinci di `schema.md` §04 dan §6.7)
 - Data milik induk memakai `ON DELETE CASCADE`: `clients.branch_id`, `schedules.{branch_id,client_id}`, `invoices.{client_id,branch_id}`, `client_packages.{client_id,converted_from_package_id}`, `credit_ledger.{client_id,branch_id,client_package_id,conversion_id,reverses_ledger_id}`, `package_conversions.*`, `invoice_logs.invoice_id`, dan semua anak client lainnya.
 - Master yang dipakai memakai `RESTRICT` (`invoices/client_packages.master_package_id`, FK kode layanan/kuadran, `assessment_*.category_id/question_id`, `users.role_id`).
+- **Hapus akun staf** (14 Okt 2026, hanya `master`, `DELETE /users/{id}`): bukan cascade. Kolom pelaku di tabel lain `SET NULL` (data tetap, nama pelaku hilang; `invoice_logs.actor_name` menyimpan salinan nama), token dan OTP akun ikut dihapus, dan terapis yang punya `schedules`/`session_reports` ditolak (409 `in_use`, FK `RESTRICT`); untuk mereka gunakan nonaktifkan.
 - `users.branch_id` sengaja `RESTRICT` (bukan `SET NULL`: staf akan menjadi "semua cabang"); `schedules.therapist_id` `RESTRICT`. Hapus cabang menghapus sesi dulu, baru staf, lewat urutan eksplisit di service.
 - `client_packages.invoice_id` dan `schedules.client_package_id` `SET NULL`: paket dan sesi tidak ikut terhapus saat invoice/paket hilang; invoice lunas dijaga di service (409). `credit_ledger.schedule_id` `SET NULL`: menghapus satu sesi tidak menghapus ledger-nya.
 

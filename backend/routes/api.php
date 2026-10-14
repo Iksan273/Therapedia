@@ -76,13 +76,14 @@ Route::prefix('v1')->group(function () {
         };
 
         // M2 Organisasi & akses
-        // Akun staf: tidak ada DELETE (berhenti = nonaktif).
+        // Akun staf: berhenti = nonaktif; DELETE hanya Master dan hanya akun tanpa jadwal/laporan (dicek DeleteUserAction).
         Route::middleware('module:user_management')->group(function () {
             Route::get('users', [UserController::class, 'index']);
             Route::post('users', [UserController::class, 'store']);
             Route::get('users/{user}', [UserController::class, 'show']);
             Route::patch('users/{user}', [UserController::class, 'update']);
             Route::patch('users/{user}/active', [UserController::class, 'setActive']);
+            Route::delete('users/{user}', [UserController::class, 'destroy']);
             Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword']);
         });
 
@@ -125,6 +126,7 @@ Route::prefix('v1')->group(function () {
         $masterResource('master/cancel-reasons', CancelReasonController::class, 'inquiry_master_data');
         $masterResource('master/discharge-reasons', DischargeReasonController::class, 'inquiry_master_data');
         $masterResource('master/packages', MasterPackageController::class, 'finance');
+        Route::patch('master/packages/{package}/active', [MasterPackageController::class, 'setActive'])->middleware('module:finance');
         $masterResource('holidays', HolidayController::class, 'holidays');
 
         // M4 Inquiry & client

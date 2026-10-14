@@ -22,11 +22,11 @@ import { fmtCurrency, fmtDate } from "@/shared/lib/format";
 // Status client tidak mundur: `advanceStatus` hanya maju, jadi client admitted tetap admitted.
 export function ReassessmentCard({ client }) {
   const { categories } = useAssessments();
-  const { getMasterPackages } = useCredits();
+  const { getActiveMasterPackages } = useCredits();
   const { hasPermission } = useAuth();
   const codeActions = useQuestionnaireCodeActions();
   const { getDraft } = useAssessmentDrafts();
-  const masterPackages = getMasterPackages();
+  const masterPackages = getActiveMasterPackages();
   const canManage = canManageSchedule(hasPermission);
 
   const [categoryId, setCategoryId] = useState("");

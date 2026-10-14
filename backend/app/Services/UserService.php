@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Actions\Organization\CreateUserAction;
+use App\Actions\Organization\DeleteUserAction;
 use App\Actions\Organization\ResetUserPasswordAction;
 use App\Actions\Organization\SetUserActiveAction;
 use App\Actions\Organization\UpdateUserAction;
@@ -18,8 +19,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
- * Akun staf & terapis (M2, modul user_management). `branch_id` NULL = semua cabang. Staf tidak dihapus lewat UI
- * (dinonaktifkan). Controller → service → Action; aturan keamanan ada di UserGuard.
+ * Akun staf & terapis (M2, modul user_management). `branch_id` NULL = semua cabang. Berhenti = dinonaktifkan; hapus
+ * permanen hanya Master dan hanya akun tanpa jadwal/laporan (DeleteUserAction). Controller → service → Action; aturan
+ * keamanan ada di UserGuard.
  */
 class UserService
 {
@@ -28,6 +30,7 @@ class UserService
         private readonly UpdateUserAction $updateUser,
         private readonly SetUserActiveAction $setUserActive,
         private readonly ResetUserPasswordAction $resetUserPassword,
+        private readonly DeleteUserAction $deleteUser,
     ) {}
 
     /**
@@ -84,6 +87,11 @@ class UserService
     public function setActive(User $actor, int $id, bool $active): User
     {
         return ($this->setUserActive)($actor, $id, $active);
+    }
+
+    public function delete(User $actor, int $id): void
+    {
+        ($this->deleteUser)($actor, $id);
     }
 
     /** @return array{user: User, temporary_password: ?string} */

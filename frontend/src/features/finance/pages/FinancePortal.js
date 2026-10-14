@@ -9,6 +9,7 @@ import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerM
 import { useCredits } from "@/stores/creditsStore";
 import { useClients } from "@/stores/clientsStore";
 import { useAuth } from "@/stores/authStore";
+import { apiErrorText } from "@/domain/auth";
 import { VerificationTab } from "@/features/finance/components/VerificationTab";
 import { BillingTab } from "@/features/finance/components/BillingTab";
 import { HistoryTab } from "@/features/finance/components/HistoryTab";
@@ -35,7 +36,10 @@ export default function FinancePortal() {
     issueInvoice,
     addMasterPackage,
     updateMasterPackage,
+    setMasterPackageActive,
+    deleteMasterPackage,
     getMasterPackages,
+    getActiveMasterPackages,
     deleteInvoices,
     getRawRecord,
   } = useCredits();
@@ -96,6 +100,7 @@ export default function FinancePortal() {
 
   const allInvoices = rawInvoices.filter(matchSearch);
   const masterPackages = getMasterPackages();
+  const activePackages = getActiveMasterPackages(); // pilihan di form invoice / renewal; paket nonaktif tetap dibaca lewat masterPackages
 
   // Invoice void (kredit dipertahankan) milik client terpilih yang paketnya belum diambil alih invoice pengganti
   const optionsFor = (clientId) =>
@@ -393,7 +398,7 @@ export default function FinancePortal() {
   };
 
   // Submit Add/Edit Master Package
-  const handleAddMasterPackageSubmit = (e) => {
+  const handleAddMasterPackageSubmit = async (e) => {
     e.preventDefault();
     if (!newPkgForm.name.trim()) {
       toast.error("Nama paket wajib diisi.");
@@ -410,23 +415,7 @@ export default function FinancePortal() {
       return;
     }
 
-    if (editingPkgId) {
-      updateMasterPackage(editingPkgId, {
-        name: newPkgForm.name.trim(),
-        invoiceCode,
-        credits: Number(newPkgForm.credits) || 10,
-        price: Number(newPkgForm.price) || 2500000,
-        description: newPkgForm.description.trim(),
-        leaveQuota: Math.max(0, Number(newPkgForm.leaveQuota) || 0),
-        isSatuan: Boolean(newPkgForm.isSatuan),
-        isAssessment: Boolean(newPkgForm.isAssessment),
-      });
-      toast.success(`Paket '${newPkgForm.name}' diperbarui.`);
-      closePackageDialog();
-      return;
-    }
-
-    addMasterPackage({
+    const payload = {
       name: newPkgForm.name.trim(),
       invoiceCode,
       credits: Number(newPkgForm.credits) || 10,
@@ -435,10 +424,39 @@ export default function FinancePortal() {
       leaveQuota: Math.max(0, Number(newPkgForm.leaveQuota) || 0),
       isSatuan: Boolean(newPkgForm.isSatuan),
       isAssessment: Boolean(newPkgForm.isAssessment),
-    });
+    };
 
-    toast.success(`Paket baru '${newPkgForm.name}' berhasil ditambahkan ke Master Data!`);
-    closePackageDialog();
+    // Mode API: server bisa menolak (422 kode invoice ganda); pesannya ditampilkan dan dialog tetap terbuka
+    try {
+      if (editingPkgId) {
+        await updateMasterPackage(editingPkgId, payload);
+        toast.success(`Paket '${payload.name}' diperbarui.`);
+      } else {
+        await addMasterPackage(payload);
+        toast.success(`Paket baru '${payload.name}' berhasil ditambahkan ke Master Data!`);
+      }
+      closePackageDialog();
+    } catch (err) {
+      toast.error(apiErrorText(err, ["invoice_code", "name", "credits", "price"]));
+    }
+  };
+
+  const handleSetPackageActive = async (pkg, isActive) => {
+    try {
+      await setMasterPackageActive(pkg.id, isActive);
+      toast.success(`Paket '${pkg.name}' ${isActive ? "diaktifkan" : "dinonaktifkan"}.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
+  };
+
+  const handleDeletePackage = async (pkg) => {
+    try {
+      await deleteMasterPackage(pkg.id);
+      toast.success(`Paket '${pkg.name}' dihapus.`);
+    } catch (err) {
+      toast.error(apiErrorText(err)); // 409 bila sudah dipakai invoice / paket client
+    }
   };
 
   return (
@@ -542,7 +560,7 @@ export default function FinancePortal() {
         <LeaveTab clients={clients} search={search} invoices={rawInvoices} onIssueInvoice={(leave) => { setIssueForm({ ...issueForm, type: "leave", clientId: leave.clientId, leaveId: leave.id, amount: "", paidDirect: false, note: "" }); setIssueOpen(true); }} />
 
         {/* TAB 4: MASTER DATA PAKET KREDIT */}
-        <PackagesTab masterPackages={masterPackages} setNewPkgOpen={(o) => { setEditingPkgId(null); setNewPkgOpen(o); }} onEditPackage={openEditPackage} />
+        <PackagesTab masterPackages={masterPackages} setNewPkgOpen={(o) => { setEditingPkgId(null); setNewPkgOpen(o); }} onEditPackage={openEditPackage} onSetActive={handleSetPackageActive} onDeletePackage={handleDeletePackage} />
       </Tabs>
 
       {/* Pratinjau Foto & Dokumen Bukti Transfer Modal */}
@@ -557,10 +575,10 @@ export default function FinancePortal() {
       />
 
       {/* Issue Invoice Modal */}
-      <CreateInvoiceDialog leaves={leaves} clients={clients} handleIssueSubmit={handleIssueSubmit} issueForm={issueForm} issueOpen={issueOpen} masterPackages={masterPackages} replacementOptions={replacementOptions} setIssueForm={setIssueForm} setIssueOpen={setIssueOpen} />
+      <CreateInvoiceDialog leaves={leaves} clients={clients} handleIssueSubmit={handleIssueSubmit} issueForm={issueForm} issueOpen={issueOpen} masterPackages={activePackages} replacementOptions={replacementOptions} setIssueForm={setIssueForm} setIssueOpen={setIssueOpen} />
 
       {/* Renewal Modal (Exclusively in Role Finance) */}
-      <RenewalDialog clients={clients} handleRenewSubmit={handleRenewSubmit} masterPackages={masterPackages} renewForm={renewForm} renewOpen={renewOpen} replacementOptions={renewReplacementOptions} setRenewForm={setRenewForm} setRenewOpen={setRenewOpen} />
+      <RenewalDialog clients={clients} handleRenewSubmit={handleRenewSubmit} masterPackages={activePackages} renewForm={renewForm} renewOpen={renewOpen} replacementOptions={renewReplacementOptions} setRenewForm={setRenewForm} setRenewOpen={setRenewOpen} />
 
       {/* Add Master Package Modal */}
       <NewPackageDialog handleAddMasterPackageSubmit={handleAddMasterPackageSubmit} newPkgForm={newPkgForm} newPkgOpen={newPkgOpen} setNewPkgForm={setNewPkgForm} setNewPkgOpen={(o) => (o ? setNewPkgOpen(true) : closePackageDialog())} isEdit={Boolean(editingPkgId)} />

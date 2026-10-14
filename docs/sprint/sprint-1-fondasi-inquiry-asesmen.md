@@ -112,7 +112,8 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 2.1 | `GET /users` | daftar staf (filter `branch_id,role,is_active,q`) | `user_management` | — | `users`,`roles`,`branches` R | `idx_users_branch_role` |
 | 2.2 | `POST /users` | `CreateUserAction` | `user_management` | `name,email,role_id,branch_id?,password?,title,specialty,phone` | `users` C (`must_change_password=1`) | email unik; `branch_id` NULL = semua cabang (master selalu NULL; pengatur 1 cabang terkunci); `password` kosong → sementara dikembalikan sekali (`temporary_password`) |
 | 2.3 | `GET/PATCH /users/{id}` | detail / ubah | `user_management` | field berubah | `users` | tidak boleh mengosongkan `branch_id` non-master |
-| 2.4 | `PATCH /users/{id}/active` | (non)aktif | `user_management` | `is_active` | `users` U; token D | staf **tidak dihapus** lewat UI |
+| 2.4 | `PATCH /users/{id}/active` | (non)aktif | `user_management` | `is_active` | `users` U; token D | berhenti = nonaktif |
+| 2.4b ✚ | `DELETE /users/{id}` | `DeleteUserAction` | `user_management` + **hanya master** | — | `users` D; token D; OTP cascade | hapus permanen (14 Okt 2026). 422 `cannot_delete_self` / `last_master`; 409 `in_use` bila terapis punya jadwal/laporan sesi. Nama pelaku di data lain menjadi kosong (`created_by`/`updated_by` → NULL) |
 | 2.5 | `POST /users/{id}/reset-password` | reset oleh Master/pengatur | `user_management` | `password?` | `users` U; token D | 200 + `temporary_password` sekali bila otomatis; akun sendiri 422 |
 | 2.6 | `GET /therapists` | dropdown ringan terapis | login staf | `branch_id` | `users` R | tanpa paginasi |
 | 2.6b ✚ | `PATCH /therapists/{id}/capacity` | maks sesi/bulan terapis (`max_sessions_per_month`, CHECK 1..744) | `schedule_dashboard`/`user_management` | `max_sessions_per_month` | `users` U | tidak memblokir penjadwalan; dipakai utilisasi (S3) |
@@ -138,11 +139,13 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 
 ## 6. M3 Master data & hari libur (Hari 5–6)
 
+> **Status backend: selesai 14 Okt 2026** (test di `tests/Feature/Master`; jalankan di Docker, belum dijalankan di mesin dev). Kontrak final: `implementation_detail.md` §5. **Frontend terintegrasi 14 Okt 2026** (lint, 518 test, build lolos; belum dicek manual terhadap backend): lihat `docs/guide/10-api-migration.md`. Keputusan: libur hanya CRUD + `affected_sessions` (cancel sesi di Sprint 2); staf ber-cabang boleh libur cabangnya dan "semua cabang".
+
 ### API
 | # | Endpoint | Akses | Request kunci | Tabel | Catatan |
 |---|---|---|---|---|---|
 | 3.1 | `GET/POST/PUT/DELETE /master/services[/{code}]` | baca: login; tulis: `inquiry_pipeline`/`inquiry_dashboard` | `code,label,category,description,is_active,sort_order` | `services` | DELETE: 409 `in_use` bila ada `client_services`/`schedules.service_code` |
-| 3.2 | `… /master/quadrants` | idem | `code,title,full_name,description,color,sort_order` | `sensory_quadrants` | DELETE 409 bila dipakai soal/skor; minimal 1 kuadran |
+| 3.2 | `… /master/quadrants` | idem | `code,title,full_name,description,color,sort_order` | `sensory_quadrants` | DELETE 409 bila dipakai soal/skor; kuadran yang belum dipakai boleh dihapus semua |
 | 3.3 ✚ | `… /master/cancel-reasons` (filter `?therapist_off=0\|1`) | tulis: `weekly_calendar`/`inquiry_*` | `code,label,is_active,is_therapist_off,sort_order` | `cancel_reasons` | **Cancel dan Off = satu daftar**, beda flag `is_therapist_off`; pilihan cepat bukan FK (transaksi menyimpan string) |
 | 3.4 ✚ | `… /master/discharge-reasons` | idem | idem | `discharge_reasons` | tanpa cek pemakai |
 | 3.5 | `GET/POST/PUT /master/packages`, `PATCH /{id}/active` ✚, `DELETE /{id}` ✚ | `finance` | `name,invoice_code(unik,≠ASM),credits,price,leave_quota,is_satuan,is_assessment,description,is_active` | `master_packages` | harga berubah tidak memengaruhi invoice/paket lama (snapshot); DELETE 409 bila dipakai |

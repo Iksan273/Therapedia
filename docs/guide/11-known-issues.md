@@ -24,6 +24,7 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 | N4 | Landing dua bahasa | Modal detail program yang sedang terbuka tidak ikut berganti bahasa sampai dibuka ulang; bio/artikel sudah diterjemahkan, nama orang & istilah teknis (SI, NDT) tetap | Minor |
 | N5 | Frontend lama di browser | `staffUsers`/`rolesList`/`rbacPermissions` tersimpan dan tidak ikut reset `SEED_VERSION`; akun master memakai fallback (preset demo, default role) | Tombol Reset Demo Data / hapus localStorage bila perlu data bersih |
 | N6 | Weekly Calendar belum dibatasi cabang | `CalendarPage` (Week Grid, Day Agenda) menampilkan sesi dan terapis semua cabang; hanya tampilan *Day All Therapist* yang memakai `inBranchScope(activeBranch)`. Dilaporkan 13 Okt 2026, belum diubah (di luar scope) | Samakan semua tampilan dengan `inBranchScope` bila disetujui; backend sudah dibatasi `BranchScope` |
+| N7 | Hari libur (mode API) | Mode demo membatalkan sesi di tanggal libur (alasan `H`) saat libur ditambah; backend M3 (14 Okt 2026) baru menyimpan libur dan menghitung `affected_sessions`, pembatalan sesi dipasang Sprint 2 hari 2 | Sampai itu, di mode API sesi tetap `scheduled` pada tanggal libur; halaman Hari Libur menampilkan jumlah sesi terdampak (`affectedSessions`) agar dibatalkan manual |
 | I1 | Status invoice | Prototype hanya `unpaid`/`paid`; bukti terunggah tetap `unpaid` | Diselaraskan saat integrasi (lihat 10) |
 | I2 | Bukti bayar | Disimpan dataURL di localStorage | Mudah melewati kuota ~5MB; fase API pakai upload multipart |
 

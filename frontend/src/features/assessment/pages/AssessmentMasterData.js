@@ -26,7 +26,7 @@ export default function AssessmentMasterData() {
   const { categories, addCategory, updateCategory, deleteCategory } = useAssessments();
   const { clients } = useClients();
   const codeActions = useQuestionnaireCodeActions();
-  const { getMasterPackages } = useCredits();
+  const { getActiveMasterPackages } = useCredits();
   const { quadrants, quadrantMap } = useMasterData();
 
   // Active category selection tab
@@ -236,7 +236,7 @@ export default function AssessmentMasterData() {
       return;
     }
 
-    const servicePackage = getMasterPackages().find((m) => m.id === genDialog.servicePackageId);
+    const servicePackage = getActiveMasterPackages().find((m) => m.id === genDialog.servicePackageId);
     const withInvoice = genDialog.withInvoice !== false;
     if (withInvoice && !servicePackage) {
       toast.error("Pilih layanan dulu: harganya dipakai untuk invoice assessment.");
@@ -631,7 +631,7 @@ export default function AssessmentMasterData() {
       {/* ========================================================================= */}
       {/* MODAL: TERBITKAN KODE KUESIONER (MULTI-CODE ENGINE)                       */}
       {/* ========================================================================= */}
-      <GenerateCodeDialog masterPackages={getMasterPackages()} categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} previewCode={codeActions.previewCode} setGenDialog={setGenDialog} />
+      <GenerateCodeDialog masterPackages={getActiveMasterPackages()} categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} previewCode={codeActions.previewCode} setGenDialog={setGenDialog} />
 
       {/* ========================================================================= */}
       {/* MODAL: TAMBAH / EDIT KATEGORI                                             */}

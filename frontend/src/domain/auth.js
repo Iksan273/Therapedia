@@ -128,6 +128,20 @@ export const homePathFor = (role, hasPermission = () => false) => {
   return hit ? hit[1] : "/login";
 };
 
+// Aturan hapus akun staf (mode demo; padanan server: DeleteUserAction). Mengembalikan pesan galat atau null bila boleh.
+// - Hanya Master. Tidak boleh menghapus akun sendiri atau Master aktif terakhir.
+// - Terapis yang punya jadwal (`scheduleCount`) ditolak: nonaktifkan saja agar riwayat sesi utuh (server: 409 `in_use`).
+// `actor` = { role, userId, name } sesi yang menghapus; `scheduleCount` = jumlah jadwal milik terapis akun itu.
+export const validateStaffDeletion = ({ actor, target, staffUsers = [], scheduleCount = 0 }) => {
+  if (actor?.role !== "master") return "Hanya Master yang boleh menghapus akun.";
+  if (target.id === actor.userId || (!actor.userId && target.name === actor.name)) return "Anda tidak dapat menghapus akun Anda sendiri.";
+  if (target.role === "master" && target.isActive !== false && !staffUsers.some((u) => u.id !== target.id && u.role === "master" && u.isActive !== false)) {
+    return "Master aktif terakhir tidak dapat dihapus.";
+  }
+  if (scheduleCount > 0) return `Akun "${target.name}" dipakai di ${scheduleCount} jadwal. Nonaktifkan saja agar riwayat sesi tetap utuh.`;
+  return null;
+};
+
 // Pesan galat dari ApiError untuk ditampilkan di form: utamakan pesan field, lalu pesan umum.
 export const apiErrorText = (error, fields = []) => {
   for (const field of fields) {

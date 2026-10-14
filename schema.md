@@ -765,7 +765,7 @@ Tabel paling sering dibaca (kalender). Teks laporan dipisah ke `session_reports`
 | `id` | BIGINT U | — | auto | PK |
 | `branch_id` | BIGINT U | — | — | FK → `branches` · CASCADE |
 | `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
-| `therapist_id` | BIGINT U | — | — | FK → `users` · RESTRICT (staf tidak dihapus lewat UI; hapus cabang menghapus sesi lebih dulu, §6.7) |
+| `therapist_id` | BIGINT U | — | — | FK → `users` · RESTRICT (terapis yang masih punya sesi tidak bisa dihapus: hapus akun ditolak 409 `in_use`, §6.7; hapus cabang menghapus sesi lebih dulu) |
 | `series_id` | BIGINT U | ✔ | | FK → `schedule_series` · SET NULL |
 | `client_package_id` | BIGINT U | ✔ | | FK → `client_packages` · SET NULL. NULL untuk asesmen / sesi yang kehilangan paket (Frozen). Paket hanya terhapus lewat hapus client (sesinya ikut terhapus oleh FK client) |
 | `service_code` | VARCHAR(50) | ✔ | | FK → `services.code`. Diturunkan dari `client_services`, tidak dipilih di form jadwal |
@@ -832,7 +832,7 @@ Laporan sesi 3 bagian (prototype). Catatan klinis gaya SOAP ditulis bebas di `no
 | `id` | BIGINT U | — | auto | PK |
 | `schedule_id` | BIGINT U | — | — | UQ. FK → `schedules` · CASCADE |
 | `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE. Denormalisasi: riwayat laporan per client |
-| `therapist_id` | BIGINT U | — | — | FK → `users` · RESTRICT |
+| `therapist_id` | BIGINT U | — | — | FK → `users` · RESTRICT (terapis yang punya laporan sesi tidak bisa dihapus: hapus akun ditolak 409 `in_use`, §6.7) |
 | `activity_section` | TEXT | ✔ | | Aktivitas sesi |
 | `note_section` | TEXT | ✔ | | Catatan klinis |
 | `homework_section` | TEXT | ✔ | | PR / home program |
@@ -1330,7 +1330,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 | **Master pilihan string**: `cancel_reasons`, `discharge_reasons`, `holidays` | Tidak ada | Langsung dihapus tanpa cek (transaksi menyimpan string, bukan FK) |
 | **Kode kuesioner** `issued` | invoice assessment pemicu yang **belum lunas** (dihapus service) | Hanya yang belum diisi **dan belum punya draft** (409 `draft_exists`). `submitted` tidak bisa dihapus selain lewat hapus client. Invoice assessment yang sudah `paid` dibiarkan (FK `SET NULL`) |
 | **Cabang** | Semua isi cabang: `clients` (dan seluruh turunannya di atas), `schedule_series`, `client_leaves`, `schedules`, `invoices`, `credit_ledger`, `holidays` cabang itu, lalu akun `users` yang `branch_id`-nya = cabang itu | **Hanya role `master`.** Tidak ada pemblokir. Akun ber-`branch_id` NULL (semua cabang, mis. master) tidak tersentuh. Lihat alur di bawah |
-| **Staf** (`users`) | — | Tidak dihapus lewat UI (dinonaktifkan). Terhapus hanya lewat hapus cabang |
+| **Staf** (`users`) | `personal_access_tokens` (dihapus manual oleh action), `password_reset_otps` (CASCADE). Kolom pelaku di tabel lain (`created_by`, `updated_by`, `verified_by`, `voided_by`, `cancelled_by`, `completed_by`, `origin_therapist_id`, `prev_therapist_id`, …) menjadi NULL (`SET NULL`): data tetap, nama pelaku hilang (`invoice_logs.actor_name` menyimpan salinan nama) | **Hanya role `master`** (`DELETE /users/{id}`, `DeleteUserAction`). Ditolak: akun sendiri (422 `cannot_delete_self`), master aktif terakhir (422 `last_master`), dan terapis yang masih punya `schedules` atau `session_reports` (409 `in_use`, FK `RESTRICT` sebagai jaring pengaman). Untuk staf yang pernah bekerja, nonaktifkan (`is_active = 0`) agar riwayat dan nama pelaku utuh. Hapus cabang tetap menghapus akun staf cabang itu |
 
 3. **Alur hapus cabang** (`DeleteBranchAction`, **sinkron** dalam satu request; UI menampilkan loading dan boleh lama): (a) wajib konfirmasi mengetik kode cabang + role `master`; (b) satu `DB::transaction()` **atomik (semua atau tidak sama sekali)** berisi urutan: `schedules` per batch (`chunkById(1000)` untuk menjaga memori) → `clients` per batch (cascade ke seluruh turunannya) → sisa `invoices`/`credit_ledger` cabang → `holidays` cabang → `users` yang `branch_id`-nya cabang itu (FK `users.branch_id` sengaja `RESTRICT`, dihapus eksplisit setelah semua sesinya hilang karena `schedules.therapist_id` `RESTRICT`) → baris `branches`; (c) setelah commit, file bukti bayar dihapus dari storage privat **sinkron** (daftar path dikumpulkan sebelum `DELETE`; kegagalan hapus file hanya dicatat di log aplikasi); (d) respons `200` berisi ringkasan jumlah client/sesi/invoice/akun yang terhapus, dan satu baris ke log aplikasi. Konfigurasi: `set_time_limit(0)` untuk rute ini dan `proxy_read_timeout` web server dinaikkan (mis. 300 dtk) hanya untuk `DELETE /branches/{id}`. Kedalaman cascade terpanjang (cabang → client → invoice → paket → ledger → reversal) < 15 tingkat batas InnoDB.
 4. Tidak ada kolom/enum untuk menandai hapus: `invoice_logs.action` tidak punya `deleted`, tabel tidak punya `softDeletes`, view tidak memfilter `deleted_at`.

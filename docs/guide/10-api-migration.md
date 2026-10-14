@@ -142,6 +142,19 @@ Aktif bila `VITE_DATA_SOURCE=api`. Mode demo tetap memakai localStorage; impleme
 | Sesi | `auth` memuat `roleName`/`roleBadge` (label sidebar role kustom); `refreshSession()` dipanggil bila Master mengubah izin role akunnya sendiri; `queryClient.clear()` saat logout |
 Urutan provider: `AuthProvider` kini di luar `BranchesProvider`/`TherapistsProvider` (store API membaca sesi untuk menentukan kapan boleh memanggil API; sesi tersimpan tanpa token dianggap kosong).
 Hapus cabang permanen: server membalas 501 sampai Sprint 4; halaman menjelaskan dan menyarankan Nonaktifkan.
+### M3 Master data & hari libur: terintegrasi (14 Okt 2026)
+Aktif bila `VITE_DATA_SOURCE=api`. Mode demo tetap memakai localStorage; implementasi dipilih per build (`isApiMode()`), jadi halaman sama. Kontrak endpoint: `implementation_detail.md` §5.
+| Bagian | Implementasi |
+|---|---|
+| Endpoint | `ENDPOINTS.master.{services,quadrants,cancelReasons,dischargeReasons,packages}` (`list`/`detail`, paket + `setActive`) dan `ENDPOINTS.holidays` |
+| Mapper | `services/api/mappers/masterDataMapper.js`: layanan/alasan memakai kunci `value` + `active` (= `code`/`is_active` server), kuadran kunci `code`, paket `id` = kode internal server (`pkg-reguler`, cocok dengan `packageId` di data kredit) dan id angka di `serverId`, libur `date`/`branchId` string. Request hanya memuat field yang diisi (patch parsial aman) |
+| Store | `masterDataStore` (layanan, kuadran, alasan Cancel/Off, alasan Discharge; react-query `["master", …]`), `holidaysStore` (`["holidays"]`, `createHolidayRange`), master paket di `creditsStore` (`useMasterPackages`, `["master","packages"]`; sisa data kredit/invoice masih localStorage sampai Finance) |
+| Aksi tulis | Mode API mengembalikan Promise dan melempar `ApiError`; halaman `await` + `try/catch` dengan `apiErrorText` (422 kode ganda, 409 `in_use`, 403 libur cabang lain). Mode demo sinkron |
+| Hook | `useHolidayActions`: mode API mengirim libur sekali (satu tanggal atau rentang), tanpa pratinjau/konfirmasi pembatalan, hasil `{ cancelled: 0, affected }` |
+| Halaman | `InquiryMasterData` + `ReasonListTab`, `Holidays`, `FinancePortal` + `PackagesTab` (saklar aktif + hapus paket) |
+| Paket aktif | `getActiveMasterPackages()` untuk pilihan di form invoice, renewal, asesmen, dan konversi; paket nonaktif tetap terbaca lewat `getMasterPackages()` |
+Aturan yang berubah (13–14 Okt): kuadran yang belum dipakai boleh dihapus semua (tidak ada batas minimal, demo ikut). Hapus paket di demo hanya bila belum dipakai invoice/paket client (`masterPackageUsage`, `domain/credit.js`).
+Batasan sementara: (1) libur di mode API **tidak** membatalkan sesi (Sprint 2); toast menyebut jumlah sesi terjadwal yang terdampak. (2) Pemakaian layanan/kuadran di halaman Master Data dihitung dari store lokal (client, jadwal, asesmen) sehingga di mode API angkanya belum akurat; server tetap menolak hapus yang dipakai (409). (3) Paket baru dari server belum dikenali reducer kredit lokal (renewal/aktivasi paket) sampai Finance dimigrasi (Sprint 2).
 
 **Batasan sementara (modul lain masih localStorage):** halaman selain auth belum membaca data dari API sampai modulnya dimigrasi (sprint 1 hari 6+). Akibatnya setelah login API: `branchId` berupa id numerik server (belum cocok dengan id cabang demo), portal ortu/terapis belum menemukan datanya, dan halaman User/RBAC masih memakai data lokal sampai M2 dimigrasi.
 

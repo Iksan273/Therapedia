@@ -858,6 +858,13 @@ export function buildSamePackageRenewal(record, masterPackages = []) {
 export const hasOpenPackageInvoice = (invoices = [], clientId) =>
   invoices.some((i) => i.clientId === clientId && invoiceType(i) === "package" && i.status !== "paid" && i.status !== "void");
 
+// Pemakaian sebuah master paket (`packageId` = id master): jumlah paket client dan invoice yang merujuknya. Master yang sudah
+// dipakai tidak boleh dihapus (nonaktifkan saja); padanan server: 409 `in_use` di DELETE /master/packages/{id}.
+export const masterPackageUsage = (credits = {}, packageId) => ({
+  packages: (credits.records || []).reduce((n, r) => n + (r.packages || []).filter((p) => p.packageId === packageId).length, 0),
+  invoices: (credits.invoices || []).filter((i) => i.packageId === packageId).length,
+});
+
 // Invoice cuti yang tertaut ke sebuah log cuti (urut terbaru dulu). Dipakai tab Cuti & Detail cuti.
 export const invoicesOfLeave = (invoices = [], leaveId) =>
   invoices.filter((i) => invoiceType(i) === "leave" && i.leaveId === leaveId && i.status !== "void").sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));

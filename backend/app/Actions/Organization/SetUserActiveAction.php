@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Aktif/nonaktifkan akun staf. Staf TIDAK dihapus lewat UI (riwayat sesi tetap); berhenti = dinonaktifkan.
+ * Aktif/nonaktifkan akun staf. Berhenti = dinonaktifkan (riwayat sesi dan nama pelaku tetap); hapus permanen: DeleteUserAction.
  * - Tidak boleh menonaktifkan diri sendiri, dan tidak boleh menonaktifkan master aktif terakhir.
  * - Saat dinonaktifkan semua token akun dihapus (langsung keluar dari semua perangkat).
  */

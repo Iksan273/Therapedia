@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { DeleteButton } from "@/shared/components/DeleteControls";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, activeBranches } from "@/domain/branch";
 import { apiErrorText, generateTempPassword, hasAllBranchAccess, validateNewPassword } from "@/domain/auth";
@@ -34,7 +35,7 @@ export default function UserManagement() {
   const [search, setSearch] = useState("");
   const [branchFilter, setBranchFilter] = useState(defaultBranch);
   // Data akun: mode demo = localStorage (filter di klien), mode API = Laravel (filter & paginasi di server)
-  const { users, pagination, isLoading, rolesList, isEmailTaken, addStaff, updateStaff, setStaffActive, resetPassword } = useStaffAdmin({ branchFilter, search });
+  const { users, pagination, isLoading, rolesList, isEmailTaken, addStaff, updateStaff, setStaffActive, deleteStaff, resetPassword } = useStaffAdmin({ branchFilter, search });
 
   // Hanya Master yang boleh memberi role Master (server menolak selain itu dengan 403).
   const roleOptions = useMemo(
@@ -134,7 +135,7 @@ export default function UserManagement() {
     }
   };
 
-  // Staf yang berhenti dinonaktifkan (tidak dihapus): riwayat sesi dan data tetap utuh, akun tidak bisa login.
+  // Staf yang berhenti sebaiknya dinonaktifkan: riwayat sesi dan nama pelaku tetap utuh, akun tidak bisa login.
   const handleToggleActive = async (user) => {
     const active = user.isActive !== false;
     if (active) {
@@ -148,6 +149,16 @@ export default function UserManagement() {
     try {
       await setStaffActive(user.id, !active);
       toast.info(active ? `Akun ${user.name} dinonaktifkan.` : `Akun ${user.name} diaktifkan kembali.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
+  };
+
+  // Hapus permanen (hanya Master). Server/aturan domain menolak: akun sendiri, Master aktif terakhir, terapis ber-jadwal (409).
+  const handleDelete = async (user) => {
+    try {
+      await deleteStaff(user.id);
+      toast.success(`Akun ${user.name} dihapus.`);
     } catch (err) {
       toast.error(apiErrorText(err));
     }
@@ -298,11 +309,23 @@ export default function UserManagement() {
                         variant="ghost"
                         className={u.isActive === false ? "text-emerald-600 hover:bg-emerald-50 cursor-pointer" : "text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"}
                         onClick={() => handleToggleActive(u)}
-                        title={u.isActive === false ? "Aktifkan kembali" : "Nonaktifkan (tidak dihapus)"}
+                        title={u.isActive === false ? "Aktifkan kembali" : "Nonaktifkan (riwayat tetap utuh)"}
                         data-testid={`toggle-active-${u.id}`}
                       >
                         {u.isActive === false ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
                       </Button>
+                      {u.id !== String(auth?.userId ?? "") && (
+                        <DeleteButton
+                          module="user_management"
+                          masterOnly
+                          iconOnly
+                          label={`Hapus akun ${u.name}`}
+                          title="Hapus akun staff?"
+                          description={`Akun ${u.name} dihapus permanen dan tidak bisa login lagi. Data yang pernah dibuat atau diubah akun ini tetap ada, tetapi nama pelakunya menjadi kosong. Terapis yang sudah punya jadwal atau laporan sesi tidak bisa dihapus; nonaktifkan saja.`}
+                          onConfirm={() => handleDelete(u)}
+                          testId={`delete-staff-${u.id}`}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 );

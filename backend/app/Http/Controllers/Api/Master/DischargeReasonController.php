@@ -3,42 +3,42 @@
 namespace App\Http\Controllers\Api\Master;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Master\ReasonRequest;
+use App\Http\Resources\Master\ReasonResource;
+use App\Models\DischargeReason;
 use App\Services\MasterDataService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-/**
- * Pilihan cepat alasan discharge (M3, tanpa FK).
- * Tipis: validasi (Form Request) di sini nanti, logika bisnis di MasterDataService / Action.
- */
+/** Alasan Discharge/Discontinue (pilihan cepat). Tersimpan sebagai string di client, jadi hapus tidak dicek pemakainya. */
 class DischargeReasonController extends Controller
 {
     public function __construct(private readonly MasterDataService $service) {}
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->paginate('discharge-reasons', $request->query())]);
+        return response()->json(['data' => ReasonResource::collection($this->service->all(DischargeReason::class, $request))->resolve()]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function show(string $code): JsonResponse
     {
-        return response()->json(['data' => $this->service->create('discharge-reasons', $request->all())], 201);
+        return response()->json(['data' => (new ReasonResource($this->service->find(DischargeReason::class, $code)))->resolve()]);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function store(ReasonRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->find('discharge-reasons', $id)]);
+        return response()->json(['data' => (new ReasonResource($this->service->create(DischargeReason::class, $request->validated())))->resolve()], 201);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(ReasonRequest $request, string $code): JsonResponse
     {
-        return response()->json(['data' => $this->service->update('discharge-reasons', $id, $request->all())]);
+        return response()->json(['data' => (new ReasonResource($this->service->update(DischargeReason::class, $code, $request->validated())))->resolve()]);
     }
 
-    public function destroy(Request $request, string $id): Response
+    public function destroy(string $code): Response
     {
-        $this->service->delete('discharge-reasons', $id);
+        $this->service->delete(DischargeReason::class, $code);
 
         return response()->noContent();
     }

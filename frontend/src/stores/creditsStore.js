@@ -1,8 +1,16 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
 import { getSeedLoader } from "@/data/seedRegistry";
 import { todayStr, uid } from "@/shared/lib/id";
+import { isStaffSession } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
+import { api } from "@/services/http/httpClient";
+import { ENDPOINTS } from "@/services/api/endpoints";
+import { packageFromApi, packageToApi } from "@/services/api/mappers/masterDataMapper";
+import { useAuth } from "@/stores/authStore";
 import {
+  masterPackageUsage,
   appendInvoiceLog,
   applyBalanceToAmount,
   adoptPackageForReplacement,
@@ -108,6 +116,9 @@ function creditsReducer(state, action) {
 
     case "UPDATE_MASTER_PACKAGE": // invoice lama memakai snapshot paket, jadi tidak ikut berubah
       return { ...state, masterPackages: (state.masterPackages || []).map((p) => (p.id === action.id ? { ...p, ...action.patch } : p)) };
+
+    case "DELETE_MASTER_PACKAGE": // hanya master yang belum dipakai (dijaga di useMasterPackagesLocal)
+      return { ...state, masterPackages: (state.masterPackages || []).filter((p) => p.id !== action.id) };
 
     case "ADD_RECORD": {
       const exists = state.records.some((r) => r.clientId === action.record.clientId);
@@ -377,14 +388,67 @@ function creditsReducer(state, action) {
   }
 }
 
+// ---- Master paket. Satu-satunya bagian credits yang sudah di server (M3); invoice/paket client/ledger masih localStorage
+// sampai Finance dimigrasi. Kedua mode mengembalikan bentuk yang sama; aksi tulis mode API mengembalikan Promise dan melempar
+// `ApiError` (422 kode invoice ganda, 409 paket sudah dipakai), mode demo sinkron (melempar Error biasa bila paket dipakai).
+function useMasterPackagesLocal(credits, dispatch) {
+  return {
+    masterPackages: credits.masterPackages || [],
+    addMasterPackage: (packageData) => dispatch({ type: "ADD_MASTER_PACKAGE", packageData: { isActive: true, ...packageData } }),
+    updateMasterPackage: (id, patch) => dispatch({ type: "UPDATE_MASTER_PACKAGE", id, patch }),
+    setMasterPackageActive: (id, isActive) => dispatch({ type: "UPDATE_MASTER_PACKAGE", id, patch: { isActive } }),
+    deleteMasterPackage: (id) => {
+      const usage = masterPackageUsage(credits, id);
+      if (usage.packages + usage.invoices > 0) {
+        throw new Error(`Paket dipakai di ${usage.invoices} invoice dan ${usage.packages} paket client. Nonaktifkan saja bila tidak dijual lagi.`);
+      }
+      dispatch({ type: "DELETE_MASTER_PACKAGE", id });
+    },
+  };
+}
+
+export const MASTER_PACKAGES_QUERY_KEY = ["master", "packages"];
+
+// Mode API: `GET /master/packages` dibaca semua staf; tulis butuh modul `finance`. `id` frontend = kode internal server
+// (`pkg-reguler`, sama dengan `packageId` di data kredit), id angka di `serverId` untuk URL.
+function useMasterPackagesApi() {
+  const { auth } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: MASTER_PACKAGES_QUERY_KEY,
+    queryFn: ({ signal }) => api.get(ENDPOINTS.master.packages.list, undefined, { signal }).then((rows) => rows.map(packageFromApi)),
+    enabled: isStaffSession(auth),
+    staleTime: 5 * 60_000,
+  });
+  const masterPackages = useMemo(() => data ?? [], [data]);
+  const serverIdOf = (id) => masterPackages.find((p) => p.id === id)?.serverId ?? id;
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: MASTER_PACKAGES_QUERY_KEY });
+  const create = useMutation({ mutationFn: (form) => api.post(ENDPOINTS.master.packages.list, packageToApi(form)), onSuccess: refresh });
+  const update = useMutation({ mutationFn: ({ id, form }) => api.patch(ENDPOINTS.master.packages.detail(serverIdOf(id)), packageToApi(form)), onSuccess: refresh });
+  const toggle = useMutation({ mutationFn: ({ id, isActive }) => api.patch(ENDPOINTS.master.packages.setActive(serverIdOf(id)), { isActive }), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: (id) => api.delete(ENDPOINTS.master.packages.detail(serverIdOf(id))), onSuccess: refresh });
+
+  return {
+    masterPackages,
+    addMasterPackage: async (form) => packageFromApi(await create.mutateAsync(form)),
+    updateMasterPackage: async (id, form) => packageFromApi(await update.mutateAsync({ id, form })),
+    setMasterPackageActive: async (id, isActive) => packageFromApi(await toggle.mutateAsync({ id, isActive })),
+    deleteMasterPackage: (id) => remove.mutateAsync(id),
+  };
+}
+
+const useMasterPackages = isApiMode() ? useMasterPackagesApi : useMasterPackagesLocal;
+
 export const CreditsProvider = ({ children }) => {
   const [rawCredits, dispatch] = usePersistentReducer("credits", creditsReducer, () => getSeedLoader().loadCreditsSeed());
-  const credits = rawCredits;
+  const { masterPackages, addMasterPackage, updateMasterPackage, setMasterPackageActive, deleteMasterPackage } = useMasterPackages(rawCredits, dispatch);
+  // Mode API: katalog paket berasal dari server; sisa data kredit tetap dari localStorage sampai modul Finance dimigrasi
+  const credits = useMemo(() => (isApiMode() ? { ...rawCredits, masterPackages } : rawCredits), [rawCredits, masterPackages]);
 
   const deleteInvoices = (ids) => dispatch({ type: "DELETE_INVOICES", ids });
   const purgeClientCredit = (clientId) => dispatch({ type: "PURGE_CLIENT", clientId });
-  const addMasterPackage = (packageData) => dispatch({ type: "ADD_MASTER_PACKAGE", packageData });
-  const updateMasterPackage = (id, patch) => dispatch({ type: "UPDATE_MASTER_PACKAGE", id, patch });
   const addRecord = (record) => dispatch({ type: "ADD_RECORD", record });
   const spendPackageCredit = ({ clientId, packageId, scheduleId, date, by }) =>
     dispatch({ type: "SPEND_PACKAGE_CREDIT", clientId, packageId, scheduleId, date, by });
@@ -420,6 +484,8 @@ export const CreditsProvider = ({ children }) => {
   const getCreditBalance = (clientId) => balanceOf(credits.records || [], clientId);
   const getRawRecord = (clientId) => (credits.records || []).find((r) => r.clientId === clientId) || null;
   const getMasterPackages = () => credits.masterPackages || [];
+  // Paket yang masih dijual: untuk pilihan di form (invoice, renewal, asesmen). Paket nonaktif tetap terbaca lewat getMasterPackages.
+  const getActiveMasterPackages = () => getMasterPackages().filter((p) => p.isActive !== false);
   const getLeaveResetAt = () => credits.leaveResetAt || null; // tanggal reset tahunan terakhir (semua client)
   const getLeaveResets = () => credits.leaveResets || [];
 
@@ -448,10 +514,13 @@ export const CreditsProvider = ({ children }) => {
         getInvoicesForClient,
         getAllInvoices,
         getMasterPackages,
+        getActiveMasterPackages,
         getLeaveResetAt,
         getLeaveResets,
         resetAllLeave,
         updateMasterPackage,
+        setMasterPackageActive,
+        deleteMasterPackage,
       }}
     >
       {children}

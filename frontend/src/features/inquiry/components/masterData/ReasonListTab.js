@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { EmptyState } from "@/shared/components/EmptyState";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
+import { apiErrorText } from "@/domain/auth";
 
 const EMPTY = { open: false, editingValue: null, value: "", label: "", active: true, flagged: false };
 
@@ -31,36 +32,54 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
 
   const openEdit = (r) => setDialog({ open: true, editingValue: r.value, value: r.value, label: r.label, active: r.active !== false, flagged: flag ? Boolean(r[flag.key]) : false });
 
-  const save = () => {
+  // `onAdd` / `onUpdate` / `onDelete` bisa async dan menolak (mode API: 422 kode ganda); pesan server ditampilkan sebagai toast.
+  const save = async () => {
     const label = dialog.label.trim();
     if (!label) {
       toast.error(`Nama ${noun} wajib diisi.`);
       return;
     }
-    if (dialog.editingValue) {
-      onUpdate(dialog.editingValue, { label, active: dialog.active, ...(flag ? { [flag.key]: dialog.flagged } : {}) });
-      toast.success(`${noun} "${label}" diperbarui.`);
-    } else {
-      const code = codeMode ? dialog.value.trim().toUpperCase() : slugify(dialog.value || label);
-      if (codeMode ? !/^[A-Z0-9]{1,10}$/.test(code) : !code) {
-        toast.error(codeMode ? `Kode ${noun} wajib diisi: 1-10 karakter huruf/angka (mis. S, OL, SCA).` : `Kode ${noun} tidak valid.`);
-        return;
+    try {
+      if (dialog.editingValue) {
+        await onUpdate(dialog.editingValue, { label, active: dialog.active, ...(flag ? { [flag.key]: dialog.flagged } : {}) });
+        toast.success(`${noun} "${label}" diperbarui.`);
+      } else {
+        const code = codeMode ? dialog.value.trim().toUpperCase() : slugify(dialog.value || label);
+        if (codeMode ? !/^[A-Z0-9]{1,10}$/.test(code) : !code) {
+          toast.error(codeMode ? `Kode ${noun} wajib diisi: 1-10 karakter huruf/angka (mis. S, OL, SCA).` : `Kode ${noun} tidak valid.`);
+          return;
+        }
+        if (items.some((r) => r.value === code) || reservedCodes.includes(code)) {
+          toast.error(`Kode "${code}" sudah dipakai.`);
+          return;
+        }
+        await onAdd({ value: code, label, active: dialog.active, ...(flag ? { [flag.key]: dialog.flagged } : {}) });
+        toast.success(`${noun} "${label}" ditambahkan.`);
       }
-      if (items.some((r) => r.value === code) || reservedCodes.includes(code)) {
-        toast.error(`Kode "${code}" sudah dipakai.`);
-        return;
-      }
-      onAdd({ value: code, label, active: dialog.active, ...(flag ? { [flag.key]: dialog.flagged } : {}) });
-      toast.success(`${noun} "${label}" ditambahkan.`);
+      setDialog(EMPTY);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["code", "label"]));
     }
-    setDialog(EMPTY);
+  };
+
+  const toggleActive = async (r, checked) => {
+    try {
+      await onUpdate(r.value, { active: checked });
+      toast.success(`"${r.label}" ${checked ? "diaktifkan" : "dinonaktifkan"}.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
   const remove = async (r) => {
     const description = `"${r.label}" akan dihapus dari pilihan cepat. Riwayat lama tetap tersimpan, tetapi tampil sebagai kode "${r.value}".`;
     if (!(await confirm({ title: `Hapus ${noun}?`, description }))) return;
-    onDelete(r.value);
-    toast.success(`${noun} "${r.label}" dihapus.`);
+    try {
+      await onDelete(r.value);
+      toast.success(`${noun} "${r.label}" dihapus.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
   return (
@@ -113,10 +132,7 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
                   <TableCell data-label="Aktif" className="text-center">
                     <Switch
                       checked={r.active !== false}
-                      onCheckedChange={(checked) => {
-                        onUpdate(r.value, { active: checked });
-                        toast.success(`"${r.label}" ${checked ? "diaktifkan" : "dinonaktifkan"}.`);
-                      }}
+                      onCheckedChange={(checked) => toggleActive(r, checked)}
                       aria-label={`Aktifkan ${r.label}`}
                     />
                   </TableCell>

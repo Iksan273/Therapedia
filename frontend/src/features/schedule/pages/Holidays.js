@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import DateFilterPicker from "@/shared/components/DateFilterPicker";
-import { hasAllBranchAccess } from "@/domain/auth";
+import { apiErrorText, hasAllBranchAccess } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { toast } from "sonner";
 import { CalendarOff, Pencil, Plus } from "lucide-react";
@@ -71,11 +72,29 @@ export default function Holidays() {
       });
       if (!ok) return;
     }
-    const { cancelled } = editingId ? changeHoliday(editingId, drafts[0]) : createHolidays(drafts);
-    const info = cancelled > 0 ? ` ${cancelled} sesi pada tanggal itu dibatalkan otomatis (tanpa potong kredit).` : "";
-    toast.success(`${editingId ? "Hari libur diperbarui." : drafts.length > 1 ? `${drafts.length} hari libur ditambahkan.` : "Hari libur ditambahkan."}${info}`);
-    if (editingId) setEditingId(null);
-    setForm(editingId ? emptyForm : (f) => ({ ...f, date: "", endDate: "", name: "" }));
+    try {
+      const { cancelled, affected } = await (editingId ? changeHoliday(editingId, drafts[0]) : createHolidays(drafts));
+      const info =
+        cancelled > 0
+          ? ` ${cancelled} sesi pada tanggal itu dibatalkan otomatis (tanpa potong kredit).`
+          : affected > 0
+            ? ` Ada ${affected} sesi terjadwal pada tanggal itu yang belum dibatalkan otomatis; batalkan manual di kalender.`
+            : "";
+      toast.success(`${editingId ? "Hari libur diperbarui." : drafts.length > 1 ? `${drafts.length} hari libur ditambahkan.` : "Hari libur ditambahkan."}${info}`);
+      if (editingId) setEditingId(null);
+      setForm(editingId ? emptyForm : (f) => ({ ...f, date: "", endDate: "", name: "" }));
+    } catch (err) {
+      toast.error(apiErrorText(err, ["holiday_date", "start_date", "end_date", "name", "branch_id"])); // mis. 422 tanggal sudah terdaftar, 403 cabang lain
+    }
+  };
+
+  const handleRemove = async (h) => {
+    try {
+      await removeHoliday(h.id);
+      toast.success("Hari libur dihapus.");
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
   const today = todayStr();
@@ -90,7 +109,10 @@ export default function Holidays() {
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Hari Libur</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Tanggal libur dilewati oleh jadwal berulang dan tidak bisa dipilih saat membuat atau memindahkan sesi. Sesi aktif di tanggal libur (scheduled / menunggu jadwal pengganti) otomatis dibatalkan tanpa potong kredit; completed, cancelled, dan rescheduled tidak berubah.
+          Tanggal libur dilewati oleh jadwal berulang dan tidak bisa dipilih saat membuat atau memindahkan sesi.{" "}
+          {isApiMode()
+            ? "Sesi yang sudah terjadwal di tanggal libur tidak dibatalkan otomatis; sistem memberi tahu jumlahnya saat libur disimpan, lalu batalkan manual di kalender."
+            : "Sesi aktif di tanggal libur (scheduled / menunggu jadwal pengganti) otomatis dibatalkan tanpa potong kredit; completed, cancelled, dan rescheduled tidak berubah."}
         </p>
       </div>
 
@@ -186,10 +208,7 @@ export default function Holidays() {
                           label={`Hapus hari libur ${h.name}`}
                           title="Hapus hari libur?"
                           description={`${h.name} (${fmtDate(h.date)}) tidak lagi dilewati jadwal berulang dan bisa dipilih di kalender. Sesi yang sudah dibuat tidak berubah.`}
-                          onConfirm={() => {
-                            removeHoliday(h.id);
-                            toast.success("Hari libur dihapus.");
-                          }}
+                          onConfirm={() => handleRemove(h)}
                           testId={`delete-holiday-${h.id}`}
                         />
                       </TableCell>

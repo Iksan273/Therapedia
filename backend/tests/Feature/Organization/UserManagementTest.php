@@ -6,6 +6,7 @@ use App\Actions\Organization\UserGuard;
 use App\Models\User;
 use App\Rules\StrongPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Tests\Concerns\AuthFixtures;
 use Tests\Concerns\OrganizationFixtures;
@@ -289,6 +290,65 @@ class UserManagementTest extends TestCase
 
         $second->update(['is_active' => false]);
         $this->assertTrue(UserGuard::isLastActiveMaster($this->master->fresh()->load('role')), 'master nonaktif tidak dihitung');
+    }
+
+    // ---- Hapus akun
+
+    public function test_master_deletes_an_account_without_history_and_revokes_its_tokens(): void
+    {
+        $user = $this->makeStaff('finance', ['email' => 'dewi@therapedia.test']);
+        $this->loginToken($user);
+        DB::table('holidays')->insert(['holiday_date' => '2026-12-25', 'name' => 'Natal', 'created_by' => $user->id, 'updated_by' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->actAs($this->master)->deleteJson('/api/v1/users/'.$user->id)->assertNoContent();
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertSame(0, DB::table('personal_access_tokens')->where('tokenable_id', $user->id)->count());
+        $this->assertDatabaseHas('holidays', ['name' => 'Natal', 'created_by' => null, 'updated_by' => null]); // data tetap, pelaku jadi kosong
+        $this->postJson('/api/v1/auth/login', ['email' => 'dewi@therapedia.test', 'password' => self::PASSWORD])->assertStatus(422);
+    }
+
+    public function test_only_master_may_delete_accounts(): void
+    {
+        $manager = $this->makeStaffWithRole($this->makeCustomRole('pengelola', ['user_management']), 'EAST');
+        $target = $this->makeStaff('finance');
+
+        $this->actAs($manager)->deleteJson('/api/v1/users/'.$target->id)->assertStatus(403)->assertJsonPath('code', 'forbidden');
+        $this->assertDatabaseHas('users', ['id' => $target->id]);
+    }
+
+    public function test_cannot_delete_self_or_the_last_active_master(): void
+    {
+        $this->actAs($this->master)->deleteJson('/api/v1/users/'.$this->master->id)
+            ->assertStatus(422)->assertJsonPath('code', 'cannot_delete_self');
+
+        $inactiveMaster = $this->makeStaff('master', ['email' => 'm2@therapedia.test', 'is_active' => false]);
+        $this->actAs($inactiveMaster)->deleteJson('/api/v1/users/'.$this->master->id)
+            ->assertStatus(422)->assertJsonPath('code', 'last_master');
+        $this->assertDatabaseHas('users', ['id' => $this->master->id]);
+    }
+
+    public function test_therapist_with_schedules_cannot_be_deleted(): void
+    {
+        $therapist = $this->makeStaff('therapist');
+        $client = $this->makeClient();
+        DB::table('schedules')->insert([
+            'branch_id' => $client->branch_id, 'client_id' => $client->id, 'therapist_id' => $therapist->id,
+            'session_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '10:00', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actAs($this->master)->deleteJson('/api/v1/users/'.$therapist->id)
+            ->assertStatus(409)->assertJsonPath('code', 'in_use');
+        $this->assertDatabaseHas('users', ['id' => $therapist->id]);
+
+        // terapis tanpa jadwal boleh dihapus
+        $idle = $this->makeStaff('therapist');
+        $this->deleteJson('/api/v1/users/'.$idle->id)->assertNoContent();
+    }
+
+    public function test_deleting_unknown_account_is_404(): void
+    {
+        $this->actAs($this->master)->deleteJson('/api/v1/users/999999')->assertNotFound();
     }
 
     // ---- Reset password

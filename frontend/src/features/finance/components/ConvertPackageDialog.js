@@ -16,7 +16,7 @@ import { usePackageConversionActions } from "@/features/finance/hooks/usePackage
 // Konversi sisa sesi paket invoice ke paket lain. Otomatis = nilai sisa ÷ harga per sesi tujuan (dibulatkan ke bawah);
 // manual = Finance mengisi jumlah sesi (tidak boleh melebihi nilai sisa, alasan wajib). Lebihan rupiah → saldo client.
 export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
-  const { getMasterPackages, getCreditBalance } = useCredits();
+  const { getActiveMasterPackages, getCreditBalance } = useCredits();
   const { previewConversion, convertInvoicePackage, upcomingSchedules, sourceInfo } = usePackageConversionActions();
   const [targetId, setTargetId] = useState("");
   const [manual, setManual] = useState(false);
@@ -32,7 +32,7 @@ export function ConvertPackageDialog({ invoice, open, onOpenChange }) {
     }
   }, [open, invoice?.id]);
 
-  const targets = useMemo(() => getMasterPackages().filter((p) => p.id !== invoice?.packageId), [getMasterPackages, invoice?.packageId]);
+  const targets = useMemo(() => getActiveMasterPackages().filter((p) => p.id !== invoice?.packageId), [getActiveMasterPackages, invoice?.packageId]);
   const target = targets.find((p) => p.id === targetId) || null;
   const auto = target && invoice ? previewConversion({ invoice, target }) : null;
   const preview = target && invoice ? previewConversion({ invoice, target, sessions: manual ? sessions : null }) : null;

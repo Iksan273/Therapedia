@@ -2,43 +2,49 @@
 
 namespace App\Http\Controllers\Api\Master;
 
+use App\Actions\Master\DeleteMasterPackageAction;
 use App\Http\Controllers\Controller;
-use App\Services\MasterDataService;
+use App\Http\Requests\Master\MasterPackageRequest;
+use App\Http\Requests\Organization\SetActiveRequest;
+use App\Http\Resources\Master\MasterPackageResource;
+use App\Services\MasterPackageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-/**
- * Katalog paket kredit (M3, modul finance).
- * Tipis: validasi (Form Request) di sini nanti, logika bisnis di MasterDataService / Action.
- */
+/** Master paket (M3). Baca: semua staf login. Tulis: modul finance. Hapus dipakai invoice/paket client → 409 `in_use`. */
 class MasterPackageController extends Controller
 {
-    public function __construct(private readonly MasterDataService $service) {}
+    public function __construct(private readonly MasterPackageService $service) {}
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->paginate('packages', $request->query())]);
+        return response()->json(['data' => MasterPackageResource::collection($this->service->all($request))->resolve()]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function show(string $package): JsonResponse
     {
-        return response()->json(['data' => $this->service->create('packages', $request->all())], 201);
+        return response()->json(['data' => (new MasterPackageResource($this->service->find((int) $package)))->resolve()]);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function store(MasterPackageRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->find('packages', $id)]);
+        return response()->json(['data' => (new MasterPackageResource($this->service->create($request->validated())))->resolve()], 201);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(MasterPackageRequest $request, string $package): JsonResponse
     {
-        return response()->json(['data' => $this->service->update('packages', $id, $request->all())]);
+        return response()->json(['data' => (new MasterPackageResource($this->service->update((int) $package, $request->validated())))->resolve()]);
     }
 
-    public function destroy(Request $request, string $id): Response
+    public function setActive(SetActiveRequest $request, string $package): JsonResponse
     {
-        $this->service->delete('packages', $id);
+        return response()->json(['data' => (new MasterPackageResource($this->service->setActive((int) $package, $request->boolean('is_active'))))->resolve()]);
+    }
+
+    public function destroy(string $package, DeleteMasterPackageAction $delete): Response
+    {
+        $delete((int) $package);
 
         return response()->noContent();
     }
