@@ -76,7 +76,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 ### API
 | # | Endpoint | Action | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle email+IP | `email`, `password` | `users` R/U(`last_login_at`); `personal_access_tokens` C; `roles`,`role_permissions`,`branches` R | token + user (role, `branch_id`, `permissions` = **daftar kode modul** yang diizinkan, `must_change_password`). 422 pesan **generik**, 429 |
+| 1.1 | `POST /auth/login` | `StaffLoginAction` | publik, throttle email+IP | `email`, `password` | `users` R/U(`last_login_at`); `personal_access_tokens` C; `roles`,`role_permissions`,`branches` R | token + user (role, `branch_id`, `permissions` = **daftar kode modul** yang diizinkan, `must_change_password`). 422 pesan **generik** untuk email tidak ada / password salah; 422 `account_inactive` untuk akun nonaktif (hanya bila password benar), 429 |
 | 1.2 | `POST /auth/client-login` | `ClientLoginAction` | publik, throttle + lockout per IP & per kode | `client_code`, `date_of_birth` | `clients` R/U(`last_login_at`); token C | token portal ortu + ringkasan client. Gagal selalu generik |
 | 1.3 | `POST /auth/logout` | hapus token aktif | login | — | `personal_access_tokens` D | 204 |
 | 1.4 | `GET /auth/me` | profil sesi | login | — | `users`/`clients`, `role_permissions` R | user/client + izin |
@@ -85,7 +85,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 1.7 ✚ | `POST /auth/reset-password` | `ResetPasswordWithOtpAction` | publik, throttle | `email`, `otp`, `password` | `password_reset_otps` R/U; `users` U; token D | 422 OTP salah/kedaluwarsa/terpakai |
 
 ### Core logic
-1. **Login staf:** cari user aktif → `Hash::check` → bila `is_active=0` tolak (pesan generik). Buat token ability `staff`; respons memuat `permissions` berupa **daftar kode modul** (bukan kamus berkunci kode modul, konvensi key JSON) agar FE `hasPermission()` bekerja tanpa request tambahan. `must_change_password=1` → middleware memblokir semua endpoint selain 1.3/1.4/1.5 (403 `must_change_password`).
+1. **Login staf:** cari user aktif → `Hash::check` → bila `is_active=0` tolak dengan 422 `account_inactive` ("Akun Anda tidak aktif…"). Urutan: password dicek dulu, baru status aktif, supaya pesan ini tidak membocorkan email terdaftar kepada penebak. Buat token ability `staff`; respons memuat `permissions` berupa **daftar kode modul** (bukan kamus berkunci kode modul, konvensi key JSON) agar FE `hasPermission()` bekerja tanpa request tambahan. `must_change_password=1` → middleware memblokir semua endpoint selain 1.3/1.4/1.5 (403 `must_change_password`).
 2. **Login ortu:** cocokkan `client_code` + `date_of_birth` anak. Lockout per kode (mis. 5 gagal → 15 menit) dan per IP. Pesan gagal **tidak** menyebut bagian yang salah. Token ability `client`; client tanpa token staf tidak bisa menyentuh rute staf.
 3. **OTP:** simpan **hash** OTP (`otp_hash`), `expires_at` ±10 menit, `attempts` maks 5 lalu OTP hangus, `used_at` setelah dipakai. Kirim email **sinkron setelah commit** (timeout 10 dtk); SMTP gagal → hapus baris OTP + 503. Reset berhasil → hapus semua token user.
 4. Reset password oleh Master (2.5 di bawah) → password sementara + `must_change_password=1` + token user dihapus.

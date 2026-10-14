@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * Login staf (implementation_detail.md 1.1). Aturan:
- * - Gagal selalu generik (tidak membocorkan email terdaftar/nonaktif/password salah) dan waktu respons disamakan
- *   (hash dummy bila email tidak ditemukan).
+ * - Email tidak ada / password salah selalu generik dan waktu respons disamakan (hash dummy bila email tidak
+ *   ditemukan). Akun nonaktif baru dilaporkan (422 `account_inactive`) setelah password benar, sehingga tidak
+ *   membocorkan email terdaftar kepada penebak.
  * - Throttle per email+IP: 5 kegagalan → 429 selama 60 detik (di atas throttle rute per IP).
  * - Token Sanctum ability `staff`; `must_change_password` dikembalikan agar frontend memaksa ganti password
  *   (endpoint lain diblokir middleware `password.changed`).
@@ -38,15 +39,25 @@ class StaffLoginAction
 
         $user = User::query()->with(['role', 'branch'])->where('email', $email)->first();
 
-        $valid = $user !== null && $user->is_active && Hash::check($password, $user->password);
+        $passwordMatches = $user !== null
+            ? Hash::check($password, $user->password)
+            : Hash::check($password, self::DUMMY_HASH);
 
-        if (! $valid) {
-            if ($user === null) {
-                Hash::check($password, self::DUMMY_HASH);
-            }
+        if (! $passwordMatches) {
             RateLimiter::hit($key, self::DECAY_SECONDS);
 
             throw ApiException::validation(['email' => ['Email atau password salah.']], 'Email atau password salah.');
+        }
+
+        // Password sudah terbukti benar, jadi pesan spesifik ini tidak bisa dipakai menebak email terdaftar.
+        if (! $user->is_active) {
+            RateLimiter::hit($key, self::DECAY_SECONDS);
+
+            throw ApiException::unprocessable(
+                'account_inactive',
+                'Akun Anda tidak aktif. Hubungi admin untuk mengaktifkannya kembali.',
+                ['email' => ['Akun Anda tidak aktif. Hubungi admin untuk mengaktifkannya kembali.']],
+            );
         }
 
         RateLimiter::clear($key);

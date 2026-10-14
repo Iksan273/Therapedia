@@ -70,18 +70,30 @@ class StaffLoginTest extends TestCase
         $this->postJson('/api/v1/auth/login', ['email' => '  '.strtoupper($staff->email).' ', 'password' => self::PASSWORD])->assertOk();
     }
 
-    public function test_failures_are_generic_and_identical_for_wrong_password_unknown_email_and_inactive(): void
+    public function test_failures_are_generic_and_identical_for_wrong_password_and_unknown_email(): void
     {
         $active = $this->makeStaff();
         $inactive = $this->makeStaff('admin_schedule', ['is_active' => false]);
 
         $wrongPassword = $this->postJson('/api/v1/auth/login', ['email' => $active->email, 'password' => 'salah123'])->assertStatus(422);
         $unknown = $this->postJson('/api/v1/auth/login', ['email' => 'tidak-ada@therapedia.test', 'password' => 'salah123'])->assertStatus(422);
-        $disabled = $this->postJson('/api/v1/auth/login', ['email' => $inactive->email, 'password' => self::PASSWORD])->assertStatus(422);
+        $inactiveWrongPassword = $this->postJson('/api/v1/auth/login', ['email' => $inactive->email, 'password' => 'salah123'])->assertStatus(422);
 
         $this->assertSame('Email atau password salah.', $wrongPassword->json('message'));
         $this->assertSame($wrongPassword->json(), $unknown->json());
-        $this->assertSame($wrongPassword->json(), $disabled->json());
+        $this->assertSame($wrongPassword->json(), $inactiveWrongPassword->json());
+    }
+
+    public function test_inactive_account_with_correct_password_reports_account_inactive(): void
+    {
+        $inactive = $this->makeStaff('admin_schedule', ['is_active' => false]);
+
+        $this->postJson('/api/v1/auth/login', ['email' => $inactive->email, 'password' => self::PASSWORD])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'account_inactive')
+            ->assertJsonPath('message', 'Akun Anda tidak aktif. Hubungi admin untuk mengaktifkannya kembali.');
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
     public function test_five_failures_lock_the_email_ip_pair_even_for_correct_password(): void
