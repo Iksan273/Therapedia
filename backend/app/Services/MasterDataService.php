@@ -47,7 +47,8 @@ class MasterDataService
     {
         $data['sort_order'] ??= ((int) $model::query()->max('sort_order')) + 1;
 
-        return $model::query()->create($this->clean($data));
+        // refresh(): ambil nilai bawaan database (mis. `is_active`, `color`) yang tidak ada di input, agar respons lengkap
+        return $model::query()->create($this->clean($data))->refresh();
     }
 
     /** @param  class-string<Model>  $model */

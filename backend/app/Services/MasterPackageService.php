@@ -35,7 +35,7 @@ class MasterPackageService
         $data['code'] = $this->uniqueCode($data['name']);
         $data['description'] = $this->nullIfBlank($data['description'] ?? null);
 
-        return MasterPackage::query()->create($data);
+        return MasterPackage::query()->create($data)->refresh(); // lengkapi nilai bawaan database (`is_active`, `leave_quota`, ...)
     }
 
     public function update(int $id, array $data): MasterPackage

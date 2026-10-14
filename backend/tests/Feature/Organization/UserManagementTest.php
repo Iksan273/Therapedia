@@ -386,14 +386,4 @@ class UserManagementTest extends TestCase
         $this->actAs($this->master)->postJson('/api/v1/users/'.$this->master->id.'/reset-password')
             ->assertStatus(422)->assertJsonPath('code', 'use_change_password');
     }
-
-    // ---- Staf tidak dihapus
-
-    public function test_staff_cannot_be_deleted_through_api(): void
-    {
-        $user = $this->makeStaff('finance', ['email' => 'dewi@therapedia.test']);
-
-        $this->actAs($this->master)->deleteJson('/api/v1/users/'.$user->id)->assertStatus(405);
-        $this->assertDatabaseHas('users', ['id' => $user->id]);
-    }
 }

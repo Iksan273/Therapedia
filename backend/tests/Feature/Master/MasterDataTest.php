@@ -30,9 +30,16 @@ class MasterDataTest extends TestCase
 
     public function test_every_logged_in_staff_can_read_but_unauthenticated_cannot(): void
     {
-        foreach (['services', 'quadrants', 'cancel-reasons', 'discharge-reasons', 'packages'] as $path) {
+        $paths = ['services', 'quadrants', 'cancel-reasons', 'discharge-reasons', 'packages'];
+
+        // Cek tanpa login dulu: actAs() bertahan sampai akhir test, jadi request sesudahnya akan terautentikasi.
+        foreach ($paths as $path) {
             $this->getJson("/api/v1/master/{$path}")->assertStatus(401);
-            $this->actAs($this->makeStaff('therapist'))->getJson("/api/v1/master/{$path}")->assertOk()->assertJsonStructure(['data' => [['code']]]);
+        }
+
+        $this->actAs($this->makeStaff('therapist'));
+        foreach ($paths as $path) {
+            $this->getJson("/api/v1/master/{$path}")->assertOk()->assertJsonStructure(['data' => [['code']]]);
         }
     }
 
