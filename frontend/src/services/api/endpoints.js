@@ -34,6 +34,10 @@ export const ENDPOINTS = {
     transition: (id) => `/clients/${id}/transition`,
     services: (id) => `/clients/${id}/services`,
     gdriveLinks: (id) => `/clients/${id}/gdrive-links`,
+    gdriveLink: (id, docId) => `/clients/${id}/gdrive-links/${docId}`,
+    board: "/clients/board", // papan pipeline: semua tahap dalam satu request
+    pipelineSummary: "/clients/pipeline-summary",
+    checkDuplicate: "/clients/check-duplicate",
     assessmentCodes: (id) => `/clients/${id}/assessment-codes`,
     assessmentResponses: (id) => `/clients/${id}/assessment-responses`,
     renewals: (id) => `/clients/${id}/renewals`,

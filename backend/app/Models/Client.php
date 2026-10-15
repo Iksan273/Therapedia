@@ -51,6 +51,8 @@ class Client extends Authenticatable
     {
         return [
             'date_of_birth' => 'date',
+            'credit_balance' => 'integer',
+            'leftover_balance' => 'integer',
             'status_changed_at' => 'datetime',
             'date_of_join' => 'date',
             'date_of_discharge' => 'date',

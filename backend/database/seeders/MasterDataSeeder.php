@@ -16,6 +16,8 @@ class MasterDataSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(ClientCodeCounterSeeder::class); // counter kode client (AE/FJ/KO/PT/UZ)
+
         $now = now();
         $stamp = ['created_at' => $now, 'updated_at' => $now];
 

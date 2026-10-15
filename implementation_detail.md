@@ -176,13 +176,14 @@ Layar: `/admin-inquiry/master-data`, `/finance` (tab paket), `/admin-schedule/ho
 
 ## 6. M4 Inquiry & Client
 
-Layar: `/admin-inquiry/pipeline`, `/admin-inquiry/pipeline/:id` (Client Detail), `/admin-inquiry` (dashboard). Fitur: F4, F5, F9. Akses utama: `inquiry_pipeline`, `inquiry_dashboard`. Pencarian client (nama/ortu/kode) memakai `idx_clients_child_name`, `idx_clients_parent_name`, UNIQUE `client_code` (Q5).
+Layar: `/admin-inquiry/pipeline`, `/admin-inquiry/pipeline/:id` (Client Detail), `/admin-inquiry` (dashboard). Fitur: F4, F5, F9. Akses utama: `inquiry_pipeline`, `inquiry_dashboard`. Pencarian client `q` = **prefix per kata** (`Wir` menemukan `Kenzo Wirawan`; kode client prefix biasa) dan memakai `idx_clients_child_name`, `idx_clients_parent_name`, UNIQUE `client_code` (Q5).
 
 ### 6.1 Daftar & pencarian
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
-| 4.1 | `GET /clients` | list client (dipakai pipeline, roster, picker jadwal, search finance) | `inquiry_*`, `active_clients`, `weekly_calendar`, `finance`, `therapist_module` (terapis: hanya client yang pernah dijadwalkan padanya) | `branch_id,status[],q,service_code,credit_status(healthy/low/zero),page,per_page,sort` | `clients` R (+ `client_services` R untuk filter layanan; `client_packages`/kolom `credit_balance` untuk filter kredit) | `idx_clients_pipeline`, `idx_clients_roster`; item memuat ringkasan (kode, nama, ortu, cabang, status, `credit_balance`, layanan) |
+| 4.1 | `GET /clients` | list client (dipakai pipeline, roster, picker jadwal, search finance) | `inquiry_*`, `active_clients`, `weekly_calendar`, `finance`, `therapist_module` (terapis: hanya client yang pernah dijadwalkan padanya) | `branch_id,status[],q,service_code,credit_status(healthy/low/zero),birth_month(1-12),page,per_page,sort` | `clients` R (+ `client_services` R untuk filter layanan; `client_packages`/kolom `credit_balance` untuk filter kredit) | `idx_clients_pipeline`, `idx_clients_roster`; item memuat ringkasan (kode, nama, ortu, cabang, status, `credit_balance`, layanan) |
 | 4.2 ✚ | `GET /clients/pipeline-summary` | jumlah client per status per cabang (kolom kanban) | `inquiry_pipeline` | `branch_id` | `clients` R (group by status) | kanban memuat tiap kolom bertahap via 4.1 `status=…` |
+| 4.2b ✚ | `GET /clients/board` | papan pipeline dalam SATU request: `stages[]` = `{status, total, items[]}` untuk 9 tahap (urut alur), `items` = client terbaru `per_stage` (default 10, maks 50) | `inquiry_pipeline` | `branch_id,q,service_code,per_stage` | `clients` R (1 query agregat + 1 query per tahap berisi; `idx_clients_pipeline`) | filter identik dengan 4.1; `stages` berupa array (bukan kamus berkunci status). Menggantikan 9 request `GET /clients?status[]=…` agar bootstrap PHP per request tidak dibayar 9x. Query: tanpa `q` = indeks (`idx_clients_pipeline` / `idx_clients_status_created`); dengan `q` = satu pemindaian fungsi window (`ROW_NUMBER`/`COUNT OVER PARTITION BY status`) |
 | 4.3 ✚ | `GET /clients/check-duplicate` | peringatan nama+tanggal lahir sama (bukan blokir) | `inquiry_pipeline` | `child_name,date_of_birth` | `clients` R | `{ duplicates:[…] }` |
 
 ### 6.2 Intake & biodata
@@ -198,16 +199,16 @@ Layar: `/admin-inquiry/pipeline`, `/admin-inquiry/pipeline/:id` (Client Detail),
 | 4.7 | `PUT /clients/{id}/services` | `SyncClientServicesAction` (F5) | `inquiry_pipeline` | `service_codes[]` (hanya `services.is_active = 1`) | `client_services` C/D (selisih); `clients` U (`status = service_selected` bila daftar tak kosong & status masih sebelumnya) | melepas semua layanan tidak memundurkan status |
 | 4.8 | `POST /clients/{id}/gdrive-links` | simpan link Google Drive | `inquiry_pipeline` | `url,label?` | `client_documents` C/U (`type = gdrive_folder`) | dokumen = link saja, tanpa upload |
 | 4.9 ✚ | `DELETE /clients/{id}/gdrive-links/{docId}` | hapus link | +hapus | | `client_documents` D | |
-| 4.10 | `POST /clients/{id}/transition` | `TransitionClientAction` (F9/F20; §6.6 schema) | `inquiry_pipeline` atau `active_clients` | `to_status`, `reason?`, `note?` (discharge/discontinue wajib alasan), `version` | `clients` U (`status`, `status_changed_at`, `final_outcome`, `date_of_join`/`date_of_discharge`/`date_of_discontinue`, `discharge_reason`, `discharge_note`) | ke tahap mana pun (otomatis hanya maju). Admit **tidak** membuat paket. Sesi mendatang **tidak** dibatalkan otomatis saat discharge |
+| 4.10 | `POST /clients/{id}/transition` | `TransitionClientAction` (F9/F20; §6.6 schema) | `inquiry_pipeline` atau `active_clients` | `to_status`, `reason?`, `note?` (discharge/discontinue wajib alasan), `version` | `clients` U (`status`, `status_changed_at`, `final_outcome`, `date_of_join`/`date_of_discharge`/`date_of_discontinue`, `discharge_reason`, `discharge_note`) | ke tahap mana pun (otomatis hanya maju). Admit **tidak** membuat paket. `reason` (discharge/discontinue, wajib) disimpan di `discharge_reason`, `note` di `discharge_note`. Status sama = no-op (`changed:false`). **Efek discharge** (hapus jadwal aktif + ledger `discharge`) **ditunda ke Sprint 2**: titik sambung `ApplyDischargeEffects` sudah dipanggil di transaksi transisi; di M4 discharge hanya mengubah status/alasan/tanggal. Respons: detail client + `changed` |
 | 4.11 | *(dihapus 13 Okt 2026)* | tabel riwayat tahap client dibuang; tidak ada timeline status | | | | |
-| 4.12 | `DELETE /clients/{id}` | `DeleteClientAction` (hapus permanen, §14) | `inquiry_pipeline`/`active_clients` + hapus | | cascade: seluruh turunan client | 204; file bukti bayar dihapus sinkron setelah commit |
+| 4.12 | `DELETE /clients/{id}` | `DeleteClientAction` (hapus permanen, §14) | **hanya `master`** (selain master 403, ADR 0005) | | cascade: seluruh turunan client | 204; file bukti bayar dihapus sinkron setelah commit |
 
 ### 6.4 Dashboard inquiry (baca)
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel / view | Catatan |
 |---|---|---|---|---|---|---|
 | 4.13 | `GET /dashboards/inquiry` | KPI funnel, tren, alasan discharge/drop-off | `inquiry_dashboard` | `branch_id,period,start,end,service_code,q` | `clients` R (funnel per status saat ini + tanggal `created_at`/`date_of_join`/`date_of_discharge`/`date_of_discontinue`) | pie alasan discharge: agregasi `clients.discharge_reason` (kode pilihan cepat per kode, teks custom → "Lainnya") |
 | 4.14 | `GET /clients?status=discontinued` | log drop-off (+ `date_of_discontinue`) | `inquiry_dashboard` | pencarian `q` | `clients` R | tab Discontinued |
-| 4.15 | `GET /assessment-codes?awaiting=1` | tab "Menunggu Kuesioner" + pencarian nama | `inquiry_dashboard` | `branch_id,q` | `assessment_access_codes` R (`idx_codes_awaiting`) + `clients` R | kode kedaluwarsa tetap tampil (ditandai) — Q18 |
+| 4.15 | `GET /assessment-codes?awaiting=1` *(dikerjakan di M5, bersama tabel kode kuesioner)* | tab "Menunggu Kuesioner" + pencarian nama | `inquiry_dashboard` | `branch_id,q` | `assessment_access_codes` R (`idx_codes_awaiting`) + `clients` R | kode kedaluwarsa tetap tampil (ditandai) — Q18 |
 
 ---
 

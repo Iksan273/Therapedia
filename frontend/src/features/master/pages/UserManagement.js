@@ -1,3 +1,4 @@
+import { Skeleton } from "@/shared/ui/skeleton";
 import React, { useState, useMemo } from "react";
 import { TablePagination } from "@/shared/components/TablePagination";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
@@ -240,13 +241,28 @@ export default function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && users.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-xs font-medium text-slate-400" data-testid="staff-loading">
-                    Memuat data staf…
-                  </TableCell>
-                </TableRow>
-              )}
+              {isLoading && users.length === 0 &&
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={`sk-${i}`} data-testid={i === 0 ? "staff-loading" : undefined} aria-busy="true">
+                    <TableCell className="py-3.5 pl-6" colSpan={1}>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                        <div className="space-y-1.5 flex-1">
+                          <Skeleton className="h-3.5 w-32" />
+                          <Skeleton className="h-3 w-44" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell colSpan={4}>
+                      <div className="grid grid-cols-4 gap-4">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               {!isLoading && users.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="py-10 text-center text-xs font-medium text-slate-400" data-testid="staff-empty">

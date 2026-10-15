@@ -43,6 +43,7 @@ const USER_ROW = (id, extra = {}) => ({
   branchId: 1, branch: { id: 1, code: "EAST", name: "East" }, isActive: true, mustChangePassword: false, lastLoginAt: null, ...extra,
 });
 
+const usersCalls = () => apiMock.list.mock.calls.filter(([url]) => url === "/users"); // cache client (M4) ikut memakai api.list
 let ctx;
 function Probe({ staffArgs = { branchFilter: "all", search: "" } }) {
   ctx = {
@@ -83,7 +84,7 @@ beforeEach(async () => {
     if (url.endsWith("/delete-impact")) return { id: 1, code: "EAST", impact: { clients: 4, schedules: 9, invoices: 2, staff: 3, holidays: 1 } };
     return [];
   });
-  apiMock.list.mockImplementation(async () => ({ items: [USER_ROW(11), USER_ROW(12, { isActive: false, branchId: null, branch: null })], meta: { total: 12, page: 1, perPage: 10, lastPage: 2 } }));
+  apiMock.list.mockImplementation(async (url) => url === "/clients" ? { items: [], meta: null } : ({ items: [USER_ROW(11), USER_ROW(12, { isActive: false, branchId: null, branch: null })], meta: { total: 12, page: 1, perPage: 10, lastPage: 2 } }));
   await ensureSeedsIfNeeded();
 });
 // QueryClient di AppProviders berumur selama modul dimuat: bersihkan cache seperti saat logout agar tes saling lepas.
@@ -98,6 +99,23 @@ test("belum login: tidak memanggil API sama sekali", async () => {
   expect(apiMock.get).not.toHaveBeenCalled();
   expect(apiMock.list).not.toHaveBeenCalled();
   expect(ctx.branches.branches).toEqual([]);
+});
+
+test("isLoading cabang true selama daftar belum tiba (halaman menampilkan shimmer), lalu false", async () => {
+  let release;
+  apiMock.get.mockImplementation(async (url) => {
+    if (url === "/branches") await new Promise((r) => { release = r; });
+    return url === "/branches" ? BRANCH_ROWS : [];
+  });
+  await mount();
+  expect(ctx.branches.isLoading).toBe(false); // belum login: tidak ada yang dimuat
+
+  await loginAs();
+  expect(ctx.branches.isLoading).toBe(true);
+  await act(async () => { release(); });
+  await flush();
+  expect(ctx.branches.isLoading).toBe(false);
+  expect(ctx.branches.branches).toHaveLength(2);
 });
 
 test("sesi ortu tidak memanggil endpoint staf", async () => {
@@ -324,7 +342,7 @@ describe("akun staf", () => {
 
     await vi.waitFor(() => expect(apiMock.list).toHaveBeenCalled());
     await flush();
-    const [url, params] = apiMock.list.mock.calls.at(-1);
+    const [url, params] = usersCalls().at(-1);
     expect(url).toBe("/users");
     expect(params).toEqual({ branchId: "1", q: undefined, page: 1, perPage: 10 });
 
@@ -339,7 +357,7 @@ describe("akun staf", () => {
     await loginAs();
 
     await vi.waitFor(() => expect(apiMock.list).toHaveBeenCalled());
-    expect(apiMock.list.mock.calls.at(-1)[1].branchId).toBeUndefined();
+    expect(usersCalls().at(-1)[1].branchId).toBeUndefined();
   });
 
   test("tambah akun: role kode → id server, cabang string → angka; password sementara dari server ditampilkan", async () => {
@@ -399,7 +417,7 @@ describe("akun staf", () => {
       await ctx.staff.deleteStaff("11");
     });
     expect(apiMock.delete).toHaveBeenCalledWith("/users/11");
-    await vi.waitFor(() => expect(apiMock.list.mock.calls.length).toBeGreaterThan(1)); // invalidasi → ambil ulang
+    await vi.waitFor(() => expect(usersCalls().length).toBeGreaterThan(1)); // invalidasi → ambil ulang
 
     apiMock.delete.mockRejectedValueOnce(Object.assign(new Error("Akun dipakai di 3 jadwal."), { status: 409 }));
     let error;

@@ -1,4 +1,5 @@
 import React from "react";
+import { CardGridSkeleton } from "@/shared/components/LoadingSkeletons";
 import { TabsContent } from "@/shared/ui/tabs";
 import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
@@ -11,7 +12,7 @@ import { cn } from "@/shared/lib/utils";
 
 // Katalog master paket. Paket nonaktif tidak muncul di pilihan invoice/renewal/asesmen, tetapi invoice dan paket client lama
 // tetap terbaca. Paket yang sudah dipakai tidak bisa dihapus (nonaktifkan saja).
-export function PackagesTab({ masterPackages, setNewPkgOpen, onEditPackage, onSetActive, onDeletePackage }) {
+export function PackagesTab({ masterPackages, loading = false, setNewPkgOpen, onEditPackage, onSetActive, onDeletePackage }) {
   return (
     <TabsContent value="packages" className="space-y-4">
           <div className="flex items-center justify-between">
@@ -27,7 +28,8 @@ export function PackagesTab({ masterPackages, setNewPkgOpen, onEditPackage, onSe
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {loading && <CardGridSkeleton count={3} label="Memuat katalog paket…" testId="packages-loading" />}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" hidden={loading}>
             {masterPackages.map((pkg) => {
               const active = pkg.isActive !== false;
               return (

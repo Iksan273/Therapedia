@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\Assessment\AssessmentSectionController;
 use App\Http\Controllers\Api\Assessment\PublicAssessmentController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Client\ClientController;
-use App\Http\Controllers\Api\Client\ClientDocumentController;
+use App\Http\Controllers\Api\Client\ClientGdriveLinkController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\Finance\ClientPackageController;
 use App\Http\Controllers\Api\Finance\CreditLedgerController;
@@ -137,10 +137,29 @@ Route::prefix('v1')->group(function () {
         $masterResource('holidays', HolidayController::class, 'holidays');
 
         // M4 Inquiry & client
-        Route::middleware('module:inquiry_pipeline,active_clients,weekly_calendar,finance')->group(function () {
-            Route::apiResource('clients', ClientController::class);
-            Route::apiResource('clients.documents', ClientDocumentController::class)->shallow();
+        // Baca: modul inquiry/roster/kalender/finance/terapis (terapis murni hanya melihat client terjadwalnya, di ListClientsAction).
+        Route::middleware('module:inquiry_pipeline,inquiry_dashboard,active_clients,weekly_calendar,finance,therapist_module')->group(function () {
+            Route::get('clients', [ClientController::class, 'index']);
         });
+        // Rute statis harus sebelum `clients/{client}`.
+        Route::middleware('module:inquiry_pipeline')->group(function () {
+            Route::get('clients/board', [ClientController::class, 'board']);
+            Route::get('clients/pipeline-summary', [ClientController::class, 'pipelineSummary']);
+            Route::get('clients/check-duplicate', [ClientController::class, 'checkDuplicate']);
+            Route::post('clients', [ClientController::class, 'store']);
+        });
+        Route::middleware('module:inquiry_pipeline,inquiry_dashboard,active_clients,weekly_calendar,finance,therapist_module')->group(function () {
+            Route::get('clients/{client}', [ClientController::class, 'show']);
+        });
+        Route::middleware('module:inquiry_pipeline')->group(function () {
+            Route::patch('clients/{client}', [ClientController::class, 'update']);
+            Route::put('clients/{client}/services', [ClientController::class, 'syncServices']);
+            Route::post('clients/{client}/gdrive-links', [ClientGdriveLinkController::class, 'store']);
+            Route::delete('clients/{client}/gdrive-links/{document}', [ClientGdriveLinkController::class, 'destroy']);
+        });
+        Route::post('clients/{client}/transition', [ClientController::class, 'transition'])->middleware('module:inquiry_pipeline,active_clients');
+        // Hapus client PERMANEN: hanya master (dicek di DeleteClientAction; modul hanya pintu masuk)
+        Route::delete('clients/{client}', [ClientController::class, 'destroy'])->middleware('module:inquiry_pipeline,active_clients');
 
         // M5 Asesmen. Mesin kuesioner (kategori/section/soal): BACA oleh `assessment_master` atau `inquiry_pipeline` (admin
         // inquiry memilih kategori saat menerbitkan kode); TULIS hanya `assessment_master`. Kode kuesioner: `inquiry_pipeline`.

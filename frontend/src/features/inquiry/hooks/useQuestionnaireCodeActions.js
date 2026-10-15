@@ -13,14 +13,15 @@ import { nowIso, todayStr } from "@/shared/lib/id";
 // (type `assessment`, `assessment_code` = kode itu) yang bukti transfernya wajib diunggah ortu sebelum mengisi kuesioner;
 // di API keduanya satu transaksi. Menghapus kode ikut menghapus invoice assessment-nya bila belum lunas.
 export function useQuestionnaireCodeActions() {
-  const { clients, updateClient } = useClients();
+  const clientsStore = useClients();
+  const { updateClient } = clientsStore; // daftar client dibaca saat dibutuhkan (allCodes), bukan tiap render
   const { issueInvoice, getInvoicesForClient, deleteInvoices } = useCredits();
   const { getDraft } = useAssessmentDrafts();
   const { auth } = useAuth();
   const by = auth?.staffName || auth?.role || null;
 
   // Semua kode kuesioner yang sudah ada (untuk memastikan kode baru unik).
-  const allCodes = () => clients.flatMap((c) => (c.assessmentCodes || []).map((a) => a.code));
+  const allCodes = () => clientsStore.clients.flatMap((c) => (c.assessmentCodes || []).map((a) => a.code));
 
   // Buat kode baru (belum disimpan) untuk pratinjau di dialog.
   const previewCode = (category) => buildQuestionnaireCode(category, allCodes());

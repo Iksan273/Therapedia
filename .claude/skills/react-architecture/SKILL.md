@@ -117,6 +117,12 @@ const completeSession = (schedule, report) => api.post(ENDPOINTS.schedules.compl
 - Query key konvensi: `[entity, params]`; invalidasi per entity setelah mutation.
 - Loading: `PageSkeleton`; error: toast `error.message` (sudah bahasa Indonesia).
 
+### Loading wajib saat fetch
+Setiap tampilan yang fetch data menampilkan shimmer (`LoadingSkeletons`) saat `isLoading` dan meredupkan data lama saat `isFetching`; tes mengunci request lalu memeriksa kerangka tampil. Lihat `CLAUDE.md` 18c dan `docs/guide/08`.
+
+### Fetch hanya yang diperlukan
+Store mode API tidak boleh `useQuery` yang langsung aktif saat login. Pakai `useDemand` (`shared/hooks/useDemand.js`): daftar baru diambil saat komponen membaca getter / memanggil fungsi pembantunya. Baca daftar di tempat pemakaian (bukan di level atas bila hanya untuk dialog/tab). Wajib ada tes daftar endpoint per halaman. Lihat `docs/guide/08`.
+
 ## 4. Testing
 - `npm test` (Vitest). Domain: unit test pure. Hook use-case: render dalam `AppProviders` + seed (lihat `features/schedule/__tests__/useSessionActions.test.js`).
 - Smoke route semua role: `app/__tests__/routes.smoke.test.js` — tambahkan route baru ke `CASES`.

@@ -5,6 +5,7 @@ import { getSeedLoader } from "@/data/seedRegistry";
 import { todayStr, uid } from "@/shared/lib/id";
 import { isStaffSession } from "@/domain/auth";
 import { isApiMode } from "@/config/env";
+import { useDemand } from "@/shared/hooks/useDemand";
 import { api } from "@/services/http/httpClient";
 import { ENDPOINTS } from "@/services/api/endpoints";
 import { packageFromApi, packageToApi } from "@/services/api/mappers/masterDataMapper";
@@ -415,10 +416,11 @@ function useMasterPackagesApi() {
   const { auth } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data } = useQuery({
+  const { demand, isOn, loading } = useDemand(isStaffSession(auth));
+  const { data, isLoading } = useQuery({
     queryKey: MASTER_PACKAGES_QUERY_KEY,
     queryFn: ({ signal }) => api.get(ENDPOINTS.master.packages.list, undefined, { signal }).then((rows) => rows.map(packageFromApi)),
-    enabled: isStaffSession(auth),
+    enabled: isStaffSession(auth) && isOn("packages"), // baru diambil saat ada yang membaca katalog (getMasterPackages / credits.masterPackages)
     staleTime: 5 * 60_000,
   });
   const masterPackages = useMemo(() => data ?? [], [data]);
@@ -432,6 +434,9 @@ function useMasterPackagesApi() {
 
   return {
     masterPackages,
+    demandMasterPackages: () => demand("packages"),
+    masterPackagesLoading: () => loading("packages", isLoading), // fungsi: dihitung saat dibaca
+
     addMasterPackage: async (form) => packageFromApi(await create.mutateAsync(form)),
     updateMasterPackage: async (id, form) => packageFromApi(await update.mutateAsync({ id, form })),
     setMasterPackageActive: async (id, isActive) => packageFromApi(await toggle.mutateAsync({ id, isActive })),
@@ -443,9 +448,21 @@ const useMasterPackages = isApiMode() ? useMasterPackagesApi : useMasterPackages
 
 export const CreditsProvider = ({ children }) => {
   const [rawCredits, dispatch] = usePersistentReducer("credits", creditsReducer, () => getSeedLoader().loadCreditsSeed());
-  const { masterPackages, addMasterPackage, updateMasterPackage, setMasterPackageActive, deleteMasterPackage } = useMasterPackages(rawCredits, dispatch);
+  const { masterPackages, demandMasterPackages = () => {}, masterPackagesLoading = () => false, addMasterPackage, updateMasterPackage, setMasterPackageActive, deleteMasterPackage } = useMasterPackages(rawCredits, dispatch);
   // Mode API: katalog paket berasal dari server; sisa data kredit tetap dari localStorage sampai modul Finance dimigrasi
-  const credits = useMemo(() => (isApiMode() ? { ...rawCredits, masterPackages } : rawCredits), [rawCredits, masterPackages]);
+  // Mode API: katalog paket dari server; `credits.masterPackages` adalah getter yang meminta (mengambil) katalog saat dibaca
+  const credits = useMemo(() => {
+    if (!isApiMode()) return rawCredits;
+    const merged = { ...rawCredits };
+    Object.defineProperty(merged, "masterPackages", {
+      get: () => {
+        demandMasterPackages();
+        return masterPackages;
+      },
+      enumerable: true,
+    });
+    return merged;
+  }, [rawCredits, masterPackages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const deleteInvoices = (ids) => dispatch({ type: "DELETE_INVOICES", ids });
   const purgeClientCredit = (clientId) => dispatch({ type: "PURGE_CLIENT", clientId });
@@ -493,6 +510,9 @@ export const CreditsProvider = ({ children }) => {
     <CreditsContext.Provider
       value={{
         credits,
+        get masterPackagesLoading() {
+          return masterPackagesLoading(); // mode API: katalog paket masih dimuat (halaman Finance menampilkan shimmer)
+        },
         addMasterPackage,
         deleteInvoices,
         voidInvoice,

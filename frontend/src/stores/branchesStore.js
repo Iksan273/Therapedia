@@ -87,7 +87,7 @@ const LocalBranchesProvider = ({ children }) => {
 
   return (
     <BranchesContext.Provider
-      value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch, addBankAccount, updateBankAccount, setBankAccountActive, removeBankAccount }}
+      value={{ branches, isLoading: false, addBranch, updateBranch, setBranchActive, deleteBranch, addBankAccount, updateBankAccount, setBankAccountActive, removeBankAccount }}
     >
       {children}
     </BranchesContext.Provider>
@@ -104,7 +104,7 @@ const ApiBranchesProvider = ({ children }) => {
   const queryClient = useQueryClient();
   const enabled = isStaffSession(auth);
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: BRANCHES_QUERY_KEY,
     queryFn: ({ signal }) => api.get(ENDPOINTS.branches.list, undefined, { signal }).then((rows) => rows.map(branchFromApi)),
     enabled,
@@ -151,7 +151,7 @@ const ApiBranchesProvider = ({ children }) => {
 
   return (
     <BranchesContext.Provider
-      value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch, addBankAccount, updateBankAccount, setBankAccountActive, removeBankAccount }}
+      value={{ branches, isLoading: isLoading && enabled, addBranch, updateBranch, setBranchActive, deleteBranch, addBankAccount, updateBankAccount, setBankAccountActive, removeBankAccount }}
     >
       {children}
     </BranchesContext.Provider>

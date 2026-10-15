@@ -285,6 +285,20 @@ Sekali, setelah deploy pertama dan bila seeder sudah ada:
 docker compose -f docker-compose.prod.yml exec app php artisan db:seed --force
 ```
 
+Setelah rilis M4 (client) di server yang sudah di-seed sebelumnya, jalankan seeder counter kode client sekali (idempoten, tidak menimpa counter berjalan):
+```bash
+docker compose -f docker-compose.prod.yml exec app php artisan db:seed --class=ClientCodeCounterSeeder --force
+```
+
+### Data client dummy (hanya lokal / uji beban)
+`DemoClientSeeder` membuat client dummy (default 10.000, dibagi rata ke cabang aktif, semua tahap pipeline terisi, kode memakai counter resmi). **Ditolak di production** dan tidak termasuk `DatabaseSeeder`.
+```bash
+php artisan db:seed --class=DemoClientSeeder --force                 # 10.000 client (±3 detik)
+DEMO_CLIENTS=3000 php artisan db:seed --class=DemoClientSeeder --force   # jumlah lain; PowerShell: $env:DEMO_CLIENTS=3000
+```
+Pembersihan (anak data ikut terhapus lewat FK cascade; nomor kode tidak dipakai ulang): `DELETE FROM clients WHERE parent_email LIKE '%@demo.therapedia.test';`
+Ukuran acuan (MySQL lokal, tanpa jaringan; ditambah `DemoClientSeeder` 110.000 client / 5 cabang): papan pipeline 9 tahap semua cabang ±80 ms, satu cabang ±40 ms, dengan pencarian teks ±150–200 ms, daftar halaman 1 ±10 ms, halaman 500 ±40 ms, ringkasan per status ±60 ms, detail ±4 ms. Seeder 100.000 client ±20 detik.
+
 ### Akses MySQL di server
 
 Port MySQL tertutup. Lewat terminal:

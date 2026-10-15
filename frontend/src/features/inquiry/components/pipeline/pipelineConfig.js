@@ -11,4 +11,5 @@ export const STAGE_COLUMNS = [
   { group: "outcome", status: "discharged", label: "Discharged", accent: "bg-slate-500", desc: "Selesai / keluar dari terapi" },
 ];
 
-export const COLUMN_PAGE = 30;
+// Kartu per halaman di tiap kolom (infinite scroll): halaman berikutnya dimuat saat kolom di-scroll sampai bawah.
+export const COLUMN_PAGE = 10;

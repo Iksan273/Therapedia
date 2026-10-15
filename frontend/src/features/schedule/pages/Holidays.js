@@ -12,6 +12,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/components/EmptyState";
+import { TableSkeleton } from "@/shared/components/LoadingSkeletons";
 import { DeleteButton } from "@/shared/components/DeleteControls";
 import { useHolidays } from "@/stores/holidaysStore";
 import { useHolidayActions } from "@/features/schedule/hooks/useHolidayActions";
@@ -25,7 +26,7 @@ import { todayStr } from "@/shared/lib/id";
 // Pengaturan hari libur: jadwal berulang melewati tanggal libur dan kalender tidak bisa memilihnya.
 // Menambah libur membatalkan sesi aktif di tanggal itu (konfirmasi + info jumlah sesi); lihat useHolidayActions.
 export default function Holidays() {
-  const { holidays, removeHoliday } = useHolidays();
+  const { holidays, isLoading, removeHoliday } = useHolidays();
   const { previewAffected, previewAffectedMany, createHolidays, changeHoliday } = useHolidayActions();
   const { confirm, confirmDialog } = useConfirm();
   const { auth } = useAuth();
@@ -163,7 +164,9 @@ export default function Holidays() {
 
       <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
-          {visible.length === 0 ? (
+          {isLoading ? (
+            <TableSkeleton rows={5} columns={3} label="Memuat hari libur…" testId="holidays-loading" />
+          ) : visible.length === 0 ? (
             <EmptyState icon={CalendarOff} title="Belum ada hari libur" subtitle="Tambahkan tanggal libur nasional atau libur klinik di atas." />
           ) : (
             <>

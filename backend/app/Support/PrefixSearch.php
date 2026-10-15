@@ -35,6 +35,37 @@ final class PrefixSearch
         });
     }
 
+    /**
+     * Prefix PER KATA (daftar client): `Wir` menemukan `Kenzo Wirawan`. Kolom `$wordColumns` dicocokkan di awal nilai
+     * ATAU di awal kata mana pun (`LIKE 'x%' OR LIKE '% x%'`); kolom `$prefixColumns` hanya di awal nilai (mis. kode).
+     *
+     * @template TQuery of \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder
+     *
+     * @param  TQuery  $query
+     * @param  list<string>  $wordColumns
+     * @param  list<string>  $prefixColumns
+     * @return TQuery
+     */
+    public static function applyWords($query, ?string $term, array $wordColumns, array $prefixColumns = [])
+    {
+        $term = trim((string) $term);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        $escaped = self::escapeLike($term);
+
+        return $query->where(function ($q) use ($wordColumns, $prefixColumns, $escaped): void {
+            foreach ($wordColumns as $column) {
+                $q->orWhere($column, 'like', $escaped.'%')->orWhere($column, 'like', '% '.$escaped.'%');
+            }
+            foreach ($prefixColumns as $column) {
+                $q->orWhere($column, 'like', $escaped.'%');
+            }
+        });
+    }
+
     public static function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);

@@ -496,6 +496,7 @@ Master anak, entity pipeline, **sekaligus entity login portal ortu** (`client_co
 | Indeks | Kolom | Melayani |
 |---|---|---|
 | `idx_clients_pipeline` | `branch_id, status, created_at` | Q4 |
+| `idx_clients_status_created` | `status, created_at` | Q4 tanpa filter cabang (master / akun semua cabang): urutan terbaru per tahap + hitung per status. Tanpa indeks ini tiap tahap memindai seluruh tabel + filesort (±2,6 dtk untuk papan 9 tahap pada 110 ribu client; sesudahnya ±80 ms). Migration `2026_10_15_000100` |
 | `idx_clients_roster` | `branch_id, status, credit_balance` | Q6 |
 | `idx_clients_birthday` | `branch_id, birth_month` | Q7 |
 | `idx_clients_leftover` | `branch_id, leftover_balance` | Q23 tab Saldo Lebihan |
@@ -505,7 +506,7 @@ Master anak, entity pipeline, **sekaligus entity login portal ortu** (`client_co
 
 Catatan:
 - **Frozen** tidak disimpan sebagai status; diturunkan dari `credit_balance = 0` (sesuai frontend).
-- Search nama memakai prefix (`LIKE 'abc%'`). Jika butuh search di tengah kata, tambahkan `FULLTEXT(child_name, parent_name)` (ngram parser). Pencarian client: awal nama anak, nama ortu, atau kode client (prefix).
+- Search nama memakai prefix (`LIKE 'abc%'`). Jika butuh search di tengah kata, tambahkan `FULLTEXT(child_name, parent_name)` (ngram parser). Pencarian client: awal **kata** nama anak / nama ortu (`LIKE 'x%' OR LIKE '% x%'`, tetap memakai indeks nama untuk kasus awalan) atau awal kode client (prefix).
 - Login ortu: `client_code` **+ tanggal lahir anak** (`date_of_birth`) sebagai verifikasi kedua (tanpa PIN). Respons gagal selalu generik (tidak membocorkan mana yang salah). `client_code` **berurutan** (AE-00001, AE-00002, …) sehingga mudah ditebak: tanggal lahir adalah satu-satunya faktor kedua, jadi wajib throttle per IP & per kode + lockout sementara (Laravel RateLimiter). Client yang sudah dihapus tidak bisa login (barisnya sudah tidak ada). Kode tidak diberikan ulang/diganti sendiri oleh ortu: admin yang menginformasikan kode (D5).
 - **Status**: perpindahan otomatis (assessment dijadwalkan, sesi asesmen completed; **kuesioner terisi TIDAK mengubah status**) hanya maju; perubahan **manual** (outcome, discharge, reaktivasi) boleh ke tahap mana pun, menimpa `status`, `status_changed_at`, dan `updated_by` (§6.6; tanpa riwayat tahap). Client discharge/discontinued dapat diaktifkan kembali (`admitted`) dari list maupun detail.
 - Nama anak hanya satu kolom `child_name`. Layanan pendamping sekolah = layanan `school_companion` di `client_services`, bukan flag di `clients`.

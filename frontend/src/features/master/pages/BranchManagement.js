@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { SearchInput } from "@/shared/components/FilterBar";
 import { EmptyState } from "@/shared/components/EmptyState";
+import { TableSkeleton } from "@/shared/components/LoadingSkeletons";
 import { TablePagination, usePagination } from "@/shared/components/TablePagination";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { useBranches } from "@/stores/branchesStore";
@@ -19,14 +20,15 @@ import { useBranchDeleteActions } from "@/features/master/hooks/useBranchDeleteA
 import { useAuth } from "@/stores/authStore";
 import { branchCodeOf, validateBranch } from "@/domain/branch";
 import { apiErrorText } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
 
 const EMPTY_FORM = { name: "", code: "", city: "Surabaya", address: "", phone: "" };
 
 // Master Cabang (khusus Master): tambah, ubah, dan aktif/nonaktif cabang. Tanpa hapus: client, staf, jadwal, dan invoice
 // menunjuk ke cabang, jadi cabang yang tak lagi beroperasi dinonaktifkan (tidak muncul di pilihan baru, riwayat tetap).
 export default function BranchManagement() {
-  const { branches, addBranch, updateBranch, setBranchActive } = useBranches();
-  const { clients } = useClients();
+  const { branches, isLoading, addBranch, updateBranch, setBranchActive } = useBranches();
+  const clientsStore = useClients();
   const { auth } = useAuth();
   const { loadImpact, deleteBranchCascade } = useBranchDeleteActions();
   const { confirm, confirmDialog } = useConfirm();
@@ -39,11 +41,14 @@ export default function BranchManagement() {
   const [saving, setSaving] = useState(false);
   const [bankBranchId, setBankBranchId] = useState(null); // cabang yang rekening banknya sedang dikelola
 
+  // Jumlah client per cabang hanya di mode demo (store lokal). Mode API tidak mengambil daftar client di halaman ini
+  // (cache parsial menyesatkan dan mahal); teks konfirmasi nonaktif cukup tanpa angka.
+  const demoClients = isApiMode() ? null : clientsStore.clients;
   const clientCount = useMemo(() => {
     const map = new Map();
-    clients.forEach((c) => map.set(c.branchId, (map.get(c.branchId) || 0) + 1));
+    (demoClients || []).forEach((c) => map.set(c.branchId, (map.get(c.branchId) || 0) + 1));
     return map;
-  }, [clients]);
+  }, [demoClients]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -133,7 +138,7 @@ export default function BranchManagement() {
       title: next ? `Aktifkan cabang ${b.name}?` : `Nonaktifkan cabang ${b.name}?`,
       description: next
         ? "Cabang akan muncul lagi di pilihan penugasan dan input baru."
-        : `Cabang tidak muncul di pilihan baru (penugasan staf, intake client). ${clientCount.get(b.id) || 0} client dan seluruh riwayat jadwal/invoice cabang ini tetap tersimpan.`,
+        : `Cabang tidak muncul di pilihan baru (penugasan staf, intake client). ${isApiMode() ? "Semua" : `${clientCount.get(b.id) || 0}`} client dan seluruh riwayat jadwal/invoice cabang ini tetap tersimpan.`,
       confirmLabel: next ? "Aktifkan" : "Nonaktifkan",
     });
     if (!ok) return;
@@ -172,7 +177,9 @@ export default function BranchManagement() {
           <SearchInput className="max-w-md" placeholder="Cari nama, kode, kota, atau alamat cabang..." value={search} onChange={setSearch} data-testid="branch-search" />
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          {filtered.length === 0 ? (
+          {isLoading ? (
+            <TableSkeleton rows={4} columns={4} label="Memuat data cabang…" testId="branch-loading" />
+          ) : filtered.length === 0 ? (
             <EmptyState icon={Building2} title="Cabang tidak ditemukan" subtitle="Ubah kata kunci pencarian atau tambah cabang baru." />
           ) : (
             <Table stackOnMobile className="min-w-[860px] w-full">

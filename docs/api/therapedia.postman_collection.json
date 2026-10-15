@@ -2055,6 +2055,666 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "9. Client / Inquiry (M4)",
+            "description": "Intake & pipeline client. Variabel: client_id, client_version, gdrive_id (otomatis dari respons). Hapus client hanya master (login master).",
+            "item": [
+                {
+                    "name": "9.1 Daftar client",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients?q=&status[]=inquiry&per_page=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients"
+                            ],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "status[]",
+                                    "value": "inquiry"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Filter: status[], q (prefix per kata), service_code, credit_status (healthy/low/zero), sort."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.1b Papan pipeline (semua tahap)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/board?per_stage=50",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "board"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_stage",
+                                    "value": "50"
+                                }
+                            ]
+                        },
+                        "description": "Satu request untuk seluruh papan: stages[] = {status, total, items[]}. Filter: branch_id, q, service_code, per_stage (maks 50)."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.2 Ringkasan pipeline",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/pipeline-summary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "pipeline-summary"
+                            ]
+                        },
+                        "description": "Jumlah client per status (kolom kanban)."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.3 Cek duplikat",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/check-duplicate?child_name=Aisyah Putri&date_of_birth=2019-03-10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "check-duplicate"
+                            ],
+                            "query": [
+                                {
+                                    "key": "child_name",
+                                    "value": "Aisyah Putri"
+                                },
+                                {
+                                    "key": "date_of_birth",
+                                    "value": "2019-03-10"
+                                }
+                            ]
+                        },
+                        "description": "Nama persis + tanggal lahir sama. Hanya peringatan."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.4 Tambah client",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients"
+                            ]
+                        },
+                        "description": "Kode AE-00001 dibuat server. Master wajib mengirim branch_id.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"branch_id\": \"{{branch_id}}\",\n  \"child_name\": \"Aisyah Putri\",\n  \"gender\": \"female\",\n  \"date_of_birth\": \"2019-03-10\",\n  \"parent_name\": \"Budi Santoso\",\n  \"parent_phone\": \"0812-3456-7890\",\n  \"parent_email\": \"budi@example.com\",\n  \"address\": \"Jl. Mawar 1\",\n  \"intake_note\": \"Rujukan sekolah\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                                    "pm.collectionVariables.set('client_id', pm.response.json().data.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.5 Detail client",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}"
+                            ]
+                        },
+                        "description": "Satu payload: biodata, layanan, gdrive_links, invoices, packages."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.collectionVariables.set('client_version', pm.response.json().data.version);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.6 Ubah biodata",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}"
+                            ]
+                        },
+                        "description": "version wajib; kode client tidak berubah.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"version\": \"{{client_version}}\",\n  \"parent_name\": \"Budi S.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.collectionVariables.set('client_version', pm.response.json().data.version);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.7 Pilih layanan",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}/services",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}",
+                                "services"
+                            ]
+                        },
+                        "description": "Hanya layanan aktif (kode slug, mis. b_ota). inquiry -> service_selected.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"service_codes\": [\n    \"b_ota\",\n    \"school_companion\"\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.collectionVariables.set('client_version', pm.response.json().data.version);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.8 Tambah link GDrive",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}/gdrive-links",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}",
+                                "gdrive-links"
+                            ]
+                        },
+                        "description": "Link saja, tanpa upload.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"url\": \"https://drive.google.com/drive/folders/abc\",\n  \"label\": \"Rekam observasi\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                                    "pm.collectionVariables.set('gdrive_id', pm.response.json().data.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.9 Hapus link GDrive",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}/gdrive-links/{{gdrive_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}",
+                                "gdrive-links",
+                                "{{gdrive_id}}"
+                            ]
+                        },
+                        "description": "Hapus permanen."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 204', function () { pm.response.to.have.status(204); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.10 Transisi: admit",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}/transition",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}",
+                                "transition"
+                            ]
+                        },
+                        "description": "Manual ke tahap mana pun. Admit tidak membuat paket.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"to_status\": \"admitted\",\n  \"version\": \"{{client_version}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.collectionVariables.set('client_version', pm.response.json().data.version);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.11 Transisi: discharge",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}/transition",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}",
+                                "transition"
+                            ]
+                        },
+                        "description": "reason wajib untuk discharged / discontinued.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"to_status\": \"discharged\",\n  \"reason\": \"moving\",\n  \"note\": \"Pindah kota\",\n  \"version\": \"{{client_version}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.collectionVariables.set('client_version', pm.response.json().data.version);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9.12 Hapus client (master)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/clients/{{client_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "clients",
+                                "{{client_id}}"
+                            ]
+                        },
+                        "description": "Permanen + cascade. Selain master 403."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 204', function () { pm.response.to.have.status(204); });"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "variable": [

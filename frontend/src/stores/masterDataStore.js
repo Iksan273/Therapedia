@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
+import { useDemand, withDemand } from "@/shared/hooks/useDemand";
 import { readPersisted } from "@/services/storage/localStore";
 import { DEFAULT_DISCHARGE_REASONS, INTAKE_SERVICES, dischargeReasonLabel } from "@/domain/client";
 import { DEFAULT_CANCEL_REASONS, DEFAULT_THERAPIST_OFF_REASONS, cancelReasonCode, cancelReasonLabel } from "@/domain/schedule";
@@ -159,6 +160,7 @@ const buildMasterValue = ({ services, quadrants, cancelReasons, dischargeReasons
   const therapistOffReasons = cancelReasons.filter((r) => r.therapistOff);
   const therapistOffCodes = therapistOffReasons.map((r) => r.value);
   return {
+    isLoading: false, // mode API menimpa saat daftar master masih dimuat
     services,
     // Layanan yang boleh dipilih di form; yang nonaktif tetap bisa dilabeli lewat getService
     activeServices: services.filter((s) => s.active !== false),
@@ -242,10 +244,10 @@ const EMPTY_LIST = [];
 // Satu resource master: daftar (react-query) + tambah/ubah/hapus. Mutasi mengembalikan item hasil pemetaan.
 function useMasterResource({ enabled, queryKey, endpoints, fromApi, toApi }) {
   const queryClient = useQueryClient();
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey,
     queryFn: ({ signal }) => api.get(endpoints.list, undefined, { signal }).then((rows) => rows.map(fromApi)),
-    enabled,
+    enabled, // sudah memuat kunci permintaan (lihat ApiMasterDataProvider)
     staleTime: 5 * 60_000,
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey });
@@ -256,6 +258,7 @@ function useMasterResource({ enabled, queryKey, endpoints, fromApi, toApi }) {
 
   return {
     items: data ?? EMPTY_LIST,
+    isLoading: isLoading && enabled, // muat pertama (query sedang berjalan)
     add: async (item) => fromApi(await create.mutateAsync(item)),
     update: async (id, patch) => fromApi(await update.mutateAsync({ id, patch })),
     remove: (id) => remove.mutateAsync(id),
@@ -264,20 +267,22 @@ function useMasterResource({ enabled, queryKey, endpoints, fromApi, toApi }) {
 
 const ApiMasterDataProvider = ({ children }) => {
   const { auth } = useAuth();
-  const enabled = isStaffSession(auth);
+  const active = isStaffSession(auth);
+  // Tiap daftar master baru diambil saat ada komponen yang membacanya (aturan "jangan fetch yang tidak diperlukan").
+  const { demand, isOn, anyLoading } = useDemand(active);
 
-  const services = useMasterResource({ enabled, queryKey: MASTER_QUERY_KEYS.services, endpoints: ENDPOINTS.master.services, fromApi: serviceFromApi, toApi: serviceToApi });
-  const quadrants = useMasterResource({ enabled, queryKey: MASTER_QUERY_KEYS.quadrants, endpoints: ENDPOINTS.master.quadrants, fromApi: quadrantFromApi, toApi: quadrantToApi });
+  const services = useMasterResource({ enabled: active && isOn("services"), queryKey: MASTER_QUERY_KEYS.services, endpoints: ENDPOINTS.master.services, fromApi: serviceFromApi, toApi: serviceToApi });
+  const quadrants = useMasterResource({ enabled: active && isOn("quadrants"), queryKey: MASTER_QUERY_KEYS.quadrants, endpoints: ENDPOINTS.master.quadrants, fromApi: quadrantFromApi, toApi: quadrantToApi });
   const cancel = useMasterResource({
-    enabled,
+    enabled: active && isOn("cancelReasons"),
     queryKey: MASTER_QUERY_KEYS.cancelReasons,
     endpoints: ENDPOINTS.master.cancelReasons,
     fromApi: reasonFromApi,
     toApi: (item, opts) => reasonToApi(item, { ...opts, withTherapistOff: true }),
   });
-  const discharge = useMasterResource({ enabled, queryKey: MASTER_QUERY_KEYS.dischargeReasons, endpoints: ENDPOINTS.master.dischargeReasons, fromApi: reasonFromApi, toApi: reasonToApi });
+  const discharge = useMasterResource({ enabled: active && isOn("dischargeReasons"), queryKey: MASTER_QUERY_KEYS.dischargeReasons, endpoints: ENDPOINTS.master.dischargeReasons, fromApi: reasonFromApi, toApi: reasonToApi });
 
-  const value = buildMasterValue(
+  const base = buildMasterValue(
     { services: services.items, quadrants: quadrants.items, cancelReasons: cancel.items, dischargeReasons: discharge.items },
     {
       addService: services.add,
@@ -294,6 +299,23 @@ const ApiMasterDataProvider = ({ children }) => {
       deleteDischargeReason: discharge.remove,
     }
   );
+
+  // Properti -> daftar yang diminta saat dibaca (array: saat dibaca; fungsi: saat dipanggil)
+  const value = withDemand(
+    base,
+    {
+      services: ["services"], activeServices: ["services"], getService: ["services"],
+      quadrants: ["quadrants"], quadrantMap: ["quadrants"], getQuadrant: ["quadrants"],
+      cancelReasons: ["cancelReasons"], activeCancelReasons: ["cancelReasons"], therapistOffReasons: ["cancelReasons"], therapistOffCodes: ["cancelReasons"], getCancelReasonLabel: ["cancelReasons"],
+      dischargeReasons: ["dischargeReasons"], activeDischargeReasons: ["dischargeReasons"], getDischargeReasonLabel: ["dischargeReasons"],
+    },
+    demand
+  );
+  // Muat pertama kali: salah satu daftar yang diminta belum tiba (halaman menampilkan kerangka shimmer)
+  Object.defineProperty(value, "isLoading", {
+    get: () => anyLoading([["services", services.isLoading], ["quadrants", quadrants.isLoading], ["cancelReasons", cancel.isLoading], ["dischargeReasons", discharge.isLoading]]),
+    enumerable: true,
+  });
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
 };

@@ -23,7 +23,9 @@ class ClientCodeService
 
     public function groupFor(string $childName): string
     {
-        $letter = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $childName) ?: 'A', 0, 1));
+        // Buang aksen dulu (É menjadi E) seperti frontend (`normalize("NFD")`), lalu ambil huruf A-Z pertama; default A.
+        $plain = class_exists(\Normalizer::class) ? (\Normalizer::normalize($childName, \Normalizer::FORM_D) ?: $childName) : $childName;
+        $letter = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $plain) ?: 'A', 0, 1));
 
         return match (true) {
             $letter <= 'E' => 'AE',

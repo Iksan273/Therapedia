@@ -127,13 +127,15 @@ config/env.js data/ (seed demo)
 #### UI
 17. Pakai `shared/ui` + `shared/components` dulu; gabung class dengan `cn()`. Ikon hanya `lucide-react`.
 18. **Mobile wajib**: breakpoint `md`, dialog `max-h-[calc(100dvh-2.5rem)]` + body scroll, tabel `overflow-x-auto`, target sentuh ≥40px. Portal ortu & `/assessment` diuji di 375px.
-18b. **List = pagination 10 data per halaman**, tanpa infinite scroll: `usePagination` + `TablePagination` (`resetKey` = filter). Detail: `docs/guide/08`.
+18b. **List = pagination 10 data per halaman**, tanpa infinite scroll: `usePagination` + `TablePagination` (`resetKey` = filter). Satu-satunya pengecualian: kolom kanban pipeline (infinite scroll 10 kartu per halaman, `useInfiniteSentinel`). Detail: `docs/guide/08`.
+18c. **LOADING WAJIB saat fetch data.** Setiap tampilan yang datanya diambil dari server (halaman, tab, tabel, kartu, dialog berisi daftar) menampilkan kerangka **shimmer** (`<Skeleton/>`, `shared/components/LoadingSkeletons.js`) selama muat pertama, dan data lama diredupkan + indikator "memperbarui…" saat muat ulang (filter / halaman / pencarian). Dilarang layar kosong, `EmptyState`, atau tabel 0 baris sebelum data tiba. Store/hook mengekspos `isLoading` (muat pertama) dan `isFetching` (muat ulang). Wajib dites. Detail: `docs/guide/08` bagian "Loading data".
 19. Toast `sonner` (bahasa Indonesia, spesifik); konfirmasi destruktif `useConfirm()`; `data-testid` kebab-case pada kontainer & elemen interaktif.
 20. Teks UI & komentar **bahasa Indonesia**; istilah operasional klinik boleh English. Import pakai alias `@/…`.
 
 #### Siap API
 21. Jangan memanggil axios langsung; pakai `api.*` (`services/http/httpClient.js`) + `ENDPOINTS`. Tangani `ApiError` (`message`, `fieldErrors`, `isConflict`). Kirim `version` untuk entity ber-optimistic-lock.
 22. Nama action/hook = nama use-case (calon endpoint), bukan operasi storage.
+22b. **Fetch hanya yang diperlukan halaman** (mode API): store tidak mengambil daftarnya saat login. Daftar baru di-fetch saat ada komponen yang membacanya (`useDemand` + getter / panggilan fungsi, `shared/hooks/useDemand.js`). Jangan membaca daftar "cadangan" di level atas komponen/hook bila hanya dipakai di dialog, tab, atau handler: baca saat dibutuhkan. Halaman baru wajib punya tes daftar endpoint yang dipanggil (contoh `features/inquiry/__tests__/lazyFetch.test.js`). Detail: `docs/guide/08`.
 
 #### Mode gelap
 - Class `dark` dipasang di `<html>` oleh `useAppTheme()` (dipanggil sekali di `AppLayout`); halaman publik (`/login`, `/assessment`, `/roles`) tetap terang. Preferensi tersimpan di key `ui_theme`.
@@ -148,5 +150,6 @@ config/env.js data/ (seed demo)
 ### Checklist sebelum selesai
 - [ ] `npm run lint` 0 error · `npm test` lolos · `npm run build` lolos
 - [ ] Cek di browser dengan role terkait (login, atau `/roles` di mode demo), termasuk refresh & tampilan ≤768px
+- [ ] Setiap tampilan yang fetch data punya loading shimmer (`isLoading`) + tes; hanya fetch data yang dibaca halaman (aturan 22b)
 - [ ] Route baru ada di smoke test; aturan domain baru ada test-nya
 - [ ] Docs `docs/guide/*` (dan `schema.md` bila menyentuh data) diperbarui

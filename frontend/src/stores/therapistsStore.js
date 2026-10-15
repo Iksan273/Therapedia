@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
 import { getSeedLoader } from "@/data/seedRegistry";
 import { isStaffSession } from "@/domain/auth";
+import { useDemand } from "@/shared/hooks/useDemand";
 import { isApiMode } from "@/config/env";
 import { api } from "@/services/http/httpClient";
 import { ENDPOINTS } from "@/services/api/endpoints";
@@ -44,10 +45,11 @@ const ApiTherapistsProvider = ({ children }) => {
   const { auth } = useAuth();
   const queryClient = useQueryClient();
 
+  const { demand, isOn } = useDemand(isStaffSession(auth));
   const { data } = useQuery({
     queryKey: THERAPISTS_QUERY_KEY,
     queryFn: ({ signal }) => api.get(ENDPOINTS.therapists.list, undefined, { signal }).then((rows) => rows.map(therapistFromApi)),
-    enabled: isStaffSession(auth),
+    enabled: isStaffSession(auth) && isOn("therapists"), // baru diambil saat ada yang membaca daftar / memanggil getTherapist
     staleTime: 60_000,
   });
   const therapists = React.useMemo(() => data ?? [], [data]);
@@ -57,13 +59,26 @@ const ApiTherapistsProvider = ({ children }) => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: THERAPISTS_QUERY_KEY }),
   });
 
-  const getTherapist = (id) => therapists.find((t) => t.id === String(id));
+  const getTherapist = (id) => {
+    demand("therapists"); // dipanggil saat render hanya bila ada terapis yang perlu ditampilkan
+    return therapists.find((t) => t.id === String(id));
+  };
   const updateTherapistMaxSessions = async (id, maxSessionsPerMonth) => therapistFromApi(await capacity.mutateAsync({ id, maxSessionsPerMonth }));
   // Server menghapus akun terapis cabang lewat cascade hapus cabang (Sprint 4); cukup segarkan daftar.
   const removeTherapistsByBranch = () => queryClient.invalidateQueries({ queryKey: THERAPISTS_QUERY_KEY });
 
   return (
-    <TherapistsContext.Provider value={{ therapists, getTherapist, updateTherapistMaxSessions, removeTherapistsByBranch }}>
+    <TherapistsContext.Provider
+      value={{
+        get therapists() {
+          demand("therapists");
+          return therapists;
+        },
+        getTherapist,
+        updateTherapistMaxSessions,
+        removeTherapistsByBranch,
+      }}
+    >
       {children}
     </TherapistsContext.Provider>
   );

@@ -6,14 +6,21 @@ import { newCreditRecord } from "@/domain/credit";
 import { buildActivationPatch, buildStatusChangePatch } from "@/domain/client";
 import { ACTIVE_SESSION_STATUSES } from "@/domain/schedule";
 import { todayStr } from "@/shared/lib/id";
+import { useQueryClient } from "@tanstack/react-query";
+import { isApiMode } from "@/config/env";
+import { api } from "@/services/http/httpClient";
+import { ENDPOINTS } from "@/services/api/endpoints";
+import { transitionToApi } from "@/services/api/mappers/clientMapper";
+import { CLIENTS_QUERY_KEY } from "@/stores/clientsStore";
 
 // Sesi yang masih "hidup" di kalender (scheduled, rescheduled = sudah dipindah, reschedule_pending): dihapus saat discharge.
 // Completed/cancelled = riwayat, tidak disentuh.
 const LIVE_SESSION_STATUSES = ACTIVE_SESSION_STATUSES;
 
 // Use-case keputusan akhir pipeline inquiry (step 8 Client Detail).
-// Fase API: satu endpoint POST /clients/{id}/transition yang menyimpan status terakhir client (tanpa tabel riwayat).
-export function useClientOutcomeActions() {
+// Mode demo: ubah store lokal (sinkron). Mode API: satu endpoint POST /clients/{id}/transition yang menyimpan status terakhir
+// client (tanpa tabel riwayat); async dan melempar `ApiError` (409 `version_conflict`, 422 alasan wajib).
+function useClientOutcomeActionsLocal() {
   const { updateClient } = useClients();
   const { getRecordForClient, addRecord, forfeitCreditOnDischarge } = useCredits();
   const { schedules, deleteSchedules } = useSchedules();
@@ -84,3 +91,29 @@ export function useClientOutcomeActions() {
 
   return { admit, reactivate, discharge, markDoneConsult, markDoneAssessment, discontinue, changeStatus };
 }
+
+// ---- Mode API. `client` = client hasil `clientFromApi` (membawa `version`). Alasan discharge/discontinue dikirim sebagai
+// `reason` apa adanya (tidak lagi "other" + catatan). Efek discharge ke jadwal & kredit baru ada di server pada Sprint 2,
+// jadi hasilnya selalu 0 jadwal dihapus / 0 sesi hangus.
+function useClientOutcomeActionsApi() {
+  const queryClient = useQueryClient();
+
+  const transition = async (client, toStatus, extra) => {
+    if (!toStatus || toStatus === client.status) return { changed: false };
+    const res = await api.post(ENDPOINTS.clients.transition(client.id), transitionToApi(toStatus, client.version, extra));
+    await queryClient.invalidateQueries({ queryKey: CLIENTS_QUERY_KEY });
+    return { changed: res.changed !== false, from: client.status, to: toStatus };
+  };
+
+  return {
+    admit: (client) => transition(client, "admitted"),
+    reactivate: (client) => transition(client, "admitted"),
+    markDoneConsult: (client) => transition(client, "done_consult"),
+    markDoneAssessment: (client) => transition(client, "done_assessment"),
+    discontinue: (client, reason) => transition(client, "discontinued", { reason }),
+    discharge: async (client, reason, note = null) => ({ ...(await transition(client, "discharged", { reason, note })), deletedSchedules: 0, forfeitedCredits: 0 }),
+    changeStatus: (client, toStatus, { reason, note } = {}) => transition(client, toStatus, { reason, note }),
+  };
+}
+
+export const useClientOutcomeActions = isApiMode() ? useClientOutcomeActionsApi : useClientOutcomeActionsLocal;

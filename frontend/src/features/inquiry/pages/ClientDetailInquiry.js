@@ -6,7 +6,6 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { AddScheduleModal } from "@/features/schedule";
 import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerModal";
-import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
@@ -25,7 +24,9 @@ import { InvoiceCard } from "@/features/inquiry/components/clientDetail/InvoiceC
 import { OutcomeCard } from "@/features/inquiry/components/clientDetail/OutcomeCard";
 import { DiscontinueDialog } from "@/features/inquiry/components/clientDetail/DiscontinueDialog";
 import { DischargeDialog } from "@/features/inquiry/components/clientDetail/DischargeDialog";
-import { advanceStatus } from "@/domain/client";
+import { apiErrorText } from "@/domain/auth";
+import { DetailSkeleton } from "@/shared/components/LoadingSkeletons";
+import { useClientDetail } from "@/features/inquiry/hooks/useInquiryClients";
 import { STATUS_META } from "@/domain/status";
 import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink } from "@/domain/assessment";
 import { useClientOutcomeActions } from "@/features/inquiry/hooks/useClientOutcomeActions";
@@ -34,10 +35,11 @@ import { useClientDeleteActions } from "@/features/inquiry/hooks/useClientDelete
 import { DeleteButton } from "@/shared/components/DeleteControls";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 
+const NO_REASONS = [];
+
 export default function ClientDetailInquiry() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { clients, updateClient } = useClients();
   const { schedules } = useSchedules();
   const { getInvoicesForClient, getRecordForClient, getActiveMasterPackages } = useCredits();
   const masterPackages = getActiveMasterPackages(); // pilihan layanan invoice assessment: hanya paket yang masih dijual
@@ -46,13 +48,21 @@ export default function ClientDetailInquiry() {
   const deleteActions = useClientDeleteActions();
   const { confirm, confirmDialog } = useConfirm();
   const { categories } = useAssessments();
-  const { services, getService, activeDischargeReasons } = useMasterData();
+  const master = useMasterData();
+  const { services, getService } = master; // alasan discharge hanya dibaca saat dialog dibuka (tidak di-fetch sebelum perlu)
   const { getTherapist } = useTherapists();
 
-  const client = clients.find((c) => c.id === id);
+  // Mode demo: dari store lokal. Mode API: GET /clients/{id}; mutasi async dan melempar ApiError (409 versi usang, 422 validasi).
+  const detail = useClientDetail(id);
+  const client = detail.client;
 
   // Modals & local state
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleModalMounted, setScheduleModalMounted] = useState(false); // modal membaca client/terapis/libur: dipasang baru saat pertama dibuka
+  const openScheduleModal = (open) => {
+    if (open) setScheduleModalMounted(true);
+    setScheduleModalOpen(open);
+  };
   const [discontinueOpen, setDiscontinueOpen] = useState(false);
   const [discontinueReason, setDiscontinueReason] = useState("");
   const [dischargeOpen, setDischargeOpen] = useState(false);
@@ -97,25 +107,19 @@ export default function ClientDetailInquiry() {
     setEditIntakeOpen(true);
   };
 
-  const handleSaveEditIntake = (e) => {
+  const handleSaveEditIntake = async (e) => {
     e.preventDefault();
     if (!editIntakeForm.clientName.trim()) {
       toast.error("Nama anak tidak boleh kosong.");
       return;
     }
-    updateClient(client.id, {
-      clientName: editIntakeForm.clientName.trim(),
-      gender: editIntakeForm.gender,
-      dob: editIntakeForm.dob,
-      parentName: editIntakeForm.parentName.trim(),
-      parentContact: editIntakeForm.parentContact.trim(),
-      parentEmail: editIntakeForm.parentEmail.trim(),
-      intakeNote: (editIntakeForm.intakeNote || "").trim() || null,
-      branchId: editIntakeForm.branchId,
-      updatedAt: new Date().toISOString(),
-    });
-    toast.success("Data New Intake berhasil diperbarui!");
-    setEditIntakeOpen(false);
+    try {
+      await detail.updateProfile(editIntakeForm);
+      toast.success("Data New Intake berhasil diperbarui!");
+      setEditIntakeOpen(false);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["child_name", "date_of_birth", "parent_name", "parent_phone", "parent_email"]));
+    }
   };
 
   // Schedules associated with this client
@@ -138,6 +142,10 @@ export default function ClientDetailInquiry() {
     return client.serviceType ? [client.serviceType] : [];
   }, [client]);
 
+  if (detail.isLoading) {
+    return <DetailSkeleton sections={5} label="Memuat data client…" testId="client-detail-loading" />;
+  }
+
   if (!client) {
     return (
       <div className="p-8 text-center space-y-3">
@@ -157,18 +165,18 @@ export default function ClientDetailInquiry() {
   };
 
   // STEP 2: Handle Multi-Service Selection
-  const handleToggleService = (serviceValue) => {
+  const handleToggleService = async (serviceValue) => {
     const current = selectedServices;
     const next = current.includes(serviceValue)
       ? current.filter((s) => s !== serviceValue)
       : [...current, serviceValue];
 
-    updateClient(client.id, {
-      serviceTypes: next,
-      serviceType: next[0] || "",
-      status: next.length > 0 ? advanceStatus(client.status, "service_selected") : client.status,
-    });
-    toast.success(next.includes(serviceValue) ? "Layanan klinis ditambahkan." : "Layanan klinis dibatalkan.");
+    try {
+      await detail.saveServices(next);
+      toast.success(next.includes(serviceValue) ? "Layanan klinis ditambahkan." : "Layanan klinis dibatalkan.");
+    } catch (err) {
+      toast.error(apiErrorText(err, ["service_codes"]));
+    }
   };
 
   // STEP 3: Generate Multi-Questionnaire Code
@@ -201,38 +209,47 @@ export default function ClientDetailInquiry() {
   };
 
   // STEP 6: Save GDrive Client Link
-  const handleSaveGDriveLink = (url) => {
-    updateClient(client.id, {
-      gdriveClientLink: url.trim(),
-    });
-    toast.success("Link Google Drive client tersimpan.");
+  const handleSaveGDriveLink = async (url) => {
+    if (url.trim() === (client.gdriveClientLink || "")) return; // tidak berubah (mis. blur tanpa edit)
+    try {
+      await detail.saveGdriveLink(url);
+      toast.success("Link Google Drive client tersimpan.");
+    } catch (err) {
+      toast.error(apiErrorText(err, ["url"]));
+    }
   };
 
   // STEP 8: Final Decision Outcomes
-  const handleOutcomeAdmit = () => {
-    // Admit to Active Client (even if credit is 0!)
-    outcomeActions.admit(client);
-    toast.success(`${client.clientName} resmi menjadi Active Client! Sesi terapi sudah dapat dijadwalkan.`);
+  // Perubahan status bisa ditolak server (409 versi usang / 422 alasan): tampilkan pesannya, jangan klaim berhasil.
+  const runOutcome = async (action, onSuccess) => {
+    try {
+      await action();
+      onSuccess();
+      return true;
+    } catch (err) {
+      toast.error(apiErrorText(err, ["to_status", "reason", "version"]));
+      return false;
+    }
   };
 
-  const handleOutcomeDoneConsult = () => {
-    outcomeActions.markDoneConsult(client);
-    toast.info("Status client ditandai: Done Consult (Konsultasi Selesai).");
-  };
+  // Admit to Active Client (even if credit is 0!)
+  const handleOutcomeAdmit = () =>
+    runOutcome(() => outcomeActions.admit(client), () =>
+      toast.success(`${client.clientName} resmi menjadi Active Client! Sesi terapi sudah dapat dijadwalkan.`));
 
-  const handleOutcomeDoneAssessment = () => {
-    outcomeActions.markDoneAssessment(client);
-    toast.info("Status client ditandai: Done Assessment (Laporan Selesai).");
-  };
+  const handleOutcomeDoneConsult = () =>
+    runOutcome(() => outcomeActions.markDoneConsult(client), () => toast.info("Status client ditandai: Done Consult (Konsultasi Selesai)."));
 
-  const handleOutcomeDiscontinue = () => {
+  const handleOutcomeDoneAssessment = () =>
+    runOutcome(() => outcomeActions.markDoneAssessment(client), () => toast.info("Status client ditandai: Done Assessment (Laporan Selesai)."));
+
+  const handleOutcomeDiscontinue = async () => {
     if (!discontinueReason.trim()) {
       toast.error("Mohon tuliskan alasan discontinue.");
       return;
     }
-    outcomeActions.discontinue(client, discontinueReason);
-    setDiscontinueOpen(false);
-    toast.warning("Status client ditandai: Discontinued.");
+    const ok = await runOutcome(() => outcomeActions.discontinue(client, discontinueReason), () => toast.warning("Status client ditandai: Discontinued."));
+    if (ok) setDiscontinueOpen(false);
   };
 
   // Ubah status manual ke tahap mana pun. Discontinue / discharge membuka dialog alasan masing-masing.
@@ -245,23 +262,33 @@ export default function ClientDetailInquiry() {
       confirmLabel: "Ubah Status",
     });
     if (!ok) return;
-    outcomeActions.changeStatus(client, toStatus);
-    toast.success(`Status ${client.clientName} diubah ke ${STATUS_META[toStatus]?.label || toStatus}.`);
+    await runOutcome(() => outcomeActions.changeStatus(client, toStatus), () =>
+      toast.success(`Status ${client.clientName} diubah ke ${STATUS_META[toStatus]?.label || toStatus}.`));
   };
 
   // Hapus client / inquiry (soft delete, hanya role canDelete). Sesi & invoice milik client ikut disembunyikan.
-  const handleDeleteClient = () => {
-    const { sessions, invoices: inv } = deleteActions.deleteClientCascade(client);
-    toast.success(`Client ${client.clientName} dihapus${sessions || inv ? ` (${sessions} sesi, ${inv} invoice ikut disembunyikan)` : ""}.`);
-    navigate("/admin-inquiry/pipeline");
+  const handleDeleteClient = async () => {
+    try {
+      const { sessions, invoices: inv } = await deleteActions.deleteClientCascade(client);
+      toast.success(`Client ${client.clientName} dihapus permanen${sessions || inv ? ` (${sessions} sesi, ${inv} invoice ikut terhapus)` : ""}.`);
+      navigate("/admin-inquiry/pipeline");
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
-  const handleOutcomeDischarge = () => {
+  const handleOutcomeDischarge = async () => {
     if (!dischargeReason.trim()) {
       toast.error("Mohon pilih atau tulis alasan discharge.");
       return;
     }
-    const res = outcomeActions.discharge(client, dischargeReason, dischargeNote);
+    let res;
+    try {
+      res = await outcomeActions.discharge(client, dischargeReason, dischargeNote);
+    } catch (err) {
+      toast.error(apiErrorText(err, ["reason", "version"]));
+      return;
+    }
     setDischargeOpen(false);
     setDischargeReason("");
     setDischargeNote("");
@@ -306,7 +333,7 @@ export default function ClientDetailInquiry() {
         <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} masterPackages={masterPackages} newQuestionnaireService={newQuestionnaireService} setNewQuestionnaireService={setNewQuestionnaireService} newQuestionnaireInvoice={newQuestionnaireInvoice} setNewQuestionnaireInvoice={setNewQuestionnaireInvoice} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
 
         {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
-        <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={setScheduleModalOpen} />
+        <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={openScheduleModal} />
 
         {/* STEP 5: PARENT ASSESSMENT ANSWER (PSYCHOLOGICAL TABLE & PDF) */}
         <ParentAnswerCard client={client} />
@@ -323,9 +350,10 @@ export default function ClientDetailInquiry() {
 
       {/* Discontinue Modal */}
       <DiscontinueDialog discontinueOpen={discontinueOpen} discontinueReason={discontinueReason} handleOutcomeDiscontinue={handleOutcomeDiscontinue} setDiscontinueOpen={setDiscontinueOpen} setDiscontinueReason={setDiscontinueReason} />
-      <DischargeDialog open={dischargeOpen} onOpenChange={setDischargeOpen} reasons={activeDischargeReasons} reason={dischargeReason} setReason={setDischargeReason} note={dischargeNote} setNote={setDischargeNote} onConfirm={handleOutcomeDischarge} />
+      <DischargeDialog open={dischargeOpen} onOpenChange={setDischargeOpen} reasons={dischargeOpen ? master.activeDischargeReasons : NO_REASONS} reason={dischargeReason} setReason={setDischargeReason} note={dischargeNote} setNote={setDischargeNote} onConfirm={handleOutcomeDischarge} />
 
       {/* Schedule Modal for Assessment */}
+      {scheduleModalMounted && (
       <AddScheduleModal
         open={scheduleModalOpen}
         onOpenChange={setScheduleModalOpen}
@@ -338,6 +366,7 @@ export default function ClientDetailInquiry() {
         defaultClientId={client.id}
         defaultType="assessment"
       />
+      )}
 
       {/* Pratinjau Bukti Pembayaran Modal */}
       <PaymentProofViewerModal

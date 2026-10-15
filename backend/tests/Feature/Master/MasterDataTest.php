@@ -88,30 +88,25 @@ class MasterDataTest extends TestCase
         $this->assertDatabaseHas('services', ['code' => $code]);
     }
 
-    public function test_service_and_quadrant_lists_report_real_usage_counts(): void
+    public function test_service_list_does_not_compute_usage_but_delete_still_guards_it_and_quadrants_report_question_count(): void
     {
         $code = DB::table('services')->value('code');
         $client = $this->makeClient();
         DB::table('client_services')->insert(['client_id' => $client->id, 'service_code' => $code]);
-        DB::table('schedules')->insert([
-            'branch_id' => $client->branch_id, 'client_id' => $client->id, 'therapist_id' => $this->master->id, 'service_code' => $code,
-            'session_date' => '2026-11-02', 'start_time' => '09:00', 'end_time' => '10:00', 'created_at' => now(), 'updated_at' => now(),
-        ]);
 
-        // staf cabang lain tetap melihat jumlah asli (semua cabang), bukan jumlah yang disaring BranchScope
+        // Daftar layanan tidak menghitung pemakaian (mahal di jutaan client); hanya dibutuhkan saat hapus
         $row = collect($this->actAs($this->makeStaff('admin_inquiry'))->getJson('/api/v1/master/services')->json('data'))->firstWhere('code', $code);
-        $this->assertSame(1, $row['client_count']);
-        $this->assertSame(1, $row['schedule_count']);
+        $this->assertArrayNotHasKey('client_count', $row);
+        $this->assertArrayNotHasKey('schedule_count', $row);
+        $this->getJson("/api/v1/master/services/{$code}")->assertOk()->assertJsonMissingPath('data.client_count');
 
-        $unused = collect($this->getJson('/api/v1/master/services')->json('data'))->first(fn ($s) => $s['code'] !== $code);
-        $this->assertSame(0, $unused['client_count']);
-        $this->assertSame(0, $unused['schedule_count']);
+        // ...tetapi hapus tetap dijaga di server (409 in_use)
+        $this->actAs($this->master)->deleteJson("/api/v1/master/services/{$code}")->assertStatus(409)->assertJsonPath('code', 'in_use');
 
-        $this->getJson("/api/v1/master/services/{$code}")->assertOk()->assertJsonPath('data.client_count', 1);
-
+        // Kuadran: hanya jumlah soal (badge); pengaman hapus (soal + skor) ada di server
         $quadrant = collect($this->getJson('/api/v1/master/quadrants')->json('data'))->first();
         $this->assertSame(0, $quadrant['question_count']);
-        $this->assertSame(0, $quadrant['score_count']);
+        $this->assertArrayNotHasKey('score_count', $quadrant);
     }
 
     public function test_service_used_by_a_schedule_cannot_be_deleted(): void

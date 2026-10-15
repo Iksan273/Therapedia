@@ -277,3 +277,37 @@ html.dark {
         border-bottom-color: inherit;
     }
 }
+
+/* ===== Kerangka loading dengan efek shimmer (komponen <Skeleton/>) =====
+   Berada di layer components agar class utilitas (bg-*, rounded-*) dari pemanggil tetap menang. */
+@keyframes skeleton-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@layer components {
+    .skeleton-shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .skeleton-shimmer::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+        animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    }
+
+    .dark .skeleton-shimmer::after {
+        background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .skeleton-shimmer::after {
+            animation: none;
+        }
+    }
+}

@@ -9,6 +9,8 @@ import { Switch } from "@/shared/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { EmptyState } from "@/shared/components/EmptyState";
+import { ListSkeleton } from "@/shared/components/LoadingSkeletons";
+import { useMasterData } from "@/stores/masterDataStore";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { apiErrorText } from "@/domain/auth";
 
@@ -27,6 +29,7 @@ const slugify = (text) =>
 // `flag` (opsional) = penanda tambahan pada tiap pilihan: { key, label, help }. Contoh Alasan Cancel / Off: { key: "therapistOff",
 // label: "Therapist Off", help: "..." }. Nilainya ikut dikirim di onAdd/onUpdate sebagai boolean `item[key]`.
 export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, onDelete, testId, codeMode = false, reservedCodes = [], flag = null }) {
+  const { isLoading } = useMasterData(); // mode API: daftar master masih dimuat
   const { confirm, confirmDialog } = useConfirm();
   const [dialog, setDialog] = useState(EMPTY);
 
@@ -97,7 +100,9 @@ export function ReasonListTab({ noun, hint, icon: Icon, items, onAdd, onUpdate, 
         </Button>
       </div>
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton rows={4} label={`Memuat ${noun}…`} testId={`${testId}-loading`} />
+      ) : items.length === 0 ? (
         <EmptyState icon={Icon} title={`Belum ada ${noun}`} subtitle="User tetap bisa mengetik alasan sendiri saat mengisi form." />
       ) : (
         <div className="overflow-x-auto">

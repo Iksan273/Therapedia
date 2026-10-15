@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { hasAllBranchAccess } from "@/domain/auth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -20,10 +20,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { useClients } from "@/stores/clientsStore";
 import { useAuth } from "@/stores/authStore";
 import { BRANCHES, branchName } from "@/domain/branch";
-import { makeInquiryClient, getClientServiceIds, matchesClientSearch } from "@/domain/client";
+import { useInquiryPipeline } from "@/features/inquiry/hooks/useInquiryClients";
+import { apiErrorText } from "@/domain/auth";
 import { useMasterData } from "@/stores/masterDataStore";
 import { PipelineBoard } from "@/features/inquiry/components/pipeline/PipelineBoard";
 import { STAGE_COLUMNS } from "@/features/inquiry/components/pipeline/pipelineConfig";
@@ -32,7 +32,6 @@ import { STAGE_COLUMNS } from "@/features/inquiry/components/pipeline/pipelineCo
 
 export default function InquiryPipeline() {
   const navigate = useNavigate();
-  const { clients, addClient } = useClients();
   const { activeServices, getService } = useMasterData();
   const { activeBranch, auth } = useAuth();
   const isMaster = hasAllBranchAccess(auth); // Master atau akun dengan akses semua cabang
@@ -57,35 +56,16 @@ export default function InquiryPipeline() {
     parentEmail: "",
     dob: "",
     intakeNote: "",
-    branchId: auth?.branchId || "branch-sby-timur",
+    branchId: "", // kosong = pakai cabang bawaan (lihat intakeBranch)
   });
+  // Cabang bawaan intake: cabang akun, atau cabang aktif di filter, atau cabang pertama (id lokal di demo, id server di mode API)
+  // Akun yang terikat satu cabang hanya boleh mendaftarkan client ke cabangnya (server memaksa hal yang sama); dropdown dikunci.
+  const branchLocked = !isMaster && Boolean(auth?.branchId);
+  const intakeBranch = branchLocked ? auth.branchId : newForm.branchId || auth?.branchId || (activeBranch && activeBranch !== "all" ? activeBranch : null) || BRANCHES[0]?.id || "";
 
-  const filtered = useMemo(() => {
-    return clients.filter((c) => {
-      // Filter branch
-      if (branchFilter !== "all" && c.branchId !== branchFilter) return false;
-      if (serviceFilter !== "all" && !getClientServiceIds(c).includes(serviceFilter)) return false;
-      // Filter search query
-      return matchesClientSearch(c, search);
-    });
-  }, [clients, search, branchFilter, serviceFilter]);
-
-  const clientsByStage = useMemo(() => {
-    const groups = {};
-    STAGE_COLUMNS.forEach((col) => {
-      groups[col.status] = [];
-    });
-    filtered.forEach((c) => {
-      if (groups[c.status]) {
-        groups[c.status].push(c);
-      } else {
-        // Fallback mapping
-        if (c.status === "active") groups["admitted"]?.push(c);
-        else if (groups["inquiry"]) groups["inquiry"].push(c);
-      }
-    });
-    return groups;
-  }, [filtered]);
+  // Mode demo: filter di klien dari store lokal. Mode API: tiap tahap diambil dari server dengan filter yang sama.
+  const { clientsByStage, totals, total, hasAnyClient, isLoading, isFetching, isSearching, loadMore, loadingMore, loadMoreFailed, createIntake } = useInquiryPipeline({ branchFilter, serviceFilter, search });
+  const [saving, setSaving] = useState(false);
 
   const filterChips = [];
   if (search.trim()) {
@@ -108,7 +88,7 @@ export default function InquiryPipeline() {
 
   const openClient = (id) => navigate(`/admin-inquiry/pipeline/${id}`);
 
-  const handleCreateIntake = (e) => {
+  const handleCreateIntake = async (e) => {
     e.preventDefault();
     if (
       !newForm.clientName.trim() ||
@@ -121,16 +101,17 @@ export default function InquiryPipeline() {
       return;
     }
 
-    const newClient = makeInquiryClient(
-      {
-        ...newForm,
-        status: "inquiry",
-      },
-      clients.map((c) => c.clientCode)
-    );
-
-    addClient(newClient);
-    toast.success(`Data New Intake ${newClient.clientName} berhasil ditambahkan!`);
+    setSaving(true);
+    let newClient;
+    try {
+      newClient = await createIntake({ ...newForm, branchId: intakeBranch });
+    } catch (err) {
+      toast.error(apiErrorText(err, ["child_name", "date_of_birth", "parent_name", "parent_phone", "parent_email", "branch_id"]));
+      return;
+    } finally {
+      setSaving(false);
+    }
+    toast.success(`Data New Intake ${newClient.clientName} berhasil ditambahkan! Kode client: ${newClient.clientCode}`);
     setNewIntakeOpen(false);
     setNewForm({
       clientName: "",
@@ -140,7 +121,7 @@ export default function InquiryPipeline() {
       parentEmail: "",
       dob: "",
       intakeNote: "",
-      branchId: "branch-sby-timur",
+      branchId: "",
     });
 
     navigate(`/admin-inquiry/pipeline/${newClient.id}`);
@@ -177,7 +158,7 @@ export default function InquiryPipeline() {
         title="Cari & Filter"
         chips={filterChips}
         onReset={resetFilters}
-        resultText={`${filtered.length} client`}
+        resultText={isLoading ? "Memuat data…" : isSearching ? (search.trim() ? "Mencari…" : `${total} client • memperbarui…`) : `${total} client`}
         gridClassName="lg:grid-cols-[2fr_1fr_1fr]"
       >
         <FilterField label="Pencarian">
@@ -212,9 +193,15 @@ export default function InquiryPipeline() {
       <PipelineBoard
         columns={STAGE_COLUMNS}
         clientsByStage={clientsByStage}
+        totals={totals}
+        loading={isLoading}
+        refreshing={isSearching}
+        onLoadMore={loadMore}
+        loadingMore={loadingMore}
+        loadMoreFailed={loadMoreFailed}
         getService={getService}
         onOpen={openClient}
-        emptyText={filtered.length === 0 && clients.length > 0 ? "Tidak ada yang cocok dengan filter" : "Kosong di tahap ini"}
+        emptyText={total === 0 && hasAnyClient ? "Tidak ada yang cocok dengan filter" : "Kosong di tahap ini"}
       />
 
       {/* New Intake Modal (Clean, email included, no complaints/tags) */}
@@ -313,8 +300,8 @@ export default function InquiryPipeline() {
 
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Cabang Tujuan *</Label>
-              <Select value={newForm.branchId} onValueChange={(val) => setNewForm({ ...newForm, branchId: val })}>
-                <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold">
+              <Select value={intakeBranch} disabled={branchLocked} onValueChange={(val) => setNewForm({ ...newForm, branchId: val })}>
+                <SelectTrigger className="border-slate-200 bg-slate-50 text-xs font-semibold" data-testid="intake-branch-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
@@ -325,14 +312,15 @@ export default function InquiryPipeline() {
                   ))}
                 </SelectContent>
               </Select>
+              {branchLocked && <p className="text-[11px] text-slate-500" data-testid="intake-branch-locked-hint">Akun Anda terikat ke satu cabang, jadi client baru otomatis masuk ke cabang ini.</p>}
             </div>
 
             <DialogFooter className="mt-5 gap-2.5 pt-2 border-t border-slate-100">
               <Button type="button" variant="outline" className="border-slate-200 font-bold px-4" onClick={() => setNewIntakeOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 shadow-xs" data-testid="submit-intake-button">
-                Daftarkan ke Pipeline
+              <Button type="submit" disabled={saving} className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 shadow-xs" data-testid="submit-intake-button">
+                {saving ? "Menyimpan…" : "Daftarkan ke Pipeline"}
               </Button>
             </DialogFooter>
           </form>

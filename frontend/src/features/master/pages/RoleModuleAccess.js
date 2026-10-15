@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ListSkeleton } from "@/shared/components/LoadingSkeletons";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
 import { ShieldCheck, Plus, Pencil, Trash2, AlertCircle, Search, SlidersHorizontal, Layers, Lock, CheckCircle2 } from "lucide-react";
@@ -190,11 +191,7 @@ export default function RoleModuleAccess() {
         </div>
       </div>
 
-      {isLoading && (
-        <p className="text-xs font-medium text-slate-400" data-testid="rbac-loading">
-          Memuat data role…
-        </p>
-      )}
+      {isLoading && <ListSkeleton rows={4} label="Memuat data role…" testId="rbac-loading" />}
 
       {/* Navigation Tabs */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-2">

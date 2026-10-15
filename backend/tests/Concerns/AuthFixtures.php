@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\BranchSeeder;
+use Database\Seeders\ClientCodeCounterSeeder;
 use Database\Seeders\RbacSeeder;
 
 /** Data uji auth: cabang + role + matriks RBAC dari seeder wajib, lalu akun/client dibuat per test. */
@@ -16,7 +17,7 @@ trait AuthFixtures
 
     protected function seedFoundation(): void
     {
-        $this->seed([BranchSeeder::class, RbacSeeder::class]);
+        $this->seed([BranchSeeder::class, RbacSeeder::class, ClientCodeCounterSeeder::class]);
     }
 
     protected function makeStaff(string $role = 'admin_schedule', array $overrides = []): User

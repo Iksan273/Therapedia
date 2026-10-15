@@ -181,6 +181,8 @@ Akses: modul `finance`. Ortu **tidak** upload dari portal; satu-satunya jalur or
 
 ## 6. Integrasi Frontend sprint ini
 
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
+
 | Sasaran | Store / hook | Halaman / komponen | Perubahan |
 |---|---|---|---|
 | Jadwal | `schedulesStore`, `useSessionActions` (`completeSession`, `cancelSession`, `rescheduleSession`, `markPending`, `dropPending`, `revertSession`, bulk*), `useHolidayActions` | `features/schedule/pages/CalendarPage.js` + `components/calendar/*`, `ActiveClientDetail.js` (+ `components/clientDetail`), `UnreportedSessions.js`, `Holidays.js`, `features/therapist/pages/MySchedule.js`, `TeamCalendar.js` | Query kalender per minggu (key: cabang+from+to); tiap aksi = **satu mutation** + invalidasi `schedules`, `credits`, `clients`; dialog Cancel wajib memilih Potong/Tidak (`DeductCreditChoice`) dan menampilkan sisa credit leave; 409 `schedule_conflict` → dialog `force`; `RevertSessionPanel` → satu request `schedules.revert` |

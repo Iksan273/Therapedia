@@ -36,8 +36,36 @@ Komponen domain: `features/schedule/components/calendar/*`, `features/therapist/
 Semua list, tabel, dan feed yang bisa memanjang memakai **pagination 10 data per halaman**, **bukan infinite scroll** dan bukan daftar penuh yang di-scroll ke bawah:
 - Pakai `usePagination(items, 10, resetKey)` + `<TablePagination .../>` (`shared/components/TablePagination.js`); `resetKey` = gabungan filter/pencarian supaya kembali ke halaman 1 saat filter berubah. Hook dipanggil sebelum early return.
 - Untuk feed kartu (mis. Session Feed, Rangkuman Client di Summary Laporan) kirim `pageItems` ke komponen presentasi dan taruh `TablePagination` di bawahnya.
-- Sudah dipaginasi: semua tabel Finance, Roster/Active Client, Analytics, Unreported Sessions, User Management, tab Inquiry, riwayat sesi client (admin & terapis), Session Feed + Rangkuman Client terapis, drawer riwayat laporan, Hari Libur, tabel transaksi Revenue. Kanban pipeline memuat bertahap per kolom.
+- Sudah dipaginasi: semua tabel Finance, Roster/Active Client, Analytics, Unreported Sessions, User Management, tab Inquiry, riwayat sesi client (admin & terapis), Session Feed + Rangkuman Client terapis, drawer riwayat laporan, Hari Libur, tabel transaksi Revenue. **Pengecualian: papan kanban pipeline memakai infinite scroll per kolom** (bukan tabel; kolom bertahap 10 kartu, halaman berikutnya dimuat saat kolom di-scroll sampai dasar lewat `useInfiniteSentinel`, `shared/hooks/useInfiniteSentinel.js`). Mode API: halaman pertama dari `GET /clients/board?per_stage=10`, halaman berikutnya `GET /clients?status[]=<tahap>&page=N&per_page=10` dengan filter yang sama; gagal memuat menampilkan tombol "Coba lagi" (tidak mengulang otomatis); browser tanpa IntersectionObserver mendapat tombol "Muat lebih banyak".
 - Fase API: client-side slice diganti `page`/`per_page` (atau cursor untuk keyset) ke endpoint list; UI tidak berubah. Lihat `technical_workflow.md` §0 dan `schema.md` §07.
+
+## Loading data (shimmer) — WAJIB di semua tampilan yang fetch data
+**Aturan keras:** setiap tampilan yang datanya diambil dari API (mode `VITE_DATA_SOURCE=api`) — halaman, tab, tabel, kartu, daftar di dalam dialog — menampilkan **kerangka shimmer** selama muat pertama kali, bukan layar kosong, `EmptyState`, tabel 0 baris, atau sekadar teks "Memuat…". Contoh kegagalan yang pernah terjadi: tab *Client Roster* menampilkan daftar kosong / sebagian tanpa indikasi bahwa data sedang diambil.
+- Primitif: `<Skeleton/>` (`shared/ui/skeleton.jsx`, kelas `.skeleton-shimmer` di `index.css`; mati otomatis bila pengguna memilih *reduced motion*, ada padanan mode gelap).
+- Bentuk siap pakai di `shared/components/LoadingSkeletons.js`: `TableSkeleton` (tabel), `CardGridSkeleton` (kartu/paket/kuadran), `ListSkeleton` (daftar alasan, role), `DetailSkeleton` (halaman detail). Halaman lazy memakai `PageSkeleton`.
+- Pola: store/hook mengekspos `isLoading` (muat pertama, belum ada data; `isLoading && enabled` agar tidak menggantung saat belum login) dan, bila perlu, `isFetching` (muat ulang di latar: tampilkan data lama + teks "memperbarui…", jangan kosongkan). Mode demo (localStorage) selalu `isLoading: false`.
+- Muat ulang (filter, halaman, pencarian berubah): data lama **tetap terlihat tetapi diredupkan** (`opacity-50`) + teks "memperbarui…"; jangan dikosongkan. Tabel server-side: `placeholderData: keepPreviousData`.
+- Tab yang datanya hanya diperlukan saat dibuka (mis. Birthday Hub) baru mengambil data saat tab aktif, dengan shimmer-nya sendiri.
+- Sudah terpasang: Active Clients (roster & birthday), papan & detail pipeline, Master Cabang, User Management, Role & Hak Akses, Master Data Inquiry (layanan, kuadran, alasan), Hari Libur, katalog paket Finance. **Modul yang baru terintegrasi API wajib memasangnya** (checklist integrasi di `10-api-migration.md`).
+- Tombol aksi yang menyimpan ke server: nonaktifkan + ubah label ("Menyimpan…") selama proses.
+- **Pencarian / filter yang memanggil server** (mis. pipeline): beri tahu bahwa pencarian sedang berjalan. (tanpa spinner di kotak pencarian); daftar lama tetap terlihat tetapi diredupkan + bar progres tipis (`PipelineBoard` prop `refreshing`); teks hasil di filter bar menjadi "Mencari…". Jangan mengosongkan daftar selama mencari.
+
+## Fetch hanya yang diperlukan (wajib, semua modul)
+Setiap halaman di mode API hanya memanggil endpoint untuk data yang **benar-benar dibacanya**. Store tidak lagi mengambil semua daftar saat login; tiap daftar punya kunci permintaan dan baru di-fetch ketika ada komponen yang membacanya.
+
+**Cara kerja** (`shared/hooks/useDemand.js`, dipakai `masterDataStore`, `therapistsStore`, `holidaysStore`, `creditsStore` (katalog paket), `clientsStore` (cache)):
+- Daftar (array) = **getter** di nilai context: membaca `const { services } = useMasterData()` meminta daftar `services`. Mengambil properti lain tidak memicu apa pun.
+- Fungsi pembantu (`getTherapist`, `getClient`, `getService`, `getActiveMasterPackages`, ...) meminta data **saat dipanggil**, bukan saat diambil dari context. Mengambil fungsinya di level atas tanpa memanggilnya tidak men-fetch.
+- Query react-query `enabled` hanya setelah kunci diminta; `isLoading` bernilai true sejak diminta sampai data tiba (tidak ada kilatan "data kosong"). Catatan permintaan dibuang saat logout.
+- Tetap eager (dipakai hampir semua halaman): cabang (`branchesStore`), sesi.
+
+**Aturan untuk kode halaman / hook**
+1. Baca daftar di tempat ia dipakai. Bila hanya untuk dialog / tab / handler, jangan destruktur di level atas komponen: ambil objek store (`const master = useMasterData()`) lalu baca `master.activeDischargeReasons` hanya saat dialog terbuka (contoh `ClientDetailInquiry`).
+2. Komponen berat yang membaca banyak store (modal jadwal, dll.) dipasang saat pertama dibuka, bukan selalu terpasang tersembunyi.
+3. Hook use-case mode API tidak boleh membaca store lain "untuk jaga-jaga". Baca di dalam fungsi yang memerlukannya (contoh `useQuestionnaireCodeActions`).
+4. Halaman yang punya hook server sendiri (pipeline, detail client, daftar staf) tidak ikut mengaktifkan cache global.
+5. **Setiap halaman / modul yang diintegrasikan ke API wajib punya tes loading (shimmer tampil selama request tertahan) dan tes daftar endpoint** yang dipanggil (mock `api`, hitung URL): contoh `features/inquiry/__tests__/lazyFetch.test.js` (pipeline = `/clients/board` + `/branches` + `/master/services`; detail client tidak memanggil terapis, hari libur, kuadran, alasan cancel/discharge, atau daftar client).
+6. Store baru yang mengambil daftar dari server: pakai `useDemand`; jangan memasang `useQuery` yang langsung `enabled` saat login.
 
 ## Mode gelap
 - **Tombol**: ikon bulan/matahari di header `AppLayout` (`shared/components/ThemeToggle.js`, state di `shared/hooks/useAppTheme.js`). Tanpa preferensi tersimpan, ikut pengaturan sistem (`prefers-color-scheme`); pilihan disimpan di key `ui_theme`.

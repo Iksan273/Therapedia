@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
 import { DEFAULT_HOLIDAYS } from "@/domain/holiday";
 import { isStaffSession } from "@/domain/auth";
+import { useDemand } from "@/shared/hooks/useDemand";
 import { isApiMode } from "@/config/env";
 import { api } from "@/services/http/httpClient";
 import { ENDPOINTS } from "@/services/api/endpoints";
@@ -46,10 +47,11 @@ const ApiHolidaysProvider = ({ children }) => {
   const { auth } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data } = useQuery({
+  const { demand, isOn, loading } = useDemand(isStaffSession(auth));
+  const { data, isLoading } = useQuery({
     queryKey: HOLIDAYS_QUERY_KEY,
     queryFn: ({ signal }) => api.get(ENDPOINTS.holidays.list, undefined, { signal }).then((rows) => rows.map(holidayFromApi)),
-    enabled: isStaffSession(auth),
+    enabled: isStaffSession(auth) && isOn("holidays"), // baru diambil saat ada yang membaca `holidays`
     staleTime: 5 * 60_000,
   });
   const holidays = React.useMemo(() => data ?? [], [data]);
@@ -65,7 +67,24 @@ const ApiHolidaysProvider = ({ children }) => {
   const updateHoliday = async (id, patch) => holidayFromApi(await update.mutateAsync({ id, form: patch }));
   const removeHoliday = (id) => remove.mutateAsync(id);
 
-  return <HolidaysContext.Provider value={{ holidays, createHolidayRange, updateHoliday, removeHoliday }}>{children}</HolidaysContext.Provider>;
+  return (
+    <HolidaysContext.Provider
+      value={{
+        get holidays() {
+          demand("holidays");
+          return holidays;
+        },
+        get isLoading() {
+          return loading("holidays", isLoading);
+        },
+        createHolidayRange,
+        updateHoliday,
+        removeHoliday,
+      }}
+    >
+      {children}
+    </HolidaysContext.Provider>
+  );
 };
 
 export const HolidaysProvider = isApiMode() ? ApiHolidaysProvider : LocalHolidaysProvider;

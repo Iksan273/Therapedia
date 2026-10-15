@@ -10,6 +10,7 @@ import { Textarea } from "@/shared/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { useMasterData, QUADRANT_COLORS, getQuadrantColor } from "@/stores/masterDataStore";
+import { CardGridSkeleton } from "@/shared/components/LoadingSkeletons";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { cn } from "@/shared/lib/utils";
 import { apiErrorText } from "@/domain/auth";
@@ -33,7 +34,7 @@ const questionsOf = (cat) =>
 // Tab Kuadran Sensori di Master Data Inquiry: kartu kuadran + tambah/ubah/hapus (dialog di komponen ini).
 export function QuadrantsTab() {
   const { confirm, confirmDialog } = useConfirm();
-  const { quadrants, addQuadrant, updateQuadrant, deleteQuadrant } = useMasterData();
+  const { quadrants, isLoading, addQuadrant, updateQuadrant, deleteQuadrant } = useMasterData();
   const { categories } = useAssessments();
 
   const [quadDialog, setQuadDialog] = useState(EMPTY_QUADRANT);
@@ -135,7 +136,8 @@ export function QuadrantsTab() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 sm:p-5 max-h-[460px] overflow-y-auto content-start" data-testid="quadrant-scroll-area">
+        {isLoading && <CardGridSkeleton count={4} columns="grid-cols-1 sm:grid-cols-2" className="p-4 sm:p-5" label="Memuat kuadran sensori…" testId="quadrants-loading" />}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 sm:p-5 max-h-[460px] overflow-y-auto content-start" data-testid="quadrant-scroll-area" hidden={isLoading}>
           {quadrants.map((q) => {
             const color = getQuadrantColor(q.color);
             return (

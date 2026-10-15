@@ -160,6 +160,32 @@ Batasan sementara: (1) libur di mode API **tidak** membatalkan sesi (Sprint 2); 
 
 **Batasan sementara (modul lain masih localStorage):** halaman selain auth belum membaca data dari API sampai modulnya dimigrasi (sprint 1 hari 6+). Akibatnya setelah login API: `branchId` berupa id numerik server (belum cocok dengan id cabang demo), portal ortu/terapis belum menemukan datanya, dan halaman User/RBAC masih memakai data lokal sampai M2 dimigrasi.
 
+### Aturan fetch di semua modul (berlaku untuk integrasi berikutnya)
+Halaman hanya mengambil data yang dibacanya (`useDemand`, getter / panggilan fungsi); jangan men-fetch daftar saat login. Aturan lengkap + contoh: `docs/guide/08` bagian "Fetch hanya yang diperlukan" dan `CLAUDE.md` aturan 22b. Setiap modul baru wajib punya tes daftar endpoint halamannya.
+
+### M4 Inquiry & Client: terintegrasi — pipeline & detail client (15 Okt 2026)
+Endpoint aktif: `GET /clients` (filter `status[]`, `q`, `service_code`, `credit_status`, `sort`, `page/per_page`), `GET /clients/pipeline-summary`, `GET /clients/check-duplicate`, `POST /clients`, `GET/PATCH/DELETE /clients/{id}`, `PUT /clients/{id}/services`, `POST/DELETE /clients/{id}/gdrive-links`, `POST /clients/{id}/transition`. Kontrak yang berbeda dari store demo, yang harus dipetakan saat integrasi FE (`services/api/mappers/clientMapper.js`):
+- `dob` → `date_of_birth`, `clientName` → `child_name`, `serviceTypes[]` → `service_codes[]`, `gdriveClientLink` → `gdrive_links[]` (array; FE lama satu link), `frozen` dan `credit_balance` datang dari server (tidak disimpan di FE).
+- **Alasan keluar**: transisi `discharged`/`discontinued` mengirim `reason` (wajib) + `note?`; server menyimpannya di `discharge_reason`/`discharge_note`. Pola lama FE (`dischargeReason="other"` + `dischargeNote=alasan` untuk discontinue) dibuang: tampilkan `discharge_reason` apa adanya.
+- `version` wajib pada `PATCH` dan `transition` (409 `version_conflict`); kode client tidak bisa diubah.
+- Efek discharge (hapus jadwal aktif + hanguskan sisa kredit) belum ada di server sampai Sprint 2; `useClientOutcomeActions` mode API tidak boleh mengandalkannya.
+- Hapus client hanya master (403 selain itu); hook `useClientDeleteActions` mode API cukup `DELETE /clients/{id}` (cascade di server).
+- Pencarian `q` prefix per kata (sama dengan `matchesClientSearch`); daftar dipaginasi server.
+
+**Implementasi FE (aktif bila `VITE_DATA_SOURCE=api`):**
+| Bagian | Implementasi |
+|---|---|
+| Mapper | `services/api/mappers/clientMapper.js` (`clientFromApi`, `clientCreateToApi`, `clientUpdateToApi`, `transitionToApi`); nama field FE lama dipertahankan (`clientName`, `dob`, `parentContact`, `serviceTypes`, `gdriveClientLink`) |
+| Store | `stores/clientsStore.js` mode API = **cache ringan** 50 client terbaru (`GET /clients`) agar modul lain yang belum terintegrasi tidak error; mutatornya hanya mengubah cache di memori |
+| Hook halaman | `features/inquiry/hooks/useInquiryClients.js`: `useInquiryPipeline` (SATU request `GET /clients/board?per_stage=10` untuk halaman pertama 9 tahap sekaligus (jumlah asli `total` per tahap), lalu **infinite scroll per kolom**: `loadMore(status)` mengambil `GET /clients?status[]=…&page=N&per_page=10` dengan filter yang sama (halaman tambahan dibuang saat filter berubah / papan disegarkan; duplikat akibat offset bergeser dibuang; gagal = `loadMoreFailed`); `isLoading` untuk muat pertama, `isFetching` untuk muat ulang) dan `useClientDetail` (`GET /clients/{id}`, ubah biodata, pilih layanan, link GDrive) |
+| Use-case | `useClientOutcomeActions` mode API = `POST /clients/{id}/transition` (async, 409/422 dilempar); `useClientDeleteActions` mode API = `DELETE /clients/{id}` |
+| Halaman | `InquiryPipeline`, `ClientDetailInquiry` (semua aksi `await` + toast galat server); `PipelineBoard` menampilkan jumlah asli per tahap + kerangka (skeleton) kartu saat muat pertama; teks "memperbarui…" di filter bar saat muat ulang |
+
+**Belum terintegrasi (tetap lokal / kosong di mode API):** kode kuesioner & invoice assessment di detail client (M5/M6), jadwal asesmen (S2), `DashboardInquiry` (agregat M10), Active Clients / jadwal / finance (modul masing-masing). Discharge di mode API belum menghapus jadwal / menghanguskan kredit (Sprint 2). Cabang client tidak dapat diubah lewat Edit Intake. UI link GDrive satu kolom: menyimpan menggantikan semua link client.
+
+### Active Clients (M8) — roster & birthday memakai server (15 Okt 2026)
+`ActiveClients` (tab Client Roster, Birthday Hub) di mode API **tidak lagi membaca cache client global**: `features/schedule/hooks/useRosterClients.js` memanggil `GET /clients` dengan paginasi server (per_page bawaan 10, `status[]` roster, `branch_id`, `q`, `credit_status`, `sort=child_name`) dan Birthday Hub memakai filter baru `birth_month` (1–12, indeks `idx_clients_birthday`), baru diambil saat tabnya dibuka. Tab Advanced Analytics belum tersedia di mode API (butuh jadwal & kredit: Sprint 2–3). Kolom paket menampilkan saldo total dari server (`creditBalance`); rincian paket & kuota cancel menunggu modul Finance. Penyebab gejala "roster hanya 6 client": halaman membaca cache 50 (kini 10) client terbaru lalu menyaring status roster di klien, jadi hanya sebagian yang tampil — cache itu hanya penambal untuk modul yang belum terintegrasi, jangan dipakai untuk daftar.
+
 ### M5 Asesmen — kontrak field section/soal siap, belum dikerjakan (15 Okt 2026)
 Mode demo sudah memakai bentuk baru; backend & mode API menyusul di M5 (controller/`AssessmentService` masih kerangka, `assessmentsStore` masih lokal). Kontrak untuk M5:
 - `assessment_sections`: **`lead_text` → `description`** (TEXT NULL; migration rename + lebarkan) dan kolom baru **`document_url`** (VARCHAR(500) NULL). JSON: `description`, `documentUrl`. Validasi `document_url`: `url` https dengan host `docs.google.com` / `drive.google.com` (selaras `toDocumentEmbedUrl`).

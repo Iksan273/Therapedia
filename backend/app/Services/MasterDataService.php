@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\CancelReason;
 use App\Models\SensoryQuadrant;
-use App\Models\Service;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -46,8 +45,10 @@ class MasterDataService
     }
 
     /**
-     * Jumlah pemakaian asli dari database (semua cabang, tanpa BranchScope) untuk halaman Master Data: layanan
-     * (`client_count`, `schedule_count`) dan kuadran (`question_count`, `score_count`). Master lain tidak punya hitungan.
+     * Hitungan yang ikut respons baca (index/show). HANYA kuadran: `question_count` (badge "N soal", tabel kecil).
+     * Pemakaian layanan (client / jadwal) sengaja TIDAK dihitung di sini: menghitung seluruh `client_services` / `schedules`
+     * tiap membuka daftar layanan memakan ±700 ms pada 1 juta client, padahal hanya dibutuhkan saat HAPUS, dan
+     * `DeleteServiceAction` / `DeleteSensoryQuadrantAction` sudah mengecek pemakaian sendiri (409 `in_use`).
      *
      * @param  Builder<Model>  $query
      * @return Builder<Model>
@@ -57,13 +58,8 @@ class MasterDataService
         $unscoped = fn ($q) => $q->withoutGlobalScopes();
 
         return match ($query->getModel()::class) {
-            Service::class => $query->withCount([
-                'clientServicesViaServiceCode as client_count' => $unscoped,
-                'schedulesViaServiceCode as schedule_count' => $unscoped,
-            ]),
             SensoryQuadrant::class => $query->withCount([
                 'assessmentQuestionsViaQuadrantCode as question_count' => $unscoped,
-                'assessmentQuadrantScoresViaQuadrantCode as score_count' => $unscoped,
             ]),
             default => $query,
         };

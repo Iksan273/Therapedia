@@ -97,6 +97,8 @@
 **G. Invoice cuti** (`invoice_type=leave`): nominal manual > 0, `credits=0`, tanpa paket; lunas tanpa menambah kredit/paket; opsional tersambung `leave_id` (log belum void); void/akhiri log tidak mengubah invoice; hapus log → `SET NULL`.
 
 ### 3.3 Integrasi FE
+
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
 | Hook / store | Halaman / komponen | Endpoint | Catatan |
 |---|---|---|---|
 | `useInvoiceVoidActions` | `VoidInvoiceDialog.js`, `ReplacementChoice.js` | `invoices.void`, `invoices.voidPreview`, `invoices.replacementCandidates` | Tombol Void hanya bila `can_void`; hapus pilihan keep/revoke di UI bila masih ada |

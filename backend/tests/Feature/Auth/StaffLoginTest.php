@@ -187,7 +187,7 @@ class StaffLoginTest extends TestCase
             'password_confirmation' => 'PasswordBaru123',
         ], $this->bearer($token))->assertNoContent();
 
-        // Lolos middleware: kerangka endpoint belum diimplementasi → 501, bukan 403.
-        $this->getJson('/api/v1/clients', $this->bearer($token))->assertStatus(501);
+        // Lolos middleware (bukan 403 must_change_password): daftar client kini sudah diimplementasi (M4) → 200.
+        $this->getJson('/api/v1/clients', $this->bearer($token))->assertOk();
     }
 }

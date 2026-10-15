@@ -42,6 +42,7 @@ export default function FinancePortal() {
     getActiveMasterPackages,
     deleteInvoices,
     getRawRecord,
+    masterPackagesLoading,
   } = useCredits();
   const { auth } = useAuth();
   const { clients } = useClients();
@@ -560,7 +561,7 @@ export default function FinancePortal() {
         <LeaveTab clients={clients} search={search} invoices={rawInvoices} onIssueInvoice={(leave) => { setIssueForm({ ...issueForm, type: "leave", clientId: leave.clientId, leaveId: leave.id, amount: "", paidDirect: false, note: "" }); setIssueOpen(true); }} />
 
         {/* TAB 4: MASTER DATA PAKET KREDIT */}
-        <PackagesTab masterPackages={masterPackages} setNewPkgOpen={(o) => { setEditingPkgId(null); setNewPkgOpen(o); }} onEditPackage={openEditPackage} onSetActive={handleSetPackageActive} onDeletePackage={handleDeletePackage} />
+        <PackagesTab masterPackages={masterPackages} loading={masterPackagesLoading} setNewPkgOpen={(o) => { setEditingPkgId(null); setNewPkgOpen(o); }} onEditPackage={openEditPackage} onSetActive={handleSetPackageActive} onDeletePackage={handleDeletePackage} />
       </Tabs>
 
       {/* Pratinjau Foto & Dokumen Bukti Transfer Modal */}

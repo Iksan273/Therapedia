@@ -16,11 +16,15 @@ import { BranchTag } from "@/shared/components/BranchTag";
 import { StatusBadge } from "@/shared/components/StatusBadge";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { PageSkeleton } from "@/shared/components/PageSkeleton";
-import { TablePagination, usePagination } from "@/shared/components/TablePagination";
+import { TablePagination } from "@/shared/components/TablePagination";
 import { useUrlFilters } from "@/shared/hooks/useUrlFilters";
 import { AddScheduleModal } from "@/features/schedule/components/calendar/AddScheduleModal";
 import { ClientRoutineDialog } from "@/features/schedule/components/clientDetail/ClientRoutineDialog";
 import { useClientOutcomeActions } from "@/features/inquiry";
+import { useBirthdayClients, useRosterClients } from "@/features/schedule/hooks/useRosterClients";
+import { CardGridSkeleton, TableSkeleton } from "@/shared/components/LoadingSkeletons";
+import { isApiMode } from "@/config/env";
+import { apiErrorText } from "@/domain/auth";
 
 // Tab analitik (beserta pustaka grafik) baru diunduh saat tab dibuka
 const ClientAnalyticsTab = lazy(() => import("@/features/schedule/components/analytics/ClientAnalyticsTab"));
@@ -31,7 +35,7 @@ import { calcAge, fmtDate } from "@/shared/lib/format";
 import { branchName } from "@/domain/branch";
 import { distinctActivePackages } from "@/domain/credit";
 import { CancelQuotaList } from "@/shared/components/CancelQuotaList";
-import { isActiveClient, isRosterClient, canReactivateClient, matchesRosterStatus, matchesClientSearch, ROSTER_STATUS_FILTERS } from "@/domain/client";
+import { isActiveClient, canReactivateClient, ROSTER_STATUS_FILTERS } from "@/domain/client";
 import { cn } from "@/shared/lib/utils";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({
@@ -41,7 +45,8 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => ({
 
 export default function ActiveClients() {
   const navigate = useNavigate();
-  const { clients } = useClients();
+  const clientsStore = useClients();
+  const API = isApiMode();
   const { getRecordForClient } = useCredits();
   const { activeBranch, auth } = useAuth();
   const { reactivate } = useClientOutcomeActions();
@@ -65,45 +70,19 @@ export default function ActiveClients() {
 
   // Quick schedule modal
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleModalMounted, setScheduleModalMounted] = useState(false); // modal membaca client/terapis/libur: dipasang saat pertama dibuka
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [routineClientId, setRoutineClientId] = useState(null); // client yang jadwal rutinnya sedang diganti
 
 
-  // Active clients (birthday & analytics) dan roster penuh (active + discharged + discontinued)
-  const activeList = useMemo(() => clients.filter(isActiveClient), [clients]);
-  const rosterList = useMemo(() => clients.filter(isRosterClient), [clients]);
+  // Roster & Birthday: mode API = paginasi di server (`GET /clients`), mode demo = saringan di klien dari store lokal.
+  const roster = useRosterClients({ branchFilter, statusFilter, search: searchTerm, creditFilter });
+  const birthday = useBirthdayClients({ enabled: activeTab === "birthday", month: birthdayMonth, branchFilter });
+  const rosterPg = roster.pagination;
+  const birthdayClients = birthday.items;
 
-  // Filtered Roster
-  const filteredActive = useMemo(() => {
-    return rosterList.filter((c) => {
-      if (branchFilter !== "all" && c.branchId !== branchFilter) return false;
-      if (!matchesRosterStatus(c, statusFilter)) return false;
-
-      if (!matchesClientSearch(c, searchTerm)) return false;
-
-      if (creditFilter !== "all") {
-        const rec = getRecordForClient(c.id);
-        const rem = rec ? rec.remainingCredit : 0;
-        if (creditFilter === "zero" && rem !== 0) return false;
-        if (creditFilter === "low" && (rem <= 0 || rem > 2)) return false;
-        if (creditFilter === "healthy" && rem <= 2) return false;
-      }
-
-      return true;
-    });
-  }, [rosterList, branchFilter, searchTerm, creditFilter, statusFilter, getRecordForClient]);
-
-  const rosterPg = usePagination(filteredActive, 10, `${searchTerm}|${branchFilter}|${creditFilter}|${statusFilter}`);
-
-  // Birthday list for selected month
-  const birthdayClients = useMemo(() => {
-    return activeList.filter((c) => {
-      if (branchFilter !== "all" && c.branchId !== branchFilter) return false; // filter cabang (sama dengan roster)
-      if (!c.dob) return false;
-      const parts = c.dob.split("-");
-      return parts.length >= 2 && parts[1] === birthdayMonth;
-    });
-  }, [activeList, birthdayMonth, branchFilter]);
+  // Daftar client aktif utk Advanced Analytics: butuh data jadwal & kredit lokal, jadi hanya mode demo (mode API menunggu modul Active Client)
+  const activeList = useMemo(() => (API ? [] : clientsStore.clients.filter(isActiveClient)), [API, clientsStore]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleReactivate = async (c) => {
     const ok = await confirm({
@@ -112,8 +91,12 @@ export default function ActiveClients() {
       confirmLabel: "Aktifkan Kembali",
     });
     if (!ok) return;
-    reactivate(c);
-    toast.success(`${c.clientName} kembali menjadi Active Client.`);
+    try {
+      await reactivate(c);
+      toast.success(`${c.clientName} kembali menjadi Active Client.`);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+    }
   };
 
   const rosterChips = [];
@@ -167,10 +150,10 @@ export default function ActiveClients() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-slate-100/90 border border-slate-200/80 p-1.5 rounded-2xl shadow-2xs gap-1.5 flex flex-wrap h-auto">
           <TabsTrigger value="roster" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
-            <Users className="w-4 h-4 text-sky-600" /> Client Roster ({filteredActive.length})
+            <Users className="w-4 h-4 text-sky-600" /> Client Roster ({roster.isLoading ? "…" : roster.total})
           </TabsTrigger>
           <TabsTrigger value="birthday" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
-            <Cake className="w-4 h-4 text-pink-600" /> Birthday Hub ({birthdayClients.length})
+            <Cake className="w-4 h-4 text-pink-600" /> Birthday Hub{birthday.loaded ? ` (${birthday.total})` : ""}
           </TabsTrigger>
           <TabsTrigger value="analytics" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <BarChart3 className="w-4 h-4 text-purple-600" /> Advanced Analytics
@@ -183,7 +166,7 @@ export default function ActiveClients() {
             title="Cari & Filter Roster"
             chips={rosterChips}
             onReset={resetRosterFilters}
-            resultText={`${filteredActive.length} client`}
+            resultText={roster.isLoading ? "Memuat data…" : roster.isFetching ? `${roster.total} client • memperbarui…` : `${roster.total} client`}
             gridClassName="lg:grid-cols-[2fr_1fr_1fr_1fr]"
           >
             <FilterField label="Pencarian">
@@ -228,8 +211,10 @@ export default function ActiveClients() {
 
           {/* Roster Table */}
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-            <CardContent className="p-0 overflow-x-auto">
-              {filteredActive.length === 0 ? (
+            <CardContent className={cn("p-0 overflow-x-auto transition-opacity", roster.isFetching && !roster.isLoading && "opacity-50")} aria-busy={roster.isLoading || roster.isFetching}>
+              {roster.isLoading ? (
+                <TableSkeleton rows={6} columns={4} label="Memuat client roster…" testId="roster-loading" />
+              ) : roster.total === 0 ? (
                 <EmptyState
                   icon={Users}
                   title="Tidak ada client"
@@ -255,11 +240,12 @@ export default function ActiveClients() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rosterPg.pageItems.map((c) => {
-                      const rec = getRecordForClient(c.id);
-                      const rem = rec ? rec.remainingCredit : 0;
+                    {roster.items.map((c) => {
+                      // Mode API: saldo kredit total dari server (`creditBalance`); rincian paket & kuota cancel menunggu modul Finance/Penjadwalan
+                      const rec = API ? null : getRecordForClient(c.id);
+                      const rem = API ? c.creditBalance : rec ? rec.remainingCredit : 0;
                       const pkgs = rec?.packages || [];
-                      const activePkgs = distinctActivePackages(pkgs, { fallbackLast: true }); // hanya paket bersisa, distinct per jenis; semua habis = 1 paket terakhir
+                      const activePkgs = API ? (rem > 0 ? [{ name: "Saldo kredit", remainingCredit: rem }] : []) : distinctActivePackages(pkgs, { fallbackLast: true }); // hanya paket bersisa, distinct per jenis; semua habis = 1 paket terakhir
                       const isActive = isActiveClient(c);
                       const isFrozen = isActive && rem === 0;
 
@@ -340,6 +326,7 @@ export default function ActiveClients() {
                                   className="px-3 gap-1.5 font-bold border-slate-200 hover:bg-sky-50 hover:text-sky-700 shrink-0 whitespace-nowrap cursor-pointer"
                                   onClick={() => {
                                     setSelectedClientId(c.id);
+                                    setScheduleModalMounted(true);
                                     setScheduleModalOpen(true);
                                   }}
                                 >
@@ -385,12 +372,14 @@ export default function ActiveClients() {
               )}
             </CardContent>
 
-            <TablePagination
-              {...rosterPg}
-              onPageChange={rosterPg.setPage}
-              onPageSizeChange={rosterPg.setPageSize}
-              noun="client"
-            />
+            {!roster.isLoading && (
+              <TablePagination
+                {...rosterPg}
+                onPageChange={rosterPg.setPage}
+                onPageSizeChange={rosterPg.setPageSize}
+                noun="client"
+              />
+            )}
           </Card>
         </TabsContent>
 
@@ -423,7 +412,8 @@ export default function ActiveClients() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {birthday.isLoading && <CardGridSkeleton count={3} label="Memuat radar ulang tahun…" testId="birthday-loading" />}
+          <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-opacity", birthday.isFetching && !birthday.isLoading && "opacity-50")} hidden={birthday.isLoading}>
             {birthdayClients.length === 0 ? (
               <div className="col-span-full py-12 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">
                 Tidak ada client aktif yang berulang tahun pada bulan ini.
@@ -467,25 +457,36 @@ export default function ActiveClients() {
               })
             )}
           </div>
+          {!birthday.isLoading && <TablePagination {...birthday.pagination} onPageChange={birthday.pagination.setPage} onPageSizeChange={birthday.pagination.setPageSize} noun="client" className="rounded-2xl border" />}
         </TabsContent>
 
         {/* TAB 3: ADVANCED ANALYTICS */}
         <TabsContent value="analytics">
-          <Suspense fallback={<PageSkeleton variant="panel" />}>
-            <ClientAnalyticsTab activeList={activeList} />
-          </Suspense>
+          {API ? (
+            <EmptyState
+              icon={BarChart3}
+              title="Advanced Analytics belum tersedia di mode API"
+              subtitle="Analitik memakai data jadwal & kredit yang baru terhubung ke server pada Sprint 2–3 (modul Penjadwalan dan Finance)."
+            />
+          ) : (
+            <Suspense fallback={<PageSkeleton variant="panel" />}>
+              <ClientAnalyticsTab activeList={activeList} />
+            </Suspense>
+          )}
         </TabsContent>
       </Tabs>
 
       {/* Ganti jadwal rutin client */}
-      <ClientRoutineDialog clientId={routineClientId} open={Boolean(routineClientId)} onOpenChange={(o) => !o && setRoutineClientId(null)} />
+      {routineClientId && <ClientRoutineDialog clientId={routineClientId} open onOpenChange={(o) => !o && setRoutineClientId(null)} />}
 
       {/* Add Schedule Modal */}
-      <AddScheduleModal
-        open={scheduleModalOpen}
-        onOpenChange={setScheduleModalOpen}
-        defaults={{ clientId: selectedClientId }}
-      />
+      {scheduleModalMounted && (
+        <AddScheduleModal
+          open={scheduleModalOpen}
+          onOpenChange={setScheduleModalOpen}
+          defaults={{ clientId: selectedClientId }}
+        />
+      )}
     </div>
   );
 }

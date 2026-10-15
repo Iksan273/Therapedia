@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import { EmptyState } from "@/shared/components/EmptyState";
+import { TableSkeleton } from "@/shared/components/LoadingSkeletons";
 import { useMasterData } from "@/stores/masterDataStore";
 import { useClients } from "@/stores/clientsStore";
 import { useSchedules } from "@/stores/schedulesStore";
@@ -46,8 +47,9 @@ const slugify = (text) =>
 // Tab Layanan di Master Data Inquiry: daftar layanan + tambah/ubah/aktif-nonaktif/hapus (dialog di komponen ini).
 export function ServicesTab() {
   const { confirm, confirmDialog } = useConfirm();
-  const { services, addService, updateService, deleteService } = useMasterData();
-  const { clients } = useClients();
+  const { services, isLoading, addService, updateService, deleteService } = useMasterData();
+  const clientsStore = useClients();
+  const demoClients = isApiMode() ? null : clientsStore.clients; // mode API: pemakaian dicek server saat hapus; daftar client tidak diambil
   const { schedules } = useSchedules();
 
   const [svcDialog, setSvcDialog] = useState(EMPTY_SERVICE);
@@ -62,14 +64,11 @@ export function ServicesTab() {
   }, [services, currentServicePage]);
 
   // Jumlah pemakaian tiap layanan, dipakai untuk pengaman hapus.
-  // Mode API: angka asli dari server (`usageCount` di item master). Mode demo: dihitung dari store lokal.
+  // Mode API: tidak dihitung di klien; server menolak hapus layanan yang terpakai (409 + pesan jumlah client/jadwal). Mode demo: dihitung dari store lokal.
   const serviceUsage = useMemo(() => {
     const usage = {};
-    if (isApiMode()) {
-      services.forEach((s) => { usage[s.value] = s.usageCount ?? 0; });
-      return usage;
-    }
-    clients.forEach((c) => {
+    if (isApiMode()) return usage;
+    demoClients.forEach((c) => {
       const list = c.serviceTypes && c.serviceTypes.length > 0 ? c.serviceTypes : c.serviceType ? [c.serviceType] : [];
       list.forEach((v) => {
         usage[v] = (usage[v] || 0) + 1;
@@ -79,7 +78,7 @@ export function ServicesTab() {
       if (s.serviceType) usage[s.serviceType] = (usage[s.serviceType] || 0) + 1;
     });
     return usage;
-  }, [clients, schedules, services]);
+  }, [demoClients, schedules, services]);
 
   const openEditService = (srv) => {
     const category = srv.category || "Asesmen";
@@ -178,7 +177,9 @@ export function ServicesTab() {
           </Button>
         </div>
 
-        {services.length === 0 ? (
+        {isLoading ? (
+          <TableSkeleton rows={5} columns={4} label="Memuat daftar layanan…" testId="services-loading" />
+        ) : services.length === 0 ? (
           <EmptyState icon={Stethoscope} title="Belum ada layanan" subtitle="Tambahkan layanan klinis pertama." />
         ) : (
           <div className="overflow-x-auto">
@@ -243,7 +244,7 @@ export function ServicesTab() {
           </div>
         )}
 
-        {services.length > 0 && (
+        {!isLoading && services.length > 0 && (
           <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
             <span>
               Menampilkan {(currentServicePage - 1) * PAGE_SIZE + 1} –{" "}

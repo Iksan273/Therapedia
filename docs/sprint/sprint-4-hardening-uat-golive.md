@@ -79,6 +79,8 @@
 | Hapus invoice `paid`/`void` | 409 `invoice_not_deletable` |
 
 ### Integrasi FE
+
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
 `features/master/hooks/useBranchDeleteActions.js` → `DELETE branches.detail(id)` (loading panjang, ketik kode cabang, tampilkan ringkasan); `BranchManagement.js` memakai `GET …/delete-impact`. Hapus client: `useClientDeleteActions` (Sprint 2) hanya tampil bila `role === master` (`DeleteButton`/`masterOnly`).
 
 ---

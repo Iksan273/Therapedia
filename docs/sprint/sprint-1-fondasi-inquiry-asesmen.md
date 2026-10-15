@@ -91,6 +91,8 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 4. Reset password oleh Master (2.5 di bawah) → password sementara + `must_change_password=1` + token user dihapus.
 
 ### Integrasi FE
+
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
 > **Status: selesai 13 Okt 2026** (backend M1 + frontend). Lihat `docs/guide/10-api-migration.md` bagian "Status integrasi frontend per modul". Berbeda dari rencana: halaman beranda (`Welcome`) dihapus dan "/" mengarah ke `/login`; `/roles` hanya mode demo.
 
 | Item | File / lokasi |
@@ -130,6 +132,8 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 - **Pengaman master dipakai:** semua DELETE master memanggil `InUseGuard` (cek FK pemakai) → 409 `in_use` dengan pesan "dipakai di N data"; FK `RESTRICT` jaring pengaman.
 
 ### Integrasi FE
+
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
 | Item | File |
 |---|---|
 | Store | `therapistsStore`, `branchesStore`, `authStore` (user & role) → react-query |
@@ -158,11 +162,15 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 - Master data di-cache react-query (jarang berubah, dibaca by PK).
 
 ### Integrasi FE
+
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
 `stores/masterDataStore.js` (+ `useMasterData()`), `holidaysStore.js` (halaman `features/schedule/pages/Holidays.js`), `features/inquiry/pages/InquiryMasterData.js`, tab Master Paket di `features/finance/components/PackagesTab.js`. Endpoint baru di `endpoints.js`: `master.cancelReasons`, `master.dischargeReasons`, `holidays`.
 
 ---
 
 ## 7. M4 Inquiry & Client (Hari 7–8)
+
+> **Status backend: selesai (15 Okt 2026).** `app/Actions/Client/*`, 4.1–4.10 & 4.12 aktif (30 test di `tests/Feature/Client`). Keputusan: efek discharge (jadwal + ledger) ditunda ke Sprint 2 (`ApplyDischargeEffects`); `GET /assessment-codes?awaiting=1` (4.15) ikut M5; pencarian `q` prefix per kata; duplikat = nama persis (abaikan besar/kecil & spasi ganda) + tanggal lahir sama; `reason` discontinue/discharge disimpan di `discharge_reason`. Seeder baru `ClientCodeCounterSeeder` (dipanggil `MasterDataSeeder`) wajib dijalankan sebelum client pertama. Integrasi FE: pipeline + detail client selesai (15 Okt 2026), lihat `docs/guide/10` bagian M4; dashboard inquiry & kode kuesioner menyusul.
 
 ### API
 | # | Endpoint | Action | Akses | Request kunci | Tabel | Catatan |
@@ -191,6 +199,8 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 4. **Hapus client (`DeleteClientAction`):** `lockForUpdate` client; kumpulkan path file bukti bayar → `DELETE clients` (FK cascade ke services, documents, kode/respons/draft kuesioner, seri, `client_leaves`, jadwal+laporan, invoice+bukti+log, paket, konversi, ledger) → setelah commit hapus file sinkron (gagal hanya dilog) → tulis 1 baris log aplikasi (pelaku, entitas, jumlah baris).
 
 ### Integrasi FE
+
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
 | Item | File |
 |---|---|
 | Store | `stores/clientsStore.js` → API (list dengan `page/per_page` + `q`; `usePagination` client-side diganti state yang masuk query key) |
@@ -236,6 +246,8 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 5. **Hapus kode:** hanya `issued` tanpa draft; bila ada invoice assessment belum lunas ikut dihapus (hapus invoice belum lunas membuka gating).
 
 ### Integrasi FE
+
+> **Aturan fetch (wajib, tiap modul):** halaman hanya memanggil endpoint untuk data yang benar-benar dibacanya; daftar baru diambil saat ada komponen yang membacanya (`useDemand`), bukan saat login. Rincian: `docs/guide/08` bagian "Fetch hanya yang diperlukan".
 | Item | File |
 |---|---|
 | Store | `assessmentsStore.js`, `assessmentDraftsStore.js` → API |
