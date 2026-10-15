@@ -87,4 +87,25 @@ describe("api", () => {
 
     await expect(api.post("/auth/login", {})).rejects.toMatchObject({ status: 422, isValidation: true, fieldErrors: { email: "Email wajib diisi." } });
   });
+
+  test("429 membawa retryAfter (detik) dari body `retry_after`, atau header Retry-After bila body tidak punya", async () => {
+    const fail = (data, headers = {}) => {
+      httpClient.defaults.adapter = async (config) => {
+        const error = new Error("Request failed");
+        error.isAxiosError = true;
+        error.config = config;
+        error.response = { status: 429, data, headers, config };
+        throw error;
+      };
+    };
+
+    fail({ message: "Terlalu banyak percobaan login. Coba lagi dalam 42 detik.", code: "too_many_attempts", retry_after: 42 });
+    await expect(api.post("/auth/login", {})).rejects.toMatchObject({ status: 429, isTooManyRequests: true, retryAfter: 42 });
+
+    fail({ message: "Too Many Attempts." }, { "retry-after": "17" });
+    await expect(api.post("/auth/login", {})).rejects.toMatchObject({ retryAfter: 17 });
+
+    fail({ message: "x" });
+    await expect(api.post("/auth/login", {})).rejects.toMatchObject({ retryAfter: null });
+  });
 });

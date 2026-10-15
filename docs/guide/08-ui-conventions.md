@@ -89,6 +89,9 @@ Setiap halaman di mode API hanya memanggil endpoint untuk data yang **benar-bena
 - Target sentuh minimal ~40px (`.touch-target-chip`, `h-10`). Grid memakai `grid-cols-1 sm:grid-cols-2 lg:…`, dan header aksi memakai `flex-col sm:flex-row`.
 - Portal ortu & kuesioner publik **paling sering dibuka dari HP**, jadi uji di lebar 375px.
 
+### Cegah zoom otomatis iOS pada input (ponsel)
+iOS Safari memperbesar halaman bila input yang difokuskan berfont < 16px. Kontainer yang memuat form input untuk ponsel diberi class `no-input-zoom` (`index.css`: input/textarea/select 16px di bawah `md`; layar lebih besar tetap ukuran kecil bawaan). Sudah dipasang di halaman Login dan dialog Lupa Password / Ganti Password (dialog di-portal, jadi class dipasang di `DialogContent`). Zoom pinch pengguna tetap hidup (tidak memakai `maximum-scale`). Pasang juga di `/assessment` dan portal ortu bila form-nya terasa melompat di iPhone.
+
 ## Feedback & interaksi
 - Toast: `import { toast } from "sonner"` → `toast.success|error|info|warning("…")`. Pesan dalam bahasa Indonesia dan spesifik (sebut nama client / jumlah).
 - Konfirmasi aksi destruktif: `useConfirm()` atau dialog khusus (contoh `DiscontinueDialog`).

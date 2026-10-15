@@ -129,6 +129,10 @@ Aktif bila `VITE_DATA_SOURCE=api` (salin `frontend/.env.example` ke `.env.local`
 | Izin | Server mengirim `permissions` sebagai **daftar kode modul** yang diizinkan; `services/api/mappers/authMapper.js` (`staffSessionToAuth`) mengubahnya jadi peta `auth.permissions` yang dibaca `hasPermission`/`canDelete`. Master selalu boleh; hapus client/cabang `masterOnly` |
 | Halaman | `Login.js` (staf + ortu, dialog ganti password wajib dan lupa password OTP), `RootRedirect.js` ("/" tanpa beranda), guard → `/login`, `AccessDenied` untuk akun yang tidak berhak |
 | Galat | Login gagal = 422 (bukan 401, agar tidak memicu handler logout); 429 lockout; 503 email OTP gagal; pesan dari server ditampilkan apa adanya |
+**Lockout login (429) real-time (15 Okt 2026).** `ApiError.retryAfter` (detik) diisi dari `retry_after` di body (`too_many_attempts` dari `StaffLoginAction` / `ClientLoginAction`) atau header `Retry-After` (throttle rute). Halaman Login menampilkan `LockoutNotice` dengan hitung mundur mm:ss yang berjalan tiap detik (`useCountdown`), mengunci tombol ("Coba lagi dalam 0:42") dan mengabaikan submit selama terkunci; terbuka otomatis saat habis. Mengganti email / kode client membuka kunci di layar karena lockout server dihitung per email (staf) / per kode+IP (ortu), dan server menilai ulang saat dicoba lagi.
+
+**Lupa password: kirim ulang OTP (15 Okt 2026).** Di langkah OTP, `ForgotPasswordDialog` punya tombol "Kirim ulang OTP" dengan jeda 60 detik (countdown di tombol), penanda masa berlaku 10:00 yang menghitung mundur, dan pesan kedaluwarsa saat habis; kirim ulang memanggil `POST /auth/forgot-password` lagi dengan email yang sama (OTP lama otomatis tidak berlaku), mengosongkan kolom kode, dan memulai jeda lagi. Batas server (3 permintaan / 10 menit / email, 429) ditampilkan apa adanya. Hook: `shared/hooks/useCountdown.js`.
+
 ### M2 User, Role/RBAC, Cabang, Terapis: terintegrasi (13 Okt 2026)
 Aktif bila `VITE_DATA_SOURCE=api`. Mode demo tetap memakai localStorage; implementasi dipilih per build (`isApiMode()`), jadi halaman dan pemanggilnya sama.
 | Bagian | Implementasi |

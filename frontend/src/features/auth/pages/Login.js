@@ -27,6 +27,8 @@ import { useAuth } from "@/stores/authStore";
 import { useClients } from "@/stores/clientsStore";
 import { LOGIN } from "@/shared/constants/testIds/auth";
 import { ForcePasswordChangeDialog, ForgotPasswordDialog } from "@/features/auth/components/PasswordDialogs";
+import { LockoutNotice } from "@/features/auth/components/LockoutNotice";
+import { fmtCountdown, useCountdown } from "@/shared/hooks/useCountdown";
 import { useAuthActions } from "@/features/auth/hooks/useAuthActions";
 import { CLIENT_LOGIN_ERROR, DEMO_PASSWORD, STAFF_HOME, apiErrorText, checkStaffCredentials, findClientForLogin, findStaffByEmail, homePathFor } from "@/domain/auth";
 import { permissionMapAllows } from "@/domain/rbac";
@@ -114,6 +116,9 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [staffError, setStaffError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Lockout (429): hitung mundur real-time dari `retryAfter` server; form dikunci sampai habis
+  const staffLock = useCountdown();
+  const clientLock = useCountdown();
 
   // Client Form State
   const [clientCode, setClientCode] = useState(API_MODE ? "" : "AE-00006");
@@ -160,6 +165,7 @@ export default function Login() {
   // Handle Staff Login: email + password. Password sementara (diatur Master) wajib diganti; akun nonaktif ditolak.
   const handleStaffSubmit = async (e) => {
     e.preventDefault();
+    if (staffLock.remaining > 0) return;
     setStaffError("");
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -178,7 +184,8 @@ export default function Login() {
           completeApiLogin(session);
         }
       } catch (err) {
-        setStaffError(apiErrorText(err, ["email", "password"]));
+        if (err?.status === 429 && err.retryAfter) staffLock.start(err.retryAfter);
+        else setStaffError(apiErrorText(err, ["email", "password"]));
       } finally {
         setSubmitting(false);
       }
@@ -238,6 +245,7 @@ export default function Login() {
   // Handle Client Login
   const handleClientSubmit = async (e) => {
     e.preventDefault();
+    if (clientLock.remaining > 0) return;
     setClientError("");
     if (!clientCode.trim() || !clientDob) {
       setClientError("Silakan masukkan kode client dan tanggal lahir anak.");
@@ -251,7 +259,8 @@ export default function Login() {
         toast.success(`Selamat datang kembali, keluarga ${session.childName}!`);
         navigate("/client", { replace: true });
       } catch (err) {
-        setClientError(apiErrorText(err, ["client_code", "date_of_birth"]));
+        if (err?.status === 429 && err.retryAfter) clientLock.start(err.retryAfter);
+        else setClientError(apiErrorText(err, ["client_code", "date_of_birth"]));
       } finally {
         setSubmitting(false);
       }
@@ -276,7 +285,7 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#fafbfc] text-slate-900 flex flex-col justify-between overflow-hidden selection:bg-sky-100 selection:text-sky-900">
+    <div className="no-input-zoom relative min-h-screen bg-[#fafbfc] text-slate-900 flex flex-col justify-between overflow-hidden selection:bg-sky-100 selection:text-sky-900">
       {/* Background Animated Ambient Lights */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
         <motion.div
@@ -410,6 +419,7 @@ export default function Login() {
                             onChange={(e) => {
                               setEmail(e.target.value);
                               setStaffError("");
+                              staffLock.reset(); // lockout dihitung per email: server menilai ulang saat dicoba lagi
                             }}
                             placeholder="nama@therapedia.id"
                             className="pl-10 bg-slate-50 border-slate-200 focus:bg-white text-xs font-medium"
@@ -455,10 +465,14 @@ export default function Login() {
                         </div>
                       </div>
 
-                      {staffError && (
-                        <p className="text-xs font-medium text-rose-600 animate-in fade-in duration-150">
-                          {staffError}
-                        </p>
+                      {staffLock.remaining > 0 ? (
+                        <LockoutNotice remaining={staffLock.remaining} testId="staff-lockout" />
+                      ) : (
+                        staffError && (
+                          <p className="text-xs font-medium text-rose-600 animate-in fade-in duration-150">
+                            {staffError}
+                          </p>
+                        )
                       )}
 
                       <div className="flex items-center justify-between pt-1">
@@ -475,12 +489,12 @@ export default function Login() {
 
                       <Button size="lg"
                         type="submit"
-                        disabled={submitting}
+                        disabled={submitting || staffLock.remaining > 0}
                         className="w-full bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold shadow-md shadow-[#007AFF]/25 transition-all cursor-pointer mt-2"
                         data-testid={LOGIN.submitButton}
                       >
-                        <span>{submitting ? "Memproses..." : "Masuk ke Dashboard Staf"}</span>
-                        {!submitting && <ArrowRight className="w-4 h-4 ml-1.5" />}
+                        <span>{submitting ? "Memproses..." : staffLock.remaining > 0 ? `Coba lagi dalam ${fmtCountdown(staffLock.remaining)}` : "Masuk ke Dashboard Staf"}</span>
+                        {!submitting && staffLock.remaining === 0 && <ArrowRight className="w-4 h-4 ml-1.5" />}
                       </Button>
                     </form>
 
@@ -560,6 +574,7 @@ export default function Login() {
                             onChange={(e) => {
                               setClientCode(e.target.value);
                               setClientError("");
+                              clientLock.reset(); // lockout dihitung per kode: server menilai ulang saat dicoba lagi
                             }}
                             placeholder="Contoh: AE-00006"
                             className="pl-10 bg-slate-50 border-slate-200 focus:bg-white font-mono uppercase text-xs font-bold tracking-wider"
@@ -587,20 +602,24 @@ export default function Login() {
                         />
                       </div>
 
-                      {clientError && (
-                        <p className="text-xs font-medium text-rose-600 animate-in fade-in duration-150">
-                          {clientError}
-                        </p>
+                      {clientLock.remaining > 0 ? (
+                        <LockoutNotice remaining={clientLock.remaining} label="Terlalu banyak percobaan." testId="client-lockout" />
+                      ) : (
+                        clientError && (
+                          <p className="text-xs font-medium text-rose-600 animate-in fade-in duration-150">
+                            {clientError}
+                          </p>
+                        )
                       )}
 
                       <Button size="lg"
                         type="submit"
-                        disabled={submitting}
+                        disabled={submitting || clientLock.remaining > 0}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer mt-2"
                         data-testid="login-client-submit-button"
                       >
                         <HeartHandshake className="w-4 h-4 mr-1.5" />
-                        <span>{submitting ? "Memproses..." : "Masuk ke Portal Orang Tua"}</span>
+                        <span>{submitting ? "Memproses..." : clientLock.remaining > 0 ? `Coba lagi dalam ${fmtCountdown(clientLock.remaining)}` : "Masuk ke Portal Orang Tua"}</span>
                       </Button>
 
                       {/* Parent Portal Info Card */}

@@ -311,3 +311,14 @@ html.dark {
         }
     }
 }
+
+/* ===== Cegah zoom otomatis iOS Safari saat input difokuskan =====
+   iOS memperbesar halaman bila font input < 16px. Di ponsel, input pada kontainer `.no-input-zoom` (halaman login, dialog OTP /
+   ganti password) memakai 16px; layar >= md tetap memakai ukuran kecil bawaan komponen. Zoom pinch pengguna tidak dimatikan. */
+@media (max-width: 767px) {
+    .no-input-zoom input,
+    .no-input-zoom textarea,
+    .no-input-zoom select {
+        font-size: 16px !important;
+    }
+}

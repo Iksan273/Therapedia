@@ -2,12 +2,13 @@
 // sehingga UI cukup membaca `message` (bahasa Indonesia) dan `fieldErrors` (validasi Laravel 422).
 
 export class ApiError extends Error {
-  constructor({ status = 0, message, code = null, fieldErrors = {}, cause = null }) {
+  constructor({ status = 0, message, code = null, fieldErrors = {}, retryAfter = null, cause = null }) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.fieldErrors = fieldErrors;
+    this.retryAfter = retryAfter; // detik sampai boleh mencoba lagi (429: lockout login, throttle)
     this.cause = cause;
   }
 
@@ -21,6 +22,10 @@ export class ApiError extends Error {
 
   get isForbidden() {
     return this.status === 403;
+  }
+
+  get isTooManyRequests() {
+    return this.status === 429;
   }
 
   get isConflict() {
@@ -39,6 +44,12 @@ const DEFAULT_MESSAGES = {
   500: "Terjadi kesalahan di server.",
 };
 
+// Detik dari `retry_after` (body) atau header `Retry-After`; null bila tidak ada / bukan angka positif
+const parseRetryAfter = (value) => {
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : null;
+};
+
 // Ubah error axios menjadi ApiError. Format respons Laravel: { message, errors: { field: [msg] }, code? }
 export function toApiError(error) {
   if (error instanceof ApiError) return error;
@@ -52,6 +63,7 @@ export function toApiError(error) {
     code: body.code ?? null,
     message: body.message || DEFAULT_MESSAGES[status] || DEFAULT_MESSAGES[500],
     fieldErrors,
+    retryAfter: parseRetryAfter(body.retry_after ?? error?.response?.headers?.["retry-after"]),
     cause: error,
   });
 }

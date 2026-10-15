@@ -7,6 +7,11 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { OTP_ERROR_MESSAGES, OTP_LENGTH, apiErrorText, validateNewPassword } from "@/domain/auth";
 import { fmtDate } from "@/shared/lib/format";
+import { fmtCountdown, useCountdown } from "@/shared/hooks/useCountdown";
+
+// Jeda minimal sebelum OTP boleh dikirim ulang, dan masa berlaku OTP (sama dengan server: RequestPasswordOtpAction::TTL_MINUTES)
+export const RESEND_COOLDOWN_SECONDS = 60;
+export const OTP_VALID_SECONDS = 10 * 60;
 
 // Ganti password wajib: muncul saat login pertama / setelah password diatur ulang oleh Master. Tidak bisa ditutup tanpa mengganti.
 // `askCurrentPassword` (mode API): server mewajibkan password saat ini. `onSubmit(passwordBaru, passwordSaatIni)` boleh async;
@@ -41,7 +46,7 @@ export function ForcePasswordChangeDialog({ staff, onSubmit, onCancel, askCurren
 
   return (
     <Dialog open={Boolean(staff)} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="force-password-change-dialog">
+      <DialogContent className="no-input-zoom max-w-md rounded-2xl p-6 border-slate-200" data-testid="force-password-change-dialog">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <KeyRound className="w-5 h-5 text-sky-600" /> Ganti Password
@@ -87,10 +92,15 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
+  const cooldown = useCountdown(); // jeda kirim ulang
+  const validity = useCountdown(); // masa berlaku OTP
 
   const close = (next) => {
     onOpenChange(next);
     if (!next) {
+      cooldown.reset();
+      validity.reset();
       setStep("email");
       setEmail("");
       setDemoOtp(null);
@@ -115,11 +125,34 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
       setDemoOtp(res?.otp ? { code: res.otp, expiresAt: res.expiresAt } : null);
       setStep("reset");
       setError("");
+      cooldown.start(RESEND_COOLDOWN_SECONDS);
+      validity.start(OTP_VALID_SECONDS);
       toast.info("Jika email terdaftar, kode OTP dikirim ke email tersebut.");
     } catch (err) {
       setError(apiErrorText(err, ["email"]));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Kirim ulang OTP tanpa kembali ke awal: OTP lama otomatis tidak berlaku (hanya kode terbaru yang sah). Server membatasi
+  // 3 permintaan per 10 menit per email; pesan pembatasan (429) ditampilkan apa adanya.
+  const handleResend = async () => {
+    if (resending || cooldown.remaining > 0) return;
+    setResending(true);
+    try {
+      const res = await requestOtp(email.trim());
+      setDemoOtp(res?.otp ? { code: res.otp, expiresAt: res.expiresAt } : null);
+      setOtp("");
+      setError("");
+      cooldown.start(RESEND_COOLDOWN_SECONDS);
+      validity.start(OTP_VALID_SECONDS);
+      toast.success("Kode OTP baru dikirim. Kode sebelumnya tidak berlaku lagi.");
+    } catch (err) {
+      setError(apiErrorText(err, ["email"]));
+      if (err?.status === 429) cooldown.start(err.retryAfter || RESEND_COOLDOWN_SECONDS); // pakai sisa waktu dari server bila ada
+    } finally {
+      setResending(false);
     }
   };
 
@@ -146,7 +179,7 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-w-md rounded-2xl p-6 border-slate-200" data-testid="forgot-password-dialog">
+      <DialogContent className="no-input-zoom max-w-md max-h-[calc(100dvh-2.5rem)] overflow-y-auto rounded-2xl p-6 border-slate-200" data-testid="forgot-password-dialog">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <Mail className="w-5 h-5 text-sky-600" /> Lupa Kata Sandi
@@ -184,6 +217,22 @@ export function ForgotPasswordDialog({ open, onOpenChange, requestOtp, resetWith
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Kode OTP *</Label>
               <Input inputMode="numeric" maxLength={OTP_LENGTH} className="border-slate-200 bg-slate-50 text-xs font-mono tracking-widest" value={otp} onChange={(e) => { setOtp(e.target.value.replace(/\D/g, "")); setError(""); }} data-testid="forgot-otp-input" />
+              <div className="flex items-center justify-between gap-3 pt-1 text-[11px]" data-testid="forgot-otp-meta">
+                {validity.active && validity.remaining === 0 ? (
+                  <span className="font-semibold text-rose-600" data-testid="forgot-otp-expired">Kode OTP sudah kedaluwarsa. Kirim ulang untuk mendapat kode baru.</span>
+                ) : (
+                  <span className="text-slate-500" data-testid="forgot-otp-validity">Kode berlaku {validity.active ? fmtCountdown(validity.remaining) : "10:00"}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending || cooldown.remaining > 0}
+                  className="shrink-0 min-h-10 md:min-h-0 px-1 font-bold text-sky-700 hover:text-sky-900 disabled:text-slate-400 disabled:cursor-not-allowed cursor-pointer"
+                  data-testid="forgot-resend-otp"
+                >
+                  {resending ? "Mengirim…" : cooldown.remaining > 0 ? `Kirim ulang OTP (${cooldown.remaining} dtk)` : "Kirim ulang OTP"}
+                </button>
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Password baru *</Label>
