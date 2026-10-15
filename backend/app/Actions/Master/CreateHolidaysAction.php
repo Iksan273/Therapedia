@@ -2,7 +2,6 @@
 
 namespace App\Actions\Master;
 
-use App\Exceptions\ApiException;
 use App\Models\Holiday;
 use App\Models\User;
 use App\Services\HolidayService;

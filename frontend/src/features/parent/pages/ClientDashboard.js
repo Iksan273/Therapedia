@@ -20,7 +20,8 @@ import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { fmtDate } from "@/shared/lib/format";
-import { BRANCHES } from "@/domain/branch";
+import { BRANCHES, activeBankAccounts } from "@/domain/branch";
+import { BranchBankAccounts } from "@/shared/components/BranchBankAccounts";
 import { filterSessionsByDate, isReportEmpty } from "@/domain/schedule";
 import { distinctActivePackages } from "@/domain/credit";
 import { buildSessionReportsHtml, printHtmlDocument } from "@/shared/lib/reportExport";
@@ -122,6 +123,13 @@ export default function ClientDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Info pembayaran: rekening aktif cabang client (mode API dari sesi login, demo dari master cabang) */}
+      <BranchBankAccounts
+        accounts={auth.branchBankAccounts || activeBankAccounts(br)}
+        branchName={br?.name || auth.branchName}
+        className="bg-white"
+      />
 
       {/* Saldo Kredit Sesi */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

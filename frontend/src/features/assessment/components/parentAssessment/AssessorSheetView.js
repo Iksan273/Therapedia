@@ -22,7 +22,7 @@ export function AssessorSheetView({ displayedSections, quadStyle }) {
                         <th className="py-2 px-2 sm:px-3 text-center w-14 sm:w-16">Kuadran</th>
                         <th className="py-2 px-1 sm:px-3 text-center w-10 sm:w-12 border-l border-emerald-200">Item</th>
                         <th className="py-2 px-2 sm:px-4 border-l border-emerald-200 min-w-[220px] sm:min-w-0">
-                          <span>{sec.leadText}</span>
+                          <span className="whitespace-pre-line font-semibold">{sec.description}</span>
                         </th>
                         <th className="py-2 px-2 sm:px-4 text-center w-24 sm:w-28 border-l border-emerald-200 bg-emerald-200/50 text-emerald-950 font-black">
                           Penilaian<br /><span className="text-[11px] font-normal">Skor (0 - 5)</span>

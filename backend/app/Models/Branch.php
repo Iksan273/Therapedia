@@ -32,6 +32,12 @@ class Branch extends Model
         ];
     }
 
+    /** Rekening bank pembayaran cabang (tampil ke ortu), urut sort_order lalu id. */
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(BranchBankAccount::class, 'branch_id')->orderBy('sort_order')->orderBy('id');
+    }
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class, 'branch_id');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Auth;
 
+use App\Http\Resources\Organization\BranchBankAccountResource;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -28,6 +29,10 @@ class ClientSessionResource extends JsonResource
                 'id' => $this->branch->id,
                 'code' => $this->branch->code,
                 'name' => $this->branch->name,
+                // Info pembayaran untuk ortu: hanya rekening aktif
+                'bank_accounts' => BranchBankAccountResource::collection(
+                    $this->branch->bankAccounts()->where('is_active', true)->get()
+                )->resolve(),
             ] : null,
             'credit_balance' => (int) $this->credit_balance,
             'frozen' => (int) $this->credit_balance === 0,

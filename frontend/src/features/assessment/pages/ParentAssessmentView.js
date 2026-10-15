@@ -14,6 +14,7 @@ import { cn } from "@/shared/lib/utils";
 import { DocumentHeader } from "@/features/assessment/components/parentAssessment/DocumentHeader";
 import { ScoringLegend } from "@/features/assessment/components/parentAssessment/ScoringLegend";
 import { isScoredQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
+import { sectionDescription } from "@/features/assessment/components/fill/fillSections";
 import { QuadrantSummary } from "@/features/assessment/components/parentAssessment/QuadrantSummary";
 import { AssessorSheetView } from "@/features/assessment/components/parentAssessment/AssessorSheetView";
 import { ParentMatrixView } from "@/features/assessment/components/parentAssessment/ParentMatrixView";
@@ -26,7 +27,7 @@ const DEFAULT_SENSORY_PROFILE_SECTIONS = [
     id: "sec-auditory",
     domain: "Pemrosesan AUDITORI",
     title: "Pemrosesan AUDITORI",
-    leadText: "Anakku ...",
+    description: "Anakku ...",
     items: [
       { itemNo: 1, quadrant: "AV", question: "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))", defaultScore: 3 },
       { itemNo: 2, quadrant: "AV", question: "menutup telinga untuk melindunginya dari suara-suara", defaultScore: 3 },
@@ -42,7 +43,7 @@ const DEFAULT_SENSORY_PROFILE_SECTIONS = [
     id: "sec-visual",
     domain: "Pemrosesan VISUAL",
     title: "Pemrosesan VISUAL",
-    leadText: "Anakku ...",
+    description: "Anakku ...",
     items: [
       { itemNo: 9, quadrant: "SN", question: "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup", defaultScore: 1 },
       { itemNo: 10, quadrant: "SK", question: "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar", defaultScore: 4 },
@@ -57,7 +58,7 @@ const DEFAULT_SENSORY_PROFILE_SECTIONS = [
     id: "sec-tactile",
     domain: "Pemrosesan SENTUHAN",
     title: "Pemrosesan SENTUHAN",
-    leadText: "Anakku ...",
+    description: "Anakku ...",
     items: [
       { itemNo: 16, quadrant: "SN", question: "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak atau menangis saat memotong kuku, membasuh wajah)", defaultScore: 2 },
       { itemNo: 17, quadrant: "AV", question: "menjadi rewel ketika mengenakan sepatu atau kaos kaki tertentu", defaultScore: 3 },
@@ -70,7 +71,7 @@ const DEFAULT_SENSORY_PROFILE_SECTIONS = [
     id: "sec-vestibular",
     domain: "Pemrosesan GERAKAN / VESTIBULAR",
     title: "Pemrosesan GERAKAN / VESTIBULAR",
-    leadText: "Anakku ...",
+    description: "Anakku ...",
     items: [
       { itemNo: 21, quadrant: "SK", question: "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)", defaultScore: 5 },
       { itemNo: 22, quadrant: "AV", question: "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)", defaultScore: 2 },
@@ -81,7 +82,7 @@ const DEFAULT_SENSORY_PROFILE_SECTIONS = [
     id: "sec-proprioception",
     domain: "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
     title: "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
-    leadText: "Anakku ...",
+    description: "Anakku ...",
     items: [
       { itemNo: 24, quadrant: "RG", question: "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan", defaultScore: 3 },
       { itemNo: 25, quadrant: "SK", question: "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja", defaultScore: 4 },
@@ -92,7 +93,7 @@ const DEFAULT_SENSORY_PROFILE_SECTIONS = [
     id: "sec-behavior",
     domain: "Pemrosesan PERILAKU & REGULASI SOSIAL-EMOSI",
     title: "Pemrosesan PERILAKU & REGULASI SOSIAL-EMOSI",
-    leadText: "Anakku ...",
+    description: "Anakku ...",
     items: [
       { itemNo: 27, quadrant: "AV", question: "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan", defaultScore: 4 },
       { itemNo: 28, quadrant: "SN", question: "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa atau marah", defaultScore: 4 },
@@ -106,7 +107,7 @@ const DEFAULT_SCHOOL_COMPANION_SECTIONS = [
     id: "sec-scp-attention",
     domain: "Pemrosesan & ATENSI KELAS",
     title: "Pemrosesan & ATENSI KELAS (Classroom Attention)",
-    leadText: "Di dalam kelas, siswa ...",
+    description: "Di dalam kelas, siswa ...",
     items: [
       { itemNo: 1, quadrant: "SN", question: "mampu mempertahankan posisi duduk dan fokus selama 20-30 menit saat guru menjelaskan instruksi", defaultScore: 4 },
       { itemNo: 2, quadrant: "AV", question: "tampak gelisah dan sering menoleh saat ada siswa lain yang bergerak atau berbicara pelan di dekatnya", defaultScore: 3 },
@@ -117,7 +118,7 @@ const DEFAULT_SCHOOL_COMPANION_SECTIONS = [
     id: "sec-scp-instruction",
     domain: "PENGIKUTAN INSTRUKSI GURU",
     title: "PENGIKUTAN INSTRUKSI GURU (Teacher Instruction Following)",
-    leadText: "Ketika guru memberi tugas ...",
+    description: "Ketika guru memberi tugas ...",
     items: [
       { itemNo: 4, quadrant: "SN", question: "mampu mengikuti instruksi 2-3 langkah secara berurutan tanpa perlu didorong secara fisik", defaultScore: 3 },
       { itemNo: 5, quadrant: "RG", question: "membutuhkan guru pembimbing khusus (shadow teacher) untuk memulai setiap langkah pengerjaan tugas", defaultScore: 4 },
@@ -127,7 +128,7 @@ const DEFAULT_SCHOOL_COMPANION_SECTIONS = [
     id: "sec-scp-social",
     domain: "SOSIALISASI TEMAN SEBAYA",
     title: "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization)",
-    leadText: "Selama jam istirahat / bermain ...",
+    description: "Selama jam istirahat / bermain ...",
     items: [
       { itemNo: 6, quadrant: "SK", question: "berinteraksi dan berbagi alat permainan secara kooperatif dengan teman sekelas", defaultScore: 2 },
       { itemNo: 7, quadrant: "AV", question: "mudah terpicu marah atau agresif jika gilirannya disela oleh teman bermain", defaultScore: 4 },
@@ -138,7 +139,7 @@ const DEFAULT_SCHOOL_COMPANION_SECTIONS = [
     id: "sec-scp-tools",
     domain: "PENGELOLAAN ALAT BELAJAR",
     title: "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
-    leadText: "Saat berada di meja belajar ...",
+    description: "Saat berada di meja belajar ...",
     items: [
       { itemNo: 9, quadrant: "RG", question: "postur duduk membungkuk, menempel di meja, atau menopang kepala saat menulis", defaultScore: 3 },
       { itemNo: 10, quadrant: "SN", question: "pengelolaan alat tulis, buku, dan gunting rapi serta tidak mudah tercecer", defaultScore: 2 },
@@ -148,7 +149,7 @@ const DEFAULT_SCHOOL_COMPANION_SECTIONS = [
     id: "sec-scp-sensory",
     domain: "REGULASI SENSORI SEKOLAH",
     title: "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
-    leadText: "Menghadapi lingkungan sekolah ...",
+    description: "Menghadapi lingkungan sekolah ...",
     items: [
       { itemNo: 11, quadrant: "AV", question: "menutup telinga atau panik saat mendengar bel sekolah berbunyi keras atau suasana kantin yang riuh", defaultScore: 4 },
       { itemNo: 12, quadrant: "AV", question: "menolak memakai seragam sekolah dengan bahan tertentu atau merasa tercekik oleh kerah seragam", defaultScore: 3 },
@@ -223,7 +224,7 @@ export default function ParentAssessmentView() {
         id: sec.sectionId || `sec-${sIdx}`,
         domain: sec.title || sec.domain || `Domain ${sIdx + 1}`,
         title: sec.title || sec.domain || `Domain ${sIdx + 1}`,
-        leadText: sec.leadText || "",
+        description: sectionDescription(sec),
         items: (sec.questions || []).filter((q) => isScoredQuestionType(q.type)).map((q, qIdx) => ({
           itemNo: q.itemNo || qIdx + 1,
           quadrant: q.quadrant || null,
@@ -251,7 +252,7 @@ export default function ParentAssessmentView() {
         id: `sec-dyn-${gIdx}`,
         domain: dom,
         title: dom,
-        leadText: "Anakku ...",
+        description: "Anakku ...",
         items,
       }));
     }
@@ -273,7 +274,7 @@ export default function ParentAssessmentView() {
         id: `sec-ans-${gIdx}`,
         domain: dom,
         title: dom,
-        leadText: "Anakku ...",
+        description: "Anakku ...",
         items,
       }));
     }

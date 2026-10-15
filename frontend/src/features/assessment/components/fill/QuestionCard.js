@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { calcAgeDetailed } from "@/shared/lib/format";
 import { todayStr } from "@/shared/lib/id";
 import { cn } from "@/shared/lib/utils";
-import { isAnswerFilled } from "@/domain/assessment";
+import { isAnswerFilled, isQuestionRequired } from "@/domain/assessment";
 
 const SCALE_ITEMS = [
   { val: 5, label: "Hampir Selalu (90%+)" },
@@ -24,6 +24,7 @@ const INPUT_TYPE = { short_text: "text", number: "number", date: "date", birth_d
 // 200+ soal tidak merender ulang semua kartu saat satu jawaban berubah. `onChange(questionId, nilai)`.
 function QuestionCardBase({ q, value, onChange }) {
   const isAnswered = isAnswerFilled(value);
+  const required = isQuestionRequired(q);
   const set = (v) => onChange(q.id, v);
 
   return (
@@ -31,7 +32,8 @@ function QuestionCardBase({ q, value, onChange }) {
       id={`q-card-${q.id}`}
       className={cn(
         "p-4 rounded-xl border transition-all space-y-3",
-        isAnswered ? "bg-slate-50/40 border-slate-200" : "bg-white border-amber-200/80 shadow-2xs ring-1 ring-amber-200/40"
+        // Hanya soal wajib yang belum terisi diberi sorotan amber; soal opsional kosong tampil netral
+        isAnswered || !required ? "bg-slate-50/40 border-slate-200" : "bg-white border-amber-200/80 shadow-2xs ring-1 ring-amber-200/40"
       )}
       data-testid={`assessment-question-${q.id}`}
     >
@@ -40,7 +42,14 @@ function QuestionCardBase({ q, value, onChange }) {
           <span className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[11px] shrink-0 font-black mt-0.5", isAnswered ? "bg-emerald-600 text-white" : "bg-slate-300 text-slate-700")}>
             {q.itemNo}
           </span>
-          <span className="flex-1 min-w-0 break-words">{q.question}</span>
+          <span className="flex-1 min-w-0 break-words">
+            {q.question}
+            {required ? (
+              <span className="text-rose-500 ml-0.5" aria-label="wajib diisi">*</span>
+            ) : (
+              <span className="ml-1.5 text-[11px] font-semibold text-slate-400" data-testid={`assessment-optional-${q.id}`}>(opsional)</span>
+            )}
+          </span>
         </Label>
         {q.quadrant && (
           <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">{q.quadrant}</span>

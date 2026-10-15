@@ -12,13 +12,15 @@ import { cn } from "@/shared/lib/utils";
 import { useClients } from "@/stores/clientsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useCredits } from "@/stores/creditsStore";
+import { BRANCHES, activeBankAccounts } from "@/domain/branch";
 import { AssessmentProofCard } from "@/features/assessment/components/AssessmentProofCard";
 import { QuestionCard } from "@/features/assessment/components/fill/QuestionCard";
 import { DraftSaveIndicator } from "@/features/assessment/components/fill/DraftSaveIndicator";
 import { buildSections, questionsOf, sectionIndex } from "@/features/assessment/components/fill/fillSections";
 import { useAssessmentFillActions } from "@/features/assessment/hooks/useAssessmentFillActions";
 import { useDraftAutosave } from "@/features/assessment/hooks/useDraftAutosave";
-import { checkQuestionnaireAccess, isAnswerFilled } from "@/domain/assessment";
+import { DocumentEmbed } from "@/shared/components/DocumentEmbed";
+import { checkQuestionnaireAccess, isAnswerFilled, requiredProgress, unansweredRequired } from "@/domain/assessment";
 
 // Pesan penolakan akses kuesioner (aturan klien: sekali isi, masa berlaku opsional dicek saat dibuka, bukti transfer invoice assessment wajib diunggah sebelum mengisi).
 const ACCESS_ERRORS = {
@@ -36,6 +38,9 @@ export default function AssessmentFill() {
 
   const [stage, setStage] = useState("code"); // code | proof | form | done
   const [proofTarget, setProofTarget] = useState(null); // { client, category, invoice, code } menunggu unggah bukti
+  // Tujuan transfer = rekening aktif cabang tempat client di-intake
+  const proofBranch = proofTarget ? BRANCHES.find((b) => b.id === proofTarget.client?.branchId) : null;
+  const proofBranchAccounts = activeBankAccounts(proofBranch);
   const [searchParams] = useSearchParams();
   const [codeInput, setCodeInput] = useState((searchParams.get("code") || "").toUpperCase()); // dari tautan portal ortu
   const [codeError, setCodeError] = useState("");
@@ -183,17 +188,18 @@ export default function AssessmentFill() {
 
   const answeredCount = useMemo(() => allCategoryQuestions.filter((q) => isAnswerFilled(answers[q.id])).length, [allCategoryQuestions, answers]);
 
-  const progressPercent = useMemo(() => {
-    if (!allCategoryQuestions.length) return 0;
-    return Math.round((answeredCount / allCategoryQuestions.length) * 100);
-  }, [answeredCount, allCategoryQuestions.length]);
+  // Hanya soal WAJIB yang menentukan progres & izin kirim; soal opsional boleh dikosongkan.
+  const progress = useMemo(() => requiredProgress(allCategoryQuestions, answers), [allCategoryQuestions, answers]);
+  const progressPercent = progress.percent;
+  const requiredLeft = progress.total - progress.answered;
+  const isComplete = requiredLeft === 0;
 
   const scrollToSection = (secId) => {
     document.getElementById(secId)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   };
 
   const jumpToFirstUnanswered = () => {
-    const firstUnanswered = allCategoryQuestions.find((q) => !isAnswerFilled(answers[q.id]));
+    const firstUnanswered = unansweredRequired(allCategoryQuestions, answers)[0];
     if (firstUnanswered) {
       const el = document.getElementById(`q-card-${firstUnanswered.id}`);
       if (el) {
@@ -221,9 +227,9 @@ export default function AssessmentFill() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!category) return;
-    const unanswered = allCategoryQuestions.filter((q) => !isAnswerFilled(answers[q.id]));
+    const unanswered = unansweredRequired(allCategoryQuestions, answers);
     if (unanswered.length > 0) {
-      setFormError(`Mohon lengkapi seluruh pertanyaan (${unanswered.length} belum diisi).`);
+      setFormError(`Mohon lengkapi seluruh pertanyaan wajib (${unanswered.length} belum diisi).`);
       return;
     }
     if (!consentAt) {
@@ -303,7 +309,7 @@ export default function AssessmentFill() {
         )}
 
         {stage === "proof" && proofTarget && (
-          <AssessmentProofCard invoice={proofTarget.invoice} onSubmit={handleProofSubmit} onBack={() => { setProofTarget(null); setStage("code"); }} />
+          <AssessmentProofCard invoice={proofTarget.invoice} bankAccounts={proofBranchAccounts} branchName={proofBranch?.name} onSubmit={handleProofSubmit} onBack={() => { setProofTarget(null); setStage("code"); }} />
         )}
 
         {stage === "form" && client && category && (
@@ -331,11 +337,11 @@ export default function AssessmentFill() {
                 <div className="flex flex-col items-start sm:items-end gap-1 self-start sm:self-auto">
                   <span className={cn(
                     "text-xs font-black px-3 py-1 rounded-full border",
-                    answeredCount === allCategoryQuestions.length
+                    isComplete
                       ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                       : "bg-sky-50 text-sky-800 border-sky-300"
                   )} data-testid="assessment-progress-label">
-                    {answeredCount} / {allCategoryQuestions.length} Terisi ({progressPercent}%)
+                    {progress.answered} / {progress.total} Wajib Terisi ({progressPercent}%)
                   </span>
                   <DraftSaveIndicator state={autosave.state} />
                 </div>
@@ -374,7 +380,7 @@ export default function AssessmentFill() {
                       filterMode === "unanswered" ? "bg-rose-50 text-rose-800 border border-rose-200 font-black" : "text-slate-600 hover:text-slate-900"
                     )}
                   >
-                    Belum Diisi ({allCategoryQuestions.length - answeredCount})
+                    Belum Diisi ({requiredLeft})
                   </button>
                 </div>
 
@@ -382,8 +388,9 @@ export default function AssessmentFill() {
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full text-[11px] font-semibold">
                   <span className="text-slate-400 shrink-0 text-[11px] uppercase font-bold">Lompat:</span>
                   {categorizedSections.map((sec, sIdx) => {
-                    const secAnswered = sec.questions.filter((q) => isAnswerFilled(answers[q.id])).length;
-                    const isDone = secAnswered === sec.questions.length;
+                    const secProgress = requiredProgress(sec.questions, answers);
+                    const secAnswered = secProgress.answered;
+                    const isDone = secAnswered === secProgress.total;
                     return (
                       <button
                         key={sec.id}
@@ -398,7 +405,7 @@ export default function AssessmentFill() {
                       >
                         <span>{sIdx + 1}. {sec.title.split("(")[0].trim()}</span>
                         <span className={cn("text-[11px] px-1 py-0.2 rounded font-mono", isDone ? "bg-emerald-200 text-emerald-900" : "bg-slate-100 text-slate-600")}>
-                          {secAnswered}/{sec.questions.length}
+                          {secAnswered}/{secProgress.total}
                         </span>
                       </button>
                     );
@@ -411,7 +418,7 @@ export default function AssessmentFill() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {categorizedSections.map((sec, sIdx) => {
                 const visibleQuestions = filterMode === "unanswered"
-                  ? sec.questions.filter((q) => !isAnswerFilled(answers[q.id]))
+                  ? unansweredRequired(sec.questions, answers)
                   : sec.questions;
 
                 if (filterMode === "unanswered" && visibleQuestions.length === 0) {
@@ -434,9 +441,9 @@ export default function AssessmentFill() {
                           <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug break-words">
                             {sec.title}
                           </h3>
-                          {sec.leadText && (
-                            <p className="text-xs text-slate-500 font-medium mt-1 italic leading-normal break-words">
-                              "{sec.leadText}"
+                          {sec.description && (
+                            <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed whitespace-pre-line break-words" data-testid={`assessment-section-description-${sec.id}`}>
+                              {sec.description}
                             </p>
                           )}
                         </div>
@@ -448,6 +455,9 @@ export default function AssessmentFill() {
 
                     {/* Questions in section */}
                     <div className="p-4 sm:p-6 space-y-4">
+                      {sec.documentUrl && (
+                        <DocumentEmbed url={sec.documentUrl} title={sec.title} testId={`assessment-section-document-${sec.id}`} />
+                      )}
                       {visibleQuestions.map((q) => (
                         <QuestionCard key={q.id} q={q} value={answers[q.id]} onChange={handleAnswer} />
                       ))}
@@ -490,9 +500,9 @@ export default function AssessmentFill() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs text-slate-600">
                     <p className="font-bold text-slate-800">
-                      {answeredCount === allCategoryQuestions.length
-                        ? "Seluruh pertanyaan telah lengkap terisi!"
-                        : `Masih ada ${allCategoryQuestions.length - answeredCount} butir pertanyaan yang belum diisi.`}
+                      {isComplete
+                        ? "Seluruh pertanyaan wajib telah lengkap terisi!"
+                        : `Masih ada ${requiredLeft} pertanyaan wajib yang belum diisi.`}
                     </p>
                     <p className="text-[11px] text-slate-400">Pastikan pengisian dilakukan seobjektif mungkin demi akurasi penanganan klinis.</p>
                   </div>
@@ -511,13 +521,13 @@ export default function AssessmentFill() {
                       type="submit"
                       className={cn(
                         "font-bold px-6 shadow-xs cursor-pointer transition-all shrink-0",
-                        answeredCount === allCategoryQuestions.length
+                        isComplete
                           ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30"
                           : "bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/30"
                       )}
                       data-testid="assessment-submit-button"
                     >
-                      Kirim Jawaban Asesmen ({answeredCount}/{allCategoryQuestions.length})
+                      Kirim Jawaban Asesmen ({progress.answered}/{progress.total})
                     </Button>
                   </div>
                 </div>

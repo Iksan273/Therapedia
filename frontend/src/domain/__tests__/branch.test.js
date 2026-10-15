@@ -1,4 +1,4 @@
-import { BRANCHES, branchDeleteImpact, activeBranches, branchName, newBranchId, syncBranches, validateBranch, DEFAULT_BRANCHES, inBranchScope } from "@/domain/branch";
+import { activeBankAccounts, validateBankAccount, BRANCHES, branchDeleteImpact, activeBranches, branchName, newBranchId, syncBranches, validateBranch, DEFAULT_BRANCHES, inBranchScope } from "@/domain/branch";
 
 afterEach(() => syncBranches(DEFAULT_BRANCHES));
 
@@ -49,5 +49,34 @@ describe("cakupan cabang (branchId null = semua cabang)", () => {
     expect(inBranchScope("branch-citraland", "branch-sby-timur")).toBe(false);
     expect(inBranchScope(null, "branch-sby-timur")).toBe(true);
     expect(inBranchScope(undefined, "branch-citraland")).toBe(true);
+  });
+});
+
+describe("rekening bank cabang", () => {
+  const ok = { bankName: "BCA", accountNumber: "0123 456-789", accountHolder: "PT Therapedia" };
+  const existing = [{ id: "a1", bankName: "BCA", accountNumber: "111", accountHolder: "X", isActive: true, sortOrder: 1 }];
+
+  test("validateBankAccount: wajib diisi, no. rekening angka, pasangan bank+no unik per cabang", () => {
+    expect(validateBankAccount(ok, existing)).toBeNull();
+    expect(validateBankAccount({ ...ok, bankName: " " }, existing)).toMatch(/bank/i);
+    expect(validateBankAccount({ ...ok, accountNumber: "" }, existing)).toMatch(/rekening/i);
+    expect(validateBankAccount({ ...ok, accountNumber: "abc" }, existing)).toMatch(/angka/i);
+    expect(validateBankAccount({ ...ok, accountHolder: "" }, existing)).toMatch(/pemilik/i);
+    expect(validateBankAccount({ ...ok, bankName: "bca", accountNumber: "111" }, existing)).toMatch(/sudah terdaftar/i);
+    expect(validateBankAccount({ ...ok, bankName: "BCA", accountNumber: "111" }, existing, "a1")).toBeNull(); // mengedit dirinya sendiri
+    expect(validateBankAccount({ ...ok, bankName: "BNI", accountNumber: "111" }, existing)).toBeNull(); // bank beda
+  });
+
+  test("activeBankAccounts: hanya aktif, urut sortOrder; data lama tanpa field = kosong", () => {
+    const branch = {
+      bankAccounts: [
+        { id: "b", isActive: true, sortOrder: 2 },
+        { id: "x", isActive: false, sortOrder: 1 },
+        { id: "a", isActive: true, sortOrder: 1 },
+      ],
+    };
+    expect(activeBankAccounts(branch).map((a) => a.id)).toEqual(["a", "b"]);
+    expect(activeBankAccounts({})).toEqual([]);
+    expect(activeBankAccounts(undefined)).toEqual([]);
   });
 });

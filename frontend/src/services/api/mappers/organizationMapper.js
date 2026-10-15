@@ -17,6 +17,23 @@ export const branchFromApi = (b) => ({
   address: b.address || "",
   phone: b.phone || "",
   isActive: Boolean(b.isActive),
+  bankAccounts: (b.bankAccounts || []).map(bankAccountFromApi),
+});
+
+// ---- Rekening bank pembayaran cabang
+export const bankAccountFromApi = (a) => ({
+  id: String(a.id),
+  bankName: a.bankName,
+  accountNumber: a.accountNumber,
+  accountHolder: a.accountHolder,
+  isActive: Boolean(a.isActive),
+  sortOrder: a.sortOrder ?? 0,
+});
+
+export const bankAccountToApi = (form) => ({
+  bankName: String(form.bankName || "").trim(),
+  accountNumber: String(form.accountNumber || "").trim(),
+  accountHolder: String(form.accountHolder || "").trim(),
 });
 
 // Form cabang → body request (kode huruf besar; kosong dikirim sebagai "" agar server menjadikannya null/bawaan)

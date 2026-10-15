@@ -28,7 +28,7 @@ const { tokenStore } = await import("@/services/http/tokenStore");
 const { BRANCHES } = await import("@/domain/branch");
 
 const BRANCH_ROWS = [
-  { id: 1, code: "EAST", name: "East", city: "Surabaya", address: "Jl. A", phone: "031-1", isActive: true },
+  { id: 1, code: "EAST", name: "East", city: "Surabaya", address: "Jl. A", phone: "031-1", isActive: true, bankAccounts: [] },
   { id: 2, code: "CTL", name: "Citraland", city: "Surabaya", address: null, phone: null, isActive: false },
 ];
 const THERAPIST_ROWS = [{ id: 7, name: "Adi", title: "S.Ft", specialty: "Okupasi", branchId: 1, maxSessionsPerMonth: 100 }];
@@ -117,8 +117,8 @@ describe("cabang", () => {
     await loginAs();
 
     expect(ctx.branches.branches).toEqual([
-      { id: "1", code: "EAST", name: "East", city: "Surabaya", address: "Jl. A", phone: "031-1", isActive: true },
-      { id: "2", code: "CTL", name: "Citraland", city: "Surabaya", address: "", phone: "", isActive: false },
+      { id: "1", code: "EAST", name: "East", city: "Surabaya", address: "Jl. A", phone: "031-1", isActive: true, bankAccounts: [] },
+      { id: "2", code: "CTL", name: "Citraland", city: "Surabaya", address: "", phone: "", isActive: false, bankAccounts: [] },
     ]);
     expect(BRANCHES.map((b) => b.id)).toEqual(["1", "2"]); // dipakai BranchFilter & combo box
   });
@@ -151,6 +151,29 @@ describe("cabang", () => {
 
     expect(apiMock.patch).toHaveBeenNthCalledWith(1, "/branches/1", { name: "East Baru", code: "EAST", city: "Surabaya", address: "", phone: "" });
     expect(apiMock.patch).toHaveBeenNthCalledWith(2, "/branches/1/active", { isActive: false });
+  });
+
+  test("rekening bank: tambah, ubah, aktif/nonaktif, hapus lewat endpoint bersarang di cabang", async () => {
+    await mount();
+    await loginAs();
+    const account = { id: 5, bankName: "BCA", accountNumber: "123", accountHolder: "PT T", isActive: true, sortOrder: 1 };
+    apiMock.post.mockResolvedValueOnce(account);
+    apiMock.patch.mockResolvedValue(account);
+    apiMock.delete.mockResolvedValueOnce("");
+
+    let created;
+    await act(async () => {
+      created = await ctx.branches.addBankAccount("1", { bankName: " BCA ", accountNumber: "123", accountHolder: "PT T" });
+      await ctx.branches.updateBankAccount("1", "5", { bankName: "BCA", accountNumber: "123", accountHolder: "PT T Baru" });
+      await ctx.branches.setBankAccountActive("1", "5", false);
+      await ctx.branches.removeBankAccount("1", "5");
+    });
+
+    expect(apiMock.post).toHaveBeenCalledWith("/branches/1/bank-accounts", { bankName: "BCA", accountNumber: "123", accountHolder: "PT T" });
+    expect(created).toMatchObject({ id: "5", bankName: "BCA" });
+    expect(apiMock.patch).toHaveBeenNthCalledWith(1, "/branches/1/bank-accounts/5", { bankName: "BCA", accountNumber: "123", accountHolder: "PT T Baru" });
+    expect(apiMock.patch).toHaveBeenNthCalledWith(2, "/branches/1/bank-accounts/5/active", { isActive: false });
+    expect(apiMock.delete).toHaveBeenCalledWith("/branches/1/bank-accounts/5");
   });
 
   test("galat validasi server dilempar ke komponen dengan fieldErrors", async () => {

@@ -1,9 +1,11 @@
 import { IfCanDelete } from "@/shared/components/DeleteControls";
 import React from "react";
-import { ChevronDown, ChevronUp, Copy, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { getQuadrantColor } from "@/stores/masterDataStore";
-import { getQuestionTypeInfo, isOptionBasedType } from "@/features/assessment/components/masterData/assessmentConfig";
+import { getQuestionTypeInfo, isOptionBasedType, makeSectionDialog } from "@/features/assessment/components/masterData/assessmentConfig";
+import { sectionDescription } from "@/features/assessment/components/fill/fillSections";
+import { isQuestionRequired } from "@/domain/assessment";
 import { cn } from "@/shared/lib/utils";
 
 // Pratinjau singkat tipe isian bebas di daftar soal master data
@@ -51,10 +53,15 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                           <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug break-words">
                             {sec.title}
                           </h3>
-                          {sec.leadText && (
-                            <p className="text-xs text-slate-500 font-medium italic mt-1 leading-normal break-words">
-                              "{sec.leadText}"
+                          {sectionDescription(sec) && (
+                            <p className="text-xs text-slate-500 font-medium mt-1 leading-normal break-words whitespace-pre-line line-clamp-3" data-testid={`section-description-${sec.sectionId}`}>
+                              {sectionDescription(sec)}
                             </p>
+                          )}
+                          {sec.documentUrl && (
+                            <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold" data-testid={`section-document-badge-${sec.sectionId}`}>
+                              <FileText className="w-3 h-3" /> Dokumen terlampir
+                            </span>
                           )}
                         </div>
                       </div>
@@ -82,20 +89,24 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
 
                       {sec.sectionId !== "default-sec" && (
                         <div className="flex items-center gap-1 shrink-0">
-                          <Button aria-label="Edit judul domain & lead text"
+                          <Button aria-label="Edit section (judul, teks panduan, dokumen)"
                             size="icon"
                             variant="ghost"
                             className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer shrink-0"
                             onClick={() =>
-                              setSecDialog({
-                                open: true,
-                                categoryId: activeCategory.id,
-                                editingSectionId: sec.sectionId,
-                                title: sec.title,
-                                leadText: sec.leadText || "",
-                              })
+                              setSecDialog(
+                                makeSectionDialog({
+                                  open: true,
+                                  categoryId: activeCategory.id,
+                                  editingSectionId: sec.sectionId,
+                                  title: sec.title,
+                                  description: sectionDescription(sec),
+                                  documentUrl: sec.documentUrl || "",
+                                })
+                              )
                             }
-                            title="Edit judul domain & lead text"
+                            title="Edit section (judul, teks panduan, dokumen)"
+                            data-testid={`section-edit-${sec.sectionId}`}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
@@ -180,6 +191,11 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                       >
                                         {typeInfo.shortLabel}
                                       </span>
+                                      {!isQuestionRequired(q) && (
+                                        <span className="px-2 py-0.5 rounded-md text-[11px] border bg-slate-50 text-slate-600 border-slate-300 font-bold" data-testid={`question-optional-badge-${q.id}`}>
+                                          Opsional
+                                        </span>
+                                      )}
                                     </div>
 
                                     {/* Question Text with break-words */}

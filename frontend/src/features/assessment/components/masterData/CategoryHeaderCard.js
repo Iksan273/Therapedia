@@ -1,6 +1,6 @@
 import React from "react";
 import { IfCanDelete } from "@/shared/components/DeleteControls";
-import { getCategoryIcon } from "@/features/assessment/components/masterData/assessmentConfig";
+import { getCategoryIcon, makeSectionDialog } from "@/features/assessment/components/masterData/assessmentConfig";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Info, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
@@ -58,15 +58,7 @@ export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestion
                   size="sm"
                   variant="outline"
                   className="font-bold gap-1.5 text-slate-700 border-slate-200 hover:bg-slate-50 cursor-pointer"
-                  onClick={() =>
-                    setSecDialog({
-                      open: true,
-                      categoryId: activeCategory.id,
-                      editingSectionId: null,
-                      title: "",
-                      leadText: "Anakku ...",
-                    })
-                  }
+                  onClick={() => setSecDialog(makeSectionDialog({ open: true, categoryId: activeCategory.id }))}
                 >
                   <Plus className="w-3.5 h-3.5 text-emerald-600" /> Tambah Domain
                 </Button>

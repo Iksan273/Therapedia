@@ -1,12 +1,12 @@
 import React, { createContext, useContext } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePersistentReducer } from "@/shared/hooks/usePersistentState";
-import { DEFAULT_BRANCHES, newBranchId, syncBranches } from "@/domain/branch";
+import { DEFAULT_BRANCHES, newBankAccountId, newBranchId, syncBranches } from "@/domain/branch";
 import { isStaffSession } from "@/domain/auth";
 import { isApiMode } from "@/config/env";
 import { api } from "@/services/http/httpClient";
 import { ENDPOINTS } from "@/services/api/endpoints";
-import { branchFromApi, branchToApi } from "@/services/api/mappers/organizationMapper";
+import { bankAccountFromApi, bankAccountToApi, branchFromApi, branchToApi } from "@/services/api/mappers/organizationMapper";
 import { useAuth } from "@/stores/authStore";
 
 const BranchesContext = createContext(null);
@@ -21,6 +21,19 @@ function branchesReducer(state, action) {
       return state.filter((b) => b.id !== action.id);
     case "SET_ACTIVE": // nonaktif = tidak muncul di pilihan baru; data & riwayat cabang tetap
       return state.map((b) => (b.id === action.id ? { ...b, isActive: action.isActive, updatedBy: action.by || null } : b));
+    // Rekening bank pembayaran cabang (ditampilkan ke ortu): tersimpan di dalam cabang
+    case "ADD_BANK_ACCOUNT":
+      return state.map((b) => (b.id === action.branchId ? { ...b, bankAccounts: [...(b.bankAccounts || []), action.account], updatedBy: action.by || null } : b));
+    case "UPDATE_BANK_ACCOUNT":
+      return state.map((b) =>
+        b.id === action.branchId
+          ? { ...b, bankAccounts: (b.bankAccounts || []).map((a) => (a.id === action.accountId ? { ...a, ...action.patch } : a)), updatedBy: action.by || null }
+          : b
+      );
+    case "REMOVE_BANK_ACCOUNT":
+      return state.map((b) =>
+        b.id === action.branchId ? { ...b, bankAccounts: (b.bankAccounts || []).filter((a) => a.id !== action.accountId), updatedBy: action.by || null } : b
+      );
     default:
       return state;
   }
@@ -50,8 +63,34 @@ const LocalBranchesProvider = ({ children }) => {
   const deleteBranch = (id) => dispatch({ type: "DELETE", id });
   const setBranchActive = (id, isActive, by) => dispatch({ type: "SET_ACTIVE", id, isActive, by });
 
+  // Rekening bank cabang (nama aksi = use-case; async agar bentuknya sama dengan mode API)
+  const addBankAccount = async (branchId, form, by) => {
+    const current = branches.find((b) => b.id === branchId)?.bankAccounts || [];
+    const account = {
+      id: newBankAccountId(),
+      bankName: form.bankName.trim(),
+      accountNumber: form.accountNumber.trim(),
+      accountHolder: form.accountHolder.trim(),
+      isActive: true,
+      sortOrder: current.reduce((max, a) => Math.max(max, a.sortOrder ?? 0), 0) + 1,
+    };
+    dispatch({ type: "ADD_BANK_ACCOUNT", branchId, account, by });
+    return account;
+  };
+  const updateBankAccount = async (branchId, accountId, form, by) => {
+    const patch = { bankName: form.bankName.trim(), accountNumber: form.accountNumber.trim(), accountHolder: form.accountHolder.trim() };
+    dispatch({ type: "UPDATE_BANK_ACCOUNT", branchId, accountId, patch, by });
+  };
+  const setBankAccountActive = async (branchId, accountId, isActive, by) =>
+    dispatch({ type: "UPDATE_BANK_ACCOUNT", branchId, accountId, patch: { isActive }, by });
+  const removeBankAccount = async (branchId, accountId, by) => dispatch({ type: "REMOVE_BANK_ACCOUNT", branchId, accountId, by });
+
   return (
-    <BranchesContext.Provider value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch }}>{children}</BranchesContext.Provider>
+    <BranchesContext.Provider
+      value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch, addBankAccount, updateBankAccount, setBankAccountActive, removeBankAccount }}
+    >
+      {children}
+    </BranchesContext.Provider>
   );
 };
 
@@ -86,8 +125,36 @@ const ApiBranchesProvider = ({ children }) => {
   const setBranchActive = async (id, isActive) => branchFromApi(await toggle.mutateAsync({ id, isActive }));
   const deleteBranch = (id) => remove.mutateAsync(id);
 
+  // Rekening bank cabang: endpoint bersarang di cabang; daftar dibaca ulang lewat `GET /branches` (`bankAccounts`)
+  const createAccount = useMutation({
+    mutationFn: ({ branchId, form }) => api.post(ENDPOINTS.branches.bankAccounts(branchId), bankAccountToApi(form)),
+    onSuccess: refresh,
+  });
+  const updateAccount = useMutation({
+    mutationFn: ({ branchId, accountId, form }) => api.patch(ENDPOINTS.branches.bankAccount(branchId, accountId), bankAccountToApi(form)),
+    onSuccess: refresh,
+  });
+  const toggleAccount = useMutation({
+    mutationFn: ({ branchId, accountId, isActive }) => api.patch(ENDPOINTS.branches.bankAccountActive(branchId, accountId), { isActive }),
+    onSuccess: refresh,
+  });
+  const removeAccount = useMutation({
+    mutationFn: ({ branchId, accountId }) => api.delete(ENDPOINTS.branches.bankAccount(branchId, accountId)),
+    onSuccess: refresh,
+  });
+
+  const addBankAccount = async (branchId, form) => bankAccountFromApi(await createAccount.mutateAsync({ branchId, form }));
+  const updateBankAccount = async (branchId, accountId, form) => bankAccountFromApi(await updateAccount.mutateAsync({ branchId, accountId, form }));
+  const setBankAccountActive = async (branchId, accountId, isActive) =>
+    bankAccountFromApi(await toggleAccount.mutateAsync({ branchId, accountId, isActive }));
+  const removeBankAccount = (branchId, accountId) => removeAccount.mutateAsync({ branchId, accountId });
+
   return (
-    <BranchesContext.Provider value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch }}>{children}</BranchesContext.Provider>
+    <BranchesContext.Provider
+      value={{ branches, addBranch, updateBranch, setBranchActive, deleteBranch, addBankAccount, updateBankAccount, setBankAccountActive, removeBankAccount }}
+    >
+      {children}
+    </BranchesContext.Provider>
   );
 };
 

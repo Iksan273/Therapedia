@@ -8,7 +8,7 @@
       {
         "sectionId": "sec-auditory",
         "title": "Pemrosesan AUDITORI",
-        "leadText": "Anakku ...",
+        "description": "Anakku ...",
         "questions": [
           {
             "id": "q-01",
@@ -69,7 +69,7 @@
       {
         "sectionId": "sec-visual",
         "title": "Pemrosesan VISUAL",
-        "leadText": "Anakku ...",
+        "description": "Anakku ...",
         "questions": [
           {
             "id": "q-10",
@@ -130,7 +130,7 @@
       {
         "sectionId": "sec-tactile",
         "title": "Pemrosesan SENTUHAN / TAKTIL",
-        "leadText": "Anakku ...",
+        "description": "Anakku ...",
         "questions": [
           {
             "id": "q-19",
@@ -191,7 +191,7 @@
       {
         "sectionId": "sec-vestibular",
         "title": "Pemrosesan GERAKAN / VESTIBULAR",
-        "leadText": "Anakku ...",
+        "description": "Anakku ...",
         "questions": [
           {
             "id": "q-28",
@@ -252,7 +252,7 @@
       {
         "sectionId": "sec-proprioception",
         "title": "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
-        "leadText": "Anakku ...",
+        "description": "Anakku ...",
         "questions": [
           {
             "id": "q-37",
@@ -313,7 +313,7 @@
       {
         "sectionId": "sec-oral",
         "title": "Pemrosesan ORAL SENSORIK & SENSASI MAKAN",
-        "leadText": "Anakku ...",
+        "description": "Anakku ...",
         "questions": [
           {
             "id": "q-46",
@@ -374,7 +374,7 @@
       {
         "sectionId": "sec-behavior",
         "title": "Regulasi PERILAKU & RESPON SOSIO-EMOSIONAL",
-        "leadText": "Anakku ...",
+        "description": "Anakku ...",
         "questions": [
           {
             "id": "q-55",
@@ -455,7 +455,7 @@
       {
         "sectionId": "sec-scp-attention",
         "title": "Pemrosesan & ATENSI KELAS (Classroom Attention & Posture)",
-        "leadText": "Di dalam kelas, siswa ...",
+        "description": "Di dalam kelas, siswa ...",
         "questions": [
           {
             "id": "q-scp-01",
@@ -516,7 +516,7 @@
       {
         "sectionId": "sec-scp-instruction",
         "title": "PENGIKUTAN INSTRUKSI GURU & TRANSISI (Teacher Instructions & Transitions)",
-        "leadText": "Ketika guru memberi tugas ...",
+        "description": "Ketika guru memberi tugas ...",
         "questions": [
           {
             "id": "q-scp-10",
@@ -577,7 +577,7 @@
       {
         "sectionId": "sec-scp-social",
         "title": "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization & Recess)",
-        "leadText": "Selama jam istirahat / bermain ...",
+        "description": "Selama jam istirahat / bermain ...",
         "questions": [
           {
             "id": "q-scp-19",
@@ -638,7 +638,7 @@
       {
         "sectionId": "sec-scp-tools",
         "title": "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
-        "leadText": "Saat berada di meja belajar ...",
+        "description": "Saat berada di meja belajar ...",
         "questions": [
           {
             "id": "q-scp-28",
@@ -699,7 +699,7 @@
       {
         "sectionId": "sec-scp-sensory",
         "title": "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
-        "leadText": "Menghadapi lingkungan sekolah ...",
+        "description": "Menghadapi lingkungan sekolah ...",
         "questions": [
           {
             "id": "q-scp-37",
@@ -760,7 +760,7 @@
       {
         "sectionId": "sec-scp-regulation",
         "title": "REGULASI DIRI & RESPON EMOSIONAL KELAS (Self-Regulation in School)",
-        "leadText": "Ketika menghadapi dinamika kelas ...",
+        "description": "Ketika menghadapi dinamika kelas ...",
         "questions": [
           {
             "id": "q-scp-46",
@@ -821,7 +821,7 @@
       {
         "sectionId": "sec-scp-meal-toilet",
         "title": "KEMANDIRIAN TOILET & MAKAN SIANG SEKOLAH (Meal & Restroom Independence)",
-        "leadText": "Saat aktivitas makan dan kebersihan ...",
+        "description": "Saat aktivitas makan dan kebersihan ...",
         "questions": [
           {
             "id": "q-scp-55",
@@ -884,7 +884,7 @@
       {
         "sectionId": "sec-fm-grip",
         "title": "Pola Genggaman Pensil & Manipulasi Tangan",
-        "leadText": "Saat aktivitas motorik halus ...",
+        "description": "Saat aktivitas motorik halus ...",
         "questions": [
           {
             "id": "q-fm-01",
@@ -951,7 +951,7 @@
       {
         "sectionId": "sec-fm-bilateral",
         "title": "Koordinasi Bilateral & Penggunaan Dua Tangan",
-        "leadText": "Saat tugas membutuhkan kedua tangan ...",
+        "description": "Saat tugas membutuhkan kedua tangan ...",
         "questions": [
           {
             "id": "q-fm-11",
@@ -1018,7 +1018,7 @@
       {
         "sectionId": "sec-fm-scissors",
         "title": "Keterampilan Menggunting & Merakit",
-        "leadText": "Saat aktivitas prakarya dan menggunting ...",
+        "description": "Saat aktivitas prakarya dan menggunting ...",
         "questions": [
           {
             "id": "q-fm-21",
@@ -1085,7 +1085,7 @@
       {
         "sectionId": "sec-fm-vmi",
         "title": "Integrasi Visual-Motor & Meniru Pola Tulisan",
-        "leadText": "Saat menyalin gambar dan menulis ...",
+        "description": "Saat menyalin gambar dan menulis ...",
         "questions": [
           {
             "id": "q-fm-31",
@@ -1152,7 +1152,7 @@
       {
         "sectionId": "sec-fm-adl",
         "title": "Kemandirian Bina Diri / ADL Motorik Halus",
-        "leadText": "Saat melakukan aktivitas perawatan diri ...",
+        "description": "Saat melakukan aktivitas perawatan diri ...",
         "questions": [
           {
             "id": "q-fm-41",
@@ -1231,7 +1231,7 @@
       {
         "sectionId": "sec-fm-strength",
         "title": "Kekuatan Otot Intrinsik Tangan & Ketahanan",
-        "leadText": "Dalam hal kekuatan dan stamina tangan ...",
+        "description": "Dalam hal kekuatan dan stamina tangan ...",
         "questions": [
           {
             "id": "q-fm-53",
@@ -1318,7 +1318,7 @@
       {
         "sectionId": "sec-receptive",
         "title": "Pemahaman Bahasa (Bahasa Reseptif)",
-        "leadText": "Ketika diajak berkomunikasi, anak ...",
+        "description": "Ketika diajak berkomunikasi, anak ...",
         "questions": [
           {
             "id": "sp-01",
@@ -1395,7 +1395,7 @@
       {
         "sectionId": "sec-expressive",
         "title": "Pengekspresian Bahasa & Kosakata (Bahasa Ekspresif)",
-        "leadText": "Dalam menyampaikan keinginan atau pendapat, anak ...",
+        "description": "Dalam menyampaikan keinginan atau pendapat, anak ...",
         "questions": [
           {
             "id": "sp-11",
@@ -1472,7 +1472,7 @@
       {
         "sectionId": "sec-pragmatic",
         "title": "Pragmatik & Interaksi Sosial (Bahasa Sosial)",
-        "leadText": "Ketika berinteraksi dengan orang lain, anak ...",
+        "description": "Ketika berinteraksi dengan orang lain, anak ...",
         "questions": [
           {
             "id": "sp-21",
@@ -1549,7 +1549,7 @@
       {
         "sectionId": "sec-articulation",
         "title": "Artikulasi, Kejelasan & Fonologi",
-        "leadText": "Dalam kejelasan pengucapan kata dan suara, anak ...",
+        "description": "Dalam kejelasan pengucapan kata dan suara, anak ...",
         "questions": [
           {
             "id": "sp-31",
@@ -1626,7 +1626,7 @@
       {
         "sectionId": "sec-nonverbal",
         "title": "Komunikasi Non-Verbal & Isyarat",
-        "leadText": "Dalam memanfaatkan bahasa tubuh dan ekspresi, anak ...",
+        "description": "Dalam memanfaatkan bahasa tubuh dan ekspresi, anak ...",
         "questions": [
           {
             "id": "sp-41",
@@ -1703,7 +1703,7 @@
       {
         "sectionId": "sec-speech-regulation",
         "title": "Regulasi Suara, Vokalisasi & Perilaku Bicara",
-        "leadText": "Dalam mengontrol suara dan kelancaran interaksi, anak ...",
+        "description": "Dalam mengontrol suara dan kelancaran interaksi, anak ...",
         "questions": [
           {
             "id": "sp-51",
@@ -1788,7 +1788,7 @@
       {
         "sectionId": "sec-feeding",
         "title": "Keterampilan Makan & Minum (Feeding ADL)",
-        "leadText": "Dalam aktivitas makan dan minum, anak ...",
+        "description": "Dalam aktivitas makan dan minum, anak ...",
         "questions": [
           {
             "id": "adl-01",
@@ -1865,7 +1865,7 @@
       {
         "sectionId": "sec-dressing",
         "title": "Keterampilan Berpakaian (Dressing ADL)",
-        "leadText": "Dalam mengenakan atau melepas pakaian, anak ...",
+        "description": "Dalam mengenakan atau melepas pakaian, anak ...",
         "questions": [
           {
             "id": "adl-11",
@@ -1942,7 +1942,7 @@
       {
         "sectionId": "sec-hygiene",
         "title": "Higiene Diri & Mandi (Personal Grooming)",
-        "leadText": "Dalam merawat kebersihan tubuh dan mandi, anak ...",
+        "description": "Dalam merawat kebersihan tubuh dan mandi, anak ...",
         "questions": [
           {
             "id": "adl-21",
@@ -2019,7 +2019,7 @@
       {
         "sectionId": "sec-toileting",
         "title": "Kemandirian Toilet & Kontinensia (Toileting ADL)",
-        "leadText": "Dalam aktivitas buang air di toilet, anak ...",
+        "description": "Dalam aktivitas buang air di toilet, anak ...",
         "questions": [
           {
             "id": "adl-31",
@@ -2096,7 +2096,7 @@
       {
         "sectionId": "sec-organization",
         "title": "Organisasi Diri & Manajemen Belajar (Executive ADL)",
-        "leadText": "Dalam mengorganisasi barang dan tugas harian, anak ...",
+        "description": "Dalam mengorganisasi barang dan tugas harian, anak ...",
         "questions": [
           {
             "id": "adl-41",
@@ -2173,7 +2173,7 @@
       {
         "sectionId": "sec-safety",
         "title": "Kesadaran Bahaya & Keselamatan Diri (Safety ADL)",
-        "leadText": "Dalam menjaga keselamatan diri di lingkungan, anak ...",
+        "description": "Dalam menjaga keselamatan diri di lingkungan, anak ...",
         "questions": [
           {
             "id": "adl-51",
@@ -2244,6 +2244,92 @@
             "quadrant": "RG",
             "question": "mampu mengikuti instruksi evakuasi darurat sederhana (misal saat latihan kebakaran)",
             "type": "scale_0_5"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cat-006",
+    "typeCode": "KON",
+    "categoryName": "Konsultasi (contoh form kesepakatan + soal opsional)",
+    "domain": "Consultation Intake",
+    "sections": [
+      {
+        "sectionId": "sec-kon-pendahuluan",
+        "title": "Pendahuluan & Data Pengisi",
+        "description": "Sebelum mengisi formulir, mohon baca bagian kesepakatan dengan seksama.\nPerkiraan pengerjaan sekitar 25-30 menit. Pastikan data yang diisi sudah benar dan sesuai.",
+        "questions": [
+          {
+            "id": "kon-01",
+            "itemNo": 1,
+            "quadrant": null,
+            "question": "Nama yang mengisi",
+            "type": "short_text"
+          },
+          {
+            "id": "kon-02",
+            "itemNo": 2,
+            "quadrant": null,
+            "question": "Hubungan dengan anak",
+            "type": "multiple_choice",
+            "options": [
+              "Ayah",
+              "Ibu",
+              "Keluarga/Kerabat",
+              "Guru"
+            ]
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-kon-kesepakatan",
+        "title": "Kesepakatan Konsultasi dan Asesmen",
+        "description": "Berikut adalah kesepakatan dan peraturan selama menjalani proses konsultasi dan asesmen. Mohon kesediaan Bapak/Ibu untuk membaca dengan seksama sebelum melanjutkan.",
+        "documentUrl": "https://docs.google.com/document/d/1S6hlRRTrXswUBPjOrnPAfXJzSPq_SJ8P8S3HzDhHGEk/edit?usp=drive_link",
+        "questions": [
+          {
+            "id": "kon-03",
+            "itemNo": 3,
+            "quadrant": null,
+            "question": "Apakah Anda telah membaca dan setuju dengan kesepakatan di atas?",
+            "type": "multiple_choice",
+            "options": [
+              "Saya telah membaca dan setuju dengan kesepakatan di atas"
+            ]
+          }
+        ]
+      },
+      {
+        "sectionId": "sec-kon-umum",
+        "title": "Kondisi Umum Anak",
+        "description": "",
+        "questions": [
+          {
+            "id": "kon-04",
+            "itemNo": 4,
+            "quadrant": null,
+            "question": "Keluhan/kekhawatiran Anda saat ini",
+            "type": "free_text"
+          },
+          {
+            "id": "kon-05",
+            "itemNo": 5,
+            "quadrant": null,
+            "question": "Adakah riwayat sakit serius atau kronis?",
+            "type": "multiple_choice",
+            "options": [
+              "Tidak",
+              "Ya"
+            ]
+          },
+          {
+            "id": "kon-06",
+            "itemNo": 6,
+            "quadrant": null,
+            "question": "Jika Ya, sebutkan",
+            "type": "free_text",
+            "required": false
           }
         ]
       }

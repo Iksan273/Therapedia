@@ -24,7 +24,7 @@ class BranchService
     /** Semua cabang (aktif + nonaktif), dibaca semua staf untuk filter cabang. `?active=1` hanya yang aktif. @return Collection<int, Branch> */
     public function all(Request $request): Collection
     {
-        $query = Branch::query()->orderBy('name');
+        $query = Branch::query()->with('bankAccounts')->orderBy('name');
 
         if (filter_var($request->query('active'), FILTER_VALIDATE_BOOLEAN)) {
             $query->where('is_active', true);
@@ -35,7 +35,7 @@ class BranchService
 
     public function find(int $id): Branch
     {
-        return Branch::query()->findOrFail($id);
+        return Branch::query()->with('bankAccounts')->findOrFail($id);
     }
 
     public function create(array $data): Branch
@@ -47,7 +47,7 @@ class BranchService
             'address' => $this->nullIfBlank($data['address'] ?? null),
             'phone' => $this->nullIfBlank($data['phone'] ?? null),
             'is_active' => $data['is_active'] ?? true,
-        ]);
+        ])->load('bankAccounts');
     }
 
     public function update(int $id, array $data): Branch
@@ -63,7 +63,7 @@ class BranchService
         }
         $branch->save();
 
-        return $branch;
+        return $branch->load('bankAccounts');
     }
 
     public function setActive(int $id, bool $active): Branch
@@ -72,7 +72,7 @@ class BranchService
         $branch->is_active = $active;
         $branch->save();
 
-        return $branch;
+        return $branch->load('bankAccounts');
     }
 
     /**
@@ -83,7 +83,7 @@ class BranchService
     public function deleteImpact(User $actor, int $id): array
     {
         $this->assertMaster($actor);
-        $branch = Branch::query()->findOrFail($id);
+        $branch = Branch::query()->with('bankAccounts')->findOrFail($id);
 
         return [
             'branch' => $branch,

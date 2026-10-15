@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Master\HolidayController;
 use App\Http\Controllers\Api\Master\MasterPackageController;
 use App\Http\Controllers\Api\Master\SensoryQuadrantController;
 use App\Http\Controllers\Api\Master\ServiceController;
+use App\Http\Controllers\Api\Organization\BranchBankAccountController;
 use App\Http\Controllers\Api\Organization\BranchController;
 use App\Http\Controllers\Api\Organization\RoleController;
 use App\Http\Controllers\Api\Organization\TherapistController;
@@ -114,6 +115,12 @@ Route::prefix('v1')->group(function () {
             Route::put('branches/{branch}', [BranchController::class, 'update']);
             Route::patch('branches/{branch}', [BranchController::class, 'update']);
             Route::patch('branches/{branch}/active', [BranchController::class, 'setActive']);
+            // Rekening bank pembayaran cabang (daftar dibaca lewat GET branches)
+            Route::post('branches/{branch}/bank-accounts', [BranchBankAccountController::class, 'store']);
+            Route::put('branches/{branch}/bank-accounts/{account}', [BranchBankAccountController::class, 'update']);
+            Route::patch('branches/{branch}/bank-accounts/{account}', [BranchBankAccountController::class, 'update']);
+            Route::patch('branches/{branch}/bank-accounts/{account}/active', [BranchBankAccountController::class, 'setActive']);
+            Route::delete('branches/{branch}/bank-accounts/{account}', [BranchBankAccountController::class, 'destroy']);
             Route::get('branches/{branch}/delete-impact', [BranchController::class, 'deleteImpact']);
             Route::delete('branches/{branch}', [BranchController::class, 'destroy']);
         });

@@ -6,10 +6,9 @@ import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useMasterData } from "@/stores/masterDataStore";
 import { uid } from "@/shared/lib/id";
-import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isTypeCodeTaken, normalizeTypeCode } from "@/domain/assessment";
-import { useQuestionnaireCodeActions } from "@/features/inquiry";
+import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionRequired, isTypeCodeTaken, isValidDocumentUrl, normalizeTypeCode } from "@/domain/assessment";import { useQuestionnaireCodeActions } from "@/features/inquiry";
 
-import { getQuadrantCounts, isOptionBasedType, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
+import { DEFAULT_QUESTION_OPTIONS, getQuadrantCounts, isOptionBasedType, makeQuestionDialog, makeSectionDialog, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { AssessmentHero } from "@/features/assessment/components/masterData/AssessmentHero";
 import { AssessmentStats } from "@/features/assessment/components/masterData/AssessmentStats";
 import { CategorySwitcher } from "@/features/assessment/components/masterData/CategorySwitcher";
@@ -43,29 +42,8 @@ export default function AssessmentMasterData() {
 
   // Dialog states
   const [catDialog, setCatDialog] = useState({ open: false, editingId: null, name: "", domain: "", typeCode: "" });
-  const [qDialog, setQDialog] = useState({
-    open: false,
-    categoryId: null,
-    sectionId: null,
-    editingId: null,
-    text: "",
-    quadrant: "AV",
-    type: "scale_0_5",
-    options: ["Mandiri Penuh", "Mampu dengan Bantuan Minimal", "Membutuhkan Bantuan Bertahap", "Sangat Kesulitan / Menolak"],
-    scaleMin: 1,
-    scaleMax: 5,
-    minLabel: "Sangat Rendah / Jarang",
-    maxLabel: "Sangat Tinggi / Sering",
-    newOptionInput: "",
-  });
-
-  const [secDialog, setSecDialog] = useState({
-    open: false,
-    categoryId: null,
-    editingSectionId: null,
-    title: "",
-    leadText: "",
-  });
+  const [qDialog, setQDialog] = useState(() => makeQuestionDialog());
+  const [secDialog, setSecDialog] = useState(() => makeSectionDialog());
 
   const [genDialog, setGenDialog] = useState({
     open: false,
@@ -163,7 +141,7 @@ export default function AssessmentMasterData() {
       {
         sectionId: "default-sec",
         title: "Daftar Pertanyaan Observasi",
-        leadText: "Anakku ...",
+        description: "",
         filteredQuestions: matched,
         totalOriginalCount: activeCategory.questions?.length || 0,
       },
@@ -288,7 +266,8 @@ export default function AssessmentMasterData() {
           {
             sectionId: `sec-${uid()}`,
             title: "Bagian Umum",
-            leadText: "Anakku ...",
+            description: "",
+            documentUrl: "",
             questions: [],
           },
         ],
@@ -323,21 +302,7 @@ export default function AssessmentMasterData() {
 
   // Open Add Question with defaults
   const openAddQuestion = (catId, secId = null) => {
-    setQDialog({
-      open: true,
-      categoryId: catId,
-      sectionId: secId,
-      editingId: null,
-      text: "",
-      quadrant: "",
-      type: "scale_0_5",
-      options: ["Mandiri Penuh", "Mampu dengan Bantuan Minimal", "Membutuhkan Bantuan Bertahap", "Sangat Kesulitan / Menolak"],
-      scaleMin: 1,
-      scaleMax: 5,
-      minLabel: "Sangat Rendah / Jarang",
-      maxLabel: "Sangat Tinggi / Sering",
-      newOptionInput: "",
-    });
+    setQDialog(makeQuestionDialog({ open: true, categoryId: catId, sectionId: secId }));
   };
 
   // Open Edit Question pre-populated with saved data
@@ -351,24 +316,26 @@ export default function AssessmentMasterData() {
     } else if (typeof q.options === "string" && q.options.trim()) {
       parsedOpts = q.options.split(",").map((o) => o.trim()).filter(Boolean);
     } else {
-      parsedOpts = ["Mandiri Penuh", "Mampu dengan Bantuan Minimal", "Membutuhkan Bantuan Bertahap", "Sangat Kesulitan / Menolak"];
+      parsedOpts = [...DEFAULT_QUESTION_OPTIONS];
     }
 
-    setQDialog({
-      open: true,
-      categoryId: catId,
-      sectionId: secId,
-      editingId: q.id,
-      text: q.question || "",
-      quadrant: q.quadrant || "",
-      type: normalizedType,
-      options: parsedOpts,
-      scaleMin: q.scaleMin !== undefined ? q.scaleMin : (normalizedType === "range" ? 1 : 0),
-      scaleMax: q.scaleMax !== undefined ? q.scaleMax : 5,
-      minLabel: q.minLabel || (normalizedType === "range" ? "Sangat Rendah / Jarang" : "Tidak Berlaku"),
-      maxLabel: q.maxLabel || (normalizedType === "range" ? "Sangat Tinggi / Sering" : "Hampir Selalu"),
-      newOptionInput: "",
-    });
+    setQDialog(
+      makeQuestionDialog({
+        open: true,
+        categoryId: catId,
+        sectionId: secId,
+        editingId: q.id,
+        text: q.question || "",
+        quadrant: q.quadrant || "",
+        type: normalizedType,
+        options: parsedOpts,
+        scaleMin: q.scaleMin !== undefined ? q.scaleMin : (normalizedType === "range" ? 1 : 0),
+        scaleMax: q.scaleMax !== undefined ? q.scaleMax : 5,
+        minLabel: q.minLabel || (normalizedType === "range" ? "Sangat Rendah / Jarang" : "Tidak Berlaku"),
+        maxLabel: q.maxLabel || (normalizedType === "range" ? "Sangat Tinggi / Sering" : "Hampir Selalu"),
+        required: isQuestionRequired(q),
+      })
+    );
   };
 
   const duplicateQuestion = (catId, secId, q) => {
@@ -422,6 +389,7 @@ export default function AssessmentMasterData() {
       scaleMax: qDialog.type === "range" ? (parseInt(qDialog.scaleMax, 10) || 5) : 5,
       minLabel: qDialog.type === "range" ? (qDialog.minLabel.trim() || "Min") : "Tidak Berlaku",
       maxLabel: qDialog.type === "range" ? (qDialog.maxLabel.trim() || "Max") : "Hampir Selalu",
+      required: qDialog.required !== false,
     };
 
     if (category.sections && category.sections.length > 0) {
@@ -474,21 +442,7 @@ export default function AssessmentMasterData() {
       updateCategory(category.id, { questions });
     }
 
-    setQDialog({
-      open: false,
-      categoryId: null,
-      sectionId: null,
-      editingId: null,
-      text: "",
-      quadrant: "AV",
-      type: "scale_0_5",
-      options: [],
-      scaleMin: 1,
-      scaleMax: 5,
-      minLabel: "",
-      maxLabel: "",
-      newOptionInput: "",
-    });
+    setQDialog(makeQuestionDialog());
   };
 
   const removeQuestion = (categoryId, questionId) => {
@@ -516,32 +470,31 @@ export default function AssessmentMasterData() {
       toast.error("Nama domain / seksi klinis wajib diisi.");
       return;
     }
+    const documentUrl = secDialog.documentUrl.trim();
+    if (documentUrl && !isValidDocumentUrl(documentUrl)) {
+      toast.error("Link dokumen harus dari Google Docs atau Google Drive (https).");
+      return;
+    }
     const category = categories.find((c) => c.id === secDialog.categoryId);
     if (!category) return;
 
+    const fields = { title, description: secDialog.description.trim(), documentUrl };
     let sections = category.sections || [];
     if (secDialog.editingSectionId) {
-      sections = sections.map((s) =>
-        s.sectionId === secDialog.editingSectionId
-          ? { ...s, title, leadText: secDialog.leadText.trim() }
-          : s
-      );
-      toast.success(`Domain "${title}" diperbarui.`);
+      // `leadText` lama digabung ke `description` (dibuang dari data section yang disimpan ulang)
+      sections = sections.map((s) => {
+        if (s.sectionId !== secDialog.editingSectionId) return s;
+        const { leadText: legacyLeadText, ...rest } = s; // eslint-disable-line no-unused-vars
+        return { ...rest, ...fields };
+      });
+      toast.success(`Section "${title}" diperbarui.`);
     } else {
-      sections = [
-        ...sections,
-        {
-          sectionId: `sec-${uid()}`,
-          title,
-          leadText: secDialog.leadText.trim(),
-          questions: [],
-        },
-      ];
-      toast.success(`Domain "${title}" berhasil ditambahkan.`);
+      sections = [...sections, { sectionId: `sec-${uid()}`, ...fields, questions: [] }];
+      toast.success(`Section "${title}" berhasil ditambahkan.`);
     }
 
     updateCategory(category.id, { sections });
-    setSecDialog({ open: false, categoryId: null, editingSectionId: null, title: "", leadText: "" });
+    setSecDialog(makeSectionDialog());
   };
 
   const removeSection = async (categoryId, sectionId, sectionTitle) => {

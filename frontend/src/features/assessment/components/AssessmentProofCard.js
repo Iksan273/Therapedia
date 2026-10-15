@@ -4,11 +4,12 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { fmtCurrency } from "@/shared/lib/format";
 import { PROOF_ACCEPT } from "@/domain/credit";
+import { BranchBankAccounts } from "@/shared/components/BranchBankAccounts";
 import { formatFileSize, processProofFile } from "@/shared/lib/fileUpload";
 
 // Langkah wajib sebelum kuesioner: ortu mengunggah bukti transfer invoice assessment (JPG/PNG/PDF maks 5 MB).
-// `onSubmit(processedFile)` dipanggil setelah file valid; Finance memverifikasi lunas secara terpisah.
-export function AssessmentProofCard({ invoice, onSubmit, onBack }) {
+// `bankAccounts` = rekening aktif cabang client (tujuan transfer). `onSubmit(processedFile)` dipanggil setelah file valid; Finance memverifikasi lunas secara terpisah.
+export function AssessmentProofCard({ invoice, bankAccounts = [], branchName, onSubmit, onBack }) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null); // hasil processProofFile
   const [error, setError] = useState("");
@@ -51,6 +52,7 @@ export function AssessmentProofCard({ invoice, onSubmit, onBack }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
+        <BranchBankAccounts accounts={bankAccounts} branchName={branchName} className="mb-4" />
         <form onSubmit={handleSubmit} className="space-y-4" data-testid="assessment-proof-form">
           <input ref={inputRef} type="file" accept={PROOF_ACCEPT} className="hidden" onChange={handlePick} data-testid="assessment-proof-input" />
           <button

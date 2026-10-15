@@ -11,6 +11,8 @@
 export const permissionsFromList = (codes) => Object.fromEntries((Array.isArray(codes) ? codes : []).map((code) => [code, true]));
 
 // `data.user` dari login/me staf → bentuk state `auth`. `therapistId` memakai id akun terapis.
+import { bankAccountFromApi } from "@/services/api/mappers/organizationMapper";
+
 export const staffSessionToAuth = (user) => ({
   role: user.role.code,
   roleName: user.role.name ?? null,
@@ -34,6 +36,7 @@ export const clientSessionToAuth = (client) => ({
   email: null,
   branchId: client.branchId == null ? null : String(client.branchId),
   branchName: client.branch?.name ?? null,
+  branchBankAccounts: (client.branch?.bankAccounts || []).map(bankAccountFromApi), // info pembayaran ortu (hanya yang aktif)
   therapistId: null,
   clientId: String(client.id),
   clientCode: client.clientCode,

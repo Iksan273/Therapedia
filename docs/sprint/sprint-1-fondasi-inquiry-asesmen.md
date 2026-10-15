@@ -120,6 +120,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 2.7–2.12 | `GET/POST/PATCH/DELETE /roles`, `GET /access-modules`, `PUT /roles/{id}/permissions` | role & matriks | `rbac` | `code,name,badge,description`; `[{module_code, allowed}]` | `roles`,`role_permissions` | role sistem: label/badge saja; hapus role dipakai → 409 `in_use` |
 | 2.13 | `GET /branches` | daftar cabang (aktif+nonaktif) | login staf | — | `branches` | dipakai filter cabang semua halaman |
 | 2.14–2.16 | `POST/PUT/PATCH(active) /branches` | tambah/ubah/aktifkan | `branch_master` | `name,code,city,address,phone` | `branches` | `code` 2–10 huruf/angka unik; nonaktif tidak muncul di pilihan baru, riwayat tetap |
+| 2.16b ✚ | `POST/PUT/PATCH(active)/DELETE /branches/{id}/bank-accounts[/{account}]` | rekening bank pembayaran cabang (permintaan klien 14 Okt 2026; tampil ke ortu di kuesioner & portal) | `branch_master` | `bank_name,account_number,account_holder` | `branch_bank_accounts` | `GET /branches` memuat `bank_accounts[]`; 422 rekening ganda per cabang |
 | 2.17 ✚ | `GET /branches/{id}/delete-impact` | pratinjau dampak hapus | `branch_master`+hapus | — | count di `clients,schedules,invoices,users,holidays` | untuk dialog konfirmasi |
 | 2.18 | `DELETE /branches/{id}` | **dikerjakan Sprint 4** | | | | |
 
@@ -207,7 +208,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 5.1 | `GET /assessment-categories?with=sections.questions` | `inquiry_*` | — | `assessment_categories/sections/questions` R (`idx_questions_form`) | satu query form |
 | 5.2 | `POST /assessment-categories`, `PATCH /{id}` | `inquiry_*` | `name,type_code(unik),domain,is_active,version` | `assessment_categories` | `type_code` tidak diubah setelah ada kode terbit |
 | 5.3 | `DELETE /assessment-categories/{id}` | `inquiry_*`+hapus | — | cascade sections/questions | 409 `in_use` bila ada kode/respons; minimal 1 kategori |
-| 5.4 ✚ | `POST /assessment-categories/{id}/sections`, `PATCH/DELETE /assessment-sections/{id}` | `inquiry_*` | `title,lead_text,sort_order` | `assessment_sections` | DELETE cascade soal bila belum dijawab |
+| 5.4 ✚ | `POST /assessment-categories/{id}/sections`, `PATCH/DELETE /assessment-sections/{id}` | `inquiry_*` | `title,description,document_url,sort_order` | `assessment_sections` | DELETE cascade soal bila belum dijawab |
 | 5.5 ✚ | `POST /assessment-sections/{id}/questions`, `PATCH/DELETE /assessment-questions/{id}`, `PUT …/questions/order` | `inquiry_*` | `question_type` (12 tipe, termasuk `birth_date`), `question,options,range_*,quadrant_code,is_required,sort_order` | `assessment_questions` | DELETE 409 bila sudah ada `assessment_answers` |
 
 ### API — kode, publik, hasil

@@ -21,7 +21,7 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `master_therapist_off_codes` | `masterDataStore` | `{ value, label, active }[]` (TO, TS; ikut jadi pilihan Cancel / Off) | `cancel_reasons` (`is_therapist_off` = 1) |
 | `master_discharge_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `discharge_reasons` (tanpa FK) |
 | `auth`, `activeBranch`, `staffUsers`, `rolesList`, `rbacPermissions`, `passwordResets` | `authStore` | lihat 02 |
-| `branches` | `branchesStore` | `{ id, name, code (unik), city, address, phone, isActive, createdBy?, updatedBy? }[]` (nonaktif = tak muncul di pilihan baru, riwayat tetap; hapus = permanen beserta seluruh isi cabang, ADR 0005) | `branches` | — |
+| `branches` | `branchesStore` | `{ id, name, code (unik), city, address, phone, isActive, bankAccounts[] (`{ id, bankName, accountNumber, accountHolder, isActive, sortOrder }`: rekening pembayaran cabang, tampil ke ortu bila aktif; data lama tanpa field = []), createdBy?, updatedBy? }[]` (nonaktif = tak muncul di pilihan baru, riwayat tetap; hapus = permanen beserta seluruh isi cabang, ADR 0005) | `branches`, `branch_bank_accounts` | — |
 | `holidays` | `holidaysStore` | `{ id, date, name, branchId \| null }[]` | `holidays` | `users`, `roles`, `role_permissions`, `access_modules`, `branches` |
 | `leaves` | `leavesStore` | `Leave[]` (lihat **Leave** di bawah; seed demo 3 contoh: aktif, selesai lebih awal, void, tertaut ke sesi seed) | `client_leaves` | — |
 | `therapedia_seed_version` (tanpa prefix) | `data/seedRegistry.js` | string | — |
@@ -136,7 +136,7 @@ credits = {
 Akun login terapis ada di `staffUsers` (`authStore`, seed `data/staffUsers.seed.json`) dan dihubungkan lewat `therapistId`. `staffUsers[]`: `{ id, name, email, role, branchId /*wajib kecuali master*/, password, mustChangePassword, isActive, passwordChangedAt? }`; permintaan OTP lupa password di key `passwordResets` (mode demo).
 
 ## Assessment category (`assessment_categories[]`)
-`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, sections: [{ sectionId, title, leadText, questions: [{ id, itemNo, quadrant, question, type?, options? }] }] }`
+`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, sections: [{ sectionId, title, description /*teks panduan pendek/panjang; menggantikan leadText*/, documentUrl /*link Google Docs/Drive, opsional*/, questions: [{ id, itemNo, quadrant, question, type?, options?, required? /*default true; false = opsional*/ }] }] }`
 Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `AssessmentFill` menangani kedua bentuk ini.
 
 ## Master data

@@ -1741,6 +1741,214 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "7.8 Tambah rekening bank cabang",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}/bank-accounts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}",
+                                "bank-accounts"
+                            ]
+                        },
+                        "description": "Rekening pembayaran cabang (tampil ke ortu bila aktif). 422 bila pasangan bank + no. rekening sudah ada di cabang itu.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"bank_name\": \"BCA\",\n  \"account_number\": \"0123 456 789\",\n  \"account_holder\": \"PT Therapedia Tumbuh Kembang\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                                    "pm.collectionVariables.set('bank_account_id', pm.response.json().data.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.9 Ubah rekening bank cabang",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}/bank-accounts/{{bank_account_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}",
+                                "bank-accounts",
+                                "{{bank_account_id}}"
+                            ]
+                        },
+                        "description": "Field yang tidak dikirim tidak berubah.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"account_holder\": \"PT Therapedia East\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.10 Nonaktifkan rekening bank",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}/bank-accounts/{{bank_account_id}}/active",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}",
+                                "bank-accounts",
+                                "{{bank_account_id}}",
+                                "active"
+                            ]
+                        },
+                        "description": "Nonaktif = tidak tampil ke ortu, tetap tersimpan.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_active\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7.11 Hapus rekening bank",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}/bank-accounts/{{bank_account_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}",
+                                "bank-accounts",
+                                "{{bank_account_id}}"
+                            ]
+                        },
+                        "description": "Hapus permanen. Daftar rekening dibaca lewat GET /branches (bank_accounts)."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Status 204', function () { pm.response.to.have.status(204); });"
+                                ]
+                            }
+                        }
+                    ]
                 }
             ]
         },

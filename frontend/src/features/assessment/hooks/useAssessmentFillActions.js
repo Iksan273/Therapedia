@@ -2,6 +2,7 @@ import { useClients } from "@/stores/clientsStore";
 import { useAssessmentDrafts } from "@/stores/assessmentDraftsStore";
 import { isScoredQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { nowIso } from "@/shared/lib/id";
+import { isAnswerFilled } from "@/domain/assessment";
 
 // Use-case pengisian kuesioner oleh ortu (publik, tanpa login). Fase API:
 // getDraft → bagian dari GET /public/assessments/{code} (respons membawa draft),
@@ -23,7 +24,7 @@ export function useAssessmentFillActions() {
     const formattedAnswers = questions.map((q) => {
       const val = answers[q.id];
       let score = null;
-      if (!isScoredQuestionType(q.type)) score = null;
+      if (!isScoredQuestionType(q.type) || !isAnswerFilled(val)) score = null;
       else if (typeof val === "number") score = val;
       else if (typeof val === "string" && /^\d+/.test(val)) score = parseInt(val.match(/^\d+/)[0], 10);
       return {
@@ -32,7 +33,8 @@ export function useAssessmentFillActions() {
         quadrant: q.quadrant,
         domain: q.domain || "Umum",
         question: q.question,
-        answer: Array.isArray(val) ? val.join(", ") : String(val),
+        // Soal opsional boleh kosong: jawaban "" (bukan "undefined"), tanpa skor
+        answer: !isAnswerFilled(val) ? "" : Array.isArray(val) ? val.join(", ") : String(val),
         score,
       };
     });

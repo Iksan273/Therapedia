@@ -12,7 +12,7 @@ const DERIVED_KEYS = ["assessment_drafts"];
 
 // Naikkan nilai ini setiap kali data seed berubah. Browser yang menyimpan seed versi lama akan
 // otomatis memakai seed baru (hanya data domain; akun, RBAC, dan master layanan/kuadran tidak disentuh).
-const SEED_VERSION = "demo-2026-10-v18";
+const SEED_VERSION = "demo-2026-10-v19";
 const VERSION_KEY = "therapedia_seed_version";
 
 let loader = null;

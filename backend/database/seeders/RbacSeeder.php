@@ -51,7 +51,7 @@ class RbacSeeder extends Seeder
         'manager' => ['revenue', 'inquiry_pipeline', 'inquiry_dashboard', 'weekly_calendar', 'schedule_dashboard', 'active_clients', 'unreported_reports', 'therapist_utilization'],
         'admin_inquiry' => ['inquiry_pipeline', 'inquiry_dashboard', 'assessment_master', 'inquiry_master_data', 'active_clients', 'weekly_calendar'],
         'admin_schedule' => ['weekly_calendar', 'schedule_dashboard', 'active_clients', 'unreported_reports', 'holidays'],
-        'finance' => ['holidays', 'active_clients', 'finance','weekly_calendar'],
+        'finance' => ['holidays', 'active_clients', 'finance', 'weekly_calendar'],
         'therapist' => ['therapist_module'],
     ];
 

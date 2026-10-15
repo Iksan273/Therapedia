@@ -10,6 +10,9 @@ export const WINNIE_DUNN_OPTIONS = [
   "0 - Tidak Pernah / Tidak Berlaku",
 ];
 
+// Teks panduan section. Data lama (localStorage) masih memakai `leadText`; sekarang digabung ke `description`.
+export const sectionDescription = (sec) => sec?.description ?? sec?.leadText ?? "";
+
 // Bentuk kategori (bersarang `sections[].questions[]` atau datar `questions[]`) → daftar section siap render.
 // Id soal stabil (`q.id` atau turunan section+nomor) karena dipakai sebagai kunci jawaban & draft.
 export function buildSections(category) {
@@ -40,7 +43,8 @@ export function buildSections(category) {
     return category.sections.map((sec, sIdx) => ({
       id: sec.sectionId || `sec-${sIdx}`,
       title: sec.title || `Bagian ${sIdx + 1}`,
-      leadText: sec.leadText || "",
+      description: sectionDescription(sec),
+      documentUrl: sec.documentUrl || "",
       questions: (sec.questions || []).map((q, idx) => mapQuestion(q, idx, sec)),
     }));
   }
@@ -48,7 +52,8 @@ export function buildSections(category) {
     {
       id: "sec-default",
       title: "Daftar Pertanyaan Observasi",
-      leadText: "",
+      description: "",
+      documentUrl: "",
       questions: (category.questions || []).map((q, idx) => mapQuestion(q, idx, null)),
     },
   ];

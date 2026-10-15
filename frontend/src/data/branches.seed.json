@@ -6,7 +6,25 @@
     "city": "Surabaya",
     "address": "Jl. Kertajaya Indah Timur No. 42, East Center, Surabaya",
     "phone": "+62 31 5928811",
-    "managerName": "dr. Anita Wijaya, Sp.KFR"
+    "managerName": "dr. Anita Wijaya, Sp.KFR",
+    "bankAccounts": [
+      {
+        "id": "bank-east-1",
+        "bankName": "BCA",
+        "accountNumber": "0123456789",
+        "accountHolder": "PT Therapedia Tumbuh Kembang",
+        "isActive": true,
+        "sortOrder": 1
+      },
+      {
+        "id": "bank-east-2",
+        "bankName": "Mandiri",
+        "accountNumber": "1400012345678",
+        "accountHolder": "PT Therapedia Tumbuh Kembang",
+        "isActive": true,
+        "sortOrder": 2
+      }
+    ]
   },
   {
     "id": "branch-citraland",
@@ -15,7 +33,17 @@
     "city": "Surabaya",
     "address": "Ruko North Junction Blok RB-12, Citraland, Surabaya",
     "phone": "+62 31 7401122",
-    "managerName": "Budi Santoso, S.Ft, Ftr"
+    "managerName": "Budi Santoso, S.Ft, Ftr",
+    "bankAccounts": [
+      {
+        "id": "bank-ctl-1",
+        "bankName": "BCA",
+        "accountNumber": "0987654321",
+        "accountHolder": "PT Therapedia Tumbuh Kembang",
+        "isActive": true,
+        "sortOrder": 1
+      }
+    ]
   },
   {
     "id": "branch-sby-barat",
@@ -24,6 +52,7 @@
     "city": "Surabaya",
     "address": "Jl. Mayjen Sungkono No. 88, West Center, Surabaya",
     "phone": "+62 31 5683344",
-    "managerName": "dr. Hendra Setiawan, Sp.A"
+    "managerName": "dr. Hendra Setiawan, Sp.A",
+    "bankAccounts": []
   }
 ]

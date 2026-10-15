@@ -65,6 +65,9 @@ export const ENDPOINTS = {
     detail: (id) => `/branches/${id}`,
     setActive: (id) => `/branches/${id}/active`,
     deleteImpact: (id) => `/branches/${id}/delete-impact`,
+    bankAccounts: (id) => `/branches/${id}/bank-accounts`,
+    bankAccount: (id, accountId) => `/branches/${id}/bank-accounts/${accountId}`,
+    bankAccountActive: (id, accountId) => `/branches/${id}/bank-accounts/${accountId}/active`,
   },
   schedules: {
     list: "/schedules",

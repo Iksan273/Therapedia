@@ -20,6 +20,10 @@ class BranchResource extends JsonResource
             'address' => $this->address,
             'phone' => $this->phone,
             'is_active' => (bool) $this->is_active,
+            'bank_accounts' => $this->whenLoaded(
+                'bankAccounts',
+                fn () => BranchBankAccountResource::collection($this->bankAccounts)->resolve()
+            ),
         ];
     }
 }

@@ -5,6 +5,7 @@ import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { QUESTION_TYPES, isOptionBasedType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { Textarea } from "@/shared/ui/textarea";
+import { Switch } from "@/shared/ui/switch";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 
@@ -77,6 +78,22 @@ export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, 
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* WAJIB / OPSIONAL */}
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50/60">
+              <div className="min-w-0">
+                <Label htmlFor="question-required-switch" className="text-xs font-bold text-slate-700">Wajib diisi</Label>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Nonaktifkan bila boleh dikosongkan orang tua (mis. "Jika Ya, sebutkan"). Soal opsional tidak menahan pengiriman kuesioner.
+                </p>
+              </div>
+              <Switch
+                id="question-required-switch"
+                checked={qDialog.required !== false}
+                onCheckedChange={(checked) => setQDialog((prev) => ({ ...prev, required: checked }))}
+                data-testid="question-required-switch"
+              />
             </div>
 
             {/* ROW 2: TEKS PERNYATAAN */}

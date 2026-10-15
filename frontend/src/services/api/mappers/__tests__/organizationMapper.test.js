@@ -1,4 +1,5 @@
 import {
+  bankAccountToApi,
   branchFromApi,
   branchImpactFromApi,
   branchToApi,
@@ -15,8 +16,17 @@ import {
 
 test("branchFromApi: id jadi string, null jadi string kosong", () => {
   expect(branchFromApi({ id: 3, code: "WEST", name: "West", city: "Surabaya", address: null, phone: null, isActive: true })).toEqual({
-    id: "3", code: "WEST", name: "West", city: "Surabaya", address: "", phone: "", isActive: true,
+    id: "3", code: "WEST", name: "West", city: "Surabaya", address: "", phone: "", isActive: true, bankAccounts: [],
   });
+});
+
+test("branchFromApi: rekening bank dipetakan (id string) dan bankAccountToApi di-trim", () => {
+  const branch = branchFromApi({
+    id: 1, code: "EAST", name: "East", city: "Surabaya", address: null, phone: null, isActive: true,
+    bankAccounts: [{ id: 7, branchId: 1, bankName: "BCA", accountNumber: "123", accountHolder: "PT T", isActive: true, sortOrder: 1 }],
+  });
+  expect(branch.bankAccounts).toEqual([{ id: "7", bankName: "BCA", accountNumber: "123", accountHolder: "PT T", isActive: true, sortOrder: 1 }]);
+  expect(bankAccountToApi({ bankName: " BCA ", accountNumber: " 123 ", accountHolder: " PT T " })).toEqual({ bankName: "BCA", accountNumber: "123", accountHolder: "PT T" });
 });
 
 test("branchToApi: kode huruf besar, semua field di-trim", () => {

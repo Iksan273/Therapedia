@@ -133,6 +133,57 @@ export const isAnswerFilled = (val) => {
 
 export const countAnswered = (questionIds = [], answers = {}) => questionIds.filter((id) => isAnswerFilled(answers[id])).length;
 
+// ---- Soal wajib / opsional (schema.md `assessment_questions.is_required`) ----
+// Soal lama / seed lama tanpa `required` tetap wajib; hanya `required: false` yang opsional.
+export const isQuestionRequired = (q) => q?.required !== false;
+
+export const requiredQuestions = (questions = []) => questions.filter(isQuestionRequired);
+
+// Soal WAJIB yang belum terjawab (dipakai validasi kirim, filter "belum diisi", dan lompat ke soal kosong).
+export const unansweredRequired = (questions = [], answers = {}) =>
+  questions.filter((q) => isQuestionRequired(q) && !isAnswerFilled(answers[q.id]));
+
+// Progres pengisian: hanya soal wajib yang menentukan 100%; soal opsional yang diisi tidak menambah penyebut.
+export const requiredProgress = (questions = [], answers = {}) => {
+  const required = requiredQuestions(questions);
+  const answered = required.filter((q) => isAnswerFilled(answers[q.id])).length;
+  return { answered, total: required.length, percent: required.length > 0 ? Math.round((answered / required.length) * 100) : 100 };
+};
+
+// ---- Dokumen section (kesepakatan dll.): link Google Docs / Drive ditampilkan di layar lewat iframe ----
+// Hanya host Google yang diizinkan (cegah iframe ke domain sembarang). `/edit`, `/view`, dan parameter lain diubah ke bentuk
+// yang boleh di-embed: `/preview` (dokumen harus dibagikan "Siapa saja yang memiliki link"). null = tidak valid / bukan Google.
+const DOC_ID = "[\\w-]{10,}";
+const DOCS_PUBLISHED = new RegExp(`^/document/d/e/(${DOC_ID})`);
+const DOCS_DOCUMENT = new RegExp(`^/document/d/(${DOC_ID})`);
+const DRIVE_FILE = new RegExp(`^/file/d/(${DOC_ID})`);
+
+export const toDocumentEmbedUrl = (url) => {
+  let parsed;
+  try {
+    parsed = new URL(String(url || "").trim());
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:") return null;
+  const path = parsed.pathname;
+  if (parsed.hostname === "docs.google.com") {
+    const published = path.match(DOCS_PUBLISHED);
+    if (published) return `https://docs.google.com/document/d/e/${published[1]}/pub?embedded=true`;
+    const doc = path.match(DOCS_DOCUMENT);
+    if (doc) return `https://docs.google.com/document/d/${doc[1]}/preview`;
+    return null;
+  }
+  if (parsed.hostname === "drive.google.com") {
+    const file = path.match(DRIVE_FILE);
+    if (file) return `https://drive.google.com/file/d/${file[1]}/preview`;
+  }
+  return null;
+};
+
+// Link boleh dikosongkan (section tanpa dokumen); bila diisi harus link Google yang bisa di-embed.
+export const isValidDocumentUrl = (url) => toDocumentEmbedUrl(url) !== null;
+
 // Jumlah soal sebuah kategori (bentuk bersarang `sections[].questions[]` atau datar `questions[]`).
 export const countCategoryQuestions = (category) => {
   if (!category) return 0;

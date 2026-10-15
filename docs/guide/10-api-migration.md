@@ -89,6 +89,7 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | `addMasterPackage` (+ `invoice_code`) | `master.packages` | `master_packages` | — |
 | layanan / kuadran | `master.services` / `master.quadrants` | `services` / `sensory_quadrants` | — |
 | `branchesStore` (`addBranch` / `updateBranch` / `setBranchActive` / `deleteBranch`) *(baru)* | `POST branches.list` / `PUT branches.detail(id)` / `PATCH branches.setActive(id)` / `DELETE branches.detail(id)` | `branches` (+ cascade seluruh isi cabang) | `updated_by` |
+| `branchesStore` (`addBankAccount` / `updateBankAccount` / `setBankAccountActive` / `removeBankAccount`) *(baru)* | `POST branches.bankAccounts(id)` / `PATCH branches.bankAccount(id, accountId)` / `PATCH branches.bankAccountActive(id, accountId)` / `DELETE branches.bankAccount(id, accountId)`; daftar dibaca dari `GET /branches` (`bankAccounts[]`) | `branch_bank_accounts` | `created_by`, `updated_by` |
 | `addStaffUser` / nonaktifkan staf | `users.*` | `users` | — |
 | `addRole` / `updateRole` / `deleteRole` / `updateRolePermission`  | `roles.*`, `roles.permissions(id)` | `roles`, `role_permissions` | — |
 | dashboard revenue / inquiry / schedule / cabang / terapis | `dashboards.*?branchId=&period=` | view `v_daily_revenue` / `v_daily_sessions` / `v_daily_credit_usage` (funnel inquiry dihitung dari `clients`) / `v_therapist_sessions` | — |
@@ -141,6 +142,7 @@ Aktif bila `VITE_DATA_SOURCE=api`. Mode demo tetap memakai localStorage; impleme
 | Matriks izin | Dikirim/diterima sebagai **array** `[{ moduleCode, allowed }]`; di server `permissions` role = daftar kode modul |
 | Sesi | `auth` memuat `roleName`/`roleBadge` (label sidebar role kustom); `refreshSession()` dipanggil bila Master mengubah izin role akunnya sendiri; `queryClient.clear()` saat logout |
 Urutan provider: `AuthProvider` kini di luar `BranchesProvider`/`TherapistsProvider` (store API membaca sesi untuk menentukan kapan boleh memanggil API; sesi tersimpan tanpa token dianggap kosong).
+Rekening bank cabang (info pembayaran ke ortu): `GET /branches` memuat `bankAccounts[]`; CRUD lewat dialog "Rekening" di Master Cabang (`features/master/components/branch/BranchBankAccountsDialog.js`). Ortu melihat rekening **aktif** cabang client lewat `shared/components/BranchBankAccounts.js` di `AssessmentProofCard` (kuesioner publik) dan portal ortu; mode API portal ortu membaca `auth.branchBankAccounts` (dari `branch.bank_accounts` pada respons login client, `authMapper`). Kuesioner publik mode API menunggu endpoint M5 5.9 memuat `branch.bank_accounts`.
 Hapus cabang permanen: server membalas 501 sampai Sprint 4; halaman menjelaskan dan menyarankan Nonaktifkan.
 ### M3 Master data & hari libur: terintegrasi (14 Okt 2026)
 Aktif bila `VITE_DATA_SOURCE=api`. Mode demo tetap memakai localStorage; implementasi dipilih per build (`isApiMode()`), jadi halaman sama. Kontrak endpoint: `implementation_detail.md` §5.
@@ -157,6 +159,14 @@ Aturan yang berubah (13–14 Okt): kuadran yang belum dipakai boleh dihapus semu
 Batasan sementara: (1) libur di mode API **tidak** membatalkan sesi (Sprint 2); toast menyebut jumlah sesi terjadwal yang terdampak. (2) Pemakaian layanan/kuadran di halaman Master Data memakai **angka asli dari server** di mode API (`GET /master/services` memuat `client_count` + `schedule_count`, `GET /master/quadrants` memuat `question_count` + `score_count`; dihitung lintas cabang). Selama kuesioner belum dimigrasi (M5) jumlah soal di database masih 0, jadi badge "N soal" kuadran baru akurat setelah M5; mode demo tetap menghitung dari store lokal. (3) Paket baru dari server belum dikenali reducer kredit lokal (renewal/aktivasi paket) sampai Finance dimigrasi (Sprint 2).
 
 **Batasan sementara (modul lain masih localStorage):** halaman selain auth belum membaca data dari API sampai modulnya dimigrasi (sprint 1 hari 6+). Akibatnya setelah login API: `branchId` berupa id numerik server (belum cocok dengan id cabang demo), portal ortu/terapis belum menemukan datanya, dan halaman User/RBAC masih memakai data lokal sampai M2 dimigrasi.
+
+### M5 Asesmen — kontrak field section/soal siap, belum dikerjakan (15 Okt 2026)
+Mode demo sudah memakai bentuk baru; backend & mode API menyusul di M5 (controller/`AssessmentService` masih kerangka, `assessmentsStore` masih lokal). Kontrak untuk M5:
+- `assessment_sections`: **`lead_text` → `description`** (TEXT NULL; migration rename + lebarkan) dan kolom baru **`document_url`** (VARCHAR(500) NULL). JSON: `description`, `documentUrl`. Validasi `document_url`: `url` https dengan host `docs.google.com` / `drive.google.com` (selaras `toDocumentEmbedUrl`).
+- `assessment_questions.is_required` (sudah ada, default 1) dipakai sebagai `required` di JSON; soal opsional boleh tidak dijawab saat `POST /public/assessments/{code}/responses` (validasi soal wajib saja; jawaban opsional kosong tidak disimpan / tidak dihitung skor).
+- `POST /assessment-categories/{id}/sections` & `PATCH /assessment-sections/{id}` menerima `title, description, document_url, sort_order`; soal menerima `required`.
+- Tidak ada tipe soal baru (`question_type` tetap 12 nilai): kesepakatan = section ber-`document_url` + soal `multiple_choice` satu opsi.
+- Yang perlu dibuat saat M5: migration, model/FormRequest/Resource, `endpoints.js` (sections/questions), `mappers/assessmentMapper.js` + test, provider API `assessmentsStore` (pola `branchesStore`).
 
 ## Urutan migrasi yang disarankan
 1. Backend: migration sesuai `schema.md` §09 + seeder master dari `src/domain/*`.

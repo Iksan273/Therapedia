@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Building2, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { Building2, Landmark, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -14,6 +14,7 @@ import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { useBranches } from "@/stores/branchesStore";
 import { useClients } from "@/stores/clientsStore";
 import { IfCanDelete } from "@/shared/components/DeleteControls";
+import { BranchBankAccountsDialog } from "@/features/master/components/branch/BranchBankAccountsDialog";
 import { useBranchDeleteActions } from "@/features/master/hooks/useBranchDeleteActions";
 import { useAuth } from "@/stores/authStore";
 import { branchCodeOf, validateBranch } from "@/domain/branch";
@@ -36,6 +37,7 @@ export default function BranchManagement() {
   const [editing, setEditing] = useState(null); // branch yang diedit, null = tambah
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [bankBranchId, setBankBranchId] = useState(null); // cabang yang rekening banknya sedang dikelola
 
   const clientCount = useMemo(() => {
     const map = new Map();
@@ -212,6 +214,9 @@ export default function BranchManagement() {
                         <Button size="sm" variant="outline" className="px-2.5 min-h-10 md:min-h-0 text-[11px] font-semibold gap-1.5 cursor-pointer" onClick={() => openEdit(b)} data-testid={`branch-edit-${b.id}`}>
                           <Pencil className="w-3 h-3" /> Ubah
                         </Button>
+                        <Button size="sm" variant="outline" className="px-2.5 min-h-10 md:min-h-0 text-[11px] font-semibold gap-1.5 cursor-pointer" onClick={() => setBankBranchId(b.id)} data-testid={`branch-bank-accounts-button-${b.id}`}>
+                          <Landmark className="w-3 h-3" /> Rekening ({(b.bankAccounts || []).length})
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -339,6 +344,7 @@ export default function BranchManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <BranchBankAccountsDialog branchId={bankBranchId} onClose={() => setBankBranchId(null)} />
       {confirmDialog}
     </div>
   );

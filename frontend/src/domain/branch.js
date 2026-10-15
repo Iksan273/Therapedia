@@ -5,9 +5,18 @@ import { format, subMonths } from "date-fns";
 // store (`syncBranches`) supaya kode domain/UI lama yang membaca `BRANCHES` / `branchName` tetap bekerja.
 
 export const DEFAULT_BRANCHES = [
-  { id: "branch-sby-timur", name: "East", code: "EAST", city: "Surabaya", address: "", phone: "", isActive: true },
-  { id: "branch-citraland", name: "Citraland", code: "CTL", city: "Surabaya", address: "", phone: "", isActive: true },
-  { id: "branch-sby-barat", name: "West", code: "WEST", city: "Surabaya", address: "", phone: "", isActive: true },
+  {
+    id: "branch-sby-timur", name: "East", code: "EAST", city: "Surabaya", address: "", phone: "", isActive: true,
+    bankAccounts: [
+      { id: "bank-east-1", bankName: "BCA", accountNumber: "0123456789", accountHolder: "PT Therapedia Tumbuh Kembang", isActive: true, sortOrder: 1 },
+      { id: "bank-east-2", bankName: "Mandiri", accountNumber: "1400012345678", accountHolder: "PT Therapedia Tumbuh Kembang", isActive: true, sortOrder: 2 },
+    ],
+  },
+  {
+    id: "branch-citraland", name: "Citraland", code: "CTL", city: "Surabaya", address: "", phone: "", isActive: true,
+    bankAccounts: [{ id: "bank-ctl-1", bankName: "BCA", accountNumber: "0987654321", accountHolder: "PT Therapedia Tumbuh Kembang", isActive: true, sortOrder: 1 }],
+  },
+  { id: "branch-sby-barat", name: "West", code: "WEST", city: "Surabaya", address: "", phone: "", isActive: true, bankAccounts: [] },
 ];
 
 // Semua cabang yang belum dihapus (aktif + nonaktif), diisi ulang in-place oleh `syncBranches`.
@@ -40,6 +49,12 @@ export const newBranchId = (name) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")}`;
 
+// Rekening bank pembayaran cabang yang boleh dilihat ortu: hanya yang aktif, urut sortOrder. Data lama tanpa `bankAccounts` = [].
+export const activeBankAccounts = (branch) =>
+  (branch?.bankAccounts || []).filter((a) => a.isActive !== false).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+export const newBankAccountId = () => `bank-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
 // Dampak hapus cabang (permanen, ADR 0005): jumlah data yang ikut terhapus. Hanya menghitung; penghapusan ada di
 // hook use-case useBranchDeleteActions.
 export function branchDeleteImpact(branchId, { clients = [], schedules = [], invoices = [], staff = [], holidays = [] } = {}) {
@@ -62,6 +77,23 @@ export function validateBranch(form, branches = BRANCHES, selfId = null) {
   const others = branches.filter((b) => b.id !== selfId);
   if (others.some((b) => b.code.toUpperCase() === code)) return `Kode cabang "${code}" sudah dipakai.`;
   if (others.some((b) => b.name.trim().toLowerCase() === name.toLowerCase())) return `Nama cabang "${name}" sudah dipakai.`;
+  return null;
+}
+
+// Validasi form rekening bank cabang. Pasangan bank + no. rekening harus unik per cabang (abaikan rekening yang sedang diedit).
+// Mengembalikan pesan error atau null.
+export function validateBankAccount(form, accounts = [], selfId = null) {
+  const bankName = String(form?.bankName || "").trim();
+  const accountNumber = String(form?.accountNumber || "").trim();
+  const accountHolder = String(form?.accountHolder || "").trim();
+  if (!bankName) return "Nama bank wajib diisi.";
+  if (!accountNumber) return "Nomor rekening wajib diisi.";
+  if (!/^[0-9][0-9 -]*$/.test(accountNumber)) return "Nomor rekening hanya boleh angka, spasi, atau tanda strip.";
+  if (!accountHolder) return "Nama pemilik rekening wajib diisi.";
+  const dup = accounts.some(
+    (a) => a.id !== selfId && a.bankName.trim().toLowerCase() === bankName.toLowerCase() && a.accountNumber.trim() === accountNumber
+  );
+  if (dup) return "Rekening ini sudah terdaftar di cabang tersebut.";
   return null;
 }
 

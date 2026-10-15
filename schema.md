@@ -102,6 +102,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | Modul | Tabel | Fungsi singkat |
 |---|---|---|
 | **A. Organisasi & akses** | `branches` | Cabang klinik |
+| | `branch_bank_accounts` | Rekening bank pembayaran per cabang (1 cabang : N rekening; tampil ke ortu sebagai info transfer) |
 | | `roles` | Role sistem & kustom |
 | | `access_modules` | Daftar modul RBAC |
 | | `role_permissions` | Matriks role × modul |
@@ -142,7 +143,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | **G. Analitik** | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue`, `v_unreported_sessions` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
 | **H. Laravel bawaan** | `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, session, cache driver `database` (MySQL). Tabel `jobs`/`failed_jobs`/`job_batches` **tetap dibuat** (migration bawaan Laravel tidak diubah) tetapi tidak dipakai karena tidak ada queue worker (`QUEUE_CONNECTION=sync`) |
 
-Total: 37 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 6 view + tabel bawaan Laravel.
+Total: 38 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 6 view + tabel bawaan Laravel.
 
 ---
 
@@ -150,6 +151,7 @@ Total: 37 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) 
 
 ```mermaid
 erDiagram
+  branches ||--o{ branch_bank_accounts : "rekening pembayaran"
   branches ||--o{ users : "staf"
   branches ||--o{ clients : "client"
   branches ||--o{ schedules : "sesi"
@@ -240,6 +242,23 @@ Dikelola Master lewat menu **Master Cabang** (modul akses `branch_master`, `POST
 | `is_active` | BOOLEAN | — | 1 | |
 | `updated_by` | BIGINT U | ✔ | | FK → `users` ditambahkan di migration terpisah setelah `users` dibuat (tabel ini dibuat lebih awal) |
 | `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+#### `branch_bank_accounts`
+Rekening bank pembayaran milik cabang, dikelola lewat **Master Cabang** (modul `branch_master`; dialog "Rekening" per cabang). Satu cabang boleh punya beberapa rekening. Rekening **aktif** cabang tempat client di-intake ditampilkan ke ortu sebagai info transfer: di kuesioner publik (tahap upload bukti transfer, juga pada respons 403 `proof_required`) dan di portal ortu. Rekening nonaktif disembunyikan dari ortu tetapi tetap tersimpan. Hapus rekening = `DELETE` permanen (tidak ada FK lain yang memakainya); hapus cabang menghapus rekeningnya (CASCADE). Tanpa `version` (konsisten dengan `branches`).
+
+| Kolom | Tipe | Null | Default | Keterangan |
+|---|---|---|---|---|
+| `id` | BIGINT U | — | auto | PK |
+| `branch_id` | BIGINT U | — | — | FK → `branches` **CASCADE** |
+| `bank_name` | VARCHAR(100) | — | — | Mis. BCA, Mandiri |
+| `account_number` | VARCHAR(50) | — | — | String (jaga angka 0 di depan); hanya angka/spasi/strip |
+| `account_holder` | VARCHAR(150) | — | — | Atas nama |
+| `is_active` | BOOLEAN | — | 1 | Nonaktif tidak tampil ke ortu |
+| `sort_order` | SMALLINT U | — | 0 | Urutan tampil; rekening baru otomatis di akhir |
+| `created_by`, `updated_by` | BIGINT U | ✔ | | FK → `users` SET NULL |
+| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
+
+Indeks: `UNIQUE (branch_id, bank_name, account_number)` (cegah rekening ganda per cabang); `(branch_id, is_active, sort_order)` melayani query daftar rekening aktif per cabang untuk ortu dan `GET /branches` (eager load).
 
 #### `roles`
 Role sistem (`master`, `manager`, `admin_inquiry`, `admin_schedule`, `finance`, `therapist`) + role kustom buatan Master. Orang tua **tidak** memakai tabel ini (auth via `clients`).
@@ -550,7 +569,8 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | `id` | BIGINT U | — | auto | PK |
 | `category_id` | BIGINT U | — | — | FK → `assessment_categories` · CASCADE |
 | `title` | VARCHAR(150) | — | — | Pemrosesan AUDITORI |
-| `lead_text` | VARCHAR(150) | ✔ | | "Anakku ..." |
+| `description` | TEXT | ✔ | | Teks panduan section, pendek atau panjang, multi-baris (mis. "Anakku ...", kunci skala 0–5, pengantar kesepakatan). Menggantikan `lead_text` VARCHAR(150) — migration: rename + lebarkan ke TEXT (13 Okt skeleton belum dipakai produksi) |
+| `document_url` | VARCHAR(500) | ✔ | | Link Google Docs/Drive yang ditampilkan ke ortu lewat iframe (mis. kesepakatan asesmen). Validasi: https + host `docs.google.com` / `drive.google.com` (frontend `toDocumentEmbedUrl`); dokumen harus dibagikan "Siapa saja yang memiliki link". Persetujuan = soal `multiple_choice` satu opsi, bukan kolom khusus |
 | `sort_order` | SMALLINT U | — | 0 | |
 | `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
 | `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
@@ -573,7 +593,7 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | `options` | JSON | ✔ | | Pilihan untuk `multiple_choice` / `checkbox_multi` / `dropdown` |
 | `range_min`, `range_max` | SMALLINT | ✔ | | |
 | `range_min_label`, `range_max_label` | VARCHAR(60) | ✔ | | |
-| `is_required` | BOOLEAN | — | 1 | |
+| `is_required` | BOOLEAN | — | 1 | Soal opsional = 0 (boleh kosong saat kirim; tidak menahan progres 100%). Frontend: `question.required` (default true) |
 | `sort_order` | SMALLINT U | — | 0 | |
 | `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
 | `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
@@ -1329,7 +1349,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 | **Master ber-FK**: `services`, `sensory_quadrants`, `master_packages`, `assessment_categories` / `assessment_sections` / `assessment_questions`, `roles` | `assessment_categories` → `assessment_sections` → `assessment_questions` (bila belum dipakai); `roles` → `role_permissions` | **Hanya bila belum pernah dipakai**: FK `RESTRICT` (`client_services`/`schedules.service_code`, `assessment_questions.quadrant_code`/`assessment_quadrant_scores`, `invoices`/`client_packages.master_package_id`, `assessment_access_codes`/`assessment_responses.category_id`, `assessment_answers.question_id`, `users.role_id`) menolak hapus. Service mengecek dulu dan mengembalikan 409 dengan alasan ramah ("sudah dipakai di N client"); FK adalah jaring pengaman. Untuk yang sudah dipakai: nonaktifkan (`is_active = 0`) |
 | **Master pilihan string**: `cancel_reasons`, `discharge_reasons`, `holidays` | Tidak ada | Langsung dihapus tanpa cek (transaksi menyimpan string, bukan FK) |
 | **Kode kuesioner** `issued` | invoice assessment pemicu yang **belum lunas** (dihapus service) | Hanya yang belum diisi **dan belum punya draft** (409 `draft_exists`). `submitted` tidak bisa dihapus selain lewat hapus client. Invoice assessment yang sudah `paid` dibiarkan (FK `SET NULL`) |
-| **Cabang** | Semua isi cabang: `clients` (dan seluruh turunannya di atas), `schedule_series`, `client_leaves`, `schedules`, `invoices`, `credit_ledger`, `holidays` cabang itu, lalu akun `users` yang `branch_id`-nya = cabang itu | **Hanya role `master`.** Tidak ada pemblokir. Akun ber-`branch_id` NULL (semua cabang, mis. master) tidak tersentuh. Lihat alur di bawah |
+| **Cabang** | Semua isi cabang: `clients` (dan seluruh turunannya di atas), `schedule_series`, `client_leaves`, `schedules`, `invoices`, `credit_ledger`, `holidays` cabang itu, `branch_bank_accounts` (CASCADE), lalu akun `users` yang `branch_id`-nya = cabang itu | **Hanya role `master`.** Tidak ada pemblokir. Akun ber-`branch_id` NULL (semua cabang, mis. master) tidak tersentuh. Lihat alur di bawah |
 | **Staf** (`users`) | `personal_access_tokens` (dihapus manual oleh action), `password_reset_otps` (CASCADE). Kolom pelaku di tabel lain (`created_by`, `updated_by`, `verified_by`, `voided_by`, `cancelled_by`, `completed_by`, `origin_therapist_id`, `prev_therapist_id`, …) menjadi NULL (`SET NULL`): data tetap, nama pelaku hilang (`invoice_logs.actor_name` menyimpan salinan nama) | **Hanya role `master`** (`DELETE /users/{id}`, `DeleteUserAction`). Ditolak: akun sendiri (422 `cannot_delete_self`), master aktif terakhir (422 `last_master`), dan terapis yang masih punya `schedules` atau `session_reports` (409 `in_use`, FK `RESTRICT` sebagai jaring pengaman). Untuk staf yang pernah bekerja, nonaktifkan (`is_active = 0`) agar riwayat dan nama pelaku utuh. Hapus cabang tetap menghapus akun staf cabang itu |
 
 3. **Alur hapus cabang** (`DeleteBranchAction`, **sinkron** dalam satu request; UI menampilkan loading dan boleh lama): (a) wajib konfirmasi mengetik kode cabang + role `master`; (b) satu `DB::transaction()` **atomik (semua atau tidak sama sekali)** berisi urutan: `schedules` per batch (`chunkById(1000)` untuk menjaga memori) → `clients` per batch (cascade ke seluruh turunannya) → sisa `invoices`/`credit_ledger` cabang → `holidays` cabang → `users` yang `branch_id`-nya cabang itu (FK `users.branch_id` sengaja `RESTRICT`, dihapus eksplisit setelah semua sesinya hilang karena `schedules.therapist_id` `RESTRICT`) → baris `branches`; (c) setelah commit, file bukti bayar dihapus dari storage privat **sinkron** (daftar path dikumpulkan sebelum `DELETE`; kegagalan hapus file hanya dicatat di log aplikasi); (d) respons `200` berisi ringkasan jumlah client/sesi/invoice/akun yang terhapus, dan satu baris ke log aplikasi. Konfigurasi: `set_time_limit(0)` untuk rute ini dan `proxy_read_timeout` web server dinaikkan (mis. 300 dtk) hanya untuk `DELETE /branches/{id}`. Kedalaman cascade terpanjang (cabang → client → invoice → paket → ledger → reversal) < 15 tingkat batas InnoDB.
@@ -1412,6 +1432,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `credits.records[].balance` (saldo lebihan rupiah) | `clients.leftover_balance` |
 | `credits.conversions[]` | `package_conversions` |
 | `branches[]` (`branchesStore`) | `branches` |
+| `branches[].bankAccounts[]` | `branch_bank_accounts` (`bankName`→`bank_name`, `accountNumber`→`account_number`, `accountHolder`→`account_holder`, `isActive`→`is_active`, `sortOrder`→`sort_order`) |
 | `invoices[].assessmentCode` | `invoices.assessment_access_code_id` |
 | `invoices[].leaveId` | `invoices.leave_id` |
 | `invoices[].leaveScheduleId` | `invoices.leave_schedule_id` |
@@ -1462,7 +1483,7 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 
 ## 09. Urutan migration & seeder
 
-1. `branches`, `roles`, `access_modules`, `role_permissions`, `users`, `password_reset_otps`
+1. `branches`, `roles`, `access_modules`, `role_permissions`, `users`, `password_reset_otps`, `branch_bank_accounts` (migration `..._000047`, setelah `users` karena `created_by/updated_by`)
 2. `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays`
 3. `client_code_counters`, `clients`, `leave_resets`, `client_services`, `client_documents`
 4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_drafts`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`

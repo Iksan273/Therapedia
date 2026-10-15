@@ -114,7 +114,40 @@ export const getCategoryIcon = (categoryName = "") => {
   return ListChecks;
 };
 
-export const getQuadrantCounts = (cat, quadrants) => {
+// State awal dialog soal (Master Data). `required` default true: hanya soal yang sengaja dimatikan yang opsional.
+export const DEFAULT_QUESTION_OPTIONS = ["Mandiri Penuh", "Mampu dengan Bantuan Minimal", "Membutuhkan Bantuan Bertahap", "Sangat Kesulitan / Menolak"];
+
+export const makeQuestionDialog = (overrides = {}) => ({
+  open: false,
+  categoryId: null,
+  sectionId: null,
+  editingId: null,
+  text: "",
+  quadrant: "",
+  type: "scale_0_5",
+  options: [...DEFAULT_QUESTION_OPTIONS],
+  scaleMin: 1,
+  scaleMax: 5,
+  minLabel: "Sangat Rendah / Jarang",
+  maxLabel: "Sangat Tinggi / Sering",
+  newOptionInput: "",
+  required: true,
+  ...overrides,
+});
+
+// State awal dialog section (Master Data). `description` = teks panduan pendek/panjang (menggantikan `leadText`);
+// `documentUrl` = link Google Docs/Drive yang ditampilkan ke ortu (kesepakatan, dll.).
+export const makeSectionDialog = (overrides = {}) => ({
+  open: false,
+  categoryId: null,
+  editingSectionId: null,
+  title: "",
+  description: "",
+  documentUrl: "",
+  ...overrides,
+});
+
+export const getQuadrantCounts =(cat, quadrants) => {
   const counts = Object.fromEntries(quadrants.map((q) => [q.code, 0]));
   if (!cat) return counts;
   if (cat.sections && cat.sections.length > 0) {
