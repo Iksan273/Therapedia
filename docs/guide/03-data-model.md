@@ -136,7 +136,7 @@ credits = {
 Akun login terapis ada di `staffUsers` (`authStore`, seed `data/staffUsers.seed.json`) dan dihubungkan lewat `therapistId`. `staffUsers[]`: `{ id, name, email, role, branchId /*wajib kecuali master*/, password, mustChangePassword, isActive, passwordChangedAt? }`; permintaan OTP lupa password di key `passwordResets` (mode demo).
 
 ## Assessment category (`assessment_categories[]`)
-`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, sections: [{ sectionId, title, description /*teks panduan pendek/panjang; menggantikan leadText*/, documentUrl /*link Google Docs/Drive, opsional*/, questions: [{ id, itemNo, quadrant, question, type?, options?, required? /*default true; false = opsional*/ }] }] }`
+`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, sections: [{ sectionId, title, description /*teks panduan pendek/panjang; menggantikan leadText*/, documentUrl /*link Google Docs/Drive ATAU path PDF lokal `/documents/x.pdf` (demo); mode API: file di storage privat → `documentFile {name,size}`, lihat ADR 0007 & guide 10*/, questions: [{ id, itemNo, quadrant, question, type?, options?, required? /*default true; false = opsional*/ }] }] }`
 Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `AssessmentFill` menangani kedua bentuk ini.
 
 ## Master data

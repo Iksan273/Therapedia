@@ -61,15 +61,14 @@ const choose = async (questionId, optionText) => {
   await act(async () => optionLabel.querySelector('button[role="radio"]').click());
 };
 
-test("section kesepakatan menampilkan teks panduan dan dokumen Google Docs di iframe /preview", async () => {
+test("section kesepakatan menampilkan teks panduan dan dokumen PDF lokal (pdf.js, bukan iframe)", async () => {
   await openForm();
   const desc = byId("assessment-section-description-sec-kon-kesepakatan");
   expect(desc.textContent).toContain("kesepakatan dan peraturan");
-  const frame = byId("assessment-section-document-sec-kon-kesepakatan-frame");
-  expect(frame.getAttribute("src")).toBe("https://docs.google.com/document/d/1S6hlRRTrXswUBPjOrnPAfXJzSPq_SJ8P8S3HzDhHGEk/preview");
-  expect(byId("assessment-section-document-sec-kon-kesepakatan-open-link").getAttribute("href")).toContain("docs.google.com/document/d/");
-  // section tanpa dokumen tidak membuat iframe
-  expect(container.querySelectorAll("iframe")).toHaveLength(1);
+  expect(byId("assessment-section-document-sec-kon-kesepakatan-pdf")).toBeTruthy();
+  expect(byId("assessment-section-document-sec-kon-kesepakatan-open-link").getAttribute("href")).toBe("/documents/kesepakatan-asesmen.pdf");
+  // PDF dirender di canvas, tidak memakai iframe
+  expect(container.querySelectorAll("iframe")).toHaveLength(0);
 });
 
 test("soal opsional ditandai dan tidak menahan kirim; soal wajib tetap menahan", async () => {

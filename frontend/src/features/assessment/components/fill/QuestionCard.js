@@ -31,7 +31,7 @@ function QuestionCardBase({ q, value, onChange }) {
     <div
       id={`q-card-${q.id}`}
       className={cn(
-        "p-4 rounded-xl border transition-all space-y-3",
+        "p-3.5 sm:p-4 rounded-xl border transition-all space-y-3",
         // Hanya soal wajib yang belum terisi diberi sorotan amber; soal opsional kosong tampil netral
         isAnswered || !required ? "bg-slate-50/40 border-slate-200" : "bg-white border-amber-200/80 shadow-2xs ring-1 ring-amber-200/40"
       )}
@@ -60,7 +60,7 @@ function QuestionCardBase({ q, value, onChange }) {
       {(q.type === "free_text" || q.type === "text") && (
         <Textarea
           rows={3}
-          className="rounded-xl border-slate-200 bg-white text-xs"
+          className="rounded-xl border-slate-200 bg-white text-base sm:text-sm"
           value={value || ""}
           onChange={(e) => set(e.target.value)}
           placeholder="Tuliskan catatan observasi / respon anak..."
@@ -70,12 +70,12 @@ function QuestionCardBase({ q, value, onChange }) {
 
       {/* 2. Ya / Tidak */}
       {q.type === "yes_no" && (
-        <RadioGroup value={value || ""} onValueChange={set} className="flex gap-3 pt-1">
+        <RadioGroup value={value || ""} onValueChange={set} className="grid grid-cols-2 sm:flex gap-2.5 pt-1">
           {["Ya", "Tidak"].map((opt) => (
             <label
               key={opt}
               className={cn(
-                "flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border transition-all cursor-pointer",
+                "flex items-center justify-center sm:justify-start gap-2 min-h-11 text-sm font-bold px-5 py-2 rounded-xl border transition-all cursor-pointer",
                 value === opt ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
               )}
             >
@@ -100,7 +100,7 @@ function QuestionCardBase({ q, value, onChange }) {
                 type="button"
                 onClick={() => set(num)}
                 className={cn(
-                  "w-10 h-10 rounded-xl border text-xs font-black transition-all cursor-pointer",
+                  "w-11 h-11 rounded-xl border text-sm font-black transition-all cursor-pointer",
                   String(value) === String(num) ? "bg-cyan-600 text-white border-cyan-600 shadow-sm scale-105" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
                 )}
               >
@@ -121,7 +121,7 @@ function QuestionCardBase({ q, value, onChange }) {
               <label
                 key={opt}
                 className={cn(
-                  "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
+                  "flex items-center gap-3 min-h-11 text-sm font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
                   isChecked ? "bg-indigo-50 border-indigo-300 text-indigo-950 shadow-2xs ring-1 ring-indigo-300" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                 )}
               >
@@ -129,7 +129,7 @@ function QuestionCardBase({ q, value, onChange }) {
                   type="checkbox"
                   checked={isChecked}
                   onChange={(e) => set(e.target.checked ? [...currentArr, opt] : currentArr.filter((item) => item !== opt))}
-                  className="w-4 h-4 rounded text-indigo-600 accent-indigo-600 cursor-pointer"
+                  className="w-5 h-5 shrink-0 rounded text-indigo-600 accent-indigo-600 cursor-pointer"
                 />
                 <span>{opt}</span>
               </label>
@@ -141,7 +141,11 @@ function QuestionCardBase({ q, value, onChange }) {
       {/* 5. Skala standar Winnie Dunn 0-5 dengan tombol angka cepat */}
       {q.type === "scale_0_5" && (
         <div className="space-y-2.5 pt-1">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <div className="flex justify-between text-[11px] text-slate-500 font-medium px-0.5">
+            <span>5 = Hampir Selalu</span>
+            <span>0 = Tidak Pernah / Tidak Berlaku</span>
+          </div>
+          <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
             {SCALE_ITEMS.map((item) => {
               const matchingOpt = q.options.find((opt) => opt.startsWith(String(item.val))) || `${item.val} - ${item.label}`;
               const isSelected = value !== undefined && value !== null && String(value).startsWith(String(item.val));
@@ -153,7 +157,7 @@ function QuestionCardBase({ q, value, onChange }) {
                   title={item.label}
                   data-testid={`assessment-scale-${q.id}-${item.val}`}
                   className={cn(
-                    "flex-1 min-w-[42px] sm:min-w-[48px] h-10 sm:h-11 rounded-xl border text-xs sm:text-sm font-black transition-all cursor-pointer flex flex-col items-center justify-center select-none",
+                    "h-12 rounded-xl border text-base font-black transition-all cursor-pointer flex flex-col items-center justify-center select-none",
                     isSelected ? "bg-sky-600 text-white border-sky-600 shadow-xs scale-105 ring-2 ring-sky-300" : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300"
                   )}
                 >
@@ -177,7 +181,8 @@ function QuestionCardBase({ q, value, onChange }) {
           <Input
             type={INPUT_TYPE[q.type]}
             max={q.type === "birth_date" ? todayStr() : undefined}
-            className="rounded-xl border-slate-200 bg-white text-xs sm:max-w-xs"
+            inputMode={q.type === "number" ? "decimal" : undefined}
+            className="rounded-xl border-slate-200 bg-white text-base sm:text-sm h-11 sm:max-w-xs"
             value={value ?? ""}
             onChange={(e) => set(e.target.value)}
             placeholder={q.type === "short_text" ? "Tulis jawaban singkat..." : q.type === "number" ? "Masukkan angka" : undefined}
@@ -197,12 +202,12 @@ function QuestionCardBase({ q, value, onChange }) {
       {/* 7. Dropdown */}
       {q.type === "dropdown" && (
         <Select value={value ?? ""} onValueChange={set}>
-          <SelectTrigger className="rounded-xl border-slate-200 bg-white text-xs sm:max-w-xs" data-testid={`assessment-answer-input-${q.id}`}>
+          <SelectTrigger className="rounded-xl border-slate-200 bg-white text-base sm:text-sm h-11 sm:max-w-xs" data-testid={`assessment-answer-input-${q.id}`}>
             <SelectValue placeholder="Pilih salah satu..." />
           </SelectTrigger>
           <SelectContent className="rounded-xl border-slate-200">
             {q.options.map((opt) => (
-              <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+              <SelectItem key={opt} value={opt} className="text-sm min-h-10">{opt}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -215,7 +220,7 @@ function QuestionCardBase({ q, value, onChange }) {
             <label
               key={opt}
               className={cn(
-                "flex items-center gap-2.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
+                "flex items-center gap-3 min-h-11 text-sm font-semibold px-4 py-2.5 rounded-xl border transition-all cursor-pointer",
                 String(value) === opt ? "bg-sky-50 border-sky-300 text-sky-900 shadow-2xs ring-1 ring-sky-300" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
               )}
             >

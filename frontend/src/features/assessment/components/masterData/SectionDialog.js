@@ -63,11 +63,13 @@ export function SectionDialog({ saveSection, secDialog, setSecDialog }) {
             />
             {documentInvalid ? (
               <p className="text-[11px] font-semibold text-rose-600" data-testid="section-document-url-error">
-                Link harus dari Google Docs (docs.google.com/document/...) atau file Google Drive (drive.google.com/file/...).
+                Link harus dari Google Docs (docs.google.com/document/...) atau file Google Drive (drive.google.com/file/...), atau PDF di aplikasi (/documents/nama-file.pdf).
               </p>
             ) : (
               <p className="text-[11px] text-slate-400">
                 Dokumen tampil langsung di layar orang tua (mis. kesepakatan). Atur sharing dokumen ke <strong>"Siapa saja yang memiliki link: Viewer"</strong>, kalau tidak orang tua diminta masuk akun Google.
+                <br />
+                <strong>Tips tampilan HP:</strong> di Google Docs pilih <strong>File → Bagikan → Publikasikan ke web → Publikasikan</strong>, lalu tempel link <code>.../d/e/.../pub</code> itu di sini. Tampilannya otomatis menyesuaikan layar HP (link biasa <code>/edit</code> tampil seperti zoom).
               </p>
             )}
             {documentUrl && !documentInvalid && (

@@ -118,7 +118,7 @@ $DC exec app php artisan tinker         # konsol
 $DC exec app php artisan credits:reconcile   # rekonsiliasi manual (bila command sudah dibuat)
 $DC exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
 ```
-Data persisten ada di volume Docker: `therapedia_mysql_data` (DB), `therapedia_app_storage` (**bukti bayar privat**, log), `therapedia_caddy_data` (sertifikat). Jangan jalankan `docker compose down -v` di server: itu menghapus semuanya.
+Data persisten ada di volume Docker: `therapedia_mysql_data` (DB), `therapedia_app_storage` (**bukti bayar privat + dokumen PDF section (rencana, ADR 0007)**, log), `therapedia_caddy_data` (sertifikat). Jangan jalankan `docker compose down -v` di server: itu menghapus semuanya.
 
 **Rollback**: `IMAGE_TAG=$(cat .deploy/previous_tag) ./docker/scripts/deploy.sh --no-migrate`. Migrasi tidak dibatalkan otomatis; bila perlu pulihkan data dari backup pre-deploy (§6).
 

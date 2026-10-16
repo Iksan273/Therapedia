@@ -222,7 +222,10 @@ Layar: `/admin-inquiry/assessments` (mesin), Client Detail (kode), `/assessment`
 | 5.1 | `GET /assessment-categories` | template + section + soal (satu query form) | **baca: `assessment_master` atau `inquiry_pipeline`** (admin inquiry memilih kategori saat menerbitkan kode); tulis 5.2–5.5: hanya `assessment_master` | `with=sections.questions` | `assessment_categories`, `assessment_sections`, `assessment_questions` R (`idx_questions_form`) | |
 | 5.2 | `POST /assessment-categories` · `PATCH /{id}` | buat/ubah template | `assessment_master` | `name,type_code(unik),domain,is_active,version` | `assessment_categories` C,U | `type_code` jangan diubah setelah ada kode terbit; 409 version |
 | 5.3 | `DELETE /assessment-categories/{id}` | hapus template | `assessment_master` + hapus | | `assessment_categories` D → cascade `sections`/`questions` | 409 `in_use` bila ada kode/respons memakai kategori itu; minimal 1 kategori |
-| 5.4 ✚ | `POST /assessment-categories/{id}/sections` · `PATCH`/`DELETE /assessment-sections/{id}` | kelola section | `assessment_master` (+hapus) | `title,description,document_url,sort_order` | `assessment_sections` | DELETE cascade soal (bila belum dijawab) |
+| 5.4 ✚ | `POST /assessment-categories/{id}/sections` · `PATCH`/`DELETE /assessment-sections/{id}` | kelola section | `assessment_master` (+hapus) | `title,description,document_url,sort_order` | `assessment_sections` | DELETE cascade soal (bila belum dijawab); file dokumen ikut dihapus setelah commit |
+| 5.4a ✚ | `POST /assessment-sections/{id}/document` (multipart `file`) · `DELETE /assessment-sections/{id}/document` | unggah/ganti/hapus dokumen PDF section (rencana, ADR 0007) | `assessment_master` (+hapus) | `file` = `application/pdf`, usulan maks 10 MB | `assessment_sections` U (`document_path,document_name,document_size`; `document_url` dikosongkan) | file lewat **Laravel Storage** di disk privat (`Storage::disk('local')`, bukan `public`; path simpan di DB, nama file = uuid; baca via `Storage::response()`/`download()` setelah otorisasi); 422 bukan PDF / terlalu besar; file lama dihapus sinkron setelah commit |
+| 5.4b ✚ | `GET /assessment-sections/{id}/document` | stream PDF untuk staf (pratinjau di dialog section) | `assessment_master` atau `inquiry_pipeline` | | `assessment_sections` R | `Content-Type: application/pdf`, `Content-Disposition: inline`, `Cache-Control: private`; 404 bila tidak ada |
+| 5.4c ✚ | `GET /questionnaires/{code}/sections/{sectionId}/document` | stream PDF untuk ortu (publik, tanpa login) | publik, diotorisasi **kode kuesioner** | | `assessment_access_codes` R (kode valid, belum kedaluwarsa, section termasuk kategori kode itu), `assessment_sections` R | throttle; 404 (bukan 403) bila kode/section tidak cocok agar tidak membocorkan keberadaan; tetap bisa dibuka setelah kode `submitted`? **diputuskan saat M5** |
 | 5.5 ✚ | `POST /assessment-sections/{id}/questions` · `PATCH`/`DELETE /assessment-questions/{id}` · `PUT /assessment-sections/{id}/questions/order` | kelola soal (12 tipe) | `inquiry_*` (+hapus) | `question_type,question,options,range_*,quadrant_code,is_required,sort_order` | `assessment_questions` | DELETE: 409 `in_use` bila sudah ada `assessment_answers`; nonaktifkan/biarkan |
 
 ### 7.2 Kode kuesioner
@@ -442,6 +445,7 @@ Tidak ada queue/job async (`QUEUE_CONNECTION=sync`; tabel `jobs`/`failed_jobs`/`
 | `db:analyze` | Minggu 04:30 | tabel transaksi utama | |
 | Email OTP | request lupa password | `password_reset_otps` | sinkron setelah commit, timeout 10 dtk, gagal → 503 |
 | Hapus file bukti bayar | setelah commit hapus client/cabang/invoice belum lunas | storage privat | sinkron, gagal hanya dilog |
+| Hapus file dokumen section | setelah commit ganti/hapus dokumen, hapus section/kategori | storage privat | sinkron, gagal hanya dilog |
 
 ---
 

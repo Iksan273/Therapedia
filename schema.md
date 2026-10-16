@@ -571,7 +571,10 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | `category_id` | BIGINT U | — | — | FK → `assessment_categories` · CASCADE |
 | `title` | VARCHAR(150) | — | — | Pemrosesan AUDITORI |
 | `description` | TEXT | ✔ | | Teks panduan section, pendek atau panjang, multi-baris (mis. "Anakku ...", kunci skala 0–5, pengantar kesepakatan). Menggantikan `lead_text` VARCHAR(150) — migration: rename + lebarkan ke TEXT (13 Okt skeleton belum dipakai produksi) |
-| `document_url` | VARCHAR(500) | ✔ | | Link Google Docs/Drive yang ditampilkan ke ortu lewat iframe (mis. kesepakatan asesmen). Validasi: https + host `docs.google.com` / `drive.google.com` (frontend `toDocumentEmbedUrl`); dokumen harus dibagikan "Siapa saja yang memiliki link". Persetujuan = soal `multiple_choice` satu opsi, bukan kolom khusus |
+| `document_url` | VARCHAR(500) | ✔ | | Link Google Docs/Drive yang ditampilkan ke ortu lewat iframe (mis. kesepakatan asesmen). Validasi: https + host `docs.google.com` / `drive.google.com` (frontend `toDocumentEmbedUrl`); dokumen harus dibagikan "Siapa saja yang memiliki link". **Saling eksklusif dengan `document_path`** (satu section = satu dokumen: link ATAU file). Persetujuan = soal `multiple_choice` satu opsi, bukan kolom khusus |
+| `document_path` | VARCHAR(255) | ✔ | | **(rencana, ADR 0007)** Path relatif file PDF di **storage privat** (Laravel Storage, disk `local` = `storage/app/private`, non-publik; mis. `assessment-documents/{section_id}/{uuid}.pdf`), bukan URL. Diisi lewat upload admin; file tidak pernah dilayani langsung oleh web server, hanya lewat endpoint ber-otorisasi (staf `assessment_master`, atau ortu dengan kode kuesioner yang valid). Dirender di frontend oleh pdf.js (`PdfViewer`) |
+| `document_name` | VARCHAR(150) | ✔ | | Nama file asli untuk tampilan/unduhan. NULL bila `document_path` NULL |
+| `document_size` | INT U | ✔ | | Ukuran byte (usulan batas **10 MB**, divalidasi service; hanya `application/pdf`). NULL bila `document_path` NULL |
 | `sort_order` | SMALLINT U | — | 0 | |
 | `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
 | `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
@@ -579,6 +582,8 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | Indeks | Kolom | Melayani |
 |---|---|---|
 | `idx_sections_category` | `category_id, sort_order` | Render form |
+
+> **Constraint**: `CHECK (document_url IS NULL OR document_path IS NULL)` (link atau file, tidak keduanya). Mengganti/menghapus file atau menghapus section/kategori ikut menghapus file di storage privat **sinkron setelah commit** (gagal hanya dilog; lihat §11). Detail (batas ukuran final, nama disk, kebijakan versi dokumen) dibahas saat M5.
 
 #### `assessment_questions`
 
@@ -1542,7 +1547,7 @@ Prinsip:
 |---|---|---|---|---|
 | Setiap hari 02:00 | `credits:reconcile` | **Pengaman denormalisasi**: bandingkan Σ `credit_ledger.credit_change` per paket dengan `client_packages.remaining_credit`, serta Σ per client dengan `clients.credit_balance`, dan `client_packages.cancel_count` dengan jumlah baris ledger `cancel_*` yang belum di-reversal, serta `client_packages.leave_used` / `clients.leave_credit_balance` dengan baris ledger `cancel_leave` yang belum di-reversal. Bila beda → perbaiki dari ledger (ledger = sumber kebenaran), catat di log aplikasi, dan kirim peringatan ke Master. Normalnya selisih 0; bila ada selisih, itu tanda bug yang harus diselidiki | `credit_ledger` (`idx_ledger_client`), `client_packages`, `clients` | **Ya** |
 | Setiap hari 03:30 | backup DB (cron sistem, bukan Laravel) | `mysqldump --single-transaction --routines --triggers` (atau Percona XtraBackup) + binary log untuk point-in-time recovery; simpan 14 hari lokal + salinan off-server | seluruh DB | **Ya** |
-| Tiap 6 bulan (alternatif: tiap 1 tahun; interval = konfigurasi) | backup arsip jangka panjang (cron sistem) | Dump penuh DB + file bukti bayar (storage privat) sebagai salinan arsip terpisah dari backup harian; simpan off-server dan uji pulih (restore test) saat tiap arsip dibuat. Tidak ada hapus permanen otomatis | seluruh DB + storage | Ya |
+| Tiap 6 bulan (alternatif: tiap 1 tahun; interval = konfigurasi) | backup arsip jangka panjang (cron sistem) | Dump penuh DB + file bukti bayar + file dokumen section (storage privat) sebagai salinan arsip terpisah dari backup harian; simpan off-server dan uji pulih (restore test) saat tiap arsip dibuat. Tidak ada hapus permanen otomatis | seluruh DB + storage | Ya |
 | Setiap hari 04:00 | housekeeping Laravel | `sanctum:prune-expired --hours=24`, `otp:prune` (hapus `password_reset_otps` kedaluwarsa/terpakai), dan hapus baris `cache` yang sudah lewat `expiration` (driver `database` tidak menghapusnya otomatis) | `personal_access_tokens`, `password_reset_otps`, `cache` | Ya |
 | Minggu 04:30 | `db:analyze` | `ANALYZE TABLE schedules, clients, invoices, credit_ledger` — menyegarkan statistik indeks agar optimizer tetap memilih indeks yang tepat saat data bertambah | tabel transaksi utama | Disarankan |
 
@@ -1578,6 +1583,7 @@ Tidak ada job async. Proses berikut dijalankan langsung di request (setelah comm
 |---|---|---|
 | Hapus cabang / client | Hapus oleh role `master` | Cascade DB dalam satu transaksi atomik (§6.7); request boleh lama, timeout rute dinaikkan |
 | Hapus file bukti bayar | Setelah commit hapus client/cabang/invoice belum lunas | Hapus file storage privat sinkron; gagal → log aplikasi saja |
+| Hapus file dokumen section | Setelah commit ganti/hapus dokumen section, hapus section/kategori | Hapus file storage privat sinkron; gagal → log aplikasi saja |
 | Email OTP lupa password | Permintaan OTP staf | Kirim sinkron setelah commit dengan timeout 10 dtk; gagal → 503 dan OTP dibatalkan |
 | Sinkron Google Calendar *(fase akhir)* | Buat/ubah/hapus sesi | Panggilan API sinkron setelah commit; gagal → log, sesi tetap tersimpan |
 

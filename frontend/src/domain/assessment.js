@@ -181,8 +181,13 @@ export const toDocumentEmbedUrl = (url) => {
   return null;
 };
 
-// Link boleh dikosongkan (section tanpa dokumen); bila diisi harus link Google yang bisa di-embed.
-export const isValidDocumentUrl = (url) => toDocumentEmbedUrl(url) !== null;
+// PDF yang disimpan di aplikasi sendiri (`public/documents/*.pdf`), dirender per halaman lewat pdf.js (bukan iframe),
+// sehingga pas lebar layar & bisa di-scroll di HP. Hanya path same-origin (tanpa `..`), bukan URL luar (CORS & keamanan).
+const LOCAL_PDF = /^\/documents\/[\w.-]+\.pdf$/i;
+export const isLocalPdfUrl = (url) => LOCAL_PDF.test(String(url || "").trim());
+
+// Link boleh dikosongkan (section tanpa dokumen); bila diisi harus link Google yang bisa di-embed atau PDF lokal.
+export const isValidDocumentUrl = (url) => toDocumentEmbedUrl(url) !== null || isLocalPdfUrl(url);
 
 // Jumlah soal sebuah kategori (bentuk bersarang `sections[].questions[]` atau datar `questions[]`).
 export const countCategoryQuestions = (category) => {

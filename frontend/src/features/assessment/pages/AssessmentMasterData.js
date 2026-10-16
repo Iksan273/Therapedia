@@ -472,7 +472,7 @@ export default function AssessmentMasterData() {
     }
     const documentUrl = secDialog.documentUrl.trim();
     if (documentUrl && !isValidDocumentUrl(documentUrl)) {
-      toast.error("Link dokumen harus dari Google Docs atau Google Drive (https).");
+      toast.error("Link dokumen harus dari Google Docs / Google Drive (https) atau PDF di aplikasi (/documents/nama.pdf).");
       return;
     }
     const category = categories.find((c) => c.id === secDialog.categoryId);

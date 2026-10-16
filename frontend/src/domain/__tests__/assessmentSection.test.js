@@ -1,4 +1,5 @@
 import {
+  isLocalPdfUrl,
   isQuestionRequired,
   isValidDocumentUrl,
   requiredProgress,
@@ -39,9 +40,20 @@ describe("dokumen section: link Google → URL embed", () => {
     expect(toDocumentEmbedUrl(null)).toBeNull();
   });
 
-  test("isValidDocumentUrl mengikuti toDocumentEmbedUrl", () => {
+  test("isValidDocumentUrl: link Google atau PDF lokal; selain itu ditolak", () => {
     expect(isValidDocumentUrl(`https://docs.google.com/document/d/${DOC_ID}/edit`)).toBe(true);
+    expect(isValidDocumentUrl("/documents/kesepakatan-asesmen.pdf")).toBe(true);
     expect(isValidDocumentUrl("https://contoh.com/dokumen.pdf")).toBe(false);
+  });
+
+  test("isLocalPdfUrl hanya menerima /documents/*.pdf same-origin", () => {
+    expect(isLocalPdfUrl("/documents/kesepakatan.PDF")).toBe(true);
+    expect(isLocalPdfUrl("/documents/../secret.pdf")).toBe(false);
+    expect(isLocalPdfUrl("/documents/sub/a.pdf")).toBe(false);
+    expect(isLocalPdfUrl("//evil.com/documents/a.pdf")).toBe(false);
+    expect(isLocalPdfUrl("/images/a.pdf")).toBe(false);
+    expect(isLocalPdfUrl("/documents/a.html")).toBe(false);
+    expect(isLocalPdfUrl("")).toBe(false);
   });
 });
 
