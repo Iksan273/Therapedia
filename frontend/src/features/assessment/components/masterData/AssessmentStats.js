@@ -1,9 +1,9 @@
 import React from "react";
 import { FolderTree, Layers, ListChecks } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
-import { getQuadrantColor } from "@/stores/masterDataStore";
+import { isTemplateSection } from "@/domain/assessmentTemplate";
 
-export function AssessmentStats({ activeCategory, categories, quadrants, totalDomainsOverall, totalQuestionsOverall }) {
+export function AssessmentStats({ activeCategory, categories, totalDomainsOverall, totalQuestionsOverall }) {
+  const templateSections = categories.reduce((n, c) => n + (c.sections || []).filter(isTemplateSection).length, 0);
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
@@ -41,19 +41,13 @@ export function AssessmentStats({ activeCategory, categories, quadrants, totalDo
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Distribusi Kuadran</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tabel Psikologi</span>
             <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black text-xs">
               <Layers className="w-4 h-4" />
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 mt-1">
-            {quadrants.map((q) => (
-              <span key={q.code} className={cn("text-[11px] px-1.5 py-0.5 rounded", getQuadrantColor(q.color).badge)}>
-                {q.code}
-              </span>
-            ))}
-          </div>
-          <p className="text-[11px] text-slate-500 font-medium mt-1">Tersinkron dengan lembar asesor</p>
+          <p className="text-2xl sm:text-3xl font-black text-amber-700">{templateSections}</p>
+          <p className="text-[11px] text-slate-500 font-medium">Section ber-template (skor mentah per section)</p>
         </div>
       </div>
   );

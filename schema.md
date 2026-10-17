@@ -51,7 +51,7 @@ Disusun dengan skill `database-design` (`.claude/skills/database-design/SKILL.md
 | 6 | **Idempoten** | `credit_ledger.idempotency_key` UNIQUE mencegah potong kredit ganda |
 | 7 | **Snapshot nilai transaksi** | Nama paket, harga, nama pelaku disalin saat transaksi agar histori tidak berubah ketika master diedit |
 | 8 | **Baca cepat tanpa infrastruktur tambahan** | Dashboard = **VIEW + JOIN** di atas indeks covering & generated column tanggal; tanpa Redis dan tanpa tabel ringkasan selama target terpenuhi (§04-G, §07) |
-| 9 | **Lookup table untuk daftar yang bisa diedit** | Layanan dan kuadran = tabel ber-PK `code`. Alasan cancel/discharge juga tabel `code`, tetapi hanya **pilihan cepat tanpa FK** (transaksi menyimpan string, boleh teks custom) |
+| 9 | **Lookup table untuk daftar yang bisa diedit** | Layanan = tabel ber-PK `code`. Alasan cancel/discharge juga tabel `code`, tetapi hanya **pilihan cepat tanpa FK** (transaksi menyimpan string, boleh teks custom) |
 | 10 | **ENUM untuk siklus hidup tetap** | Status client/sesi/invoice/paket |
 | 11 | **Hapus = permanen (hard delete), dikendalikan role** | Punya akses modul = boleh semua aksi termasuk hapus operasional; hapus data penting (client, cabang) hanya role `master`. Data milik (anak) ikut terhapus lewat FK `ON DELETE CASCADE`; master ber-FK yang pernah dipakai diblokir FK `RESTRICT` (ADR 0005, §6.7). Pemulihan hanya dari backup |
 
@@ -109,7 +109,6 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `users` | Staf internal + terapis (satu tabel) |
 | | `password_reset_otps` | OTP email untuk lupa password staf |
 | **B. Master data** | `services` | Layanan intake (BOT-A, FOT-A, Consultation, …) |
-| | `sensory_quadrants` | Kuadran sensori (AV/SN/RG/SK) |
 | | `cancel_reasons` | Pilihan cepat alasan **Cancel / Off** (satu tabel; tanpa FK; transaksi menyimpan string). `is_therapist_off = 1` menandai alasan **Therapist Off** (master terpisah di UI; dasar Therapist Off Rate) |
 | | `discharge_reasons` | Pilihan cepat alasan discharge (tanpa FK; transaksi menyimpan string) |
 | | `master_packages` | Katalog paket kredit (+ jatah cuti, `is_satuan`, `is_assessment`) |
@@ -125,7 +124,6 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | | `assessment_drafts` | Draft jawaban kuesioner (simpan otomatis / lanjutkan; dihapus saat submit) |
 | | `assessment_responses` | Pengisian kuesioner (sekali isi) |
 | | `assessment_answers` | Jawaban per soal |
-| | `assessment_quadrant_scores` | Skor kuadran per pengisian |
 | **E. Penjadwalan** | `schedule_series` | Pola jadwal berulang |
 | | `client_leaves` | Log cuti client (rentang penampung; hari dihitung sesi pertama–terakhir memotong saldo `clients.leave_granted`; dicatat Finance) |
 | | `client_leave_sessions` | Sesi yang dibatalkan oleh satu log cuti (untuk tombol Detail) |
@@ -143,7 +141,7 @@ Target API (server, p95): detail < 100 ms · list < 200 ms · aksi transaksional
 | **G. Analitik** | *view* `v_daily_revenue`, `v_daily_sessions`, `v_daily_credit_usage`, `v_therapist_sessions`, `v_invoice_queue`, `v_unreported_sessions` | Dashboard & list gabungan (bukan tabel, tidak menyimpan data) |
 | **H. Laravel bawaan** | `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` | Sanctum, session, cache driver `database` (MySQL). Tabel `jobs`/`failed_jobs`/`job_batches` **tetap dibuat** (migration bawaan Laravel tidak diubah) tetapi tidak dipakai karena tidak ada queue worker (`QUEUE_CONNECTION=sync`) |
 
-Total: 38 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 6 view + tabel bawaan Laravel.
+Total: 36 tabel domain (+1 tabel fase terakhir: `google_calendar_integrations`) + 6 view + tabel bawaan Laravel.
 
 ---
 
@@ -172,13 +170,11 @@ erDiagram
 
   assessment_categories ||--o{ assessment_sections : ""
   assessment_sections ||--o{ assessment_questions : ""
-  sensory_quadrants ||--o{ assessment_questions : ""
   clients ||--o{ assessment_access_codes : ""
   assessment_categories ||--o{ assessment_access_codes : ""
   assessment_access_codes ||--o| assessment_responses : "sekali isi"
   assessment_access_codes ||--o| assessment_drafts : "draft sebelum submit"
   assessment_responses ||--o{ assessment_answers : ""
-  assessment_responses ||--o{ assessment_quadrant_scores : ""
 
   clients ||--o{ schedule_series : ""
   schedule_series ||--o{ schedules : ""
@@ -374,19 +370,6 @@ Tabel master kecil (puluhan baris) dan dibaca lewat PK → query langsung < 1 ms
 | `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
 | `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
-#### `sensory_quadrants`
-
-| Kolom | Tipe | Null | Default | Keterangan |
-|---|---|---|---|---|
-| `code` | VARCHAR(10) | — | — | **PK**. `AV`, `SN`, `RG`, `SK` |
-| `title` | VARCHAR(60) | — | — | |
-| `full_name` | VARCHAR(100) | — | — | |
-| `description` | TEXT | ✔ | | |
-| `color` | VARCHAR(20) | — | `slate` | |
-| `sort_order` | SMALLINT U | — | 0 | |
-| `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
-| `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
-
 #### `cancel_reasons` & `discharge_reasons` (pilihan cepat, TANPA foreign key)
 Hanya **sumber pilihan cepat** untuk dropdown di UI (dikelola di menu Master Data). Tabel transaksi (`schedules`, `clients`, `credit_ledger`) menyimpan alasan sebagai **string biasa** (`cancel_reason`, `pending_reason`, `discharge_reason`): berisi `code` pilihan cepat **atau** teks bebas yang diketik user ("Lainnya"). Karena itu tidak ada FK: mengubah/menghapus pilihan tidak memengaruhi riwayat, dan teks bebas tidak perlu terdaftar. Label tampil = `label` bila string cocok dengan `code`, selain itu string apa adanya.
 
@@ -575,6 +558,7 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | `document_path` | VARCHAR(255) | ✔ | | **(rencana, ADR 0007)** Path relatif file PDF di **storage privat** (Laravel Storage, disk `local` = `storage/app/private`, non-publik; mis. `assessment-documents/{section_id}/{uuid}.pdf`), bukan URL. Diisi lewat upload admin; file tidak pernah dilayani langsung oleh web server, hanya lewat endpoint ber-otorisasi (staf `assessment_master`, atau ortu dengan kode kuesioner yang valid). Dirender di frontend oleh pdf.js (`PdfViewer`) |
 | `document_name` | VARCHAR(150) | ✔ | | Nama file asli untuk tampilan/unduhan. NULL bila `document_path` NULL |
 | `document_size` | INT U | ✔ | | Ukuran byte (usulan batas **10 MB**, divalidasi service; hanya `application/pdf`). NULL bila `document_path` NULL |
+| `result_template` | ENUM | ✔ | NULL | Template hasil section: `school_companion`, `toddler_sensory`, `child_sensory` (Sensory Profile 2, Winnie Dunn). NULL = form biasa. Hanya section ber-template yang dibuat jadi tabel psikologi (skor mentah per section, dihitung dari `assessment_answers.score`); satu kuesioner boleh campuran. **Tanpa klasifikasi/norma** (Much Less … Much More Than Others ditentukan asesor di luar sistem). Template terbaca lewat `question_id → section_id`, jadi `assessment_answers` tidak butuh kolom baru |
 | `sort_order` | SMALLINT U | — | 0 | |
 | `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
 | `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
@@ -593,7 +577,6 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | `category_id` | BIGINT U | — | — | FK → `assessment_categories` · CASCADE. Denormalisasi agar form dimuat 1 query |
 | `section_id` | BIGINT U | — | — | FK → `assessment_sections` · CASCADE |
 | `item_no` | SMALLINT U | — | — | |
-| `quadrant_code` | VARCHAR(10) | ✔ | | FK → `sensory_quadrants.code` · RESTRICT |
 | `question_type` | ENUM | — | `scale_0_5` | `scale_0_5`, `range`, `multiple_choice`, `checkbox_multi`, `free_text`, `yes_no`, `short_text`, `number`, `dropdown`, `date`, `birth_date`, `time` |
 | `question` | TEXT | — | — | |
 | `options` | JSON | ✔ | | Pilihan untuk `multiple_choice` / `checkbox_multi` / `dropdown` |
@@ -650,7 +633,7 @@ Draft jawaban kuesioner **sebelum submit**. Kuesioner bisa 200+ soal, jadi ortu 
 Aturan (rinci di §6.5b):
 - **Simpan otomatis**: `PUT /public/assessments/{code}/draft` tiap pindah section dan ±30 detik. Isi: jawaban yang berubah sebagai *patch* (nilai `null` = hapus jawaban), `last_section_id`, `version`. Service `lockForUpdate` baris draft (dibuat pada simpan pertama), menggabungkan patch ke `answers`, membuang id soal yang bukan milik kategori kode itu, menghitung ulang `answered_count`, `version + 1`. Payload ≤ 256 KB. Draft tidak menyimpan skor.
 - **Lanjutkan**: `GET /public/assessments/{code}` mengembalikan form + draft (jawaban, `last_section_id`, `answered_count`, consent). Kode adalah satu-satunya kunci (sama seperti pengisian langsung): pemegang kode bisa melanjutkan dari perangkat mana pun.
-- **Submit** memvalidasi semua soal `is_required` terjawab + `consent_at` terisi, lalu memindahkan draft ke `assessment_responses` / `assessment_answers` / `assessment_quadrant_scores` dalam satu transaksi dan menghapus draft. Validasi gagal → draft tidak berubah (respons memuat daftar soal wajib yang belum terjawab).
+- **Submit** memvalidasi semua soal `is_required` terjawab + `consent_at` terisi, lalu memindahkan draft ke `assessment_responses` / `assessment_answers` dalam satu transaksi dan menghapus draft. Validasi gagal → draft tidak berubah (respons memuat daftar soal wajib yang belum terjawab).
 - **Instrumen diubah saat ada draft**: id soal yang sudah dihapus diabaikan; soal wajib baru wajib dijawab saat submit. Master Asesmen menampilkan peringatan "ada N draft aktif" sebelum menyimpan perubahan (hitung `assessment_drafts` → `assessment_access_codes.category_id`).
 - **Volume**: paling banyak satu baris per kode `issued`; ±30–40 KB untuk 200 soal; diabaikan.
 
@@ -681,7 +664,6 @@ Aturan (rinci di §6.5b):
 | `response_id` | BIGINT U | — | — | FK → `assessment_responses` · CASCADE |
 | `question_id` | BIGINT U | — | — | FK → `assessment_questions` · RESTRICT |
 | `item_no` | SMALLINT U | — | — | Snapshot |
-| `quadrant_code` | VARCHAR(10) | ✔ | | Snapshot |
 | `answer_text` | TEXT | — | — | `4 - Sering (75%)`; tipe `date`/`birth_date` = `yyyy-MM-dd`, `time` = `HH:mm` |
 | `answer_values` | JSON | ✔ | | `checkbox_multi` |
 | `score` | SMALLINT | ✔ | | NULL untuk tipe tak bernilai (`short_text`, `number`, `date`, `birth_date`, `time`, `free_text`, `yes_no`, `checkbox_multi`) |
@@ -689,17 +671,6 @@ Aturan (rinci di §6.5b):
 | Indeks | Kolom | Melayani |
 |---|---|---|
 | `uq_answers_question` | UNIQUE `response_id, question_id` | Satu jawaban per soal |
-
-#### `assessment_quadrant_scores`
-Dihitung **server** saat submit (Σ score per kuadran). Disimpan agar laporan & dashboard tidak menghitung ulang.
-
-| Kolom | Tipe | Null | Default | Keterangan |
-|---|---|---|---|---|
-| `response_id` | BIGINT U | — | — | PK (1/2). FK → `assessment_responses` · CASCADE |
-| `quadrant_code` | VARCHAR(10) | — | — | PK (2/2). FK → `sensory_quadrants.code` · RESTRICT |
-| `raw_score` | SMALLINT U | — | — | |
-| `item_count` | SMALLINT U | — | — | |
-| `classification` | VARCHAR(40) | ✔ | | Mis. "Much More Than Others" |
 
 ### E. Penjadwalan
 
@@ -1332,7 +1303,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 4. Ada invoice `assessment` milik kode ini (atau invoice manual tanpa kode) yang belum `paid`/`void` **dan `proof_upload_count = 0`** → 403 `proof_required` (respons memuat id & nomor invoice). Ortu mengunggah bukti lewat `POST /invoices/{id}/proof` (publik, dikunci oleh kode kuesioner), lalu membuka ulang kuesioner; invoice tetap menunggu ditandai lunas oleh Finance, tidak memblokir pengisian.
 5. Respons buka: form kategori (section → soal) + **draft** bila ada (`answers`, `last_section_id`, `answered_count`, `consent_at`, `version`) sehingga ortu melanjutkan dari titik terakhir.
 6. **Simpan draft** (`PUT /public/assessments/{code}/draft`; ulangi cek 2–4): satu transaksi pendek: lock/insert baris `assessment_drafts`; cek `version` (409 `version_conflict` bila dua perangkat bertabrakan); gabungkan patch `answers` (nilai `null` menghapus), buang id soal di luar kategori kode, set `answered_count`, `last_section_id`, `consent_at` bila dikirim, `version + 1`. Tidak ada skor, tidak ada log, status kode dan client tidak berubah. Throttle per IP + per kode; payload ≤ 256 KB.
-7. **Submit** (`POST /public/assessments/{code}/responses`; ulangi cek 2–4): validasi semua soal `is_required` terjawab (422 `incomplete` + daftar soal yang belum terjawab) dan `consent_at` terisi (dari draft atau request). Satu transaksi: insert `assessment_responses` (UNIQUE `access_code_id`) + `assessment_answers` (dari draft + jawaban final di request) + `assessment_quadrant_scores` (dihitung server, tanpa klasifikasi otomatis), kode → `submitted` + `submitted_at`, **DELETE `assessment_drafts`**; status client **tidak berubah** (tetap `assessment_scheduled` sampai sesi asesmen selesai atau diubah manual). Tanpa log khusus (jejak = `assessment_responses`).
+7. **Submit** (`POST /public/assessments/{code}/responses`; ulangi cek 2–4): validasi semua soal `is_required` terjawab (422 `incomplete` + daftar soal yang belum terjawab) dan `consent_at` terisi (dari draft atau request). Satu transaksi: insert `assessment_responses` (UNIQUE `access_code_id`) + `assessment_answers` (dari draft + jawaban final di request), kode → `submitted` + `submitted_at`, **DELETE `assessment_drafts`**; status client **tidak berubah** (tetap `assessment_scheduled` sampai sesi asesmen selesai atau diubah manual). Tanpa log khusus (jejak = `assessment_responses`).
 8. **Hapus kode** (staf, hanya `issued` **dan belum punya draft**): hapus kode + invoice assessment pemicu yang **belum lunas**; invoice yang sudah `paid` dibiarkan (FK `SET NULL`). Kode yang sudah punya draft ditolak 409 `draft_exists` (tombol hapus disembunyikan; ortu tinggal menyelesaikan kuesioner).
 
 ### 6.6 Transisi status client (`POST /clients/{id}/transition`)
@@ -1349,10 +1320,10 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 
 | Hapus | Ikut terhapus | Pemblokir / catatan |
 |---|---|---|
-| **Client** | `client_services`, `client_documents`, `assessment_access_codes` → `assessment_responses` → `assessment_answers`/`assessment_quadrant_scores` (+ `assessment_drafts`), `schedule_series`, **`client_leaves`** → `client_leave_sessions`, **`schedules`** → `session_reports`, **`invoices`** → `payment_proofs`/`invoice_logs`, `client_packages` (lewat client), `package_conversions`, `credit_ledger` | **Hanya role `master`.** Kode client tidak dipakai ulang (counter tidak turun). File bukti bayar di storage privat dihapus sinkron tepat setelah commit. Client tidak bisa login portal ortu lagi |
+| **Client** | `client_services`, `client_documents`, `assessment_access_codes` → `assessment_responses` → `assessment_answers` (+ `assessment_drafts`), `schedule_series`, **`client_leaves`** → `client_leave_sessions`, **`schedules`** → `session_reports`, **`invoices`** → `payment_proofs`/`invoice_logs`, `client_packages` (lewat client), `package_conversions`, `credit_ledger` | **Hanya role `master`.** Kode client tidak dipakai ulang (counter tidak turun). File bukti bayar di storage privat dihapus sinkron tepat setelah commit. Client tidak bisa login portal ortu lagi |
 | **Invoice** (hanya `unpaid`) | `payment_proofs` (+ file), `invoice_logs` | Invoice belum lunas belum punya paket, jadi tidak ada paket/ledger/sesi yang terdampak. Saldo lebihan yang dipakai invoice itu (`balance_applied`) dikembalikan ke `clients.leftover_balance`. **Invoice `paid` / `void` tidak boleh dihapus** (service menolak 409): koreksi lewat **Void** (§6.5). Hapus invoice assessment membuka gating kuesioner bila tidak ada invoice assessment lain yang belum lunas |
 | **Sesi (jadwal)** | `session_reports` | Sesi `completed`/ber-ledger harus di-revert dulu (422) agar kredit konsisten; `credit_ledger.schedule_id` jadi NULL (`SET NULL`); ledger paket tetap |
-| **Master ber-FK**: `services`, `sensory_quadrants`, `master_packages`, `assessment_categories` / `assessment_sections` / `assessment_questions`, `roles` | `assessment_categories` → `assessment_sections` → `assessment_questions` (bila belum dipakai); `roles` → `role_permissions` | **Hanya bila belum pernah dipakai**: FK `RESTRICT` (`client_services`/`schedules.service_code`, `assessment_questions.quadrant_code`/`assessment_quadrant_scores`, `invoices`/`client_packages.master_package_id`, `assessment_access_codes`/`assessment_responses.category_id`, `assessment_answers.question_id`, `users.role_id`) menolak hapus. Service mengecek dulu dan mengembalikan 409 dengan alasan ramah ("sudah dipakai di N client"); FK adalah jaring pengaman. Untuk yang sudah dipakai: nonaktifkan (`is_active = 0`) |
+| **Master ber-FK**: `services`, `master_packages`, `assessment_categories` / `assessment_sections` / `assessment_questions`, `roles` | `assessment_categories` → `assessment_sections` → `assessment_questions` (bila belum dipakai); `roles` → `role_permissions` | **Hanya bila belum pernah dipakai**: FK `RESTRICT` (`client_services`/`schedules.service_code`, `invoices`/`client_packages.master_package_id`, `assessment_access_codes`/`assessment_responses.category_id`, `assessment_answers.question_id`, `users.role_id`) menolak hapus. Service mengecek dulu dan mengembalikan 409 dengan alasan ramah ("sudah dipakai di N client"); FK adalah jaring pengaman. Untuk yang sudah dipakai: nonaktifkan (`is_active = 0`) |
 | **Master pilihan string**: `cancel_reasons`, `discharge_reasons`, `holidays` | Tidak ada | Langsung dihapus tanpa cek (transaksi menyimpan string, bukan FK) |
 | **Kode kuesioner** `issued` | invoice assessment pemicu yang **belum lunas** (dihapus service) | Hanya yang belum diisi **dan belum punya draft** (409 `draft_exists`). `submitted` tidak bisa dihapus selain lewat hapus client. Invoice assessment yang sudah `paid` dibiarkan (FK `SET NULL`) |
 | **Cabang** | Semua isi cabang: `clients` (dan seluruh turunannya di atas), `schedule_series`, `client_leaves`, `schedules`, `invoices`, `credit_ledger`, `holidays` cabang itu, `branch_bank_accounts` (CASCADE), lalu akun `users` yang `branch_id`-nya = cabang itu | **Hanya role `master`.** Tidak ada pemblokir. Akun ber-`branch_id` NULL (semua cabang, mis. master) tidak tersentuh. Lihat alur di bawah |
@@ -1412,7 +1383,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | `clients[].serviceTypes[]` (+ legacy `serviceType`) | `client_services` |
 | `clients[].gdriveClientLink` | `client_documents (type=gdrive_folder)` |
 | `clients[].assessmentCodes[]` | `assessment_access_codes` |
-| `clients[].assessmentAnswers[]` | `assessment_responses` + `assessment_answers` + `assessment_quadrant_scores` |
+| `clients[].assessmentAnswers[]` | `assessment_responses` + `assessment_answers` |
 | jawaban sementara di `AssessmentFill` (state / penyimpanan perangkat) | `assessment_drafts.answers` (simpan otomatis); final → `assessment_answers` saat submit |
 | `clients[].intakeNote` | `clients.intake_note` |
 | kode client / kode login ortu (dulu `TDC-XXXX`) | `clients.client_code` (`AE-00001`) |
@@ -1449,7 +1420,7 @@ Verifikasi: setiap query di bagian 01 diuji `EXPLAIN ANALYZE` dengan data seed �
 | hapus data penting (`masterOnly`) | cek role `master` di policy (tanpa kolom) |
 | `therapists[]` + `staffUsers[]` | `users` |
 | `rolesList[]` / `rbacPermissions` | `roles` / `role_permissions` (+ `access_modules`) |
-| `master_services` / `master_quadrants` | `services` / `sensory_quadrants` |
+| `master_services` | `services` |
 | `master_cancel_off_codes` (+ `DEFAULT_CANCEL_REASONS`), `master_therapist_off_codes` (+ `DEFAULT_THERAPIST_OFF_REASONS`: TO, TS) dan `master_discharge_reasons` | `cancel_reasons` (`is_therapist_off` = 0 / 1), `discharge_reasons` (pilihan cepat; kolom transaksi = string, tanpa FK) |
 | `leaves[]` (`leavesStore`, key `leaves`) | `client_leaves` (`startDate/endDate/countedStart/countedEnd/returnDate/returnNote/status/reason/note/voidReason/voidedAt/voidedBy` → kolom snake_case) |
 | `masterPackages[].leaveQuota / isSatuan / isAssessment` | `master_packages.leave_quota / is_satuan / is_assessment` |
@@ -1483,16 +1454,16 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 | Cuti client | Hanya dicatat Finance; jatah cuti **30 hari/tahun** per client (`leave_granted`; TIDAK terkait credit leave paket), reset tahunan manual oleh Finance (sisa hangus); hari dihitung dari **sesi pertama s.d. terakhir** di rentang (tanpa sesi = ditolak); cuti **tidak memotong kredit sesi maupun credit leave**; paket satuan maks 1x/bulan; cuti = pembatalan sesi (`cancel_reason = OL`, `leave_id`); jatah lewat = peringatan; tanpa hapus log; tombol Detail menampilkan riwayat selesai lebih awal / void; `client_leaves.status` = `active`, `voided` | `leavesStore`, `domain/leave.js`, tab Cuti di `/finance`, `LeaveQuotaCard`, `ResetLeaveDialog`, `LeaveDetailDialog` |
 | Cancel / Off | Satu aksi, satu status `cancelled`, satu tabel alasan (`cancel_reasons`; `is_therapist_off` menandai Therapist Off) | `SessionDetailModal` (tombol Cancel / Off Sesi), Master Data tab Alasan Cancel / Off dan Therapist Off |
 | Cancellation Rate & Therapist Off Rate | Rate keseluruhan memuat Therapist Off; Therapist Off Rate = rincian; keduanya dibagi total sesi pada filter | `DashboardSchedule`, `cancellationStats` (`domain/schedule.js`) |
-| Kuesioner dicicil (draft) | Tabel `assessment_drafts` (1 baris per kode, JSON jawaban); submit final tetap sekali dan membuat `assessment_responses/answers/quadrant_scores` | `AssessmentFill`: simpan otomatis per section / ±30 detik, lanjutkan dengan kode yang sama, indikator "tersimpan", penyimpanan cadangan di perangkat bila jaringan putus |
+| Kuesioner dicicil (draft) | Tabel `assessment_drafts` (1 baris per kode, JSON jawaban); submit final tetap sekali dan membuat `assessment_responses/answers` | `AssessmentFill`: simpan otomatis per section / ±30 detik, lanjutkan dengan kode yang sama, indikator "tersimpan", penyimpanan cadangan di perangkat bila jaringan putus |
 
 ---
 
 ## 09. Urutan migration & seeder
 
 1. `branches`, `roles`, `access_modules`, `role_permissions`, `users`, `password_reset_otps`, `branch_bank_accounts` (migration `..._000047`, setelah `users` karena `created_by/updated_by`)
-2. `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays`
+2. `services`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays`
 3. `client_code_counters`, `clients`, `leave_resets`, `client_services`, `client_documents`
-4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_drafts`, `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores`
+4. `assessment_categories`, `assessment_sections`, `assessment_questions`, `assessment_access_codes`, `assessment_drafts`, `assessment_responses`, `assessment_answers`
 5. `invoice_counters`, `invoices`, `payment_proofs`, `client_packages` (+ kolom `converted_*_package_id` setelah tabelnya ada)
 6. `schedule_series`, `client_leaves`, `schedules` (FK `leave_id`), `client_leave_sessions`, `session_reports`
 7. `package_conversions`, `credit_ledger` (+ FK `conversion_id`), `invoice_logs`
@@ -1502,7 +1473,7 @@ Konversi camelCase ↔ snake_case dilakukan otomatis oleh `frontend/src/services
 9. Laravel bawaan: `personal_access_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches` (`php artisan cache:table`, `queue:table`, `queue:failed-table`, `queue:batches-table`, `session:table`). Semua dibuat apa adanya; tabel queue tidak dipakai (tidak ada job async)
 
 Seeder:
-- **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), sensory_quadrants, cancel_reasons, discharge_reasons, master_packages (+ `invoice_code`), `client_code_counters` (5 grup: AE, FJ, KO, PT, UZ), `assessment_categories.type_code`, akun master awal (hapus data penting dicek lewat role `master`, tanpa kolom; modul akses baru `unreported_reports`, `holidays`, `branch_master`, `therapist_utilization`).
+- **Wajib (produksi)**: branches, roles + role_permissions (dari `frontend/src/domain/rbac.js`), access_modules, services (`INTAKE_SERVICES`), cancel_reasons, discharge_reasons, master_packages (+ `invoice_code`), `client_code_counters` (5 grup: AE, FJ, KO, PT, UZ), `assessment_categories.type_code`, akun master awal (hapus data penting dicek lewat role `master`, tanpa kolom; modul akses baru `unreported_reports`, `holidays`, `branch_master`, `therapist_utilization`).
 - **Demo/staging**: konversi seed frontend (`frontend/src/data/*.seed.json`, `scripts/generate_demo_seed.py`) — tanggal relatif hari ini, ledger dibangun dari histori agar saldo konsisten.
 - **Uji integritas FK** (wajib di CI): hapus client/invoice/cabang/master pada data seed dan pastikan sesuai matriks §6.7 (tidak ada baris yatim, tidak ada FK error tak terduga, master terpakai ditolak).
 - Setelah seed demo: jalankan `credits:reconcile` sekali untuk memastikan saldo denormalisasi cocok dengan ledger.
@@ -1569,7 +1540,7 @@ Schedule::command('db:analyze')->weeklyOn(0, '04:30')->timezone('Asia/Jakarta');
 | Status **Frozen** (kredit 0) | Turunan `clients.credit_balance = 0`, dihitung saat query |
 | Birthday radar | Query live `clients (branch_id, birth_month)` dengan generated column + indeks |
 | Credit leave & potongan cancel | Diterapkan di transaksi cancel (§06.2), bukan batch malam |
-| Skor kuadran asesmen | Dihitung saat ortu submit, disimpan di `assessment_quadrant_scores` |
+| Skor mentah asesmen | Σ `assessment_answers.score` per section ber-template, dihitung saat dibaca (tanpa tabel ringkasan, tanpa kuadran) |
 | Draft kuesioner | Tanpa job pembersih: draft dihapus saat submit atau ikut terhapus bersama kode/client (CASCADE) |
 | Kode kuesioner kedaluwarsa | Dicek **saat kode dibuka** (`expires_at < NOW()`), tanpa job harian |
 | Masa berlaku paket | Tidak ada (paket tanpa masa berlaku) |

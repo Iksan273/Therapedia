@@ -17,7 +17,6 @@ use App\Http\Controllers\Api\Master\CancelReasonController;
 use App\Http\Controllers\Api\Master\DischargeReasonController;
 use App\Http\Controllers\Api\Master\HolidayController;
 use App\Http\Controllers\Api\Master\MasterPackageController;
-use App\Http\Controllers\Api\Master\SensoryQuadrantController;
 use App\Http\Controllers\Api\Master\ServiceController;
 use App\Http\Controllers\Api\Organization\BranchBankAccountController;
 use App\Http\Controllers\Api\Organization\BranchController;
@@ -126,10 +125,9 @@ Route::prefix('v1')->group(function () {
         });
 
         // M3 Master data
-        // Tulis lewat modul `inquiry_master_data` (halaman Master Layanan & Kuadran: layanan, kuadran, alasan Cancel / Off
+        // Tulis lewat modul `inquiry_master_data` (halaman Master Layanan: layanan, alasan Cancel / Off
         // termasuk Therapist Off, alasan Discharge). Baca: semua staf login (dropdown).
         $masterResource('master/services', ServiceController::class, 'inquiry_master_data');
-        $masterResource('master/quadrants', SensoryQuadrantController::class, 'inquiry_master_data');
         $masterResource('master/cancel-reasons', CancelReasonController::class, 'inquiry_master_data');
         $masterResource('master/discharge-reasons', DischargeReasonController::class, 'inquiry_master_data');
         $masterResource('master/packages', MasterPackageController::class, 'finance');

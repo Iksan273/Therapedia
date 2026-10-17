@@ -80,7 +80,7 @@ Gunakan kategori **KON** (buat kode lewat Master Asesmen → Terbitkan Kode, pil
 | QST-22 | P0 | Isi semua soal wajib, **kosongkan soal opsional**, centang persetujuan, kirim | Berhasil terkirim. Label "5 / 5 Wajib Terisi (100%)" muncul sebelum kirim |
 | QST-22b | P0 | Kirim dengan satu soal wajib kosong | Ditolak: "Mohon lengkapi seluruh pertanyaan wajib (N belum diisi)"; N hanya menghitung soal wajib; "Lihat Pertanyaan" melompat ke soal wajib kosong pertama |
 | QST-22c | P1 | Filter **Belum Diisi** | Hanya soal wajib yang belum terisi; soal opsional kosong tidak ikut |
-| QST-23 | P1 | Staf membuka jawaban kuesioner yang soal opsionalnya kosong | Tidak ada tulisan "undefined"; jawaban kosong; skor/kuadran tidak berubah |
+| QST-23 | P1 | Staf membuka jawaban kuesioner yang soal opsionalnya kosong | Tidak ada tulisan "undefined"; jawaban kosong; skor tidak berubah |
 | QST-24 | P1 | Isi sebagian, "Simpan & Lanjutkan Nanti", buka lagi dengan kode yang sama | Jawaban pulih; progres benar; kirim final menghapus draft |
 | QST-25 | P2 | Buka form di HP 375px | Dokumen pas lebar layar, tidak ada scroll ke samping, tombol ≥ 40px, tinggi dokumen nyaman |
 | QST-26 | P1 | Lembar penilaian asesor (hasil kuesioner) untuk kategori yang punya teks panduan | Teks panduan tampil di kepala tabel; tabel skor tidak berubah |
@@ -90,11 +90,11 @@ Gunakan kategori **KON** (buat kode lewat Master Asesmen → Terbitkan Kode, pil
 |---|---|
 | MST-05 | Tambahkan: section dengan teks panduan + link dokumen dan soal opsional tampil benar di form |
 | QST-08 | Hanya soal **wajib** yang kosong menahan pengiriman; soal opsional kosong boleh |
-| QST-09 | Staf melihat jawaban + skor kuadran; jawaban opsional kosong tidak menimbulkan skor |
+| QST-09 | Staf melihat jawaban + skor mentah; jawaban opsional kosong tidak menimbulkan skor |
 | QST-18 | Tambahkan: kotak dokumen tidak membuat scroll ke samping di 375px |
 
 ## 5. Regresi yang perlu diulang (P0)
-- Kuesioner Sensory Profile bawaan (kode demo `ASM-2016`/`ASM-2017`): semua soal tetap wajib, skor kuadran dan lembar hasil sama seperti sebelumnya.
+- Kuesioner Sensory Profile bawaan (kode demo `ASM-2016`/`ASM-2017`): semua soal tetap wajib, skor mentah dan lembar hasil sama seperti sebelumnya.
 - QST-05 (bukti transfer), QST-07 (consent), QST-10/11 (sekali isi, kedaluwarsa), ASM-01 (semua tipe soal), MST-04 (hapus master yang dipakai).
 
 ## 6. Risiko yang diminta diperhatikan

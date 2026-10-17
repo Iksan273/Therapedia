@@ -13,7 +13,6 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained('assessment_categories')->cascadeOnDelete();
             $table->foreignId('section_id')->constrained('assessment_sections')->cascadeOnDelete();
             $table->unsignedSmallInteger('item_no');
-            $table->string('quadrant_code', 10)->nullable();
             $table->enum('question_type', ['scale_0_5', 'range', 'multiple_choice', 'checkbox_multi', 'free_text', 'yes_no', 'short_text', 'number', 'dropdown', 'date', 'birth_date', 'time'])->default('scale_0_5');
             $table->text('question');
             $table->json('options')->nullable();
@@ -25,7 +24,6 @@ return new class extends Migration
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
-            $table->foreign('quadrant_code')->references('code')->on('sensory_quadrants')->restrictOnDelete();
             $table->index(['category_id', 'section_id', 'sort_order'], 'idx_questions_form');
         });
     }

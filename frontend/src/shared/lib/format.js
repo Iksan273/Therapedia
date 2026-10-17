@@ -22,7 +22,7 @@ export const formatDdMmYyyy = (d) => {
 
 export const parseDdMmYyyy = (str) => {
   if (!str || typeof str !== "string") return null;
-  const clean = str.trim();
+  const clean = str.trim().replace(/\s*([/\-.])\s*/g, "$1"); // "05 / 03 / 2018" -> "05/03/2018"
   const m = clean.match(/^(\d{1,2})[/\-.\s](\d{1,2})[/\-.\s](\d{4})$/);
   if (m) {
     const day = parseInt(m[1], 10);

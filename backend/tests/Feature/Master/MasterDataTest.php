@@ -11,7 +11,7 @@ use Tests\Concerns\AuthFixtures;
 use Tests\Concerns\OrganizationFixtures;
 use Tests\TestCase;
 
-/** M3: layanan, kuadran, alasan Cancel/Off, alasan Discharge, master paket. */
+/** M3: layanan, alasan Cancel/Off, alasan Discharge, master paket. */
 class MasterDataTest extends TestCase
 {
     use AuthFixtures, OrganizationFixtures, RefreshDatabase;
@@ -30,7 +30,7 @@ class MasterDataTest extends TestCase
 
     public function test_every_logged_in_staff_can_read_but_unauthenticated_cannot(): void
     {
-        $paths = ['services', 'quadrants', 'cancel-reasons', 'discharge-reasons', 'packages'];
+        $paths = ['services', 'cancel-reasons', 'discharge-reasons', 'packages'];
 
         // Cek tanpa login dulu: actAs() bertahan sampai akhir test, jadi request sesudahnya akan terautentikasi.
         foreach ($paths as $path) {
@@ -88,7 +88,7 @@ class MasterDataTest extends TestCase
         $this->assertDatabaseHas('services', ['code' => $code]);
     }
 
-    public function test_service_list_does_not_compute_usage_but_delete_still_guards_it_and_quadrants_report_question_count(): void
+    public function test_service_list_does_not_compute_usage_but_delete_still_guards_it(): void
     {
         $code = DB::table('services')->value('code');
         $client = $this->makeClient();
@@ -103,10 +103,6 @@ class MasterDataTest extends TestCase
         // ...tetapi hapus tetap dijaga di server (409 in_use)
         $this->actAs($this->master)->deleteJson("/api/v1/master/services/{$code}")->assertStatus(409)->assertJsonPath('code', 'in_use');
 
-        // Kuadran: hanya jumlah soal (badge); pengaman hapus (soal + skor) ada di server
-        $quadrant = collect($this->getJson('/api/v1/master/quadrants')->json('data'))->first();
-        $this->assertSame(0, $quadrant['question_count']);
-        $this->assertArrayNotHasKey('score_count', $quadrant);
     }
 
     public function test_service_used_by_a_schedule_cannot_be_deleted(): void
@@ -121,22 +117,6 @@ class MasterDataTest extends TestCase
         $this->actAs($this->master)->deleteJson("/api/v1/master/services/{$code}")->assertStatus(409)->assertJsonPath('code', 'in_use');
     }
 
-    // ---- Kuadran
-
-    public function test_quadrant_crud_and_unused_quadrants_can_all_be_deleted(): void
-    {
-        $this->actAs($this->master);
-
-        $this->postJson('/api/v1/master/quadrants', ['code' => 'xy', 'title' => 'Baru', 'full_name' => 'Kuadran Baru'])
-            ->assertCreated()->assertJsonPath('data.code', 'XY')->assertJsonPath('data.color', 'slate');
-        $this->patchJson('/api/v1/master/quadrants/XY', ['title' => 'Baru 2', 'color' => 'blue'])->assertOk()->assertJsonPath('data.title', 'Baru 2');
-
-        foreach (DB::table('sensory_quadrants')->pluck('code') as $code) {
-            $this->deleteJson("/api/v1/master/quadrants/{$code}")->assertNoContent();
-        }
-
-        $this->assertSame(0, DB::table('sensory_quadrants')->count());
-    }
 
     // ---- Alasan Cancel/Off dan Discharge
 

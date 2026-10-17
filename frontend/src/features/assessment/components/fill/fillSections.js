@@ -1,4 +1,5 @@
 import { normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
+import { getSectionTemplate, normalizeTemplate } from "@/domain/assessmentTemplate";
 
 // Pilihan skala bawaan Winnie Dunn (0–5) untuk soal `scale_0_5` tanpa opsi eksplisit.
 export const WINNIE_DUNN_OPTIONS = [
@@ -22,7 +23,7 @@ export function buildSections(category) {
     const qType = normalizeQuestionType(q.type);
     let opts = [];
     if (Array.isArray(q.options) && q.options.length > 0) opts = q.options;
-    else if (qType === "scale_0_5") opts = WINNIE_DUNN_OPTIONS;
+    else if (qType === "scale_0_5") opts = getSectionTemplate(sec)?.legend || WINNIE_DUNN_OPTIONS;
     else opts = ["Opsi 1", "Opsi 2", "Opsi 3"];
 
     return {
@@ -30,6 +31,8 @@ export function buildSections(category) {
       id: q.id || `q-${sec ? sec.sectionId : "cat"}-${q.itemNo || idx + 1}`,
       itemNo: q.itemNo || idx + 1,
       domain: sec?.title || sec?.domain || q.domain || "Umum",
+      sectionId: sec ? sec.sectionId || null : null,
+      template: normalizeTemplate(sec?.template),
       type: qType,
       options: opts,
       scaleMin: q.scaleMin !== undefined ? q.scaleMin : qType === "range" ? 1 : 0,
@@ -45,6 +48,7 @@ export function buildSections(category) {
       title: sec.title || `Bagian ${sIdx + 1}`,
       description: sectionDescription(sec),
       documentUrl: sec.documentUrl || "",
+      template: normalizeTemplate(sec.template),
       questions: (sec.questions || []).map((q, idx) => mapQuestion(q, idx, sec)),
     }));
   }

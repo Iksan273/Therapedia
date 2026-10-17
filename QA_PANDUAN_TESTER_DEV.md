@@ -61,7 +61,7 @@ Istilah dasar:
                                  atau jadwalkan sesi asesmen
                                  (invoice assessment terbit otomatis bila diaktifkan)
  Isi kuesioner      ─────▶   (di /assessment, HP, sekali isi, wajib consent)
- (+ unggah bukti transfer                                                      Skor kuadran dihitung
+ (+ unggah bukti transfer                                                      Skor mentah dihitung
   bila ada invoice)
                               [Terapis/Admin] Baca jawaban & skor              Status: ASSESSMENT DONE
                                                                                (setelah sesi asesmen selesai /
@@ -116,7 +116,7 @@ Aturan:
 3. Admin mengirim **kode atau tautan** (`/assessment?code=...`) ke orang tua; dengan tautan, kode terisi otomatis.
 4. Orang tua membuka di HP. Bila ada invoice: wajib **mengunggah bukti transfer** (JPG/PNG/PDF ≤ 5 MB). Cukup terunggah; tidak perlu menunggu lunas.
 5. Orang tua mengisi **semua** pertanyaan, mencentang **persetujuan (consent)**, lalu kirim.
-6. Aturan: **hanya sekali isi**; kode **kedaluwarsa** ditolak; orang tua **tidak melihat hasil**; semua staf internal boleh melihat jawaban dan skor kuadran (tanpa klasifikasi otomatis).
+6. Aturan: **hanya sekali isi**; kode **kedaluwarsa** ditolak; orang tua **tidak melihat hasil**; semua staf internal boleh melihat jawaban dan skor mentah (tanpa klasifikasi otomatis).
 7. Kode yang **belum diisi** boleh dihapus (invoice belum lunas ikut terhapus); yang sudah diisi tidak bisa.
 
 ### 2.6 Penjadwalan dan status sesi
@@ -518,7 +518,7 @@ Kolom: **ID · Prioritas · Langkah · Hasil yang diharapkan**. Catat tiap TC lu
 ### 7.3 MST — Master data
 | ID | P | Langkah | Hasil yang diharapkan |
 |---|---|---|---|
-| MST-01 | P1 | Tambah/ubah layanan, kuadran, alasan discharge | Tersimpan; muncul di pilihan di modul lain |
+| MST-01 | P1 | Tambah/ubah layanan, alasan discharge | Tersimpan; muncul di pilihan di modul lain |
 | MST-02 | P0 | Alasan Cancel/Off: tambah dengan **KODE** | Kode wajib dan unik; satu daftar untuk cancel dan off; ada penanda Therapist Off |
 | MST-03 | P0 | Master paket: nama, jumlah sesi, harga, kode paket, credit leave, satuan/asesmen | Kode paket unik; `ASM` dan `CUT` ditolak (dicadangkan); mengubah paket **tidak mengubah invoice lama** |
 | MST-04 | P0 | Hapus master yang sudah dipakai | Ditolak dengan pesan "masih dipakai" |
@@ -587,7 +587,7 @@ Kolom: **ID · Prioritas · Langkah · Hasil yang diharapkan**. Catat tiap TC lu
 | QST-06 | P0 | Unggah file > 5 MB atau format selain JPG/PNG/PDF | Ditolak dengan pesan jelas |
 | QST-07 | P0 | Kirim tanpa mencentang persetujuan | Tidak bisa kirim |
 | QST-08 | P0 | Kirim dengan pertanyaan yang kosong | Tidak bisa kirim; ada tombol lompat ke pertanyaan yang belum diisi |
-| QST-09 | P0 | Kirim kuesioner lengkap | Berhasil; staf melihat jawaban + skor kuadran |
+| QST-09 | P0 | Kirim kuesioner lengkap | Berhasil; staf melihat jawaban + skor mentah |
 | QST-10 | P0 | Buka lagi kode yang sudah diisi | Ditolak (**sekali isi**) |
 | QST-11 | P0 | Buka kode kedaluwarsa | Ditolak |
 | QST-12 | P1 | Hapus kode yang **belum diisi** | Terhapus (invoice belum lunas ikut); yang sudah diisi tidak bisa dihapus |

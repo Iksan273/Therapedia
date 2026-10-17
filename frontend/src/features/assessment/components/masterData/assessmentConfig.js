@@ -123,7 +123,6 @@ export const makeQuestionDialog = (overrides = {}) => ({
   sectionId: null,
   editingId: null,
   text: "",
-  quadrant: "",
   type: "scale_0_5",
   options: [...DEFAULT_QUESTION_OPTIONS],
   scaleMin: 1,
@@ -144,24 +143,7 @@ export const makeSectionDialog = (overrides = {}) => ({
   title: "",
   description: "",
   documentUrl: "",
+  template: "", // "" = form biasa; school_companion | toddler_sensory | child_sensory = jadi tabel psikologi
   ...overrides,
 });
 
-export const getQuadrantCounts =(cat, quadrants) => {
-  const counts = Object.fromEntries(quadrants.map((q) => [q.code, 0]));
-  if (!cat) return counts;
-  if (cat.sections && cat.sections.length > 0) {
-    cat.sections.forEach((sec) => {
-      (sec.questions || []).forEach((q) => {
-        const quad = q.quadrant;
-        if (counts[quad] !== undefined) counts[quad]++;
-      });
-    });
-  } else if (cat.questions) {
-    cat.questions.forEach((q) => {
-      const quad = q.quadrant;
-      if (counts[quad] !== undefined) counts[quad]++;
-    });
-  }
-  return counts;
-};

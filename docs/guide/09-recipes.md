@@ -39,8 +39,8 @@ Setiap resep diakhiri **Verifikasi**. Minimal (di `frontend/`): `npm run lint` (
 5. Enum `clients.status` di `schema.md`.
 6. **Verifikasi**: test `advanceStatus` diperbarui; client bisa dipindah dan muncul di kolom & dashboard.
 
-## 6. Tambah layanan, kuadran, atau paket
-Lewat UI: layanan, kuadran, alasan cancel & alasan discharge di `/admin-inquiry/master-data`, paket di `/finance` tab Packages. Default seed: `INTAKE_SERVICES` (`domain/client.js`), `SEED_QUADRANTS` (`stores/masterDataStore.js`), `credits.seed.json.masterPackages`.
+## 6. Tambah layanan atau paket
+Lewat UI: layanan, alasan cancel & alasan discharge di `/admin-inquiry/master-data`, paket di `/finance` tab Packages. Default seed: `INTAKE_SERVICES` (`domain/client.js`), `credits.seed.json.masterPackages`.
 
 ## 7. Ubah aturan bisnis kredit / jadwal
 1. Ubah fungsi di `domain/credit.js` / `domain/schedule.js` dan test-nya terlebih dulu.

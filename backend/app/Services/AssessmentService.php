@@ -118,7 +118,7 @@ class AssessmentService
         throw new NotImplementedException('AssessmentService::saveDraft');
     }
 
-    /** SubmitAssessmentAction: validasi wajib + consent, skor kuadran server, hapus draft */
+    /** SubmitAssessmentAction: validasi wajib + consent, hapus draft */
     public function submit(string $code, array $data): mixed
     {
         throw new NotImplementedException('AssessmentService::submit');

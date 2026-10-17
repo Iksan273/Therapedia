@@ -1,4 +1,4 @@
-import { buildNavConfig } from "@/app/layout/navConfig";
+import { buildNavConfig, navItemEnd } from "@/app/layout/navConfig";
 import { ACCESS_MODULES, DEFAULT_PERMISSIONS, roleHasPermission, withDefaultPermissions } from "@/domain/rbac";
 
 const navFor = (role, overrides = {}) => {
@@ -45,7 +45,7 @@ describe("menu sidebar mengikuti RBAC", () => {
   });
 });
 
-describe("modul akses terpisah: Assessment Master Data, Master Layanan & Kuadran, Performa All-Branch", () => {
+describe("modul akses terpisah: Assessment Master Data, Master Layanan, Performa All-Branch", () => {
   const NEW_MODULES = ["assessment_master", "inquiry_master_data", "branch_performance"];
 
   test("terdaftar di ACCESS_MODULES dan setiap role punya nilai untuk semuanya", () => {
@@ -89,5 +89,53 @@ describe("modul akses terpisah: Assessment Master Data, Master Layanan & Kuadran
     const hasPermission = (m) => m === "inquiry_master_data";
     const items = buildNavConfig({ role: "koordinator", roleObj: { id: "koordinator", label: "Koordinator", badge: "K" }, hasPermission }).items.map((i) => i.to);
     expect(items).toEqual(["/admin-inquiry/master-data"]);
+  });
+});
+
+// Highlight menu: tidak boleh ada dua menu aktif sekaligus. Menu induk (mis. /admin-inquiry) yang `to`-nya awalan dari menu lain
+// harus dicocokkan persis (end), kalau tidak ia ikut menyala di /admin-inquiry/pipeline (bug QA 17 Okt 2026).
+describe("highlight menu sidebar (end)", () => {
+  const allRoles = ["master", "manager", "admin_inquiry", "admin_schedule", "finance", "therapist", "client"];
+  const allowAll = () => true;
+  const { matchPath } = require("react-router-dom");
+
+  const activeItems = (items, pathname) =>
+    items.filter((item) => matchPath({ path: item.to, end: navItemEnd(item, items) }, pathname));
+
+  test("di /admin-inquiry/pipeline hanya Inquiry Pipeline yang aktif (master, manager, admin_inquiry)", () => {
+    ["master", "manager", "admin_inquiry"].forEach((role) => {
+      const items = buildNavConfig({ role, roleObj: null, hasPermission: allowAll }).items;
+      expect(activeItems(items, "/admin-inquiry/pipeline").map((i) => i.to), role).toEqual(["/admin-inquiry/pipeline"]);
+      expect(activeItems(items, "/admin-inquiry/pipeline/c-009").map((i) => i.to), `${role} detail`).toEqual(["/admin-inquiry/pipeline"]);
+      expect(activeItems(items, "/admin-inquiry").map((i) => i.to), `${role} dashboard`).toEqual(["/admin-inquiry"]);
+    });
+  });
+
+  test("untuk setiap role dan setiap rute menu: tepat satu menu aktif (tidak pernah dua menu menyala)", () => {
+    allRoles.forEach((role) => {
+      const items = buildNavConfig({ role, roleObj: null, hasPermission: allowAll }).items;
+      items.forEach((target) => {
+        // Menu dengan `end` (halaman dashboard tunggal) hanya aktif di rutenya sendiri; menu lain juga aktif di sub-rutenya (mis. detail)
+        const paths = navItemEnd(target, items) ? [target.to] : [target.to, `${target.to}/contoh-id`];
+        paths.forEach((pathname) => {
+          const active = activeItems(items, pathname).map((i) => i.to);
+          expect(active, `${role} @ ${pathname}`).toEqual([target.to]);
+        });
+      });
+    });
+  });
+
+  test("role kustom (semua modul) juga tepat satu menu aktif", () => {
+    const items = buildNavConfig({ role: "koordinator", roleObj: { id: "koordinator", label: "K", badge: "K" }, hasPermission: allowAll }).items;
+    items.forEach((target) => {
+      expect(activeItems(items, target.to).map((i) => i.to), target.to).toEqual([target.to]);
+    });
+  });
+
+  test("end eksplisit tetap menang; tanpa end diturunkan dari menu lain", () => {
+    const items = [{ to: "/a" }, { to: "/a/b" }, { to: "/c", end: false }, { to: "/c/d" }];
+    expect(navItemEnd(items[0], items)).toBe(true);
+    expect(navItemEnd(items[1], items)).toBe(false);
+    expect(navItemEnd(items[2], items)).toBe(false); // eksplisit
   });
 });

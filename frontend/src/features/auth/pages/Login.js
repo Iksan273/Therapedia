@@ -28,6 +28,8 @@ import { useClients } from "@/stores/clientsStore";
 import { LOGIN } from "@/shared/constants/testIds/auth";
 import { ForcePasswordChangeDialog, ForgotPasswordDialog } from "@/features/auth/components/PasswordDialogs";
 import { LockoutNotice } from "@/features/auth/components/LockoutNotice";
+import DateFilterPicker from "@/shared/components/DateFilterPicker";
+import { todayStr } from "@/shared/lib/id";
 import { fmtCountdown, useCountdown } from "@/shared/hooks/useCountdown";
 import { useAuthActions } from "@/features/auth/hooks/useAuthActions";
 import { CLIENT_LOGIN_ERROR, DEMO_PASSWORD, STAFF_HOME, apiErrorText, checkStaffCredentials, findClientForLogin, findStaffByEmail, homePathFor } from "@/domain/auth";
@@ -588,18 +590,27 @@ export default function Login() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Lahir Anak</label>
-                        <Input
-                          type="date"
+                        <label htmlFor="login-client-dob" className="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Lahir Anak</label>
+                        <DateFilterPicker
+                          id="login-client-dob"
+                          iconPosition="left"
+                          displayFormat="spaced"
+                          size="lg"
+                          clearOnInvalid
+                          allowClear={false}
+                          maxDate={todayStr()}
+                          placeholder="DD / MM / YYYY"
+                          className="flex w-full"
                           value={clientDob}
                           onChange={(e) => {
-                            setClientDob(e.target.value);
+                            setClientDob(e?.target?.value ?? e ?? "");
                             setClientError("");
                           }}
-                          className="bg-slate-50 border-slate-200 focus:bg-white text-xs font-bold"
                           data-testid="login-client-dob-input"
-                          required
                         />
+                        <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                          Ketik angka saja (mis. 05032018) atau pilih dari kalender di sebelah kiri.
+                        </p>
                       </div>
 
                       {clientLock.remaining > 0 ? (

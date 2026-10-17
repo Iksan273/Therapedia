@@ -51,7 +51,7 @@ Teks sudah dibuat dengan gaya dokumen (ID, Kebutuhan, Kriteria Penerimaan) agar 
 |---|---|---|---|
 | FR-INQ-13 | Ubah status manual | Admin dapat mengubah status client ke **tahap pipeline mana pun** (termasuk koreksi dan reaktivasi dari Discharged/Discontinued); perubahan otomatis hanya maju. Discontinue mencatat tanggal discontinue. | [K] |
 | FR-INQ-14 | Peringatan duplikat | Saat intake, bila nama + tanggal lahir sama dengan client lain, sistem menampilkan peringatan (tidak memblokir). | [T] |
-| FR-ASM-10 | Consent & sekali isi | Orang tua wajib mencentang persetujuan penggunaan data anak sebelum mengirim kuesioner; kuesioner hanya dapat diisi sekali; hasil **tidak** ditampilkan ke orang tua; skor kuadran mentah tanpa klasifikasi otomatis. | [K] |
+| FR-ASM-10 | Consent & sekali isi | Orang tua wajib mencentang persetujuan penggunaan data anak sebelum mengirim kuesioner; kuesioner hanya dapat diisi sekali; hasil **tidak** ditampilkan ke orang tua; skor mentah per section tanpa kuadran dan tanpa klasifikasi otomatis (kuadran dihapus 17 Okt 2026). | [K] |
 | FR-ASM-02 (ubah) | Tipe pertanyaan | **12 tipe**: skala 0–5, rentang, pilihan ganda, checkbox multi, teks bebas, ya/tidak, teks singkat, angka, dropdown, tanggal, tanggal lahir, jam. | [K] |
 
 ### 2.3 Penjadwalan & Klien aktif

@@ -266,7 +266,7 @@ Daftar 5–10 client dengan pola mingguan (hari, jam, terapis, paket). Sertakan:
 | U2-15 | Orang tua | Kirim kuesioner | Berhasil; **orang tua tidak melihat hasil** |
 | U2-16 | Orang tua | Buka kode yang sama lagi | Ditolak (**hanya sekali isi**) |
 | U2-17 | Orang tua | Buka kode kedaluwarsa | Ditolak dengan pesan |
-| U2-18 | Admin Inquiry | Lihat jawaban & skor kuadran | Terlihat oleh staf internal; skor mentah, tanpa klasifikasi otomatis |
+| U2-18 | Admin Inquiry | Lihat jawaban & skor mentah | Terlihat oleh staf internal; skor mentah, tanpa klasifikasi otomatis |
 | U2-19 | Admin Inquiry | Hapus kode yang **belum diisi** | Terhapus (invoice belum lunas ikut); kode yang sudah diisi tidak bisa dihapus |
 | U2-20 | Admin Inquiry | Daftar "Menunggu Kuesioner" + pencarian, log drop-off | Sesuai |
 | U2-21 | Admin Inquiry | Outcome: Admit; Done Consult; Done Assessment; Discontinue (alasan wajib) | Status sesuai; tanggal tercatat |

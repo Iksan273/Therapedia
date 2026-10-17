@@ -13,7 +13,6 @@ return new class extends Migration
             $table->foreignId('response_id')->constrained('assessment_responses')->cascadeOnDelete();
             $table->foreignId('question_id')->constrained('assessment_questions')->restrictOnDelete();
             $table->unsignedSmallInteger('item_no');
-            $table->string('quadrant_code', 10)->nullable();
             $table->text('answer_text');
             $table->json('answer_values')->nullable();
             $table->smallInteger('score')->nullable();

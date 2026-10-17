@@ -1,9 +1,8 @@
-// Pemetaan payload API M3 (layanan, kuadran, alasan, master paket, hari libur) ↔ bentuk yang dipakai frontend. Respons sudah
+// Pemetaan payload API M3 (layanan, alasan, master paket, hari libur) ↔ bentuk yang dipakai frontend. Respons sudah
 // camelCase (interceptor httpClient); request dikonversi ke snake_case oleh interceptor yang sama.
 //
 // Bentuk frontend dipertahankan agar halaman & domain tidak berubah:
 // - layanan / alasan: kunci `value` (= `code` di server) dan `active` (= `is_active`)
-// - kuadran: kunci `code`
 // - paket: `id` = `code` internal server (`pkg-reguler`), sama dengan `packageId` di data kredit/invoice; id angka di `serverId`
 // - hari libur: `id` string, `date` yyyy-MM-dd, `branchId` string|null
 
@@ -28,23 +27,6 @@ export const serviceToApi = (item, { create = false } = {}) => ({
   ...(create ? { code: item.value } : {}),
   ...pick(item, ["label", "category", "description"]),
   ...(item.active === undefined ? {} : { isActive: Boolean(item.active) }),
-});
-
-// ---- Kuadran sensori
-export const quadrantFromApi = (q) => ({
-  code: q.code,
-  title: q.title,
-  fullName: q.fullName || q.title,
-  description: q.description || "",
-  color: q.color || "slate",
-  sortOrder: q.sortOrder ?? 0,
-  // `questionCount` = jumlah soal (badge "N soal"). Pengaman hapus (soal + skor hasil) dijaga server (409 in_use).
-  ...(q.questionCount === undefined ? {} : { questionCount: q.questionCount ?? 0, usageCount: q.questionCount ?? 0 }),
-});
-
-export const quadrantToApi = (item, { create = false } = {}) => ({
-  ...(create ? { code: item.code } : {}),
-  ...pick(item, ["title", "fullName", "description", "color"]),
 });
 
 // ---- Alasan Cancel/Off (`therapistOff`) dan Discharge

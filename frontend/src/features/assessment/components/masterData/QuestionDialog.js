@@ -9,9 +9,6 @@ import { Switch } from "@/shared/ui/switch";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 
-// Radix Select tidak menerima value kosong, jadi "tanpa kuadran" memakai sentinel ini
-const NO_QUADRANT = "none";
-
 const INPUT_TYPE_HINTS = {
   short_text: { title: "Jawaban Singkat", desc: "Responden mengisi satu baris teks singkat." },
   number: { title: "Angka", desc: "Responden hanya dapat mengisi angka." },
@@ -20,7 +17,7 @@ const INPUT_TYPE_HINTS = {
   time: { title: "Waktu", desc: "Responden memilih jam (format HH:mm)." },
 };
 
-export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, quadrants, removeOptionFromDialog, saveQuestion, setQDialog, updateOptionText }) {
+export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, removeOptionFromDialog, saveQuestion, setQDialog, updateOptionText }) {
   return (
     <Dialog open={qDialog.open} onOpenChange={(open) => setQDialog((prev) => ({ ...prev, open }))}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-7 border-slate-200 shadow-xl">
@@ -30,13 +27,13 @@ export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, 
               {qDialog.editingId ? "Edit Butir Pertanyaan Klinis" : "Tambah Butir Pertanyaan Baru"}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 font-medium">
-              Konfigurasikan tipe respons (skala baku Winnie Dunn, range kustom, pilihan ganda, multi-centang, dropdown, jawaban singkat, esai, angka, tanggal, tanggal lahir, waktu), kuadran sensori (opsional), serta opsi jawaban.
+              Konfigurasikan tipe respons (skala baku Winnie Dunn, range kustom, pilihan ganda, multi-centang, dropdown, jawaban singkat, esai, angka, tanggal, tanggal lahir, waktu), serta opsi jawaban.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* ROW 1: TIPE SOAL & KUADRAN */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* ROW 1: TIPE SOAL */}
+            <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700">Tipe Input Jawaban</Label>
                 <Select
@@ -56,28 +53,6 @@ export function QuestionDialog({ addOptionToDialog, applyOptionPreset, qDialog, 
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Kuadran Sensorik <span className="font-medium text-slate-400">(opsional)</span></Label>
-                <Select
-                  value={qDialog.quadrant || NO_QUADRANT}
-                  onValueChange={(val) => setQDialog((prev) => ({ ...prev, quadrant: val === NO_QUADRANT ? "" : val }))}
-                >
-                  <SelectTrigger className="border-slate-200 text-xs font-semibold" data-testid="question-quadrant">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-200">
-                    <SelectItem value={NO_QUADRANT} className="text-xs font-bold">
-                      Tanpa kuadran
-                    </SelectItem>
-                    {quadrants.map((q) => (
-                      <SelectItem key={q.code} value={q.code} className="text-xs font-bold">
-                        {q.code} - {q.fullName || q.title}
-                        {q.description ? ` (${q.description.split("(")[0].trim()})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             {/* WAJIB / OPSIONAL */}

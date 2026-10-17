@@ -49,8 +49,4 @@ class AssessmentResponse extends Model
         return $this->hasMany(AssessmentAnswer::class, 'response_id');
     }
 
-    public function assessmentQuadrantScoresViaResponse(): HasMany
-    {
-        return $this->hasMany(AssessmentQuadrantScore::class, 'response_id');
-    }
 }

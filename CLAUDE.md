@@ -111,7 +111,7 @@ config/env.js data/ (seed demo)
 7. Mutasi 1 store → panggil action store. Mutasi **>1 store** → hook use-case `features/<m>/hooks/use<X>Actions.js` (contoh `useSessionActions`, `useClientOutcomeActions`). Hook mengembalikan hasil; toast/navigate tetap di komponen.
 8. Reducer pure & immutable, memanggil fungsi domain; tanpa fetch/toast/navigate.
 8b. Tidak ada audit log (ADR 0004). Invoice mencatat riwayatnya sendiri lewat `appendInvoiceLog` (`domain/credit.js`, reducer `creditsStore`); pelaku dikirim sebagai `by`.
-9. Data turunan (saldo kredit, frozen, skor kuadran, KPI) **dihitung** (`useMemo`/domain), tidak disimpan.
+9. Data turunan (saldo kredit, frozen, skor mentah, KPI) **dihitung** (`useMemo`/domain), tidak disimpan.
 10. Field baru: default aman di factory (`makeInquiryClient`, …), baca dengan fallback, update `docs/guide/03` **dan padanan kolom di `schema.md`**. Seed berubah → naikkan `SEED_VERSION` (`data/seedRegistry.js`).
 11. Transisi status pipeline otomatis hanya lewat `advanceStatus` (`domain/client.js`); perubahan manual ke tahap mana pun lewat `buildStatusChangePatch`. Hak aksi mengikuti **akses modul** (`useAuth().hasPermission`, mis. `canManageSchedule(hasPermission)`); aksi **hapus** hanya lewat `DeleteButton`/`IfCanDelete` (`shared/components/DeleteControls.js`) yang mengecek akses modul; data penting (client, cabang) dikunci `masterOnly` (hanya `master`).
 

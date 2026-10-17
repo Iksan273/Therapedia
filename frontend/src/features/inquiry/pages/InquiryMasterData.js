@@ -1,17 +1,15 @@
 import React from "react";
-import { Stethoscope, Grid2x2, Database, CalendarX2, LogOut } from "lucide-react";
+import { Stethoscope, Database, CalendarX2, LogOut } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { ServicesTab } from "@/features/inquiry/components/masterData/ServicesTab";
-import { QuadrantsTab } from "@/features/inquiry/components/masterData/QuadrantsTab";
 import { ReasonListTab } from "@/features/inquiry/components/masterData/ReasonListTab";
 import { useMasterData } from "@/stores/masterDataStore";
 
 // Master Data Inquiry (modul `inquiry_master_data`): kerangka tab. Isi tiap tab (daftar, dialog, aturan hapus) ada di
-// components/masterData/{ServicesTab,QuadrantsTab,ReasonListTab}.
+// components/masterData/{ServicesTab,ReasonListTab}.
 export default function InquiryMasterData() {
   const {
     services,
-    quadrants,
     cancelReasons, addCancelReason, updateCancelReason, deleteCancelReason,
     dischargeReasons, addDischargeReason, updateDischargeReason, deleteDischargeReason,
   } = useMasterData();
@@ -25,7 +23,7 @@ export default function InquiryMasterData() {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Master Data Inquiry</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
-            Kelola daftar layanan klinis, kuadran sensori, serta pilihan cepat alasan cancel / off, therapist off, dan discharge.
+            Kelola daftar layanan klinis, serta pilihan cepat alasan cancel / off, therapist off, dan discharge.
           </p>
         </div>
       </div>
@@ -34,9 +32,6 @@ export default function InquiryMasterData() {
         <TabsList className="rounded-xl h-auto flex-wrap justify-start">
           <TabsTrigger value="services" className="gap-1.5 text-xs font-bold" data-testid="tab-master-services">
             <Stethoscope className="w-3.5 h-3.5" /> Layanan ({services.length})
-          </TabsTrigger>
-          <TabsTrigger value="quadrants" className="gap-1.5 text-xs font-bold" data-testid="tab-master-quadrants">
-            <Grid2x2 className="w-3.5 h-3.5" /> Kuadran Sensori ({quadrants.length})
           </TabsTrigger>
           <TabsTrigger value="cancel-reasons" className="gap-1.5 text-xs font-bold" data-testid="tab-master-cancel-reasons">
             <CalendarX2 className="w-3.5 h-3.5" /> Alasan Cancel / Off ({cancelReasons.length})
@@ -48,10 +43,6 @@ export default function InquiryMasterData() {
 
         <TabsContent value="services" className="mt-4">
           <ServicesTab />
-        </TabsContent>
-
-        <TabsContent value="quadrants" className="mt-4">
-          <QuadrantsTab />
         </TabsContent>
 
         <TabsContent value="cancel-reasons" className="mt-4">

@@ -29,7 +29,7 @@ Sumber kebenaran skema: **`schema.md`** (root repo). Setiap perubahan tabel/kolo
 | Uang | `BIGINT UNSIGNED` dalam **rupiah utuh** (tanpa desimal). Jangan `FLOAT`/`DOUBLE` |
 | Boolean | `TINYINT(1)` via `boolean()` dengan prefix `is_`/`has_` |
 | Status siklus hidup tetap | `ENUM` (hemat, cepat). Tambah nilai **di akhir** (ALTER instan MySQL 8) |
-| Daftar yang bisa diedit user (alasan, layanan, kuadran) | **Lookup table** dengan PK `code` |
+| Daftar yang bisa diedit user (alasan, layanan) | **Lookup table** dengan PK `code` |
 | Soft delete | Hanya entity bisnis yang bisa "dihapus" user (clients, users, master). **Tidak** untuk ledger & log |
 | Optimistic lock | Kolom `version INT UNSIGNED DEFAULT 1` pada entity yang bisa diedit bersamaan (clients, schedules, invoices, client_packages). `UPDATE … WHERE id=? AND version=?` → 0 baris = HTTP 409 |
 | Jejak pelaku | `created_by`, `updated_by` (FK users, nullable) pada tabel transaksi |

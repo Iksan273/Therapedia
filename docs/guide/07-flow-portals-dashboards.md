@@ -10,7 +10,7 @@ Semua data difilter berdasarkan `auth.therapistId`.
 | `/therapist` | `features/therapist/pages/MySchedule.js` | Jadwal milik terapis. View `week` (`WeeklyCalendar`) atau `day` (`DayAgenda`, default di layar < 768px). Filter per client. Klik sesi → `SessionDetailModal`; terapis hanya bisa **menyimpan laporan**, tidak bisa mengubah status. Ada link ke detail client & hasil asesmen |
 | `/therapist/summary` | `TherapistSummary.js` + `summary/*` | Rekap sesi `completed`: `SummaryStats`, `SessionFeed`, `ClientRollup`. Filter periode, client, dan status laporan (`pending` / `filled` = 3/3 bagian terisi). Edit laporan → `features/therapist/components/SessionReportModal.js`. Riwayat per client → `ClientReportHistoryDrawer.js` |
 | `/therapist/clients/:id` | `TherapistClientDetail.js` | Profil client, riwayat sesi & laporan, link hasil asesmen, tombol cetak ke `/print/client/:id` |
-| `/therapist/parent-assessment/:id` | `features/assessment/pages/ParentAssessmentView.js` | Hasil kuesioner + kuadran (lihat 04) |
+| `/therapist/parent-assessment/:id` | `features/assessment/pages/ParentAssessmentView.js` | Hasil kuesioner: skor mentah per section (lihat 04) |
 
 **Laporan sesi 3 bagian** (disimpan di schedule): `activitySection` (aktivitas), `noteSection` (catatan klinis/SOAP, disalin juga ke `progressNote`), dan `homeworkSection` (PR di rumah). Laporan bisa diisi kapan saja, tidak harus menunggu sesi completed.
 

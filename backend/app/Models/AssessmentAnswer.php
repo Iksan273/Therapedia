@@ -16,7 +16,6 @@ class AssessmentAnswer extends Model
         'response_id',
         'question_id',
         'item_no',
-        'quadrant_code',
         'answer_text',
         'answer_values',
         'score',

@@ -60,7 +60,7 @@ Sumber utama: `pertanyaan_klien.md`, `schema.md` §04–§06, `technical_workflo
 | Combobox pencarian client (nama/ortu/kode) seragam | Selesai: `shared/components/ClientCombobox.js` (Create Invoice, Renewal, Jadwal, Generate Kode, Dashboard Schedule, portal terapis) |
 | Riwayat sesi: alasan cancel + kolom Catatan yang bisa ditimpa | Selesai: `ActiveClientDetail` (`historyNote`) |
 | Monitoring laporan per client di detail client | Selesai: `ClientReportMonitoringCard` |
-| Tombol edit di data master | Selesai: paket master (Finance), hari libur, akun staff (+ yang sudah ada: layanan, kuadran, alasan, asesmen, cabang, role) |
+| Tombol edit di data master | Selesai: paket master (Finance), hari libur, akun staff (+ yang sudah ada: layanan, alasan, asesmen, cabang, role) |
 | Tanpa upload bukti ortu; Finance langsung lunas (renewal & create invoice paket pertama) | Selesai |
 | Portal ortu tidak menampilkan kode kuesioner | Selesai |
 | Status sesi **Off** (OL/S/SCA/MCU/FM/TI/H/manual; potong kredit atau tidak pilihan admin) + alasan Off di Master Data Layanan | **Digabung dengan Cancel (7 Okt 2026, R18)**: satu status `cancelled`, satu daftar alasan Cancel / Off |

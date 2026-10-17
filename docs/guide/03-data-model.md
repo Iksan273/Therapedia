@@ -16,7 +16,6 @@ Store ada di `frontend/src/stores/`. I/O localStorage hanya lewat `services/stor
 | `assessment_categories` | `assessmentsStore` | `Category[]` | `assessment_categories`, `assessment_sections`, `assessment_questions` |
 | `assessment_drafts` | `assessmentDraftsStore` | `Draft[]` — `{ code, clientId, answers: { [questionId]: nilai }, answeredCount, lastSectionId, consentAt, version, startedAt, updatedAt }`; hanya ada selama kuesioner belum dikirim (tanpa seed; ikut dibersihkan saat `SEED_VERSION` naik) | `assessment_drafts` (jawaban dipetakan ke `{t, v}` di lapisan API: array → `v`, selain itu → `t`) |
 | `master_services` | `masterDataStore` | `Service[]` (key `value`) | `services` |
-| `master_quadrants` | `masterDataStore` | `Quadrant[]` (key `code`) | `sensory_quadrants` |
 | `master_cancel_off_codes` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `cancel_reasons` (`is_therapist_off` = 0, tanpa FK) |
 | `master_therapist_off_codes` | `masterDataStore` | `{ value, label, active }[]` (TO, TS; ikut jadi pilihan Cancel / Off) | `cancel_reasons` (`is_therapist_off` = 1) |
 | `master_discharge_reasons` | `masterDataStore` | `{ value, label, active }[]` (pilihan cepat) | `discharge_reasons` (tanpa FK) |
@@ -41,7 +40,7 @@ Dibuat oleh `makeInquiryClient(form)` di `domain/client.js`.
 | `serviceType` | string | legacy single = `serviceTypes[0]` |
 | `assessmentCodes` | `{ code, categoryId, name/categoryName, createdAt, issuedAt, expiresAt?, status? }[]` | kode kuesioner `{typeCode kategori}-{6 acak}` (`buildQuestionnaireCode`, `domain/assessment.js`; kode seed lama `ASM-xxxx` tetap valid). `expiresAt` **opsional** (null = tanpa masa berlaku), dicek saat kode dibuka |
 | `assessmentAnswers` | `{ code, categoryId, categoryName, submittedAt?, consentAt?, answers: Answer[] }[]` | satu entry per pengisian. **Hanya sekali isi** per kode (tanpa submit ulang); `consentAt` = waktu persetujuan |
-| `Answer` | `{ questionId, itemNo, quadrant, domain, question, answer, score }` | `score` diambil dari angka di awal jawaban |
+| `Answer` | `{ questionId, itemNo, sectionId, template, domain, question, answer, score }` | `score` diambil dari angka di awal jawaban |
 | `intakeNote` | string \| null | catatan saat intake (input di New Intake / Edit Intake; tampil di Client Detail, portal terapis, dan laporan cetak) |
 | `gdriveClientLink` | string \| null | |
 | `finalOutcome` | enum \| null | `admitted` / `done_consult` / `done_assessment` / `discontinued` |
@@ -136,12 +135,12 @@ credits = {
 Akun login terapis ada di `staffUsers` (`authStore`, seed `data/staffUsers.seed.json`) dan dihubungkan lewat `therapistId`. `staffUsers[]`: `{ id, name, email, role, branchId /*wajib kecuali master*/, password, mustChangePassword, isActive, passwordChangedAt? }`; permintaan OTP lupa password di key `passwordResets` (mode demo).
 
 ## Assessment category (`assessment_categories[]`)
-`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, sections: [{ sectionId, title, description /*teks panduan pendek/panjang; menggantikan leadText*/, documentUrl /*link Google Docs/Drive ATAU path PDF lokal `/documents/x.pdf` (demo); mode API: file di storage privat → `documentFile {name,size}`, lihat ADR 0007 & guide 10*/, questions: [{ id, itemNo, quadrant, question, type?, options?, required? /*default true; false = opsional*/ }] }] }`
+`{ id, typeCode /*awalan kode kuesioner, unik*/, categoryName, domain, sections: [{ sectionId, title, template /*school_companion|toddler_sensory|child_sensory|kosong = form biasa*/, description /*teks panduan pendek/panjang; menggantikan leadText*/, documentUrl /*link Google Docs/Drive ATAU path PDF lokal `/documents/x.pdf` (demo); mode API: file di storage privat → `documentFile {name,size}`, lihat ADR 0007 & guide 10*/, questions: [{ id, itemNo, question, type?, options?, required? /*default true; false = opsional*/ }] }] }`
 Kategori lama mungkin memakai `questions[]` langsung tanpa `sections`. `AssessmentFill` menangani kedua bentuk ini.
 
 ## Master data
 - **Service** `{ value, label, category /*Asesmen|Konsultasi*/, description, active }`. Seed dari `INTAKE_SERVICES`. Pakai `activeServices` untuk form, `getService(value)` untuk label.
-- **Quadrant** `{ code /*AV|SN|RG|SK*/, title, fullName, description, color }`. Warna dari `QUADRANT_COLORS`.
+- **Template hasil section** (`domain/assessmentTemplate.js`): `section.template` = `school_companion` | `toddler_sensory` | `child_sensory` | kosong. Section ber-template dirender sebagai tabel psikologi (skor mentah per section); tanpa template = form biasa. **Tidak ada kuadran dan tidak ada klasifikasi** (17 Okt 2026: master & API kuadran dihapus); klasifikasi ditentukan asesor di luar sistem. Satu kuesioner boleh campuran section biasa + section ber-template. `buildTemplateResult(category, answers)` menghitung `rawScoreSum` per section.
 
 ## Konstanta & aturan (sumber kebenaran, semua di `frontend/src/`)
 | Modul | Isi |
@@ -170,7 +169,7 @@ Tabel lengkap ada di `schema.md` bagian 08. Yang paling sering dipakai:
 | `clients[].status` | `clients.status` | enum v2 = 9 status prototype (sudah selaras) |
 | `clients[].serviceTypes[]` | `client_services` | |
 | `clients[].gdriveClientLink` | `client_documents` (`type=gdrive_folder`) | |
-| `clients[].assessmentAnswers[]` | `assessment_responses` (sekali isi, `consent_at`) + `assessment_answers` + `assessment_quadrant_scores` | skor kuadran dihitung server |
+| `clients[].assessmentAnswers[]` | `assessment_responses` (sekali isi, `consent_at`) + `assessment_answers` | skor mentah per section dihitung saat dibaca |
 | `assessmentDrafts[]` (`assessmentDraftsStore`) | `assessment_drafts` | simpan otomatis; dihapus saat submit; kode ber-draft tidak bisa dihapus |
 | perubahan status client | `clients.status` / `status_changed_at` / `updated_by` | tanpa tabel riwayat tahap (keputusan 13 Okt 2026); funnel dihitung dari status saat ini |
 | `schedules[].date/startTime/endTime` | `schedules.session_date/start_time/end_time` | |

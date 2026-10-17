@@ -32,7 +32,7 @@ export function TableSkeleton({ rows = 6, columns = 4, label = "Memuat data…",
   );
 }
 
-// Kartu dalam grid (paket, kuadran, ...)
+// Kartu dalam grid (paket, ...)
 export function CardGridSkeleton({ count = 6, columns = "grid-cols-1 md:grid-cols-2 lg:grid-cols-3", label = "Memuat data…", className, testId = "card-grid-skeleton" }) {
   return (
     <Frame label={label} className={cn("grid gap-4", columns, className)} testId={testId}>

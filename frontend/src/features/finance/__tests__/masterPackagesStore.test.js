@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 // Master paket (mode demo): saklar aktif menyaring pilihan form, hapus hanya untuk paket yang belum dipakai.
-// Master data inquiry: kuadran yang belum dipakai boleh dihapus semua (tanpa batas minimal).
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import AppProviders from "@/app/providers/AppProviders";
@@ -48,9 +47,4 @@ test("paket yang belum dipakai bisa dihapus; yang dipakai invoice / paket client
   expect(used).toBeTruthy();
   expect(() => ctx.credits.deleteMasterPackage(used)).toThrow(/dipakai/);
   expect(ctx.credits.getMasterPackages().some((p) => p.id === used)).toBe(true);
-});
-
-test("semua kuadran yang belum dipakai boleh dihapus", async () => {
-  for (const q of [...ctx.master.quadrants]) await act(async () => ctx.master.deleteQuadrant(q.code));
-  expect(ctx.master.quadrants).toHaveLength(0);
 });

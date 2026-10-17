@@ -27,7 +27,7 @@ import { PageSkeleton } from "@/shared/components/PageSkeleton";
 import { ThemeToggle } from "@/shared/components/ThemeToggle";
 import { useAppTheme } from "@/shared/hooks/useAppTheme";
 import { cn } from "@/shared/lib/utils";
-import { buildNavConfig } from "@/app/layout/navConfig";
+import { buildNavConfig, navItemEnd } from "@/app/layout/navConfig";
 
 const Logo = ({ compact = false, onClose }) => (
   <div className={cn("flex items-center justify-between", !compact && "px-4 h-16 border-b border-slate-200/80 bg-white")}>
@@ -83,7 +83,7 @@ const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
         <NavLink
           key={item.to}
           to={item.to}
-          end={item.end}
+          end={navItemEnd(item, config.items)}
           className={navLinkClass}
           onClick={onNavigate}
           data-testid={`${testidPrefix}${item.testid}`}

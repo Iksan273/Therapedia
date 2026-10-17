@@ -20,7 +20,9 @@ class AssessmentSection extends Model
     protected $fillable = [
         'category_id',
         'title',
-        'lead_text',
+        'description',
+        'document_url',
+        'result_template',
         'sort_order',
     ];
 

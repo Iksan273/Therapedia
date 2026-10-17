@@ -79,7 +79,7 @@ Belum: Action per use-case, Form Request, API Resource, seeder, policy per entit
 |---|---|---|---|
 | M1 Auth & akun | login staf/ortu, logout, ganti & lupa password | `users`, `clients`, `personal_access_tokens`, `password_reset_otps` | S1 |
 | M2 User, RBAC, cabang | user staf, role, matriks modul, Master Cabang | `users`, `roles`, `role_permissions`, `access_modules`, `branches` | S1 |
-| M3 Master data | layanan, kuadran, alasan, paket, hari libur | `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays` | S1 |
+| M3 Master data | layanan, alasan, paket, hari libur | `services`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays` | S1 |
 | M4 Inquiry & Client | intake, pipeline, layanan, status, dokumen | `clients`, `client_code_counters`, `client_services`, `client_documents` | S2 |
 | M5 Asesmen | mesin kuesioner, kode, isi publik, hasil | `assessment_*` | S2 |
 | M6 Penjadwalan | kalender, sesi, aksi, revert, bulk, laporan, monitoring, cuti client (jatah 30 hari/tahun, §8.6) | `schedules`, `schedule_series`, `session_reports`, `client_leaves` (+ kredit) | S3 |
@@ -159,17 +159,16 @@ Layar: `/admin-inquiry/master-data`, `/finance` (tab paket), `/admin-schedule/ho
 | # | Endpoint | Fungsi | Akses | Request kunci | Tabel | Respons & error |
 |---|---|---|---|---|---|---|
 | 3.1 | `GET /master/services` · `POST` · `PUT /{code}` · `DELETE /{code}` | layanan intake | baca: login staf; tulis: `inquiry_master_data`; hapus: +hapus | `code,label,category,description,is_active,sort_order` | `services` C,U,D | DELETE: 409 `in_use` bila ada `client_services`/`schedules.service_code` → nonaktifkan |
-| 3.2 | `GET /master/quadrants` · `POST` · `PUT /{code}` · `DELETE /{code}` | kuadran sensori | idem | `code,title,full_name,description,color,sort_order` | `sensory_quadrants` | DELETE: 409 bila dipakai `assessment_questions`/`assessment_quadrant_scores`; kuadran yang belum dipakai boleh dihapus semua (tanpa batas minimal) |
 | 3.3 | `GET /master/cancel-reasons` ✚ · `POST` · `PUT /{code}` · `DELETE /{code}` | **satu daftar** alasan Cancel / Off; Therapist Off hanyalah alasan ber-`is_therapist_off = 1` (UI: satu tab dengan saklar "Therapist Off"; kode unik; TANPA FK; filter opsional `?therapist_off=0` atau `1`) | tulis: `inquiry_master_data`; hapus: +hapus | `code,label,is_active,is_therapist_off,sort_order` | `cancel_reasons` | DELETE tanpa pengecekan (transaksi menyimpan string) |
 | 3.4 | `GET /master/discharge-reasons` ✚ · `POST` · `PUT` · `DELETE` | idem untuk discharge | idem | idem | `discharge_reasons` | idem |
 | 3.5 | `GET /master/packages` · `POST` · `PUT /{id}` · `PATCH /{id}/active` ✚ · `DELETE /{id}` ✚ | katalog paket kredit | `finance`; hapus +hapus | `name,invoice_code(unik,≠ASM),credits,price,description,is_active` | `master_packages` C,U,D | harga diubah tidak memengaruhi invoice/paket lama (snapshot). DELETE: 409 `in_use` bila ada `invoices`/`client_packages.master_package_id` |
 | 3.6 | `GET /holidays` · `POST` · `PUT /{id}` · `DELETE /{id}` ✚ | hari libur | `holidays`; hapus +hapus | `holiday_date,name,branch_id(null=semua)` | `holidays` C,U,D | UNIQUE (tanggal, cabang) → 422. Menambah libur **tidak** mengubah sesi yang sudah ada; sesi terdampak bisa dihitung di respons (`affected_sessions`) |
 
 > **Kontrak final M3 (backend selesai 14 Okt 2026, test di `backend/tests/Feature/Master`):**
-> - Daftar master (`services`, `quadrants`, `cancel-reasons`, `discharge-reasons`, `packages`) tanpa paginasi, urut `sort_order`; filter `?active=1`, dan `?therapist_off=0|1` khusus cancel-reasons. Hanya `PUT/PATCH` yang tersedia untuk ubah; `code` tidak dapat diubah (422 bila dikirim). Master paket memakai `id` dan `code` internal `pkg-<slug nama>` dibuat server; `PATCH /master/packages/{id}/active` untuk aktif/nonaktif.
-> - Hapus: layanan 409 `in_use` (dipakai `client_services`/`schedules`), kuadran 409 `in_use` (dipakai soal/skor; yang belum dipakai boleh dihapus semua), paket 409 `in_use` (dipakai invoice/paket client). Alasan Cancel/Off dan Discharge dihapus bebas. `assessment_answers.quadrant_code` tidak ber-FK, jadi tidak ikut dicek.
+> - Daftar master (`services`, `cancel-reasons`, `discharge-reasons`, `packages`) tanpa paginasi, urut `sort_order`; filter `?active=1`, dan `?therapist_off=0|1` khusus cancel-reasons. Hanya `PUT/PATCH` yang tersedia untuk ubah; `code` tidak dapat diubah (422 bila dikirim). Master paket memakai `id` dan `code` internal `pkg-<slug nama>` dibuat server; `PATCH /master/packages/{id}/active` untuk aktif/nonaktif.
+> - Hapus: layanan 409 `in_use` (dipakai `client_services`/`schedules`), paket 409 `in_use` (dipakai invoice/paket client). Alasan Cancel/Off dan Discharge dihapus bebas.
 > - Paket: `invoice_code` 2–10 huruf/angka, unik, `ASM` ditolak.
-> - Pemakaian asli untuk badge/pengaman hapus di UI: respons baca (`GET` list dan detail) layanan memuat `client_count` dan `schedule_count`, kuadran memuat `question_count` dan `score_count` (hitungan lintas cabang, tanpa `BranchScope`). Respons tambah/ubah tidak memuatnya.
+> - Pemakaian asli untuk badge/pengaman hapus di UI: respons baca (`GET` list dan detail) layanan memuat `client_count` dan `schedule_count` (hitungan lintas cabang, tanpa `BranchScope`). Respons tambah/ubah tidak memuatnya.
 > - Libur: `POST` menerima `holiday_date` ATAU `start_date`+`end_date` (maks 366 hari) dan membalas **daftar** baris baru, tiap baris memuat `affected_sessions` (sesi `scheduled`/`reschedule_pending` di tanggal itu pada cabang terkait). Duplikat → 422 (`errors.holiday_date`), rentang gagal total tanpa baris parsial. `PUT/PATCH` mengubah satu baris dan membalas objek. Staf ber-cabang boleh libur cabangnya dan "semua cabang" (`branch_id` null), libur cabang lain 403/404. Pembatalan sesi (alasan `H`) **belum** dikerjakan: Sprint 2 hari 2.
 
 ---
@@ -222,11 +221,11 @@ Layar: `/admin-inquiry/assessments` (mesin), Client Detail (kode), `/assessment`
 | 5.1 | `GET /assessment-categories` | template + section + soal (satu query form) | **baca: `assessment_master` atau `inquiry_pipeline`** (admin inquiry memilih kategori saat menerbitkan kode); tulis 5.2–5.5: hanya `assessment_master` | `with=sections.questions` | `assessment_categories`, `assessment_sections`, `assessment_questions` R (`idx_questions_form`) | |
 | 5.2 | `POST /assessment-categories` · `PATCH /{id}` | buat/ubah template | `assessment_master` | `name,type_code(unik),domain,is_active,version` | `assessment_categories` C,U | `type_code` jangan diubah setelah ada kode terbit; 409 version |
 | 5.3 | `DELETE /assessment-categories/{id}` | hapus template | `assessment_master` + hapus | | `assessment_categories` D → cascade `sections`/`questions` | 409 `in_use` bila ada kode/respons memakai kategori itu; minimal 1 kategori |
-| 5.4 ✚ | `POST /assessment-categories/{id}/sections` · `PATCH`/`DELETE /assessment-sections/{id}` | kelola section | `assessment_master` (+hapus) | `title,description,document_url,sort_order` | `assessment_sections` | DELETE cascade soal (bila belum dijawab); file dokumen ikut dihapus setelah commit |
+| 5.4 ✚ | `POST /assessment-categories/{id}/sections` · `PATCH`/`DELETE /assessment-sections/{id}` | kelola section | `assessment_master` (+hapus) | `title,description,document_url,result_template,sort_order` | `assessment_sections` | DELETE cascade soal (bila belum dijawab); file dokumen ikut dihapus setelah commit |
 | 5.4a ✚ | `POST /assessment-sections/{id}/document` (multipart `file`) · `DELETE /assessment-sections/{id}/document` | unggah/ganti/hapus dokumen PDF section (rencana, ADR 0007) | `assessment_master` (+hapus) | `file` = `application/pdf`, usulan maks 10 MB | `assessment_sections` U (`document_path,document_name,document_size`; `document_url` dikosongkan) | file lewat **Laravel Storage** di disk privat (`Storage::disk('local')`, bukan `public`; path simpan di DB, nama file = uuid; baca via `Storage::response()`/`download()` setelah otorisasi); 422 bukan PDF / terlalu besar; file lama dihapus sinkron setelah commit |
 | 5.4b ✚ | `GET /assessment-sections/{id}/document` | stream PDF untuk staf (pratinjau di dialog section) | `assessment_master` atau `inquiry_pipeline` | | `assessment_sections` R | `Content-Type: application/pdf`, `Content-Disposition: inline`, `Cache-Control: private`; 404 bila tidak ada |
 | 5.4c ✚ | `GET /questionnaires/{code}/sections/{sectionId}/document` | stream PDF untuk ortu (publik, tanpa login) | publik, diotorisasi **kode kuesioner** | | `assessment_access_codes` R (kode valid, belum kedaluwarsa, section termasuk kategori kode itu), `assessment_sections` R | throttle; 404 (bukan 403) bila kode/section tidak cocok agar tidak membocorkan keberadaan; tetap bisa dibuka setelah kode `submitted`? **diputuskan saat M5** |
-| 5.5 ✚ | `POST /assessment-sections/{id}/questions` · `PATCH`/`DELETE /assessment-questions/{id}` · `PUT /assessment-sections/{id}/questions/order` | kelola soal (12 tipe) | `inquiry_*` (+hapus) | `question_type,question,options,range_*,quadrant_code,is_required,sort_order` | `assessment_questions` | DELETE: 409 `in_use` bila sudah ada `assessment_answers`; nonaktifkan/biarkan |
+| 5.5 ✚ | `POST /assessment-sections/{id}/questions` · `PATCH`/`DELETE /assessment-questions/{id}` · `PUT /assessment-sections/{id}/questions/order` | kelola soal (12 tipe) | `inquiry_*` (+hapus) | `question_type,question,options,range_*,is_required,sort_order` | `assessment_questions` | DELETE: 409 `in_use` bila sudah ada `assessment_answers`; nonaktifkan/biarkan |
 
 ### 7.2 Kode kuesioner
 | # | Endpoint | Fungsi / Action | Akses | Request kunci | Tabel | Respons & error |
@@ -240,12 +239,12 @@ Layar: `/admin-inquiry/assessments` (mesin), Client Detail (kode), `/assessment`
 |---|---|---|---|---|---|---|
 | 5.9 | `GET /public/assessments/{code}` | `OpenAssessmentAction` | publik, throttle per IP | — | `assessment_access_codes` R; `clients` R; `assessment_categories/sections/questions` R; `invoices` R (gating); `assessment_drafts` R | 404 generik; 409 `already_submitted`; 410 `expired` (kecuali kode sudah punya draft yang dimulai sebelum `expires_at`); **403 `proof_required`** (invoice assessment belum punya bukti; + nomor invoice). Respons memuat **draft** (jawaban, `last_section_id`, `answered_count`, `version`) bila ada. **Wajib memuat `branch.bank_accounts` (rekening aktif cabang client, via `assessment_access_codes → clients → branches → branch_bank_accounts`) pada respons sukses dan 403 `proof_required`**, agar ortu tahu tujuan transfer |
 | 5.9b ✚ | `PUT /public/assessments/{code}/draft` | `SaveAssessmentDraftAction` (simpan otomatis / lanjutkan nanti) | publik, throttle per IP + per kode | `answers` (patch: `{question_id: {t, v?}}`, `null` = hapus), `last_section_id`, `consent?`, `version` | `assessment_drafts` C/U (1 baris per kode, `lockForUpdate`, `answered_count` dihitung server, `version`+1) | cek akses sama dengan 5.9; 409 `version_conflict` (dua perangkat); 422 payload > 256 KB; tidak menyimpan skor, tidak mengubah status kode/client |
-| 5.10 | `POST /public/assessments/{code}/responses` | `SubmitAssessmentAction` | publik, throttle | `answers[]` (jawaban final yang belum tersimpan di draft), `consent` (wajib bila belum di draft) | `assessment_responses` C (UNIQUE `access_code_id`, `consent_at`, `ip_address`); `assessment_answers` C (snapshot `item_no`,`quadrant_code`,`score`); `assessment_quadrant_scores` C (Σ skor, **dihitung server**, tanpa klasifikasi); `assessment_access_codes` U (`submitted`); `assessment_drafts` **D**; **status client tidak berubah** (tetap `assessment_scheduled` sampai sesi asesmen selesai / diubah manual) | 409 bila sudah diisi (sekali isi); 422 `incomplete` (+ daftar soal wajib yang belum terjawab / consent kosong); satu transaksi |
+| 5.10 | `POST /public/assessments/{code}/responses` | `SubmitAssessmentAction` | publik, throttle | `answers[]` (jawaban final yang belum tersimpan di draft), `consent` (wajib bila belum di draft) | `assessment_responses` C (UNIQUE `access_code_id`, `consent_at`, `ip_address`); `assessment_answers` C (snapshot `item_no`,`score`); `assessment_access_codes` U (`submitted`); `assessment_drafts` **D**; **status client tidak berubah** (tetap `assessment_scheduled` sampai sesi asesmen selesai / diubah manual) | 409 bila sudah diisi (sekali isi); 422 `incomplete` (+ daftar soal wajib yang belum terjawab / consent kosong); satu transaksi |
 
 ### 7.4 Hasil (staf internal)
 | # | Endpoint | Fungsi | Akses | Tabel | Catatan |
 |---|---|---|---|---|---|
-| 5.11 | `GET /clients/{id}/assessment-responses` · `GET /assessment-responses/{id}` | hasil + jawaban + skor kuadran | `inquiry_*`, `therapist_module` | `assessment_responses`, `assessment_answers`, `assessment_quadrant_scores` R | **ortu tidak melihat hasil**; cabang sesuai scope |
+| 5.11 | `GET /clients/{id}/assessment-responses` · `GET /assessment-responses/{id}` | hasil + jawaban (skor mentah dihitung per section ber-template) | `inquiry_*`, `therapist_module` | `assessment_responses`, `assessment_answers`, R | **ortu tidak melihat hasil**; cabang sesuai scope |
 
 ---
 
@@ -377,7 +376,7 @@ Layar: `/therapist`, `/therapist/summary`, `/therapist/clients/:id`, `/print/cli
 | 9.1 | `GET /schedules` (own) | My Clinical Schedule: kalender mingguan/harian + pencarian nama/ortu/kode | `from,to,q,client_id` | `schedules`, `clients` R (`idx_sch_therapist`) | server memaksa `therapist_id = user` |
 | 9.2 | `GET /dashboards/therapist-summary` | Summary Laporan: Session Feed + Rangkuman Client (10 per halaman) | `period,start,end,client_id,report_status,q,tab,page` | view `v_therapist_sessions` ← `schedules`+`clients`+`session_reports` | Q17; pencarian: nama/ortu/kode + isi laporan |
 | 9.3 | `GET /therapist/clients` ✚ | client yang pernah dijadwalkan ke terapis | `q,page` | `clients`, `schedules` R | |
-| 9.4 | `GET /therapist/clients/{id}` ✚ | detail client: biodata, riwayat sesi (dipaginasi, cari terapis/status/tanggal/isi laporan), kuota cancel per paket (read-only), link GDrive, hasil asesmen | `q,page` | `clients`, `schedules`, `session_reports`, `client_packages`, `assessment_responses/quadrant_scores`, `client_documents` R | |
+| 9.4 | `GET /therapist/clients/{id}` ✚ | detail client: biodata, riwayat sesi (dipaginasi, cari terapis/status/tanggal/isi laporan), kuota cancel per paket (read-only), link GDrive, hasil asesmen | `q,page` | `clients`, `schedules`, `session_reports`, `client_packages`, `assessment_responses`, `client_documents` R | |
 | 9.5 | `PUT /schedules/{id}/report` | isi/ubah laporan sesi (M6 6.10) | | `session_reports` upsert | terapis hanya sesinya |
 | 9.6 ✚ | `GET /clients/{id}/report-print` | data cetak laporan klinis client | | sama 9.4 | ekspor/cetak tidak dicatat |
 
@@ -424,7 +423,7 @@ Semua hapus **permanen** (ADR 0005), client/cabang hanya role `master`, lainnya 
 | `DELETE /invoices/{id}` | bukti bayar (+file), log invoice | hanya `unpaid` | 409 `invoice_not_deletable` |
 | `DELETE /schedules/{id}` | `session_reports` | `completed`/ber-ledger harus di-revert | 422 |
 | `DELETE /assessment-codes/{id}` | — | hanya `issued` | 409 |
-| `DELETE /master/services\|quadrants\|packages`, `/assessment-categories`, `/assessment-questions`, `/roles` | anak milik (sections/questions/permissions) | **sudah dipakai** (FK `RESTRICT` + pengecekan service) | 409 `in_use` (+ alasan "dipakai di N data") |
+| `DELETE /master/services\|packages`, `/assessment-categories`, `/assessment-questions`, `/roles` | anak milik (sections/questions/permissions) | **sudah dipakai** (FK `RESTRICT` + pengecekan service) | 409 `in_use` (+ alasan "dipakai di N data") |
 | `DELETE /master/cancel-reasons\|discharge-reasons`, `/holidays` | — | tidak ada (string/konfigurasi) | — |
 | `DELETE /branches/{id}` | seluruh isi cabang (client + turunan, jadwal, invoice, ledger, libur, akun non-master) | tidak ada; konfirmasi ketik kode | 422 `confirm_code` salah |
 
@@ -469,7 +468,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | `users` | 1.1 1.5 1.7 2.2–2.5 2.18 |
 | `roles`, `role_permissions` | 2.8–2.12 |
 | `branches` | 2.14–2.18 |
-| `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays` | 3.1–3.6 |
+| `services`, `cancel_reasons`, `discharge_reasons`, `master_packages`, `holidays` | 3.1–3.6 |
 | `clients` | 4.4 4.6 4.7 4.10 4.12 5.7 5.10 6.7 6.12 6.17 7.2 7.7 7.8 7.10 7.13 7.15 7.19 |
 | `client_code_counters` | 4.4 |
 | `client_services` | 4.7 |
@@ -477,7 +476,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | `assessment_categories/sections/questions` | 5.2–5.5 |
 | `assessment_access_codes` | 5.7 5.8 5.10 |
 | `assessment_drafts` | 5.8 5.9b 5.10 |
-| `assessment_responses/answers/quadrant_scores` | 5.10 |
+| `assessment_responses/answers` | 5.10 |
 | `schedules` | 6.7–6.9 6.11–6.18 7.7 7.8 7.13 7.15 |
 | `schedule_series` | 6.8 |
 | `session_reports` | 6.10 6.12 |
@@ -503,7 +502,7 @@ Dikerjakan paling akhir (kemungkinan setelah go-live). Sinkron satu arah sesi �
 | M2 | hapus client/cabang hanya master, hapus role dipakai → 409, hapus cabang cascade (tidak ada baris yatim), master tak tersentuh |
 | M3 | master dipakai → 409, pilihan string terhapus bebas, UNIQUE libur |
 | M4 | kode client berurutan per grup, transisi otomatis hanya maju & manual bebas, hapus client cascade |
-| M5 | sekali isi, expiry (kode dengan draft boleh diselesaikan), gating bukti invoice assessment, skor kuadran server, consent wajib, **draft**: simpan otomatis/lanjutkan, konflik `version`, hapus saat submit, soal wajib belum terjawab → 422 `incomplete` |
+| M5 | sekali isi, expiry (kode dengan draft boleh diselesaikan), gating bukti invoice assessment, consent wajib, **draft**: simpan otomatis/lanjutkan, konflik `version`, hapus saat submit, soal wajib belum terjawab → 422 `incomplete` |
 | M6 | bentrok + `force`, libur dilewati, cancel `deduct_credit` wajib, revert 1x, bulk complete/cancel/revert sebagian dilewati, bulk reschedule atomik (satu gagal = tidak ada yang tersimpan) |
 | M7 | saldo = Σ ledger, approve tidak dobel, void keep/revoke, pengganti tanpa kredit dobel, hapus invoice lunas ditolak, konversi tanpa kekurangan, relink jadwal |
 | M8–M11 | scope cabang/terapis/ortu, view dengan filter cabang+tanggal, `EXPLAIN` Q1–Q23 pada ±50 ribu sesi |

@@ -213,3 +213,32 @@ describe("seed — credit leave per paket & dashboard", () => {
     therapists.forEach((t) => expect(schedules.some((s) => s.therapistId === t.id), `terapis ${t.id} punya sesi`).toBe(true));
   });
 });
+
+describe("seed — kuesioner: template hasil per section", () => {
+  test("kuesioner campuran TDL: section biasa + 7 section Toddler Sensory (54 soal)", () => {
+    const tdl = categories.find((c) => c.typeCode === "TDL");
+    expect(tdl).toBeTruthy();
+    const tpl = tdl.sections.filter((s) => s.template === "toddler_sensory");
+    const plain = tdl.sections.filter((s) => !s.template);
+    expect(tpl).toHaveLength(7);
+    expect(plain.length).toBeGreaterThanOrEqual(3);
+    expect(tpl.reduce((n, s) => n + s.questions.length, 0)).toBe(54);
+  });
+
+  test("template pada seed hanya nilai yang dikenal; id soal unik per kategori", () => {
+    categories.forEach((c) => {
+      const ids = c.sections.flatMap((s) => s.questions.map((q) => q.id));
+      expect(new Set(ids).size, `id soal unik ${c.id}`).toBe(ids.length);
+      c.sections.forEach((s) => {
+        if (s.template) expect(["school_companion", "toddler_sensory", "child_sensory"]).toContain(s.template);
+      });
+    });
+    expect(categories.find((c) => c.id === "cat-001").sections.every((s) => s.template === "child_sensory")).toBe(true);
+    expect(categories.find((c) => c.id === "cat-002").sections.every((s) => s.template === "school_companion")).toBe(true);
+  });
+});
+
+test("seed kuesioner tidak lagi memuat kuadran", () => {
+  expect(JSON.stringify(categories)).not.toMatch(/"quadrant"/);
+  expect(JSON.stringify(clients)).not.toMatch(/"quadrant"/);
+});

@@ -4,11 +4,12 @@ import { toast } from "sonner";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
-import { useMasterData } from "@/stores/masterDataStore";
 import { uid } from "@/shared/lib/id";
-import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionRequired, isTypeCodeTaken, isValidDocumentUrl, normalizeTypeCode } from "@/domain/assessment";import { useQuestionnaireCodeActions } from "@/features/inquiry";
+import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionRequired, isTypeCodeTaken, isValidDocumentUrl, normalizeTypeCode } from "@/domain/assessment";
+import { normalizeTemplate } from "@/domain/assessmentTemplate";
+import { useQuestionnaireCodeActions } from "@/features/inquiry";
 
-import { DEFAULT_QUESTION_OPTIONS, getQuadrantCounts, isOptionBasedType, makeQuestionDialog, makeSectionDialog, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
+import { DEFAULT_QUESTION_OPTIONS, isOptionBasedType, makeQuestionDialog, makeSectionDialog, normalizeQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
 import { AssessmentHero } from "@/features/assessment/components/masterData/AssessmentHero";
 import { AssessmentStats } from "@/features/assessment/components/masterData/AssessmentStats";
 import { CategorySwitcher } from "@/features/assessment/components/masterData/CategorySwitcher";
@@ -26,14 +27,12 @@ export default function AssessmentMasterData() {
   const { clients } = useClients();
   const codeActions = useQuestionnaireCodeActions();
   const { getActiveMasterPackages } = useCredits();
-  const { quadrants, quadrantMap } = useMasterData();
 
   // Active category selection tab
   const [selectedCatId, setSelectedCatId] = useState(() => categories[0]?.id || "cat-001");
 
   // Filtering & Search states
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedQuadrant, setSelectedQuadrant] = useState("ALL");
   const [selectedType, setSelectedType] = useState("ALL");
   const [selectedDomainId, setSelectedDomainId] = useState("ALL");
 
@@ -79,11 +78,6 @@ export default function AssessmentMasterData() {
     }, 0);
   }, [categories]);
 
-  // Calculate quadrant counts for active category
-  const activeQuadCounts = useMemo(() => {
-    return getQuadrantCounts(activeCategory, quadrants);
-  }, [activeCategory, quadrants]);
-
   const activeCategoryTotalQuestions = useMemo(() => {
     if (!activeCategory) return 0;
     if (activeCategory.sections && activeCategory.sections.length > 0) {
@@ -104,10 +98,6 @@ export default function AssessmentMasterData() {
           const matchText = (q.question || "").toLowerCase().includes(query);
           const matchItem = String(q.itemNo || "").includes(query);
           if (!matchText && !matchItem) return false;
-        }
-        // Quadrant filter
-        if (selectedQuadrant !== "ALL" && q.quadrant !== selectedQuadrant) {
-          return false;
         }
         // Type filter
         if (selectedType !== "ALL" && (q.type || "scale_0_5") !== selectedType) {
@@ -146,7 +136,7 @@ export default function AssessmentMasterData() {
         totalOriginalCount: activeCategory.questions?.length || 0,
       },
     ];
-  }, [activeCategory, searchQuery, selectedQuadrant, selectedType, selectedDomainId]);
+  }, [activeCategory, searchQuery, selectedType, selectedDomainId]);
 
   const totalFilteredQuestionsCount = useMemo(() => {
     return filteredSections.reduce((acc, s) => acc + (s.filteredQuestions?.length || 0), 0);
@@ -326,7 +316,6 @@ export default function AssessmentMasterData() {
         sectionId: secId,
         editingId: q.id,
         text: q.question || "",
-        quadrant: q.quadrant || "",
         type: normalizedType,
         options: parsedOpts,
         scaleMin: q.scaleMin !== undefined ? q.scaleMin : (normalizedType === "range" ? 1 : 0),
@@ -382,7 +371,6 @@ export default function AssessmentMasterData() {
 
     const payload = {
       question: text,
-      quadrant: qDialog.quadrant || null,
       type: qDialog.type || "scale_0_5",
       options: isOptionBased ? cleanOptions : [],
       scaleMin: qDialog.type === "range" ? (parseInt(qDialog.scaleMin, 10) || 1) : 0,
@@ -478,7 +466,7 @@ export default function AssessmentMasterData() {
     const category = categories.find((c) => c.id === secDialog.categoryId);
     if (!category) return;
 
-    const fields = { title, description: secDialog.description.trim(), documentUrl };
+    const fields = { title, description: secDialog.description.trim(), documentUrl, template: normalizeTemplate(secDialog.template) };
     let sections = category.sections || [];
     if (secDialog.editingSectionId) {
       // `leadText` lama digabung ke `description` (dibuang dari data section yang disimpan ulang)
@@ -562,7 +550,7 @@ export default function AssessmentMasterData() {
       <AssessmentHero openGenModal={openGenModal} setCatDialog={setCatDialog} />
 
       {/* 2. STATS & CLINICAL FRAMEWORK CARDS */}
-      <AssessmentStats activeCategory={activeCategory} categories={categories} quadrants={quadrants} totalDomainsOverall={totalDomainsOverall} totalQuestionsOverall={totalQuestionsOverall} />
+      <AssessmentStats activeCategory={activeCategory} categories={categories} totalDomainsOverall={totalDomainsOverall} totalQuestionsOverall={totalQuestionsOverall} />
 
       {/* 3. CATEGORY SWITCHER CARDS (SPACIOUS HORIZONTAL SELECTOR) */}
       <CategorySwitcher categories={categories} selectedCatId={selectedCatId} setSelectedCatId={setSelectedCatId} />
@@ -571,13 +559,13 @@ export default function AssessmentMasterData() {
       {activeCategory && (
         <div className="space-y-6">
           {/* Active Category Header Card */}
-          <CategoryHeaderCard activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} activeQuadCounts={activeQuadCounts} handleDeleteCategory={handleDeleteCategory} openGenModal={openGenModal} quadrants={quadrants} setCatDialog={setCatDialog} setSecDialog={setSecDialog} />
+          <CategoryHeaderCard activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} handleDeleteCategory={handleDeleteCategory} openGenModal={openGenModal} setCatDialog={setCatDialog} setSecDialog={setSecDialog} />
 
           {/* 5. SEARCH, FILTER & SECTION CONTROL TOOLBAR */}
-          <QuestionToolbar activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} areAllCollapsed={areAllCollapsed} areAllExpanded={areAllExpanded} collapseAllSections={collapseAllSections} expandAllSections={expandAllSections} quadrants={quadrants} searchQuery={searchQuery} selectedDomainId={selectedDomainId} selectedQuadrant={selectedQuadrant} selectedType={selectedType} setSearchQuery={setSearchQuery} setSelectedDomainId={setSelectedDomainId} setSelectedQuadrant={setSelectedQuadrant} setSelectedType={setSelectedType} />
+          <QuestionToolbar activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} areAllCollapsed={areAllCollapsed} areAllExpanded={areAllExpanded} collapseAllSections={collapseAllSections} expandAllSections={expandAllSections} searchQuery={searchQuery} selectedDomainId={selectedDomainId} selectedType={selectedType} setSearchQuery={setSearchQuery} setSelectedDomainId={setSelectedDomainId} setSelectedType={setSelectedType} />
 
           {/* 6. DOMAIN SECTIONS & QUESTIONS LIST (NO CRAMPED MAX-H-72 SCROLLBOX) */}
-          <SectionsList activeCategory={activeCategory} duplicateQuestion={duplicateQuestion} expandedSections={expandedSections} filteredSections={filteredSections} openAddQuestion={openAddQuestion} openEditQuestion={openEditQuestion} quadrantMap={quadrantMap} removeQuestion={removeQuestion} removeSection={removeSection} searchQuery={searchQuery} selectedQuadrant={selectedQuadrant} selectedType={selectedType} setSearchQuery={setSearchQuery} setSecDialog={setSecDialog} setSelectedQuadrant={setSelectedQuadrant} setSelectedType={setSelectedType} toggleSectionCollapse={toggleSectionCollapse} />
+          <SectionsList activeCategory={activeCategory} duplicateQuestion={duplicateQuestion} expandedSections={expandedSections} filteredSections={filteredSections} openAddQuestion={openAddQuestion} openEditQuestion={openEditQuestion} removeQuestion={removeQuestion} removeSection={removeSection} searchQuery={searchQuery} selectedType={selectedType} setSearchQuery={setSearchQuery} setSecDialog={setSecDialog} setSelectedType={setSelectedType} toggleSectionCollapse={toggleSectionCollapse} />
         </div>
       )}
 
@@ -594,7 +582,7 @@ export default function AssessmentMasterData() {
       {/* ========================================================================= */}
       {/* MODAL: TAMBAH / EDIT BUTIR SOAL                                           */}
       {/* ========================================================================= */}
-      <QuestionDialog addOptionToDialog={addOptionToDialog} applyOptionPreset={applyOptionPreset} qDialog={qDialog} quadrants={quadrants} removeOptionFromDialog={removeOptionFromDialog} saveQuestion={saveQuestion} setQDialog={setQDialog} updateOptionText={updateOptionText} />
+      <QuestionDialog addOptionToDialog={addOptionToDialog} applyOptionPreset={applyOptionPreset} qDialog={qDialog} removeOptionFromDialog={removeOptionFromDialog} saveQuestion={saveQuestion} setQDialog={setQDialog} updateOptionText={updateOptionText} />
 
       {/* ========================================================================= */}
       {/* MODAL: TAMBAH / EDIT DOMAIN & SEKSI KLINIS                                */}

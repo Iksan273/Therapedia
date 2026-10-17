@@ -47,10 +47,10 @@ Rujukan modul = `implementation_detail.md` §2. Estimasi harian ±; sisa/kelebih
 | Hari | Pekerjaan | Hari |
 |---|---|---|
 | Sen | Repo Laravel 12 baru (bukan `backend/` legacy), Sanctum, `.env` (`CACHE/SESSION=database`, `QUEUE=sync`, tanpa Redis), struktur `Actions/`, CI (lint + test), deploy otomatis ke env UAT (satu-satunya lingkungan; tanpa staging) + HTTPS. Mulai migration | 0,5 + 0,5 |
-| Sel | Migration lanjut: 37 tabel `schema.md` §09, FK CASCADE/RESTRICT/SET NULL §6.7, generated column WIB, CHECK, 6 view, `invoice_logs`, `package_conversions`. Seeder wajib: cabang, role, `access_modules`, `role_permissions` (dari `domain/rbac.js`), layanan, kuadran, alasan Cancel/Off (+KODE, flag Therapist Off), alasan discharge, paket (`leaveQuota`, `invoice_code`), akun master | 0,5 + 0,5 |
+| Sel | Migration lanjut: 37 tabel `schema.md` §09, FK CASCADE/RESTRICT/SET NULL §6.7, generated column WIB, CHECK, 6 view, `invoice_logs`, `package_conversions`. Seeder wajib: cabang, role, `access_modules`, `role_permissions` (dari `domain/rbac.js`), layanan, alasan Cancel/Off (+KODE, flag Therapist Off), alasan discharge, paket (`leaveQuota`, `invoice_code`), akun master | 0,5 + 0,5 |
 | Rab–Kam | Inti: trait `created_by/updated_by`, `BranchScope`, `PermissionService` + policy (akses modul; hapus client & cabang hanya `master`), optimistic lock (`version` → 409), format error + kode domain (§1.2, §17.3) cocok dengan `ApiError`, Resource camel/snake, pagination `page/per_page` (default 10) + keyset, pencarian prefix nama/ortu/kode | 1,25 |
 | Kam–Jum | Auth: login staf (throttle), password sementara + `must_change_password`, OTP email (sinkron, 5 percobaan, kedaluwarsa), reset oleh Master, login ortu (`client_code` + tgl lahir, throttle/lockout, pesan generik), logout, `me` | 0,75 |
-| Jum | Master & akses: user staf (nonaktif, 1 cabang), role + matriks RBAC, CRUD layanan/kuadran/alasan/paket | 1,0 |
+| Jum | Master & akses: user staf (nonaktif, 1 cabang), role + matriks RBAC, CRUD layanan/alasan/paket | 1,0 |
 | Jum 14.00 | Deploy ke env UAT, Postman collection M1–M3, catatan rilis ke klien | — |
 
 **Selesai bila:** login semua role di env UAT via API, master tersimpan di MySQL, kolom pelaku terisi, test backend M1–M3 hijau.
@@ -65,7 +65,7 @@ Rujukan modul = `implementation_detail.md` §2. Estimasi harian ±; sisa/kelebih
 | Sel–Rab | Client: CRUD, kode `AE-00001` dari `client_code_counters`, sinkron `client_services`, link GDrive (`client_documents`), pencarian prefix (Q5), list pipeline per cabang (Q4), cek duplikat, **hapus permanen cascade** (`DeleteClientAction`, file bukti dihapus sinkron) | 1,0 |
 | Rab | Status: transisi otomatis maju, manual ke tahap mana pun (hanya status terakhir, tanpa tabel riwayat), discontinue + `date_of_discontinue`, reaktivasi | 0,5 |
 | Kam | Mesin asesmen: kategori/section/soal (12 tipe incl. `birth_date`), 409 bila dipakai | 0,75 |
-| Jum | Kode kuesioner (`type_code` + acak, masa berlaku opsional, `invoice_required`), endpoint publik ambil form + submit (sekali isi, expiry, consent, skor kuadran server, throttle), daftar awaiting questionnaire + drop-off | 1,0 |
+| Jum | Kode kuesioner (`type_code` + acak, masa berlaku opsional, `invoice_required`), endpoint publik ambil form + submit (sekali isi, expiry, consent, throttle), daftar awaiting questionnaire + drop-off | 1,0 |
 | Jum | FE client dimulai (`clientsStore`, `useClientOutcomeActions`) | 0,5 |
 
 **Selesai bila:** login asli di UI untuk semua role; skenario intake → kode → ortu isi lolos di env UAT.

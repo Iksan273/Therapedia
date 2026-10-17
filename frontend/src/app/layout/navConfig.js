@@ -32,10 +32,10 @@ export const NAV_CONFIG = {
     items: [
       { to: "/master/revenue", label: "Revenue All-Branch", icon: TrendingUp, end: true, module: "revenue", testid: "nav-master-revenue" },
       { to: "/master/branch-performance", label: "Performa Inquiry All-Branch", icon: BarChart3, module: "branch_performance", testid: "nav-master-branch-performance" },
-      { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, module: INQUIRY_ANY, testid: "nav-master-inquiry-dashboard" },
+      { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, end: true, module: INQUIRY_ANY, testid: "nav-master-inquiry-dashboard" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, module: "inquiry_pipeline", testid: "nav-master-pipeline" },
       { to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, module: "assessment_master", testid: "nav-master-assessment-master" },
-      { to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, module: "inquiry_master_data", testid: "nav-master-inquiry-master-data" },
+      { to: "/admin-inquiry/master-data", label: "Master Layanan", icon: Database, module: "inquiry_master_data", testid: "nav-master-inquiry-master-data" },
       { to: "/admin-schedule", label: "Schedule Dashboard", icon: LayoutDashboard, end: true, module: "schedule_dashboard", testid: "nav-master-schedule-dashboard" },
       { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, module: "weekly_calendar", testid: "nav-master-calendar" },
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, module: "active_clients", testid: "nav-master-clients" },
@@ -54,7 +54,7 @@ export const NAV_CONFIG = {
     shortRole: "Operations Manager",
     items: [
       { to: "/manager/revenue", label: "Revenue Overview", icon: TrendingUp, end: true, module: "revenue", testid: "nav-manager-revenue" },
-      { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, module: INQUIRY_ANY, testid: "nav-manager-inquiry-dashboard" },
+      { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, end: true, module: INQUIRY_ANY, testid: "nav-manager-inquiry-dashboard" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, module: "inquiry_pipeline", testid: "nav-manager-pipeline" },
       { to: "/admin-schedule/calendar", label: "Weekly Calendar", icon: CalendarDays, module: "weekly_calendar", testid: "nav-manager-calendar" },
       { to: "/admin-schedule/clients", label: "Active Clients", icon: Users, module: "active_clients", testid: "nav-manager-clients" },
@@ -71,7 +71,7 @@ export const NAV_CONFIG = {
       { to: "/admin-inquiry", label: "Inquiry Dashboard", icon: LayoutDashboard, end: true, module: INQUIRY_ANY, testid: "nav-inquiry-dashboard" },
       { to: "/admin-inquiry/pipeline", label: "Inquiry Pipeline", icon: KanbanSquare, module: "inquiry_pipeline", testid: "nav-inquiry-pipeline" },
       { to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, module: "assessment_master", testid: "nav-assessment-master" },
-      { to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, module: "inquiry_master_data", testid: "nav-inquiry-master-data" },
+      { to: "/admin-inquiry/master-data", label: "Master Layanan", icon: Database, module: "inquiry_master_data", testid: "nav-inquiry-master-data" },
     ],
     extras: [ASSESSMENT_FILL],
   },
@@ -132,12 +132,18 @@ const CUSTOM_ROLE_ITEMS = [
   { module: "therapist_module", to: "/therapist/summary", label: "Summary & Laporan Sesi", icon: FileCheck2, testid: "nav-custom-therapist-summary" },
   { module: "branch_performance", to: "/master/branch-performance", label: "Performa Inquiry All-Branch", icon: BarChart3, testid: "nav-custom-branch-performance" },
   { module: "assessment_master", to: "/admin-inquiry/assessments", label: "Assessment Master Data", icon: ClipboardList, testid: "nav-custom-assessments" },
-  { module: "inquiry_master_data", to: "/admin-inquiry/master-data", label: "Master Layanan & Kuadran", icon: Database, testid: "nav-custom-inquiry-master-data" },
+  { module: "inquiry_master_data", to: "/admin-inquiry/master-data", label: "Master Layanan", icon: Database, testid: "nav-custom-inquiry-master-data" },
   { module: "unreported_reports", to: "/admin-schedule/unreported-reports", label: "Monitoring Laporan Sesi", icon: FileWarning, testid: "nav-custom-unreported" },
   { module: "holidays", to: "/admin-schedule/holidays", label: "Hari Libur", icon: CalendarOff, testid: "nav-custom-holidays" },
   { module: "therapist_utilization", to: "/admin-schedule/therapist-utilization", label: "Utilisasi Terapis", icon: Gauge, testid: "nav-custom-utilization" },
   { module: "therapist_module", to: "/therapist/team-calendar", label: "Kalender Tim Terapis", icon: UsersRound, testid: "nav-custom-team-calendar" },
 ];
+
+// Item menu yang `to`-nya adalah awalan dari `to` item lain di menu yang sama (mis. /admin-inquiry vs /admin-inquiry/pipeline)
+// WAJIB dicocokkan persis (`end`); kalau tidak, NavLink menganggap induknya aktif di semua sub-rute dan dua menu menyala sekaligus.
+// `end` eksplisit di konfigurasi tetap menang; selain itu diturunkan otomatis agar menu baru tidak mengulang bug ini.
+export const navItemEnd = (item, items = []) =>
+  item.end ?? items.some((other) => other !== item && other.to !== item.to && other.to.startsWith(`${item.to.replace(/\/$/, "")}/`));
 
 const itemAllowed = (item, hasPermission) => {
   if (!item.module) return true;

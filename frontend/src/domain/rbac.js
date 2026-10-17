@@ -7,7 +7,7 @@ export const ACCESS_MODULES = [
   { key: "inquiry_pipeline", label: "Inquiry Pipeline", desc: "Intake client baru & kanban pipeline", category: "Inquiry" },
   { key: "inquiry_dashboard", label: "Inquiry Dashboard", desc: "Ringkasan statistik & KPI inquiry", category: "Inquiry" },
   { key: "assessment_master", label: "Assessment Master Data", desc: "Mesin kuesioner: kategori, section, dan soal asesmen", category: "Inquiry" },
-  { key: "inquiry_master_data", label: "Master Layanan & Kuadran", desc: "Master layanan, kuadran sensori, alasan Cancel / Off (termasuk Therapist Off), dan alasan Discharge", category: "Inquiry" },
+  { key: "inquiry_master_data", label: "Master Layanan", desc: "Master layanan, alasan Cancel / Off (termasuk Therapist Off), dan alasan Discharge", category: "Inquiry" },
   { key: "weekly_calendar", label: "Weekly Calendar", desc: "Manajemen timetable mingguan & booking slot", category: "Scheduling" },
   { key: "schedule_dashboard", label: "Schedule Dashboard", desc: "Ringkasan statistik & KPI penjadwalan", category: "Scheduling" },
   { key: "active_clients", label: "Active Client", desc: "Roster client aktif & Birthday Hub", category: "Scheduling" },

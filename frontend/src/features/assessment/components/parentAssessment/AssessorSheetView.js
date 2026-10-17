@@ -1,7 +1,6 @@
 import React from "react";
-import { cn } from "@/shared/lib/utils";
 
-export function AssessorSheetView({ displayedSections, quadStyle }) {
+export function AssessorSheetView({ displayedSections }) {
   return (
     <div className="space-y-6">
             {displayedSections.map((sec) => (
@@ -16,11 +15,10 @@ export function AssessorSheetView({ displayedSections, quadStyle }) {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse min-w-[540px] sm:min-w-0">
+                  <table className="w-full text-xs text-left border-collapse min-w-[480px] sm:min-w-0">
                     <thead>
                       <tr className="bg-emerald-100/70 border-b border-emerald-300 font-bold text-slate-800 text-[11px]">
-                        <th className="py-2 px-2 sm:px-3 text-center w-14 sm:w-16">Kuadran</th>
-                        <th className="py-2 px-1 sm:px-3 text-center w-10 sm:w-12 border-l border-emerald-200">Item</th>
+                        <th className="py-2 px-1 sm:px-3 text-center w-10 sm:w-12">Item</th>
                         <th className="py-2 px-2 sm:px-4 border-l border-emerald-200 min-w-[220px] sm:min-w-0">
                           <span className="whitespace-pre-line font-semibold">{sec.description}</span>
                         </th>
@@ -31,15 +29,9 @@ export function AssessorSheetView({ displayedSections, quadStyle }) {
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {sec.items.map((it) => {
-                        const quad = quadStyle(it.quadrant);
                         return (
                           <tr key={it.itemNo} className="hover:bg-slate-50/70 transition-colors print-avoid-break">
-                            <td className="py-2 px-2 sm:px-3 text-center">
-                              <span className={cn("inline-block px-1.5 sm:px-2 py-0.5 rounded text-[11px]", quad.badge)}>
-                                {it.quadrant || "—"}
-                              </span>
-                            </td>
-                            <td className="py-2 px-1 sm:px-3 text-center font-bold text-slate-700 border-l border-slate-200">
+                            <td className="py-2 px-1 sm:px-3 text-center font-bold text-slate-700">
                               {it.itemNo}
                             </td>
                             <td className="py-2 px-2 sm:px-4 text-slate-800 leading-snug border-l border-slate-200 font-medium">
@@ -54,7 +46,7 @@ export function AssessorSheetView({ displayedSections, quadStyle }) {
 
                       {/* SUB-TOTAL ROW PER DOMAIN (Matching Image 1: Skor Mentah AUDITORI: 21) */}
                       <tr className="bg-emerald-100/80 font-black border-t-2 border-emerald-600 text-emerald-950">
-                        <td colSpan={3} className="py-2 px-3 sm:px-4 text-right uppercase tracking-wider text-xs">
+                        <td colSpan={2} className="py-2 px-3 sm:px-4 text-right uppercase tracking-wider text-xs">
                           Skor Mentah {sec.domain}
                         </td>
                         <td className="py-2 px-2 sm:px-4 text-center text-sm sm:text-base text-blue-800 font-black border-l border-emerald-300 bg-blue-100/50">

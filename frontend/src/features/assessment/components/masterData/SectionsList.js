@@ -1,11 +1,11 @@
 import { IfCanDelete } from "@/shared/components/DeleteControls";
 import React from "react";
-import { ChevronDown, ChevronUp, Copy, FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, FileText, Pencil, Plus, Table2, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { getQuadrantColor } from "@/stores/masterDataStore";
 import { getQuestionTypeInfo, isOptionBasedType, makeSectionDialog } from "@/features/assessment/components/masterData/assessmentConfig";
 import { sectionDescription } from "@/features/assessment/components/fill/fillSections";
 import { isQuestionRequired } from "@/domain/assessment";
+import { getSectionTemplate, normalizeTemplate } from "@/domain/assessmentTemplate";
 import { cn } from "@/shared/lib/utils";
 
 // Pratinjau singkat tipe isian bebas di daftar soal master data
@@ -17,7 +17,7 @@ const PLACEHOLDER_PREVIEW = {
   time: "[Pilih waktu / jam]",
 };
 
-export function SectionsList({ activeCategory, duplicateQuestion, expandedSections, filteredSections, openAddQuestion, openEditQuestion, quadrantMap, removeQuestion, removeSection, searchQuery, selectedQuadrant, selectedType, setSearchQuery, setSecDialog, setSelectedQuadrant, setSelectedType, toggleSectionCollapse }) {
+export function SectionsList({ activeCategory, duplicateQuestion, expandedSections, filteredSections, openAddQuestion, openEditQuestion, removeQuestion, removeSection, searchQuery, selectedType, setSearchQuery, setSecDialog, setSelectedType, toggleSectionCollapse }) {
   return (
     <div className="space-y-6">
             {filteredSections.map((sec, sIdx) => {
@@ -57,6 +57,11 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                             <p className="text-xs text-slate-500 font-medium mt-1 leading-normal break-words whitespace-pre-line line-clamp-3" data-testid={`section-description-${sec.sectionId}`}>
                               {sectionDescription(sec)}
                             </p>
+                          )}
+                          {getSectionTemplate(sec) && (
+                            <span className="inline-flex items-center gap-1 mt-1.5 mr-1.5 px-2 py-0.5 rounded-md bg-violet-50 text-violet-800 border border-violet-200 text-[11px] font-bold" data-testid={`section-template-badge-${sec.sectionId}`}>
+                              <Table2 className="w-3 h-3" /> Tabel psikologi: {getSectionTemplate(sec).label}
+                            </span>
                           )}
                           {sec.documentUrl && (
                             <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold" data-testid={`section-document-badge-${sec.sectionId}`}>
@@ -102,6 +107,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                   title: sec.title,
                                   description: sectionDescription(sec),
                                   documentUrl: sec.documentUrl || "",
+                                  template: normalizeTemplate(sec.template) || "",
                                 })
                               )
                             }
@@ -133,18 +139,17 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                       {visibleQuestions.length === 0 ? (
                         <div className="p-8 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 space-y-2">
                           <p className="text-xs text-slate-500 font-medium">
-                            {searchQuery || selectedQuadrant !== "ALL" || selectedType !== "ALL"
+                            {searchQuery || selectedType !== "ALL"
                               ? "Tidak ada butir pertanyaan yang sesuai dengan kriteria pencarian/filter di atas."
                               : "Belum ada pertanyaan pada domain ini. Klik tombol '+ Tambah Soal' untuk menambahkan butir pertama."}
                           </p>
-                          {(searchQuery || selectedQuadrant !== "ALL" || selectedType !== "ALL") && (
+                          {(searchQuery || selectedType !== "ALL") && (
                             <Button
                               size="sm"
                               variant="outline"
                               className="font-bold"
                               onClick={() => {
                                 setSearchQuery("");
-                                setSelectedQuadrant("ALL");
                                 setSelectedType("ALL");
                               }}
                             >
@@ -154,13 +159,6 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                         </div>
                       ) : (
                         visibleQuestions.map((q, qIdx) => {
-                          const quad = q.quadrant || null;
-                          const qMaster = quad ? quadrantMap[quad] : null;
-                          const qConfig = {
-                            badge: getQuadrantColor(qMaster?.color).badge,
-                            title: qMaster?.title || quad,
-                            desc: qMaster?.description || "",
-                          };
                           const typeInfo = getQuestionTypeInfo(q.type);
 
                           return (
@@ -177,14 +175,6 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
 
                                   <div className="space-y-1.5 flex-1 min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
-                                      {quad && (
-                                        <span
-                                          className={cn("px-2 py-0.5 rounded-md text-[11px] border shadow-2xs", qConfig.badge)}
-                                          title={qConfig.desc}
-                                        >
-                                          {quad} • {qConfig.title}
-                                        </span>
-                                      )}
                                       <span
                                         className={cn("px-2 py-0.5 rounded-md text-[11px] border", typeInfo.badge)}
                                         title={typeInfo.desc}

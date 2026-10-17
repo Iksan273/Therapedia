@@ -5,8 +5,8 @@ export function DocumentHeader({ activeAssessment, ageDetail, branch, client, is
   return (
     <div className="border-b-2 border-emerald-600 pb-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl font-black text-emerald-700 tracking-tight break-words">
                 {activeAssessment?.categoryName || masterCategory?.categoryName || (isSchoolCompanion ? "School Companion Profile" : "Child Sensory Profile 2")}
               </h1>
               <p className="text-sm font-bold text-slate-600 mt-1">
@@ -60,19 +60,19 @@ export function DocumentHeader({ activeAssessment, ageDetail, branch, client, is
 
           {/* TOP LEFT: DEMOGRAFI ANAK & PEMERIKSA (Matching Image 1) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs border border-emerald-600 rounded-lg p-3 bg-emerald-50/40">
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
+            <div className="grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] items-center gap-1">
               <span className="font-bold text-emerald-950">Nama Anak</span>
-              <span className="font-bold text-slate-900">: {client.clientName}</span>
+              <span className="font-bold text-slate-900 break-words">: {client.clientName}</span>
             </div>
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
+            <div className="grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] items-center gap-1">
               <span className="font-bold text-emerald-950">Jenis Kelamin</span>
               <span className="font-semibold text-slate-800">: {client.gender || "Laki-laki"}</span>
             </div>
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
+            <div className="grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] items-center gap-1">
               <span className="font-bold text-emerald-950">Nama Orang Tua</span>
-              <span className="font-semibold text-slate-800">: {client.parentName} ({client.parentContact})</span>
+              <span className="font-semibold text-slate-800 break-words">: {client.parentName} ({client.parentContact})</span>
             </div>
-            <div className="grid grid-cols-[120px_1fr] items-center gap-1">
+            <div className="grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] items-center gap-1">
               <span className="font-bold text-emerald-950">Nama OTs / Assessor</span>
               <span className="font-semibold text-slate-800">: Dr. Maya Chen, S.Tr.Kes (Lead OT)</span>
             </div>

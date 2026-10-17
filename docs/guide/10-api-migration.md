@@ -21,7 +21,7 @@ snake_case di kabel, camelCase di frontend; konversi otomatis hanya di `services
 1. Halaman tidak berubah saat pindah ke API: **interface store & hook use-case tetap**, implementasi di dalamnya yang diganti (skill `react-architecture` §3).
 2. Aksi lintas tabel = **satu endpoint transaksional** (complete, cancel, verify, transition). Frontend tidak merangkai beberapa request.
 3. Kirim `version` untuk entity ber-optimistic-lock (`clients`, `schedules`, `invoices`, `client_packages`, `session_reports`) → 409 ditangani `ApiError.isConflict`.
-4. Data turunan (saldo, frozen, skor kuadran, KPI) dihitung/diambil dari backend; jangan disimpan di frontend.
+4. Data turunan (saldo, frozen, skor mentah, KPI) dihitung/diambil dari backend; jangan disimpan di frontend.
 5. **Tidak ada audit log** (ADR 0004). Semua modul memakai `created_by`/`updated_by`; log khusus hanya `credit_ledger`, `invoice_logs`, `package_conversions`.
 
 ## Mapping use-case → endpoint
@@ -42,7 +42,7 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | generate kode kuesioner (+ masa berlaku opsional) | `POST clients.assessmentCodes(id)` | `assessment_access_codes` | — |
 | buka kuesioner (publik; cek sekali isi, expiry — kode ber-draft boleh diselesaikan, bukti invoice assessment) *(baru)*; respons membawa draft | `GET publicAssessment.byCode(code)` | `assessment_access_codes`, `invoices`, `assessment_drafts` | — |
 | simpan otomatis kuesioner (patch jawaban `{questionId: nilai\|null}`, `last_section_id`, `consent`, `version`; 409 `version_conflict`) *(baru, R31)* | `PUT publicAssessment.draft(code)` | `assessment_drafts` | — |
-| submit kuesioner (publik, consent wajib; 422 `incomplete`; draft dihapus di transaksi yang sama) | `POST publicAssessment.submit(code)` | `assessment_responses/answers/quadrant_scores`, `assessment_drafts` (D) | — |
+| submit kuesioner (publik, consent wajib; 422 `incomplete`; draft dihapus di transaksi yang sama) | `POST publicAssessment.submit(code)` | `assessment_responses/answers`, `assessment_drafts` (D) | — |
 | CRUD kategori/section/soal | `assessmentCategories.*` | `assessment_categories/sections/questions` | — |
 | `cancelSession` (Cancel / Off = SATU aksi; alasan dari satu daftar `cancel_reasons`; `deduct_credit` wajib; potong = credit leave paket dulu, habis baru kredit sesi) | `POST schedules.cancel` | `schedules`, `credit_ledger` (`cancel_leave`/`cancel_penalty`/`cancel_excused`), `client_packages` (`leave_used`, `cancel_count`), `clients.leave_credit_balance` | `credit_ledger` |
 | `cancelForLeave` (pembatalan karena cuti Finance: `leave_id`, ledger `off_*`, tanpa cancel_count; hanya dipanggil di transaksi `createLeave`) | (bagian dari `POST leaves.list`) | `schedules`, `credit_ledger` (`off_*`) | `credit_ledger` |
@@ -87,7 +87,7 @@ Kolom Jejak: log khusus selain kolom pelaku `created_by`/`updated_by` (tidak ada
 | riwayat kredit | `GET creditLedger` (keyset) | `credit_ledger` | — |
 | export laporan harian (portal ortu) *(baru)* | `GET portalClient.reportExport(scheduleId)` | `session_reports` | — |
 | `addMasterPackage` (+ `invoice_code`) | `master.packages` | `master_packages` | — |
-| layanan / kuadran | `master.services` / `master.quadrants` | `services` / `sensory_quadrants` | — |
+| layanan | `master.services` | `services` | — |
 | `branchesStore` (`addBranch` / `updateBranch` / `setBranchActive` / `deleteBranch`) *(baru)* | `POST branches.list` / `PUT branches.detail(id)` / `PATCH branches.setActive(id)` / `DELETE branches.detail(id)` | `branches` (+ cascade seluruh isi cabang) | `updated_by` |
 | `branchesStore` (`addBankAccount` / `updateBankAccount` / `setBankAccountActive` / `removeBankAccount`) *(baru)* | `POST branches.bankAccounts(id)` / `PATCH branches.bankAccount(id, accountId)` / `PATCH branches.bankAccountActive(id, accountId)` / `DELETE branches.bankAccount(id, accountId)`; daftar dibaca dari `GET /branches` (`bankAccounts[]`) | `branch_bank_accounts` | `created_by`, `updated_by` |
 | `addStaffUser` / nonaktifkan staf | `users.*` | `users` | — |
@@ -103,7 +103,7 @@ Gap antara prototype dan schema v1 sudah diselesaikan (detail `schema.md` §08.2
 - Alasan cancel/pending/discharge = **string bebas** di `schedules.cancel_reason`, `pending_reason`, `clients.discharge_reason`, `credit_ledger.cancel_reason` (kode pilihan cepat atau teks custom, maks 150 karakter, tanpa FK). Tabel `cancel_reasons`/`discharge_reasons` hanya sumber dropdown. Kuota cancel 3 **per paket** (`client_packages.cancel_count`) hanya penghitung; admin memilih potong kredit atau tidak di tiap cancel (`deduct_credit`).
 - Laporan sesi → `session_reports` (3 bagian prototype).
 - Riwayat kredit → `credit_ledger` append-only (+ `reversal`).
-- Master layanan & kuadran → `services`, `sensory_quadrants`. Pilihan cepat alasan → `cancel_reasons` (Cancel / Off dan Therapist Off, dibedakan `is_therapist_off`), `discharge_reasons`.
+- Master layanan → `services`. Pilihan cepat alasan → `cancel_reasons` (Cancel / Off dan Therapist Off, dibedakan `is_therapist_off`), `discharge_reasons`.
 - **Cancellation Rate / Therapist Off Rate** (Schedule Dashboard): `v_daily_sessions.sessions_cancel_counted` dan `sessions_cancel_therapist_off` dibagi `sessions_total`; Therapist Off adalah bagian dari rate keseluruhan.
 - Keputusan klien 3 Okt 2026 (kode client `AE-00001`, kuesioner sekali isi + masa berlaku opsional, invoice paket/assessment, revert 1x, hapus client/cabang hanya master, hari libur, OTP lupa password, tanpa audit log: jejak = kolom pelaku + log khusus): lihat [12-keputusan-klien.md](12-keputusan-klien.md).
 
@@ -152,15 +152,15 @@ Hapus cabang permanen: server membalas 501 sampai Sprint 4; halaman menjelaskan 
 Aktif bila `VITE_DATA_SOURCE=api`. Mode demo tetap memakai localStorage; implementasi dipilih per build (`isApiMode()`), jadi halaman sama. Kontrak endpoint: `implementation_detail.md` §5.
 | Bagian | Implementasi |
 |---|---|
-| Endpoint | `ENDPOINTS.master.{services,quadrants,cancelReasons,dischargeReasons,packages}` (`list`/`detail`, paket + `setActive`) dan `ENDPOINTS.holidays` |
-| Mapper | `services/api/mappers/masterDataMapper.js`: layanan/alasan memakai kunci `value` + `active` (= `code`/`is_active` server), kuadran kunci `code`, paket `id` = kode internal server (`pkg-reguler`, cocok dengan `packageId` di data kredit) dan id angka di `serverId`, libur `date`/`branchId` string. Request hanya memuat field yang diisi (patch parsial aman) |
-| Store | `masterDataStore` (layanan, kuadran, alasan Cancel/Off, alasan Discharge; react-query `["master", …]`), `holidaysStore` (`["holidays"]`, `createHolidayRange`), master paket di `creditsStore` (`useMasterPackages`, `["master","packages"]`; sisa data kredit/invoice masih localStorage sampai Finance) |
+| Endpoint | `ENDPOINTS.master.{services,cancelReasons,dischargeReasons,packages}` (`list`/`detail`, paket + `setActive`) dan `ENDPOINTS.holidays` |
+| Mapper | `services/api/mappers/masterDataMapper.js`: layanan/alasan memakai kunci `value` + `active` (= `code`/`is_active` server), paket `id` = kode internal server (`pkg-reguler`, cocok dengan `packageId` di data kredit) dan id angka di `serverId`, libur `date`/`branchId` string. Request hanya memuat field yang diisi (patch parsial aman) |
+| Store | `masterDataStore` (layanan, alasan Cancel/Off, alasan Discharge; react-query `["master", …]`), `holidaysStore` (`["holidays"]`, `createHolidayRange`), master paket di `creditsStore` (`useMasterPackages`, `["master","packages"]`; sisa data kredit/invoice masih localStorage sampai Finance) |
 | Aksi tulis | Mode API mengembalikan Promise dan melempar `ApiError`; halaman `await` + `try/catch` dengan `apiErrorText` (422 kode ganda, 409 `in_use`, 403 libur cabang lain). Mode demo sinkron |
 | Hook | `useHolidayActions`: mode API mengirim libur sekali (satu tanggal atau rentang), tanpa pratinjau/konfirmasi pembatalan, hasil `{ cancelled: 0, affected }` |
 | Halaman | `InquiryMasterData` + `ReasonListTab`, `Holidays`, `FinancePortal` + `PackagesTab` (saklar aktif + hapus paket) |
 | Paket aktif | `getActiveMasterPackages()` untuk pilihan di form invoice, renewal, asesmen, dan konversi; paket nonaktif tetap terbaca lewat `getMasterPackages()` |
-Aturan yang berubah (13–14 Okt): kuadran yang belum dipakai boleh dihapus semua (tidak ada batas minimal, demo ikut). Hapus paket di demo hanya bila belum dipakai invoice/paket client (`masterPackageUsage`, `domain/credit.js`).
-Batasan sementara: (1) libur di mode API **tidak** membatalkan sesi (Sprint 2); toast menyebut jumlah sesi terjadwal yang terdampak. (2) Pemakaian layanan/kuadran di halaman Master Data memakai **angka asli dari server** di mode API (`GET /master/services` memuat `client_count` + `schedule_count`, `GET /master/quadrants` memuat `question_count` + `score_count`; dihitung lintas cabang). Selama kuesioner belum dimigrasi (M5) jumlah soal di database masih 0, jadi badge "N soal" kuadran baru akurat setelah M5; mode demo tetap menghitung dari store lokal. (3) Paket baru dari server belum dikenali reducer kredit lokal (renewal/aktivasi paket) sampai Finance dimigrasi (Sprint 2).
+Aturan yang berubah (13–14 Okt): hapus paket di demo hanya bila belum dipakai invoice/paket client (`masterPackageUsage`, `domain/credit.js`).
+Batasan sementara: (1) libur di mode API **tidak** membatalkan sesi (Sprint 2); toast menyebut jumlah sesi terjadwal yang terdampak. (2) Pemakaian layanan di halaman Master Data memakai **angka asli dari server** di mode API (`GET /master/services` memuat `client_count` + `schedule_count`; dihitung lintas cabang). Mode demo menghitung dari store lokal. (3) Paket baru dari server belum dikenali reducer kredit lokal (renewal/aktivasi paket) sampai Finance dimigrasi (Sprint 2).
 
 **Batasan sementara (modul lain masih localStorage):** halaman selain auth belum membaca data dari API sampai modulnya dimigrasi (sprint 1 hari 6+). Akibatnya setelah login API: `branchId` berupa id numerik server (belum cocok dengan id cabang demo), portal ortu/terapis belum menemukan datanya, dan halaman User/RBAC masih memakai data lokal sampai M2 dimigrasi.
 
@@ -194,7 +194,8 @@ Endpoint aktif: `GET /clients` (filter `status[]`, `q`, `service_code`, `credit_
 Mode demo sudah memakai bentuk baru; backend & mode API menyusul di M5 (controller/`AssessmentService` masih kerangka, `assessmentsStore` masih lokal). Kontrak untuk M5:
 - `assessment_sections`: **`lead_text` → `description`** (TEXT NULL; migration rename + lebarkan) dan kolom baru **`document_url`** (VARCHAR(500) NULL). JSON: `description`, `documentUrl`. Validasi `document_url`: `url` https dengan host `docs.google.com` / `drive.google.com` (selaras `toDocumentEmbedUrl`).
 - `assessment_questions.is_required` (sudah ada, default 1) dipakai sebagai `required` di JSON; soal opsional boleh tidak dijawab saat `POST /public/assessments/{code}/responses` (validasi soal wajib saja; jawaban opsional kosong tidak disimpan / tidak dihitung skor).
-- `POST /assessment-categories/{id}/sections` & `PATCH /assessment-sections/{id}` menerima `title, description, document_url, sort_order`; soal menerima `required`.
+- `POST /assessment-categories/{id}/sections` & `PATCH /assessment-sections/{id}` menerima `title, description, document_url, result_template, sort_order`; soal menerima `required`.
+- **Template hasil per section (17 Okt 2026)**: `assessment_sections.result_template` ENUM NULL (`school_companion` | `toddler_sensory` | `child_sensory`; NULL = form biasa), JSON `resultTemplate` (frontend `section.template`). Validasi: nilai di luar enum → 422. Hasil asesmen = skor mentah per section ber-template, dihitung dari `assessment_answers.score` (urut `sort_order` section); **tanpa kuadran dan tanpa klasifikasi** (master/API/tabel kuadran dihapus, migration `2026_10_17_000200_drop_quadrant_structures`). Respons hasil membawa `section_id` per jawaban lewat `question_id → section_id`. Kuesioner boleh campuran section biasa + ber-template; frontend menampilkan dua kartu terpisah (Hasil Form, Hasil Profil).
 - **Dokumen PDF section (rencana, ADR 0007)**: mode demo memakai path statis `/documents/nama.pdf` (`frontend/public/documents/`, `isLocalPdfUrl`) yang dirender `PdfViewer` (pdf.js). Mode API: admin mengunggah PDF per section (`POST /assessment-sections/{id}/document`, multipart), disimpan di **storage privat** server dan path-nya masuk kolom `assessment_sections.document_path` (+ `document_name`, `document_size`); `document_url` (link Google) dan file saling eksklusif. JSON section menambah `documentFile: { name, size } | null`; frontend memuat PDF dari endpoint stream ber-otorisasi (staf: `/assessment-sections/{id}/document`; ortu: `/questionnaires/{code}/sections/{sectionId}/document`), bukan dari path publik. `PdfViewer` perlu menerima URL endpoint (same-origin, tanpa `/documents/` statis) saat migrasi. Detail final dibahas di M5.
 - Tidak ada tipe soal baru (`question_type` tetap 12 nilai): kesepakatan = section ber-`document_url` + soal `multiple_choice` satu opsi.
 - Yang perlu dibuat saat M5: migration, model/FormRequest/Resource, `endpoints.js` (sections/questions), `mappers/assessmentMapper.js` + test, provider API `assessmentsStore` (pola `branchesStore`).

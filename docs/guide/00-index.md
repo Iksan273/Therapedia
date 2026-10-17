@@ -37,7 +37,7 @@ Docs **merujuk** ke file sumber (path + nama fungsi), tidak menyalin kode. Bila 
 | 01 | [01-architecture.md](01-architecture.md) | Lapisan & aturan dependensi, struktur folder, boot, provider, persistence, seed, build/test/lint |
 | 02 | [02-roles-routing-rbac.md](02-roles-routing-rbac.md) | 7 role, `routes.js`, guard `RequireAccess`/`RequireModule`, `navConfig`, RBAC, scoping cabang |
 | 03 | [03-data-model.md](03-data-model.md) | Shape entity, modul domain & konstanta, mapping ke `schema.md` v2 |
-| 04 | [04-flow-inquiry-assessment.md](04-flow-inquiry-assessment.md) | Intake → pipeline → kuesioner → hasil kuadran → outcome |
+| 04 | [04-flow-inquiry-assessment.md](04-flow-inquiry-assessment.md) | Intake → pipeline → kuesioner → hasil skor mentah → outcome |
 | 05 | [05-flow-schedule-credit.md](05-flow-schedule-credit.md) | Weekly calendar, recurring, conflict, `useSessionActions`, aturan kredit |
 | 06 | [06-flow-finance.md](06-flow-finance.md) | Master paket, invoice, upload & verifikasi bukti, renewal |
 | 07 | [07-flow-portals-dashboards.md](07-flow-portals-dashboards.md) | Portal terapis, portal ortu, dashboard, user management, RBAC UI |

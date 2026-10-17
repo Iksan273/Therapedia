@@ -17,7 +17,7 @@ export function useAssessmentFillActions() {
     saveDraft({ code, clientId, answers, validQuestionIds, lastSectionId, consentAt });
   };
 
-  // Kirim final (sekali isi). `questions` = daftar soal ter-render (id, itemNo, quadrant, domain, question, type).
+  // Kirim final (sekali isi). `questions` = daftar soal ter-render (id, itemNo, domain, question, type).
   const submit = ({ client, category, code, questions, answers, consentAt }) => {
     const usedCode = String(code || "").trim().toUpperCase();
     const submittedAt = nowIso();
@@ -30,7 +30,9 @@ export function useAssessmentFillActions() {
       return {
         questionId: q.id,
         itemNo: q.itemNo,
-        quadrant: q.quadrant,
+        // Snapshot section + template: hasil dipetakan lewat id section, bukan judul
+        sectionId: q.sectionId || null,
+        template: q.template || null,
         domain: q.domain || "Umum",
         question: q.question,
         // Soal opsional boleh kosong: jawaban "" (bukan "undefined"), tanpa skor

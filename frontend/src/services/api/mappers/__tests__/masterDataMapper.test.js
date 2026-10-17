@@ -3,8 +3,6 @@ import {
   holidayToApi,
   packageFromApi,
   packageToApi,
-  quadrantFromApi,
-  quadrantToApi,
   reasonFromApi,
   reasonToApi,
   serviceFromApi,
@@ -20,23 +18,10 @@ test("layanan: code → value, isActive → active; code hanya dikirim saat tamb
   expect(serviceToApi({ label: "OT", category: "Terapi" })).not.toHaveProperty("isActive");
 });
 
-test("pemakaian: layanan tidak membawa hitungan (dicek server saat hapus); kuadran hanya jumlah soal untuk badge", () => {
+test("pemakaian: layanan tidak membawa hitungan (dicek server saat hapus)", () => {
   const service = serviceFromApi({ code: "ot", label: "OT", category: "T", isActive: true, clientCount: 2, scheduleCount: 5 });
   expect(service).not.toHaveProperty("usageCount"); // server tidak mengirim hitungan; field lama pun diabaikan
 
-  expect(quadrantFromApi({ code: "AV", title: "A", questionCount: 12 })).toMatchObject({ questionCount: 12, usageCount: 12 });
-  expect(quadrantFromApi({ code: "AV", title: "A" })).not.toHaveProperty("questionCount");
-});
-
-test("kuadran: kunci tetap code, fullName jatuh ke title", () => {
-  expect(quadrantFromApi({ code: "AV", title: "Avoiding", fullName: null, description: null, color: "blue", sortOrder: 1 })).toMatchObject({
-    code: "AV",
-    fullName: "Avoiding",
-    description: "",
-    color: "blue",
-  });
-  expect(quadrantToApi({ code: "AV", title: "A", fullName: "Aa", description: "d", color: "blue" })).not.toHaveProperty("code");
-  expect(quadrantToApi({ code: "AV", title: "A", fullName: "Aa", color: "blue" }, { create: true }).code).toBe("AV");
 });
 
 test("alasan: isTherapistOff → therapistOff; penanda hanya dikirim untuk alasan Cancel/Off", () => {

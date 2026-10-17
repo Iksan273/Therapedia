@@ -52,10 +52,9 @@ export const ENDPOINTS = {
     list: "/assessment-categories",
     detail: (id) => `/assessment-categories/${id}`,
   },
-  // Master data kecil (M3). Kunci layanan/kuadran/alasan = `code`; paket = id server.
+  // Master data kecil (M3). Kunci layanan/alasan = `code`; paket = id server.
   master: {
     services: { list: "/master/services", detail: (code) => `/master/services/${code}` },
-    quadrants: { list: "/master/quadrants", detail: (code) => `/master/quadrants/${code}` },
     cancelReasons: { list: "/master/cancel-reasons", detail: (code) => `/master/cancel-reasons/${code}` },
     dischargeReasons: { list: "/master/discharge-reasons", detail: (code) => `/master/discharge-reasons/${code}` },
     packages: { list: "/master/packages", detail: (id) => `/master/packages/${id}`, setActive: (id) => `/master/packages/${id}/active` },

@@ -87,7 +87,7 @@ test("halaman pipeline hanya memanggil papan, cabang, dan layanan master", async
   expect(apiMock.list).not.toHaveBeenCalled(); // tanpa cache 50 client
 });
 
-test("halaman detail client tidak mengambil terapis, hari libur, kuadran, alasan cancel/discharge, atau daftar client", async () => {
+test("halaman detail client tidak mengambil terapis, hari libur, alasan cancel/discharge, atau daftar client", async () => {
   await mount(
     <MemoryRouter initialEntries={["/admin-inquiry/pipeline/5"]}>
       <Routes>
@@ -99,7 +99,7 @@ test("halaman detail client tidak mengambil terapis, hari libur, kuadran, alasan
 
   const urls = new Set(fetched());
   expect(urls.has("/clients/5")).toBe(true);
-  for (const unwanted of ["/therapists", "/holidays", "/master/quadrants", "/master/cancel-reasons", "/master/discharge-reasons"]) {
+  for (const unwanted of ["/therapists", "/holidays", "/master/cancel-reasons", "/master/discharge-reasons"]) {
     expect(urls.has(unwanted), `${unwanted} tidak boleh dipanggil`).toBe(false);
   }
   expect(apiMock.list).not.toHaveBeenCalled();
@@ -122,7 +122,7 @@ test("daftar baru diambil saat dibaca: alasan discharge, terapis, hari libur, cl
   for (const wanted of ["/master/discharge-reasons", "/therapists", "/holidays", "/clients"]) {
     expect(urls.has(wanted), `${wanted} harus dipanggil saat dibaca`).toBe(true);
   }
-  for (const unwanted of ["/master/quadrants", "/master/cancel-reasons", "/master/services", "/master/packages"]) {
+  for (const unwanted of ["/master/cancel-reasons", "/master/services", "/master/packages"]) {
     expect(urls.has(unwanted), `${unwanted} tidak dibaca, tidak boleh dipanggil`).toBe(false);
   }
 });

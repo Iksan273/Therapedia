@@ -21,7 +21,7 @@ class RbacSeeder extends Seeder
         'inquiry_pipeline' => ['Inquiry Pipeline', 'Inquiry', 'Intake client baru & kanban pipeline'],
         'inquiry_dashboard' => ['Inquiry Dashboard', 'Inquiry', 'Ringkasan statistik & KPI inquiry'],
         'assessment_master' => ['Assessment Master Data', 'Inquiry', 'Mesin kuesioner: kategori, section, dan soal asesmen'],
-        'inquiry_master_data' => ['Master Layanan & Kuadran', 'Inquiry', 'Master layanan, kuadran sensori, alasan Cancel / Off (termasuk Therapist Off), dan alasan Discharge'],
+        'inquiry_master_data' => ['Master Layanan', 'Inquiry', 'Master layanan, alasan Cancel / Off (termasuk Therapist Off), dan alasan Discharge'],
         'weekly_calendar' => ['Weekly Calendar', 'Scheduling', 'Manajemen timetable mingguan & booking slot'],
         'schedule_dashboard' => ['Schedule Dashboard', 'Scheduling', 'Ringkasan statistik & KPI penjadwalan'],
         'active_clients' => ['Active Client', 'Scheduling', 'Roster client aktif & Birthday Hub'],

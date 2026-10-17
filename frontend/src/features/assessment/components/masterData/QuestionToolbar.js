@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { QUESTION_TYPES } from "@/features/assessment/components/masterData/assessmentConfig";
 import { cn } from "@/shared/lib/utils";
 
-export function QuestionToolbar({ activeCategory, activeCategoryTotalQuestions, areAllCollapsed, areAllExpanded, collapseAllSections, expandAllSections, quadrants, searchQuery, selectedDomainId, selectedQuadrant, selectedType, setSearchQuery, setSelectedDomainId, setSelectedQuadrant, setSelectedType }) {
+export function QuestionToolbar({ activeCategory, activeCategoryTotalQuestions, areAllCollapsed, areAllExpanded, collapseAllSections, expandAllSections, searchQuery, selectedDomainId, selectedType, setSearchQuery, setSelectedDomainId, setSelectedType }) {
   return (
     <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -30,21 +30,6 @@ export function QuestionToolbar({ activeCategory, activeCategoryTotalQuestions, 
 
               {/* Filters & Collapse / Expand */}
               <div className="flex flex-wrap items-center gap-2">
-                {/* Quadrant filter */}
-                <Select value={selectedQuadrant} onValueChange={setSelectedQuadrant}>
-                  <SelectTrigger className="w-36 border-slate-200 text-xs font-bold bg-white">
-                    <SelectValue placeholder="Kuadran" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="ALL" className="text-xs font-bold">Semua Kuadran</SelectItem>
-                    {quadrants.map((q) => (
-                      <SelectItem key={q.code} value={q.code} className="text-xs font-bold">
-                        {q.code} - {q.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
                 {/* Type filter */}
                 <Select value={selectedType} onValueChange={setSelectedType}>
                   <SelectTrigger className="w-36 border-slate-200 text-xs font-bold bg-white">

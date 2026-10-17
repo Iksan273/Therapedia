@@ -67,3 +67,9 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 ## Catatan deploy Docker (12 Okt 2026)
 - **Dependency eksternal Emergent**: `frontend/package.json` (devDependencies) memuat `@emergentbase/visual-edits` dari `https://assets.emergent.sh/...` dan tidak dipakai kode mana pun. `npm ci` (Docker build & CI) mengunduhnya; bila URL itu mati, build image `web` dan job test-frontend gagal. Belum diubah (di luar scope); solusi: hapus dependency + perbarui `package-lock.json`.
 - **`phpunit.xml` memaksa SQLite** (default Laravel). CI menimpa dengan env `DB_CONNECTION=mysql`, tetapi `make test` lokal tetap SQLite; skema nanti memakai fitur MySQL, ganti sebelum migration kompleks ditambahkan.
+
+## Catatan template hasil section & penghapusan kuadran (17 Okt 2026)
+- **Kuadran dihapus total**: master data kuadran, endpoint `/master/quadrants`, tabel `sensory_quadrants` / `assessment_quadrant_scores`, kolom `quadrant_code`, dan field `quadrant` di soal/jawaban/seed. Hasil asesmen hanya **skor mentah per section** (section ber-template). Database yang sudah terlanjur dimigrasi dibersihkan migration `2026_10_17_000200_drop_quadrant_structures`.
+- **Seed Child Sensory Profile 2 (`cat-001`) belum sama dengan PDF**: seed punya 7 section (termasuk vestibular/proprioception), formulir PDF punya 9 (Auditori, Visual, Sentuhan, Gerakan, Posisi Tubuh, Sensori Oral, Tabiat, Sosial-Emosional, Atensional; 86 butir). Seed School Companion (`cat-002`) juga memakai butir contoh. Sinkronkan lewat Master Asesmen atau seed bila klinik ingin teks resmi. Contoh Toddler (`TDL`, 54 butir) sudah mengikuti PDF.
+- Header tabel psikologi School Companion (nama guru, sekolah, kelas) belum ditampilkan karena data itu belum disimpan di client/jawaban.
+

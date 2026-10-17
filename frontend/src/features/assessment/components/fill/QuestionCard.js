@@ -51,9 +51,6 @@ function QuestionCardBase({ q, value, onChange }) {
             )}
           </span>
         </Label>
-        {q.quadrant && (
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 shrink-0">{q.quadrant}</span>
-        )}
       </div>
 
       {/* 1. Teks bebas / esai */}

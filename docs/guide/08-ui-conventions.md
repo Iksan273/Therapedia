@@ -42,11 +42,11 @@ Semua list, tabel, dan feed yang bisa memanjang memakai **pagination 10 data per
 ## Loading data (shimmer) — WAJIB di semua tampilan yang fetch data
 **Aturan keras:** setiap tampilan yang datanya diambil dari API (mode `VITE_DATA_SOURCE=api`) — halaman, tab, tabel, kartu, daftar di dalam dialog — menampilkan **kerangka shimmer** selama muat pertama kali, bukan layar kosong, `EmptyState`, tabel 0 baris, atau sekadar teks "Memuat…". Contoh kegagalan yang pernah terjadi: tab *Client Roster* menampilkan daftar kosong / sebagian tanpa indikasi bahwa data sedang diambil.
 - Primitif: `<Skeleton/>` (`shared/ui/skeleton.jsx`, kelas `.skeleton-shimmer` di `index.css`; mati otomatis bila pengguna memilih *reduced motion*, ada padanan mode gelap).
-- Bentuk siap pakai di `shared/components/LoadingSkeletons.js`: `TableSkeleton` (tabel), `CardGridSkeleton` (kartu/paket/kuadran), `ListSkeleton` (daftar alasan, role), `DetailSkeleton` (halaman detail). Halaman lazy memakai `PageSkeleton`.
+- Bentuk siap pakai di `shared/components/LoadingSkeletons.js`: `TableSkeleton` (tabel), `CardGridSkeleton` (kartu/paket), `ListSkeleton` (daftar alasan, role), `DetailSkeleton` (halaman detail). Halaman lazy memakai `PageSkeleton`.
 - Pola: store/hook mengekspos `isLoading` (muat pertama, belum ada data; `isLoading && enabled` agar tidak menggantung saat belum login) dan, bila perlu, `isFetching` (muat ulang di latar: tampilkan data lama + teks "memperbarui…", jangan kosongkan). Mode demo (localStorage) selalu `isLoading: false`.
 - Muat ulang (filter, halaman, pencarian berubah): data lama **tetap terlihat tetapi diredupkan** (`opacity-50`) + teks "memperbarui…"; jangan dikosongkan. Tabel server-side: `placeholderData: keepPreviousData`.
 - Tab yang datanya hanya diperlukan saat dibuka (mis. Birthday Hub) baru mengambil data saat tab aktif, dengan shimmer-nya sendiri.
-- Sudah terpasang: Active Clients (roster & birthday), papan & detail pipeline, Master Cabang, User Management, Role & Hak Akses, Master Data Inquiry (layanan, kuadran, alasan), Hari Libur, katalog paket Finance. **Modul yang baru terintegrasi API wajib memasangnya** (checklist integrasi di `10-api-migration.md`).
+- Sudah terpasang: Active Clients (roster & birthday), papan & detail pipeline, Master Cabang, User Management, Role & Hak Akses, Master Data Inquiry (layanan, alasan), Hari Libur, katalog paket Finance. **Modul yang baru terintegrasi API wajib memasangnya** (checklist integrasi di `10-api-migration.md`).
 - Tombol aksi yang menyimpan ke server: nonaktifkan + ubah label ("Menyimpan…") selama proses.
 - **Pencarian / filter yang memanggil server** (mis. pipeline): beri tahu bahwa pencarian sedang berjalan. (tanpa spinner di kotak pencarian); daftar lama tetap terlihat tetapi diredupkan + bar progres tipis (`PipelineBoard` prop `refreshing`); teks hasil di filter bar menjadi "Mencari…". Jangan mengosongkan daftar selama mencari.
 
@@ -64,7 +64,7 @@ Setiap halaman di mode API hanya memanggil endpoint untuk data yang **benar-bena
 2. Komponen berat yang membaca banyak store (modal jadwal, dll.) dipasang saat pertama dibuka, bukan selalu terpasang tersembunyi.
 3. Hook use-case mode API tidak boleh membaca store lain "untuk jaga-jaga". Baca di dalam fungsi yang memerlukannya (contoh `useQuestionnaireCodeActions`).
 4. Halaman yang punya hook server sendiri (pipeline, detail client, daftar staf) tidak ikut mengaktifkan cache global.
-5. **Setiap halaman / modul yang diintegrasikan ke API wajib punya tes loading (shimmer tampil selama request tertahan) dan tes daftar endpoint** yang dipanggil (mock `api`, hitung URL): contoh `features/inquiry/__tests__/lazyFetch.test.js` (pipeline = `/clients/board` + `/branches` + `/master/services`; detail client tidak memanggil terapis, hari libur, kuadran, alasan cancel/discharge, atau daftar client).
+5. **Setiap halaman / modul yang diintegrasikan ke API wajib punya tes loading (shimmer tampil selama request tertahan) dan tes daftar endpoint** yang dipanggil (mock `api`, hitung URL): contoh `features/inquiry/__tests__/lazyFetch.test.js` (pipeline = `/clients/board` + `/branches` + `/master/services`; detail client tidak memanggil terapis, hari libur, alasan cancel/discharge, atau daftar client).
 6. Store baru yang mengambil daftar dari server: pakai `useDemand`; jangan memasang `useQuery` yang langsung `enabled` saat login.
 
 ## Mode gelap
@@ -88,6 +88,12 @@ Setiap halaman di mode API hanya memanggil endpoint untuk data yang **benar-bena
 - Tabel: bungkus dengan `overflow-x-auto`, atau ganti ke list kartu di mobile.
 - Target sentuh minimal ~40px (`.touch-target-chip`, `h-10`). Grid memakai `grid-cols-1 sm:grid-cols-2 lg:…`, dan header aksi memakai `flex-col sm:flex-row`.
 - Portal ortu & kuesioner publik **paling sering dibuka dari HP**, jadi uji di lebar 375px.
+
+### Menu sidebar: satu menu aktif
+`NavLink` menandai menu aktif lewat awalan rute, jadi menu induk (mis. `/admin-inquiry`) ikut menyala di `/admin-inquiry/pipeline` kecuali dicocokkan persis (`end`). `navItemEnd(item, items)` (`app/layout/navConfig.js`) menurunkan `end` otomatis untuk item yang `to`-nya adalah awalan dari `to` item lain di menu yang sama; `end` eksplisit di konfigurasi tetap menang. Menu baru tidak perlu mengingat `end: true`. Tes `navConfig.test.js` memastikan untuk setiap role (termasuk role kustom) tepat satu menu aktif di setiap rute menu dan sub-rutenya.
+
+### Input tanggal (`DateFilterPicker`)
+Format tampil standar `DD/MM/YYYY`. Opsi: `iconPosition="left"` (ikon kalender di kiri, sejajar ikon pada input lain), `displayFormat="spaced"` (`DD / MM / YYYY`, pemisah otomatis saat mengetik angka, keypad numerik di ponsel), `size="lg"` (tinggi 44px) dan `clearOnInvalid` (ketikan belum lengkap mengosongkan nilai induk agar tanggal lama tidak terkirim). Dipakai di form login ortu (tanggal lahir anak). **Kalender terbuka saat kolom diklik** (tidak harus mengeklik ikon), fokus tetap di kolom sehingga bisa langsung mengetik; ikon kalender, panah bawah (buka), dan Esc (tutup) juga bekerja, tanggal lengkap yang valid menutup kalender. Matikan dengan `openOnInputClick={false}` bila kalender menutupi isi form. Jangan memakai `<input type="date">` bawaan browser: formatnya mengikuti locale perangkat.
 
 ### Cegah zoom otomatis iOS pada input (ponsel)
 iOS Safari memperbesar halaman bila input yang difokuskan berfont < 16px. Kontainer yang memuat form input untuk ponsel diberi class `no-input-zoom` (`index.css`: input/textarea/select 16px di bawah `md`; layar lebih besar tetap ukuran kecil bawaan). Sudah dipasang di halaman Login dan dialog Lupa Password / Ganti Password (dialog di-portal, jadi class dipasang di `DialogContent`). Zoom pinch pengguna tetap hidup (tidak memakai `maximum-scale`). Pasang juga di `/assessment` dan portal ortu bila form-nya terasa melompat di iPhone.

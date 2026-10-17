@@ -34,18 +34,6 @@ class MasterDataSeeder extends Seeder
             'is_active' => true, 'sort_order' => $i + 1,
         ] + $stamp)->all());
 
-        // Kuadran sensori
-        $quadrants = [
-            ['AV', 'Avoiding', 'Sensation Avoiding', 'Penghindar Sensori (Perilaku aktif menjauh)', 'blue'],
-            ['SN', 'Sensitivity', 'Sensory Sensitivity', 'Sensitivitas Tinggi (Mudah terganggu stimulus)', 'lime'],
-            ['RG', 'Registration', 'Low Registration', 'Pendaftaran Rendah (Pasif / Butuh intensitas lebih)', 'pink'],
-            ['SK', 'Seeking', 'Sensory Seeking', 'Pencari Sensori (Mendambakan stimulasi ekstra)', 'amber'],
-        ];
-        DB::table('sensory_quadrants')->insertOrIgnore(collect($quadrants)->map(fn ($q, $i) => [
-            'code' => $q[0], 'title' => $q[1], 'full_name' => $q[2], 'description' => $q[3], 'color' => $q[4],
-            'sort_order' => $i + 1,
-        ] + $stamp)->all());
-
         // Alasan Cancel / Off (satu daftar; Therapist Off dibedakan flag)
         $cancelReasons = [
             ['OL', 'On Leave (Cuti)', false],

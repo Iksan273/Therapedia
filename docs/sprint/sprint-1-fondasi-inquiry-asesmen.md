@@ -16,7 +16,7 @@
 **Selesai bila (DoD sprint):**
 - [ ] Login 7 role + role kustom + login ortu berjalan di env UAT (HTTPS), `must_change_password` dan OTP lupa password teruji.
 - [ ] Master data, Master Cabang, hari libur tersimpan di MySQL; hapus master terpakai → 409 `in_use`.
-- [ ] Skenario "intake → layanan → kode → ortu isi (autosave draft) → submit → skor kuadran" lolos.
+- [ ] Skenario "intake → layanan → kode → ortu isi (autosave draft) → submit → skor mentah per section" lolos.
 - [ ] `created_by/updated_by` terisi di semua tulis; `status_changed_at` client terisi.
 - [ ] Hapus client (master) menghapus semua turunan (tanpa baris yatim) + file bukti bayar.
 - [ ] Test backend M1–M5 hijau; frontend `npm run lint` 0 error, `npm test`, `npm run build` lolos.
@@ -30,10 +30,10 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | Hari | Tgl | Pekerjaan | Est. |
 |---|---|---|---|
 | 1 | Sen 12 | Setup deploy: CI (lint+test), auto-deploy env UAT + HTTPS, `.env` (`CACHE/SESSION=database`, `QUEUE=sync`). Verifikasi migration di MySQL 8 Docker (`migrate:fresh` + rollback) | 1,0 |
-| 2 | Sel 13 | **Seeder wajib**: cabang, role, `access_modules`, `role_permissions` (dari `frontend/src/domain/rbac.js`), layanan, kuadran, alasan Cancel/Off (+KODE, flag `is_therapist_off`), alasan discharge, paket (`leave_quota`, `invoice_code`, `is_satuan`, `is_assessment`), akun master. Seeder demo (konversi seed FE) | 1,0 |
+| 2 | Sel 13 | **Seeder wajib**: cabang, role, `access_modules`, `role_permissions` (dari `frontend/src/domain/rbac.js`), layanan, alasan Cancel/Off (+KODE, flag `is_therapist_off`), alasan discharge, paket (`leave_quota`, `invoice_code`, `is_satuan`, `is_assessment`), akun master. Seeder demo (konversi seed FE) | 1,0 |
 | 3–4 | Rab–Kam | **Inti**: trait pelaku, `BranchScope`, `PermissionService` + policy, optimistic lock, format error + kode domain, Resource, pagination page/keyset, pencarian prefix | 1,25 |
 | 4–5 | Kam–Jum | **M1 Auth** lengkap | 0,75 |
-| 5 | Jum 16 | **M2/M3** user, role+matriks, CRUD layanan/kuadran/alasan/paket. Deploy UAT, Postman M1–M3 | 1,0 |
+| 5 | Jum 16 | **M2/M3** user, role+matriks, CRUD layanan/alasan/paket. Deploy UAT, Postman M1–M3 | 1,0 |
 | 6 | Sen 19 | Master Cabang + pratinjau dampak hapus; hari libur berentang; pengaman `in_use` | 0,5 |
 | 6–7 | Sen–Sel | **FE**: `tokenStore`, login ortu + tgl lahir, `authStore`/`masterDataStore`/`therapistsStore` → API | 0,75 |
 | 7–8 | Sel–Rab | **M4** client: CRUD, kode `AE-00001`, layanan, GDrive, duplikat, hapus cascade | 1,0 |
@@ -150,7 +150,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | # | Endpoint | Akses | Request kunci | Tabel | Catatan |
 |---|---|---|---|---|---|
 | 3.1 | `GET/POST/PUT/DELETE /master/services[/{code}]` | baca: login; tulis: `inquiry_pipeline`/`inquiry_dashboard` | `code,label,category,description,is_active,sort_order` | `services` | DELETE: 409 `in_use` bila ada `client_services`/`schedules.service_code` |
-| 3.2 | `… /master/quadrants` | idem | `code,title,full_name,description,color,sort_order` | `sensory_quadrants` | DELETE 409 bila dipakai soal/skor; kuadran yang belum dipakai boleh dihapus semua |
+| 3.2 | *(dihapus 17 Okt 2026: master & API kuadran tidak ada lagi)* | | | | |
 | 3.3 ✚ | `… /master/cancel-reasons` (filter `?therapist_off=0\|1`) | tulis: `weekly_calendar`/`inquiry_*` | `code,label,is_active,is_therapist_off,sort_order` | `cancel_reasons` | **Cancel dan Off = satu daftar**, beda flag `is_therapist_off`; pilihan cepat bukan FK (transaksi menyimpan string) |
 | 3.4 ✚ | `… /master/discharge-reasons` | idem | idem | `discharge_reasons` | tanpa cek pemakai |
 | 3.5 | `GET/POST/PUT /master/packages`, `PATCH /{id}/active` ✚, `DELETE /{id}` ✚ | `finance` | `name,invoice_code(unik,≠ASM),credits,price,leave_quota,is_satuan,is_assessment,description,is_active` | `master_packages` | harga berubah tidak memengaruhi invoice/paket lama (snapshot); DELETE 409 bila dipakai |
@@ -218,8 +218,8 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 5.1 | `GET /assessment-categories?with=sections.questions` | `inquiry_*` | — | `assessment_categories/sections/questions` R (`idx_questions_form`) | satu query form |
 | 5.2 | `POST /assessment-categories`, `PATCH /{id}` | `inquiry_*` | `name,type_code(unik),domain,is_active,version` | `assessment_categories` | `type_code` tidak diubah setelah ada kode terbit |
 | 5.3 | `DELETE /assessment-categories/{id}` | `inquiry_*`+hapus | — | cascade sections/questions | 409 `in_use` bila ada kode/respons; minimal 1 kategori |
-| 5.4 ✚ | `POST /assessment-categories/{id}/sections`, `PATCH/DELETE /assessment-sections/{id}` | `inquiry_*` | `title,description,document_url,sort_order` | `assessment_sections` | DELETE cascade soal bila belum dijawab |
-| 5.5 ✚ | `POST /assessment-sections/{id}/questions`, `PATCH/DELETE /assessment-questions/{id}`, `PUT …/questions/order` | `inquiry_*` | `question_type` (12 tipe, termasuk `birth_date`), `question,options,range_*,quadrant_code,is_required,sort_order` | `assessment_questions` | DELETE 409 bila sudah ada `assessment_answers` |
+| 5.4 ✚ | `POST /assessment-categories/{id}/sections`, `PATCH/DELETE /assessment-sections/{id}` | `inquiry_*` | `title,description,document_url,result_template,sort_order` | `assessment_sections` | DELETE cascade soal bila belum dijawab |
+| 5.5 ✚ | `POST /assessment-sections/{id}/questions`, `PATCH/DELETE /assessment-questions/{id}`, `PUT …/questions/order` | `inquiry_*` | `question_type` (12 tipe, termasuk `birth_date`), `question,options,range_*,is_required,sort_order` | `assessment_questions` | DELETE 409 bila sudah ada `assessment_answers` |
 
 ### API — kode, publik, hasil
 | # | Endpoint | Action | Akses | Request kunci | Tabel | Respons & error |
@@ -229,7 +229,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | 5.8 ✚ | `DELETE /assessment-codes/{id}` | hapus kode | `inquiry_pipeline`+hapus | — | kode D; invoice assessment pemicu yang **belum lunas** D (yang `paid` dibiarkan, FK SET NULL) | 409 bila `submitted`; **409 `draft_exists`** bila sudah punya draft |
 | 5.9 | `GET /public/assessments/{code}` | `OpenAssessmentAction` | publik, throttle IP | — | kode, client, kategori/section/soal, `invoices`, `assessment_drafts` R | 404 generik; 409 `already_submitted`; 410 `expired`; **403 `proof_required`** (+id & no. invoice); respons memuat **draft** bila ada |
 | 5.9b ✚ | `PUT /public/assessments/{code}/draft` | `SaveAssessmentDraftAction` | publik, throttle IP + kode | `answers` (patch **array** `[{question_id, t, v?}]`, `v: null` = hapus; bukan kamus berkunci id soal), `last_section_id`, `consent?`, `version` | `assessment_drafts` C/U | 409 `version_conflict`; 422 payload > 256 KB |
-| 5.10 | `POST /public/assessments/{code}/responses` | `SubmitAssessmentAction` | publik, throttle | `answers[]` (yang belum di draft), `consent` | `assessment_responses` C; `assessment_answers` C; `assessment_quadrant_scores` C; kode U(`submitted`); `assessment_drafts` D | 409 sudah diisi; 422 `incomplete` (+daftar soal wajib kosong) |
+| 5.10 | `POST /public/assessments/{code}/responses` | `SubmitAssessmentAction` | publik, throttle | `answers[]` (yang belum di draft), `consent` | `assessment_responses` C; `assessment_answers` C; kode U(`submitted`); `assessment_drafts` D | 409 sudah diisi; 422 `incomplete` (+daftar soal wajib kosong) |
 | 5.11 | `GET /clients/{id}/assessment-responses`, `GET /assessment-responses/{id}` | hasil | `inquiry_*`,`therapist_module` | — | responses/answers/scores R | **ortu tidak melihat hasil** |
 | 7.x ✚ | `POST /invoices/{id}/proof` (varian publik) | upload bukti dari `/assessment` | publik dikunci kode kuesioner | `file` (JPG/PNG/PDF ≤5 MB) + `code` | `payment_proofs`, `invoices.proof_upload_count` | **Diselesaikan di Sprint 2** (modul Finance); S1 hanya membaca status gating |
 
@@ -242,7 +242,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
    4. ada invoice assessment (milik kode / manual tanpa kode) belum `paid`/`void` **dan `proof_upload_count = 0`** → 403 `proof_required`. Invoice tetap menunggu Finance menandai lunas; yang diwajibkan hanya **bukti terunggah**;
    5. respons: form + draft (`answers`, `last_section_id`, `answered_count`, `consent_at`, `version`).
 3. **Autosave draft:** satu baris per kode, `lockForUpdate`; cek `version` (dua perangkat → 409); gabungkan patch (null = hapus; id soal di luar kategori dibuang); `answered_count` dihitung server; `version+1`. Tidak menghitung skor, tidak mengubah status.
-4. **Submit:** validasi semua soal `is_required` terjawab + `consent_at` terisi (draft atau request) → satu transaksi: insert `assessment_responses` (UNIQUE `access_code_id`, `consent_at`, `ip_address`), `assessment_answers` (snapshot `item_no`,`quadrant_code`,`score`), `assessment_quadrant_scores` (Σ skor per kuadran, **dihitung server**, tanpa klasifikasi), kode → `submitted` + `submitted_at`, **DELETE draft**. Status client **tidak** berubah.
+4. **Submit:** validasi semua soal `is_required` terjawab + `consent_at` terisi (draft atau request) → satu transaksi: insert `assessment_responses` (UNIQUE `access_code_id`, `consent_at`, `ip_address`), `assessment_answers` (snapshot `item_no`,`score`; skor mentah per section dihitung saat dibaca, tanpa kuadran & klasifikasi), kode → `submitted` + `submitted_at`, **DELETE draft**. Status client **tidak** berubah.
 5. **Hapus kode:** hanya `issued` tanpa draft; bila ada invoice assessment belum lunas ikut dihapus (hapus invoice belum lunas membuka gating).
 
 ### Integrasi FE
@@ -265,7 +265,7 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 | M2 | hapus client/cabang hanya master (role lain 403); hapus role dipakai → 409; user non-master tidak bisa tanpa cabang; master tak tersentuh |
 | M3 | master dipakai → 409; alasan cancel/discharge terhapus bebas; UNIQUE libur (tanggal+cabang); libur berentang → N baris |
 | M4 | kode client berurutan per grup & tidak dipakai ulang; transisi otomatis hanya maju, manual bebas; discontinue/discharge wajib alasan; hapus client cascade tanpa baris yatim; `BranchScope` (cabang lain → 404) |
-| M5 | sekali isi; expiry (kode ber-draft boleh diselesaikan); gating `proof_required`; skor kuadran server; consent wajib; draft: simpan/lanjut, konflik `version`, terhapus saat submit; hapus kode ber-draft → 409; soal wajib kosong → 422 `incomplete` |
+| M5 | sekali isi; expiry (kode ber-draft boleh diselesaikan); gating `proof_required`; skor mentah dihitung dari jawaban; consent wajib; draft: simpan/lanjut, konflik `version`, terhapus saat submit; hapus kode ber-draft → 409; soal wajib kosong → 422 `incomplete` |
 
 ## 10. Risiko khusus sprint ini
 

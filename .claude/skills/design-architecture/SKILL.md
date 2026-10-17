@@ -64,7 +64,7 @@ Kerjakan berurutan; tulis jawabannya di rencana sebelum coding.
 
 ## 4. Prinsip non-fungsional
 
-- **Siap API**: nama action = nama use-case; jangan simpan data turunan (saldo, frozen, skor kuadran) — hitung, atau biarkan backend yang menyimpan versi resminya.
+- **Siap API**: nama action = nama use-case; jangan simpan data turunan (saldo, frozen, skor mentah) — hitung, atau biarkan backend yang menyimpan versi resminya.
 - **Transaksi**: efek lintas tabel (complete sesi → ledger kredit → status client) = satu transaksi DB di backend.
 - **Idempoten**: aksi yang bisa terkirim dua kali (complete, verify) harus aman diulang (kunci idempotensi).
 - **Reversible**: aksi penting punya pasangan pembatalan yang tercatat (baris `reversal` di ledger / kolom `previous_*`), bukan hard delete/overwrite.

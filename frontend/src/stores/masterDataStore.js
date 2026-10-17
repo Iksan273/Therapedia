@@ -10,8 +10,6 @@ import { isApiMode } from "@/config/env";
 import { api } from "@/services/http/httpClient";
 import { ENDPOINTS } from "@/services/api/endpoints";
 import {
-  quadrantFromApi,
-  quadrantToApi,
   reasonFromApi,
   reasonToApi,
   serviceFromApi,
@@ -21,101 +19,7 @@ import { useAuth } from "@/stores/authStore";
 
 const MasterDataContext = createContext(null);
 
-// Palet warna kuadran. Class ditulis literal agar ikut ter-generate oleh Tailwind.
-export const QUADRANT_COLORS = {
-  blue: {
-    label: "Biru",
-    dot: "bg-blue-600",
-    badge: "bg-blue-100 text-blue-900 border-blue-300 font-black",
-    solid: "bg-blue-600 text-white font-black",
-    card: "bg-blue-50/70 border-blue-200",
-    text: "text-blue-950",
-    textSoft: "text-blue-800/80",
-    count: "text-blue-900",
-  },
-  lime: {
-    label: "Hijau Lime",
-    dot: "bg-lime-600",
-    badge: "bg-lime-100 text-lime-900 border-lime-300 font-black",
-    solid: "bg-lime-600 text-white font-black",
-    card: "bg-lime-50/70 border-lime-200",
-    text: "text-lime-950",
-    textSoft: "text-lime-800/80",
-    count: "text-lime-900",
-  },
-  pink: {
-    label: "Pink",
-    dot: "bg-pink-600",
-    badge: "bg-pink-100 text-pink-900 border-pink-300 font-black",
-    solid: "bg-pink-600 text-white font-black",
-    card: "bg-pink-50/70 border-pink-200",
-    text: "text-pink-950",
-    textSoft: "text-pink-800/80",
-    count: "text-pink-900",
-  },
-  amber: {
-    label: "Kuning",
-    dot: "bg-amber-500",
-    badge: "bg-amber-100 text-amber-900 border-amber-300 font-black",
-    solid: "bg-amber-500 text-white font-black",
-    card: "bg-amber-50/70 border-amber-200",
-    text: "text-amber-950",
-    textSoft: "text-amber-800/80",
-    count: "text-amber-900",
-  },
-  purple: {
-    label: "Ungu",
-    dot: "bg-purple-600",
-    badge: "bg-purple-100 text-purple-900 border-purple-300 font-black",
-    solid: "bg-purple-600 text-white font-black",
-    card: "bg-purple-50/70 border-purple-200",
-    text: "text-purple-950",
-    textSoft: "text-purple-800/80",
-    count: "text-purple-900",
-  },
-  teal: {
-    label: "Teal",
-    dot: "bg-teal-600",
-    badge: "bg-teal-100 text-teal-900 border-teal-300 font-black",
-    solid: "bg-teal-600 text-white font-black",
-    card: "bg-teal-50/70 border-teal-200",
-    text: "text-teal-950",
-    textSoft: "text-teal-800/80",
-    count: "text-teal-900",
-  },
-  rose: {
-    label: "Merah Muda",
-    dot: "bg-rose-600",
-    badge: "bg-rose-100 text-rose-900 border-rose-300 font-black",
-    solid: "bg-rose-600 text-white font-black",
-    card: "bg-rose-50/70 border-rose-200",
-    text: "text-rose-950",
-    textSoft: "text-rose-800/80",
-    count: "text-rose-900",
-  },
-  slate: {
-    label: "Abu-abu",
-    dot: "bg-slate-600",
-    badge: "bg-slate-100 text-slate-900 border-slate-300 font-black",
-    solid: "bg-slate-600 text-white font-black",
-    card: "bg-slate-50/70 border-slate-200",
-    text: "text-slate-950",
-    textSoft: "text-slate-700/80",
-    count: "text-slate-900",
-  },
-};
-
-export const getQuadrantColor = (colorKey) => QUADRANT_COLORS[colorKey] || QUADRANT_COLORS.slate;
-
-const SEED_QUADRANTS = [
-  { code: "AV", title: "Avoiding", fullName: "Sensation Avoiding", description: "Penghindar Sensori (Perilaku aktif menjauh)", color: "blue" },
-  { code: "SN", title: "Sensitivity", fullName: "Sensory Sensitivity", description: "Sensitivitas Tinggi (Mudah terganggu stimulus)", color: "lime" },
-  { code: "RG", title: "Registration", fullName: "Low Registration", description: "Pendaftaran Rendah (Pasif / Butuh intensitas lebih)", color: "pink" },
-  { code: "SK", title: "Seeking", fullName: "Sensory Seeking", description: "Pencari Sensori (Mendambakan stimulasi ekstra)", color: "amber" },
-];
-
 const seedServices = () => INTAKE_SERVICES.map((s) => ({ ...s, active: true }));
-const seedQuadrants = () => SEED_QUADRANTS.map((q) => ({ ...q }));
 const seedBaseCancelReasons = () => DEFAULT_CANCEL_REASONS.map((r) => ({ ...r, active: true, therapistOff: false }));
 const seedTherapistOffReasons = () => DEFAULT_THERAPIST_OFF_REASONS.map((r) => ({ ...r, active: true, therapistOff: true }));
 
@@ -150,13 +54,11 @@ const makeListReducer = (idKey) => (state, action) => {
 };
 
 const servicesReducer = makeListReducer("value");
-const quadrantsReducer = makeListReducer("code");
 const reasonsReducer = makeListReducer("value");
 
 // Nilai context dari data + aksi tulis. Dipakai kedua mode, jadi halaman tidak peduli sumber datanya. Aksi tulis di mode API
 // mengembalikan Promise dan melempar `ApiError` (`message`, `fieldErrors`); di mode demo sinkron (halaman cukup `await`).
-const buildMasterValue = ({ services, quadrants, cancelReasons, dischargeReasons }, actions) => {
-  const quadrantMap = Object.fromEntries(quadrants.map((q) => [q.code, q]));
+const buildMasterValue = ({ services, cancelReasons, dischargeReasons }, actions) => {
   const therapistOffReasons = cancelReasons.filter((r) => r.therapistOff);
   const therapistOffCodes = therapistOffReasons.map((r) => r.value);
   return {
@@ -168,13 +70,6 @@ const buildMasterValue = ({ services, quadrants, cancelReasons, dischargeReasons
     addService: actions.addService,
     updateService: actions.updateService,
     deleteService: actions.deleteService,
-
-    quadrants,
-    quadrantMap,
-    getQuadrant: (code) => quadrantMap[code],
-    addQuadrant: actions.addQuadrant,
-    updateQuadrant: actions.updateQuadrant,
-    deleteQuadrant: actions.deleteQuadrant,
 
     // Pilihan cepat alasan. Data transaksi menyimpan string (code atau teks custom), bukan relasi ke daftar ini.
     // `cancelReasons` = SATU daftar alasan Cancel / Off (dipakai form, label, dan grafik); `therapistOffReasons`/`therapistOffCodes`
@@ -201,21 +96,17 @@ const buildMasterValue = ({ services, quadrants, cancelReasons, dischargeReasons
 // ---- Mode demo (localStorage)
 const LocalMasterDataProvider = ({ children }) => {
   const [services, dispatchServices] = usePersistentReducer("master_services", servicesReducer, seedServices);
-  const [quadrants, dispatchQuadrants] = usePersistentReducer("master_quadrants", quadrantsReducer, seedQuadrants);
   const [cancelReasons, dispatchCancel] = usePersistentReducer("master_cancel_reasons", reasonsReducer, initCancelReasons); // satu daftar alasan Cancel / Off ber-CODE; `therapistOff` menandai alasan terapis berhalangan
   const [dischargeReasons, dispatchDischarge] = usePersistentReducer("master_discharge_reasons", reasonsReducer, seedDischargeReasons);
 
   const value = useMemo(
     () =>
       buildMasterValue(
-        { services, quadrants, cancelReasons, dischargeReasons },
+        { services, cancelReasons, dischargeReasons },
         {
           addService: (item) => dispatchServices({ type: "ADD", item }),
           updateService: (id, patch) => dispatchServices({ type: "UPDATE", id, patch }),
           deleteService: (id) => dispatchServices({ type: "DELETE", id }),
-          addQuadrant: (item) => dispatchQuadrants({ type: "ADD", item }),
-          updateQuadrant: (id, patch) => dispatchQuadrants({ type: "UPDATE", id, patch }),
-          deleteQuadrant: (id) => dispatchQuadrants({ type: "DELETE", id }),
           addCancelReason: (item) => dispatchCancel({ type: "ADD", item: { therapistOff: false, ...item } }),
           updateCancelReason: (id, patch) => dispatchCancel({ type: "UPDATE", id, patch }),
           deleteCancelReason: (id) => dispatchCancel({ type: "DELETE", id }),
@@ -224,17 +115,16 @@ const LocalMasterDataProvider = ({ children }) => {
           deleteDischargeReason: (id) => dispatchDischarge({ type: "DELETE", id }),
         }
       ),
-    [services, quadrants, cancelReasons, dischargeReasons, dispatchServices, dispatchQuadrants, dispatchCancel, dispatchDischarge]
+    [services, cancelReasons, dischargeReasons, dispatchServices, dispatchCancel, dispatchDischarge]
   );
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
 };
 
-// ---- Mode API (Laravel M3): `GET /master/*` dibaca semua staf; tulis butuh modul `inquiry_master_data`. Hapus layanan/kuadran
+// ---- Mode API (Laravel M3): `GET /master/*` dibaca semua staf; tulis butuh modul `inquiry_master_data`. Hapus layanan
 // yang dipakai dijawab 409 `in_use` (pesan server ditampilkan halaman); alasan Cancel/Off dan Discharge dihapus bebas.
 export const MASTER_QUERY_KEYS = {
   services: ["master", "services"],
-  quadrants: ["master", "quadrants"],
   cancelReasons: ["master", "cancel-reasons"],
   dischargeReasons: ["master", "discharge-reasons"],
 };
@@ -272,7 +162,6 @@ const ApiMasterDataProvider = ({ children }) => {
   const { demand, isOn, anyLoading } = useDemand(active);
 
   const services = useMasterResource({ enabled: active && isOn("services"), queryKey: MASTER_QUERY_KEYS.services, endpoints: ENDPOINTS.master.services, fromApi: serviceFromApi, toApi: serviceToApi });
-  const quadrants = useMasterResource({ enabled: active && isOn("quadrants"), queryKey: MASTER_QUERY_KEYS.quadrants, endpoints: ENDPOINTS.master.quadrants, fromApi: quadrantFromApi, toApi: quadrantToApi });
   const cancel = useMasterResource({
     enabled: active && isOn("cancelReasons"),
     queryKey: MASTER_QUERY_KEYS.cancelReasons,
@@ -283,14 +172,11 @@ const ApiMasterDataProvider = ({ children }) => {
   const discharge = useMasterResource({ enabled: active && isOn("dischargeReasons"), queryKey: MASTER_QUERY_KEYS.dischargeReasons, endpoints: ENDPOINTS.master.dischargeReasons, fromApi: reasonFromApi, toApi: reasonToApi });
 
   const base = buildMasterValue(
-    { services: services.items, quadrants: quadrants.items, cancelReasons: cancel.items, dischargeReasons: discharge.items },
+    { services: services.items, cancelReasons: cancel.items, dischargeReasons: discharge.items },
     {
       addService: services.add,
       updateService: services.update,
       deleteService: services.remove,
-      addQuadrant: quadrants.add,
-      updateQuadrant: quadrants.update,
-      deleteQuadrant: quadrants.remove,
       addCancelReason: cancel.add,
       updateCancelReason: cancel.update,
       deleteCancelReason: cancel.remove,
@@ -305,7 +191,6 @@ const ApiMasterDataProvider = ({ children }) => {
     base,
     {
       services: ["services"], activeServices: ["services"], getService: ["services"],
-      quadrants: ["quadrants"], quadrantMap: ["quadrants"], getQuadrant: ["quadrants"],
       cancelReasons: ["cancelReasons"], activeCancelReasons: ["cancelReasons"], therapistOffReasons: ["cancelReasons"], therapistOffCodes: ["cancelReasons"], getCancelReasonLabel: ["cancelReasons"],
       dischargeReasons: ["dischargeReasons"], activeDischargeReasons: ["dischargeReasons"], getDischargeReasonLabel: ["dischargeReasons"],
     },
@@ -313,7 +198,7 @@ const ApiMasterDataProvider = ({ children }) => {
   );
   // Muat pertama kali: salah satu daftar yang diminta belum tiba (halaman menampilkan kerangka shimmer)
   Object.defineProperty(value, "isLoading", {
-    get: () => anyLoading([["services", services.isLoading], ["quadrants", quadrants.isLoading], ["cancelReasons", cancel.isLoading], ["dischargeReasons", discharge.isLoading]]),
+    get: () => anyLoading([["services", services.isLoading], ["cancelReasons", cancel.isLoading], ["dischargeReasons", discharge.isLoading]]),
     enumerable: true,
   });
 

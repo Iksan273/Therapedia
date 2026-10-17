@@ -6,6 +6,7 @@ import { Textarea } from "@/shared/ui/textarea";
 import { Button } from "@/shared/ui/button";
 import { DocumentEmbed } from "@/shared/components/DocumentEmbed";
 import { isValidDocumentUrl } from "@/domain/assessment";
+import { SECTION_TEMPLATE_OPTIONS } from "@/domain/assessmentTemplate";
 import { makeSectionDialog } from "@/features/assessment/components/masterData/assessmentConfig";
 
 export function SectionDialog({ saveSection, secDialog, setSecDialog }) {
@@ -34,6 +35,26 @@ export function SectionDialog({ saveSection, secDialog, setSecDialog }) {
               className="border-slate-200 text-xs font-medium"
               data-testid="section-title-input"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-700">Template Hasil</Label>
+            <select
+              value={secDialog.template || ""}
+              onChange={(e) => setSecDialog((prev) => ({ ...prev, template: e.target.value }))}
+              className="flex h-10 w-full rounded-md border border-slate-200 bg-background px-3 text-xs font-medium"
+              data-testid="section-template-select"
+            >
+              <option value="">Tanpa template (form biasa)</option>
+              {SECTION_TEMPLATE_OPTIONS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label} ({t.ageHint})
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-400">
+              Hanya section ber-template yang dibuat menjadi tabel psikologi (skor mentah per section). Section tanpa template tampil sebagai pertanyaan–jawaban biasa.
+            </p>
           </div>
 
           <div className="space-y-1.5">

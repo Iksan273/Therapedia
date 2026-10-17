@@ -3,15 +3,13 @@
 namespace App\Services;
 
 use App\Models\CancelReason;
-use App\Models\SensoryQuadrant;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 /**
- * Master data berkunci `code` (M3): services, sensory_quadrants, cancel_reasons, discharge_reasons.
- * `$model` = kelas model. Hapus yang punya pemakai memakai Action sendiri (DeleteServiceAction, DeleteQuadrantAction);
+ * Master data berkunci `code` (M3): services, cancel_reasons, discharge_reasons.
+ * `$model` = kelas model. Hapus yang punya pemakai memakai Action sendiri (DeleteServiceAction);
  * alasan Cancel/Off dan Discharge tersimpan sebagai string di transaksi, jadi boleh dihapus bebas.
  * Master paket dan hari libur: MasterPackageService, HolidayService.
  */
@@ -25,7 +23,7 @@ class MasterDataService
      */
     public function all(string $model, Request $request): Collection
     {
-        $query = $this->withUsage($model::query())->orderBy('sort_order')->orderBy('code');
+        $query = $model::query()->orderBy('sort_order')->orderBy('code');
 
         if (filter_var($request->query('active'), FILTER_VALIDATE_BOOLEAN)) {
             $query->where('is_active', true);
@@ -41,28 +39,7 @@ class MasterDataService
     /** @param  class-string<Model>  $model */
     public function find(string $model, string $code): Model
     {
-        return $this->withUsage($model::query())->findOrFail($code);
-    }
-
-    /**
-     * Hitungan yang ikut respons baca (index/show). HANYA kuadran: `question_count` (badge "N soal", tabel kecil).
-     * Pemakaian layanan (client / jadwal) sengaja TIDAK dihitung di sini: menghitung seluruh `client_services` / `schedules`
-     * tiap membuka daftar layanan memakan ±700 ms pada 1 juta client, padahal hanya dibutuhkan saat HAPUS, dan
-     * `DeleteServiceAction` / `DeleteSensoryQuadrantAction` sudah mengecek pemakaian sendiri (409 `in_use`).
-     *
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
-     */
-    private function withUsage(Builder $query): Builder
-    {
-        $unscoped = fn ($q) => $q->withoutGlobalScopes();
-
-        return match ($query->getModel()::class) {
-            SensoryQuadrant::class => $query->withCount([
-                'assessmentQuestionsViaQuadrantCode as question_count' => $unscoped,
-            ]),
-            default => $query,
-        };
+        return $model::query()->findOrFail($code);
     }
 
     /** @param  class-string<Model>  $model */

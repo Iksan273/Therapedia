@@ -74,7 +74,7 @@
 | Hapus client lengkap (punya jadwal, laporan, invoice, bukti, paket, ledger, konversi, kode+draft kuesioner, cuti) | `COUNT(*)` di setiap tabel turunan = 0 untuk client itu; file bukti terhapus |
 | Hapus cabang berisi data lengkap + akun terapis | Tidak ada baris yatim di 37 tabel (query `LEFT JOIN … WHERE parent IS NULL` otomatis per FK); akun master utuh; cabang lain tak berubah |
 | Hapus gagal di tengah (simulasi exception) | Rollback total: jumlah baris semua tabel tidak berubah |
-| Master terpakai (`services`, `quadrants`, `master_packages`, `assessment_*`, `roles`) | 409 `in_use` dengan alasan; FK `RESTRICT` menolak bila service dilewati |
+| Master terpakai (`services`, `master_packages`, `assessment_*`, `roles`) | 409 `in_use` dengan alasan; FK `RESTRICT` menolak bila service dilewati |
 | Role non-master mencoba hapus client/cabang | 403 |
 | Hapus invoice `paid`/`void` | 409 `invoice_not_deletable` |
 

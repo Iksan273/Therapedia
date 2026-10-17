@@ -4,13 +4,11 @@ import { getCategoryIcon, makeSectionDialog } from "@/features/assessment/compon
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Info, KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
-import { getQuadrantColor } from "@/stores/masterDataStore";
-import { cn } from "@/shared/lib/utils";
 import { useClients } from "@/stores/clientsStore";
 import { useAssessmentDrafts } from "@/stores/assessmentDraftsStore";
 import { countActiveDraftsForCategory } from "@/domain/assessment";
 
-export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestions, activeQuadCounts, handleDeleteCategory, openGenModal, quadrants, setCatDialog, setSecDialog }) {
+export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestions, handleDeleteCategory, openGenModal, setCatDialog, setSecDialog }) {
   const { clients } = useClients();
   const { drafts } = useAssessmentDrafts();
   // Kode yang sedang diisi ortu (ada draft) memakai soal kategori ini: perubahan soal ikut memengaruhi mereka.
@@ -91,35 +89,6 @@ export function CategoryHeaderCard({ activeCategory, activeCategoryTotalQuestion
                   <Trash2 className="w-3.5 h-3.5" /> Hapus
                 </Button>
                 </IfCanDelete>
-              </div>
-            </div>
-
-            {/* Kuadran Sensory / Clinical Distribution */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                <span className="flex items-center gap-1.5">
-                  <Info className="w-4 h-4 text-emerald-600" />
-                  Distribusi Kuadran Sensorik Klinis (Winnie Dunn Framework):
-                </span>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Total {activeCategoryTotalQuestions} Butir dalam Template Ini
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {quadrants.map((q) => {
-                  const color = getQuadrantColor(q.color);
-                  return (
-                    <div key={q.code} className={cn("p-3.5 rounded-2xl border space-y-1", color.card)}>
-                      <div className="flex items-center justify-between">
-                        <span className={cn("px-2 py-0.5 rounded text-[11px]", color.solid)}>{q.code}</span>
-                        <span className={cn("text-xl font-black", color.count)}>{activeQuadCounts[q.code] || 0} Soal</span>
-                      </div>
-                      <p className={cn("text-xs font-bold", color.text)}>{q.fullName || q.title}</p>
-                      <p className={cn("text-[11px] leading-snug", color.textSoft)}>{q.description}</p>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </div>

@@ -21,7 +21,6 @@ class AssessmentQuestion extends Model
         'category_id',
         'section_id',
         'item_no',
-        'quadrant_code',
         'question_type',
         'question',
         'options',
@@ -49,11 +48,6 @@ class AssessmentQuestion extends Model
     public function section(): BelongsTo
     {
         return $this->belongsTo(AssessmentSection::class, 'section_id');
-    }
-
-    public function quadrant(): BelongsTo
-    {
-        return $this->belongsTo(SensoryQuadrant::class, 'quadrant_code', 'code');
     }
 
     public function assessmentAnswersViaQuestion(): HasMany

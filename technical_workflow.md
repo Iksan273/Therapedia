@@ -32,7 +32,7 @@ Sumber: perilaku frontend saat ini (`frontend/src/domain`, `features/*/hooks`, `
 | **Kunci & versi** | Baris yang diubah dikunci `lockForUpdate()`. Entity ber-`version` (`clients`, `schedules`, `invoices`, `client_packages`, `session_reports`, `assessment_categories`) dicek optimistic lock: `UPDATE … WHERE version = ?`, 0 baris → HTTP 409. |
 | **Ledger sumber kebenaran** | `credit_ledger` append-only. Saldo di `client_packages.remaining_credit` dan `clients.credit_balance` adalah denormalisasi, diperbarui di transaksi yang sama. Koreksi = baris `reversal`, tidak pernah UPDATE/DELETE. |
 | **Idempoten** | Potong kredit memakai `credit_ledger.idempotency_key` UNIQUE (`used:schedule:{id}:v{version}`); aktivasi paket memakai `client_packages.invoice_id` UNIQUE. |
-| **Data turunan tidak disimpan** | Frozen = `clients.credit_balance = 0`. KPI dashboard = VIEW. Skor kuadran disimpan hanya karena dihitung sekali saat submit. |
+| **Data turunan tidak disimpan** | Frozen = `clients.credit_balance = 0`. KPI dashboard = VIEW. Skor mentah asesmen dihitung per section saat dibaca (tanpa kuadran). |
 | **Alasan = string bebas** | `schedules.cancel_reason`, `pending_reason`, `clients.discharge_reason`, `credit_ledger.cancel_reason` berisi code pilihan cepat atau teks custom. Tanpa FK ke `cancel_reasons` / `discharge_reasons`. |
 | **Scope cabang** | Semua akun non-master (termasuk terapis dan manager) terikat **tepat 1 cabang** dan hanya melihat/mengubah data `branch_id` miliknya (`BranchScope`). Hanya Master yang bisa semua cabang. |
 | **Hak akses = modul** | Punya akses modul (RBAC) = boleh **semua aksi** di modul itu termasuk hapus operasional (termasuk Manager). Hapus **data penting** (client inquiry/aktif dan cabang) hanya role `master` (tanpa flag `can_delete`). Hapus = permanen (ADR 0005, `schema.md` §6.7). Staf dinonaktifkan, tidak dihapus. |
@@ -51,11 +51,11 @@ Notasi tabel dampak: **C** = insert, **U** = update, **D** = delete, **R** = bac
 |---|---|---|
 | F1 Login & lupa password | `personal_access_tokens`(C), `users`(U `last_login_at`, password, `must_change_password`), `clients`(U `last_login_at`), `password_reset_otps`(C/U) | `users`, `clients`, `roles`, `role_permissions` |
 | F2 User/Role/RBAC | `users`, `roles`, `role_permissions` (C/U) | `access_modules`, `branches` |
-| F3 Master data | `services`, `sensory_quadrants`, `cancel_reasons`, `discharge_reasons`, `master_packages` (`updated_by`) | tabel pemakai (untuk pengaman hapus) |
+| F3 Master data | `services`, `cancel_reasons`, `discharge_reasons`, `master_packages` (`updated_by`) | tabel pemakai (untuk pengaman hapus) |
 | F4 Intake | `clients`(C), `client_code_counters`(U) | `branches` |
 | F5 Layanan | `client_services`(C/D), `clients`(U status) | `services` |
 | F6 Kode kuesioner | `assessment_access_codes`(C/D), `clients`(U status) | `assessment_categories`, `invoices` (gating) |
-| F7 Isi kuesioner | `assessment_drafts`(C/U simpan otomatis, D saat submit), `assessment_responses`(C), `assessment_answers`(C), `assessment_quadrant_scores`(C), `assessment_access_codes`(U) — **status client tidak berubah** | `assessment_questions`, `sensory_quadrants`, `invoices` (gating bukti) |
+| F7 Isi kuesioner | `assessment_drafts`(C/U simpan otomatis, D saat submit), `assessment_responses`(C), `assessment_answers`(C), `assessment_access_codes`(U) — **status client tidak berubah** | `assessment_questions`, `invoices` (gating bukti) |
 | F8 Mesin kuesioner | `assessment_categories`, `assessment_sections`, `assessment_questions` (C/U/D) | `sensory_quadrants` |
 | F9 Outcome & dokumen | `clients`(U), `client_documents` | — |
 | F10 Buat jadwal | `schedules`(C), `schedule_series`(C), `clients` (U status, bila asesmen) | `schedules` (cek bentrok), `client_packages`, `users`, `holidays` |

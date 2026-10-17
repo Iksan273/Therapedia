@@ -5,7 +5,6 @@ import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { useClients } from "@/stores/clientsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
-import { useMasterData, getQuadrantColor } from "@/stores/masterDataStore";
 import { useTherapists } from "@/stores/therapistsStore";
 import { calcAgeDetailed, fmtDate } from "@/shared/lib/format";
 import { listQuestionnaireResults } from "@/domain/assessment";
@@ -13,162 +12,19 @@ import { BRANCHES } from "@/domain/branch";
 import { cn } from "@/shared/lib/utils";
 import { DocumentHeader } from "@/features/assessment/components/parentAssessment/DocumentHeader";
 import { ScoringLegend } from "@/features/assessment/components/parentAssessment/ScoringLegend";
-import { isScoredQuestionType } from "@/features/assessment/components/masterData/assessmentConfig";
-import { sectionDescription } from "@/features/assessment/components/fill/fillSections";
-import { QuadrantSummary } from "@/features/assessment/components/parentAssessment/QuadrantSummary";
+import { buildTemplateResult, categoryFromAnswers, getSectionTemplate } from "@/domain/assessmentTemplate";
+import { PlainSectionsView } from "@/features/assessment/components/parentAssessment/PlainSectionsView";
 import { AssessorSheetView } from "@/features/assessment/components/parentAssessment/AssessorSheetView";
 import { ParentMatrixView } from "@/features/assessment/components/parentAssessment/ParentMatrixView";
 import { QuickInquiryView } from "@/features/assessment/components/parentAssessment/QuickInquiryView";
 import { SignatureBlock } from "@/features/assessment/components/parentAssessment/SignatureBlock";
-
-// Fallback Default Clinical Profile Sections & Questions if client answer list is flat
-const DEFAULT_SENSORY_PROFILE_SECTIONS = [
-  {
-    id: "sec-auditory",
-    domain: "Pemrosesan AUDITORI",
-    title: "Pemrosesan AUDITORI",
-    description: "Anakku ...",
-    items: [
-      { itemNo: 1, quadrant: "AV", question: "berespon berlebih terhadap suara-suara yang tidak terduga atau suara keras (misal, sirine, gonggongan anjing, pengering rambut (hairdryer))", defaultScore: 3 },
-      { itemNo: 2, quadrant: "AV", question: "menutup telinga untuk melindunginya dari suara-suara", defaultScore: 3 },
-      { itemNo: 3, quadrant: "SN", question: "sangat kesulitan mengerjakan tugas ketika terdapat musik atau televisi sedang menyala", defaultScore: 5 },
-      { itemNo: 4, quadrant: "SN", question: "teralihkan perhatiannya ketika terdapat banyak suara di sekitarnya", defaultScore: 5 },
-      { itemNo: 5, quadrant: "AV", question: "kesulitan menyelesaikan tugasnya saat ada suara-suara latar di sekitarnya (misal: suara kipas angin, kulkas, dll)", defaultScore: 2 },
-      { itemNo: 6, quadrant: "SN", question: "terlihat tidak memperdulikan saya atau mengabaikan saya", defaultScore: 1 },
-      { itemNo: 7, quadrant: "SN", question: "terlihat tidak mendengar ketika saya memanggil namanya (padahal ia dapat mendengar dengan baik)", defaultScore: 1 },
-      { itemNo: 8, quadrant: "RG", question: "menikmati suara-suara aneh atau membuat suara-suara gaduh sendiri", defaultScore: 1 },
-    ],
-  },
-  {
-    id: "sec-visual",
-    domain: "Pemrosesan VISUAL",
-    title: "Pemrosesan VISUAL",
-    description: "Anakku ...",
-    items: [
-      { itemNo: 9, quadrant: "SN", question: "lebih menyukai bermain atau bekerja di ruangan yang memiliki cahaya redup", defaultScore: 1 },
-      { itemNo: 10, quadrant: "SK", question: "lebih menyukai pakaian yang berwarna cerah dan memiliki pola gambar", defaultScore: 4 },
-      { itemNo: 11, quadrant: "SK", question: "senang melihat detil-detil pada obyek", defaultScore: 1 },
-      { itemNo: 12, quadrant: "RG", question: "membutuhkan bantuan untuk menemukan benda yang terlihat jelas oleh orang lain", defaultScore: 1 },
-      { itemNo: 13, quadrant: "SN", question: "lebih terganggu dengan cahaya terang daripada anak lain seusianya", defaultScore: 1 },
-      { itemNo: 14, quadrant: "SK", question: "melihat orang-orang yang bergerak di dalam ruangan", defaultScore: 4 },
-      { itemNo: 15, quadrant: "AV", question: "merasa terganggu oleh adanya cahaya terang (misal, menutupi mata dari pantulan sinar matahari)", defaultScore: 1 },
-    ],
-  },
-  {
-    id: "sec-tactile",
-    domain: "Pemrosesan SENTUHAN",
-    title: "Pemrosesan SENTUHAN",
-    description: "Anakku ...",
-    items: [
-      { itemNo: 16, quadrant: "SN", question: "menunjukkan kegelisahan selama melakukan aktivitas merawat diri (misal, menolak atau menangis saat memotong kuku, membasuh wajah)", defaultScore: 2 },
-      { itemNo: 17, quadrant: "AV", question: "menjadi rewel ketika mengenakan sepatu atau kaos kaki tertentu", defaultScore: 3 },
-      { itemNo: 18, quadrant: "AV", question: "menolak berjalan tanpa alas kaki di atas rumput, pasir, atau karpet bertekstur", defaultScore: 4 },
-      { itemNo: 19, quadrant: "SK", question: "menyentuh orang atau benda secara berlebihan hingga mengganggu orang lain", defaultScore: 4 },
-      { itemNo: 20, quadrant: "RG", question: "tidak tampak menyadari adanya kotoran, makanan, atau lendir di wajah atau tangannya", defaultScore: 2 },
-    ],
-  },
-  {
-    id: "sec-vestibular",
-    domain: "Pemrosesan GERAKAN / VESTIBULAR",
-    title: "Pemrosesan GERAKAN / VESTIBULAR",
-    description: "Anakku ...",
-    items: [
-      { itemNo: 21, quadrant: "SK", question: "mencari aktivitas bergerak yang terus-menerus (misal, berputar, melompat-lompat, bergoyang di kursi)", defaultScore: 5 },
-      { itemNo: 22, quadrant: "AV", question: "menunjukkan kecemasan atau ketakutan berlebih saat kaki tidak menyentuh lantai (misal, saat diayun atau diangkat)", defaultScore: 2 },
-      { itemNo: 23, quadrant: "SN", question: "mudah pusing, mual, atau mabuk kendaraan saat bepergian", defaultScore: 1 },
-    ],
-  },
-  {
-    id: "sec-proprioception",
-    domain: "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
-    title: "Pemrosesan PROPRIOSEPTIF & BODY POSITION",
-    description: "Anakku ...",
-    items: [
-      { itemNo: 24, quadrant: "RG", question: "sering menjatuhkan barang atau tampak canggung saat memegang pensil atau sendok makan", defaultScore: 3 },
-      { itemNo: 25, quadrant: "SK", question: "menabrakkan diri ke orang lain, perabotan rumah, atau dinding dengan sengaja", defaultScore: 4 },
-      { itemNo: 26, quadrant: "RG", question: "tampak cepat lelah atau menyandarkan kepala dan badan di meja saat sedang duduk", defaultScore: 4 },
-    ],
-  },
-  {
-    id: "sec-behavior",
-    domain: "Pemrosesan PERILAKU & REGULASI SOSIAL-EMOSI",
-    title: "Pemrosesan PERILAKU & REGULASI SOSIAL-EMOSI",
-    description: "Anakku ...",
-    items: [
-      { itemNo: 27, quadrant: "AV", question: "mengalami tantrum hebat ketika terjadi perubahan mendadak pada rutinitas harian yang biasa dilakukan", defaultScore: 4 },
-      { itemNo: 28, quadrant: "SN", question: "membutuhkan waktu jauh lebih lama untuk menenangkan diri setelah merasa kecewa atau marah", defaultScore: 4 },
-      { itemNo: 29, quadrant: "AV", question: "enggan melakukan kontak mata selama percakapan berlangsung", defaultScore: 2 },
-    ],
-  },
-];
-
-const DEFAULT_SCHOOL_COMPANION_SECTIONS = [
-  {
-    id: "sec-scp-attention",
-    domain: "Pemrosesan & ATENSI KELAS",
-    title: "Pemrosesan & ATENSI KELAS (Classroom Attention)",
-    description: "Di dalam kelas, siswa ...",
-    items: [
-      { itemNo: 1, quadrant: "SN", question: "mampu mempertahankan posisi duduk dan fokus selama 20-30 menit saat guru menjelaskan instruksi", defaultScore: 4 },
-      { itemNo: 2, quadrant: "AV", question: "tampak gelisah dan sering menoleh saat ada siswa lain yang bergerak atau berbicara pelan di dekatnya", defaultScore: 3 },
-      { itemNo: 3, quadrant: "SK", question: "meninggalkan tempat duduk tanpa izin atau berkeliling kelas saat proses belajar mengajar berlangsung", defaultScore: 4 },
-    ],
-  },
-  {
-    id: "sec-scp-instruction",
-    domain: "PENGIKUTAN INSTRUKSI GURU",
-    title: "PENGIKUTAN INSTRUKSI GURU (Teacher Instruction Following)",
-    description: "Ketika guru memberi tugas ...",
-    items: [
-      { itemNo: 4, quadrant: "SN", question: "mampu mengikuti instruksi 2-3 langkah secara berurutan tanpa perlu didorong secara fisik", defaultScore: 3 },
-      { itemNo: 5, quadrant: "RG", question: "membutuhkan guru pembimbing khusus (shadow teacher) untuk memulai setiap langkah pengerjaan tugas", defaultScore: 4 },
-    ],
-  },
-  {
-    id: "sec-scp-social",
-    domain: "SOSIALISASI TEMAN SEBAYA",
-    title: "SOSIALISASI TEMAN SEBAYA & WAKTU ISTIRAHAT (Peer Socialization)",
-    description: "Selama jam istirahat / bermain ...",
-    items: [
-      { itemNo: 6, quadrant: "SK", question: "berinteraksi dan berbagi alat permainan secara kooperatif dengan teman sekelas", defaultScore: 2 },
-      { itemNo: 7, quadrant: "AV", question: "mudah terpicu marah atau agresif jika gilirannya disela oleh teman bermain", defaultScore: 4 },
-      { itemNo: 8, quadrant: "RG", question: "mengisolasi diri dan lebih memilih bermain sendirian di sudut area sekolah", defaultScore: 3 },
-    ],
-  },
-  {
-    id: "sec-scp-tools",
-    domain: "PENGELOLAAN ALAT BELAJAR",
-    title: "PENGELOLAAN ALAT BELAJAR & POSTUR MEJA (Desk Posture & Tool Handling)",
-    description: "Saat berada di meja belajar ...",
-    items: [
-      { itemNo: 9, quadrant: "RG", question: "postur duduk membungkuk, menempel di meja, atau menopang kepala saat menulis", defaultScore: 3 },
-      { itemNo: 10, quadrant: "SN", question: "pengelolaan alat tulis, buku, dan gunting rapi serta tidak mudah tercecer", defaultScore: 2 },
-    ],
-  },
-  {
-    id: "sec-scp-sensory",
-    domain: "REGULASI SENSORI SEKOLAH",
-    title: "REGULASI SENSORI LINGKUNGAN SEKOLAH (School Sensory Adaptation)",
-    description: "Menghadapi lingkungan sekolah ...",
-    items: [
-      { itemNo: 11, quadrant: "AV", question: "menutup telinga atau panik saat mendengar bel sekolah berbunyi keras atau suasana kantin yang riuh", defaultScore: 4 },
-      { itemNo: 12, quadrant: "AV", question: "menolak memakai seragam sekolah dengan bahan tertentu atau merasa tercekik oleh kerah seragam", defaultScore: 3 },
-    ],
-  },
-];
 
 export default function ParentAssessmentView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getClient } = useClients();
   const { categories } = useAssessments();
-  const { quadrantMap, quadrants } = useMasterData();
 
-  // Gaya badge kuadran mengikuti master data; kode yang sudah tidak ada memakai abu-abu
-  const quadStyle = (code, fallback = "bg-slate-600 text-white font-bold") => {
-    const q = quadrantMap[code];
-    return { badge: q ? getQuadrantColor(q.color).solid : fallback };
-  };
   const { therapists } = useTherapists();
 
   // Kuesioner terpilih (kunci = kode kuesioner). Bisa dibuka langsung lewat ?kode=XXX
@@ -200,9 +56,6 @@ export default function ParentAssessmentView() {
     setDomainFilter("all");
   };
 
-  const isSchoolCompanion =
-    currentTab === "cat-002" ||
-    Boolean(activeAssessment && (activeAssessment.categoryName || "").toLowerCase().includes("school"));
 
   const branch = useMemo(() => BRANCHES.find((b) => b.id === client?.branchId), [client]);
 
@@ -215,106 +68,24 @@ export default function ParentAssessmentView() {
     return categories.find((c) => c.id === currentTab) || null;
   }, [categories, currentTab]);
 
-  // Determine active sections based on active category in Master Data or client's recorded answers
-  const activeSections = useMemo(() => {
-    // 1. If master data has structured sections for this category, prioritize them!
-    if (masterCategory && masterCategory.sections && masterCategory.sections.length > 0) {
-      // Lembar skor hanya memuat soal bertipe skor; soal tanggal/teks/dll. tidak masuk matriks
-      return masterCategory.sections.map((sec, sIdx) => ({
-        id: sec.sectionId || `sec-${sIdx}`,
-        domain: sec.title || sec.domain || `Domain ${sIdx + 1}`,
-        title: sec.title || sec.domain || `Domain ${sIdx + 1}`,
-        description: sectionDescription(sec),
-        items: (sec.questions || []).filter((q) => isScoredQuestionType(q.type)).map((q, qIdx) => ({
-          itemNo: q.itemNo || qIdx + 1,
-          quadrant: q.quadrant || null,
-          question: q.question,
-          defaultScore: 3,
-        })),
-      }));
-    }
+  // Hasil: section ber-template → tabel skor mentah ; section biasa → daftar pertanyaan–jawaban.
+  // Tanpa kategori master (sudah dihapus), bentuk section dipulihkan dari snapshot jawaban.
+  const resultCategory = useMemo(
+    () => (masterCategory?.sections?.length ? masterCategory : categoryFromAnswers(activeAssessment?.answers)),
+    [masterCategory, activeAssessment]
+  );
+  const result = useMemo(
+    () => buildTemplateResult(resultCategory, activeAssessment?.answers || []),
+    [resultCategory, activeAssessment]
+  );
 
-    // 2. If master data has flat questions, group them into domain sections
-    if (masterCategory && masterCategory.questions && masterCategory.questions.length > 0) {
-      const groups = {};
-      masterCategory.questions.forEach((q, qIdx) => {
-        if (!isScoredQuestionType(q.type)) return;
-        const dom = q.domain || "Umum / Klinis";
-        if (!groups[dom]) groups[dom] = [];
-        groups[dom].push({
-          itemNo: qIdx + 1,
-          quadrant: q.quadrant || null,
-          question: q.question,
-          defaultScore: 3,
-        });
-      });
-      return Object.entries(groups).map(([dom, items], gIdx) => ({
-        id: `sec-dyn-${gIdx}`,
-        domain: dom,
-        title: dom,
-        description: "Anakku ...",
-        items,
-      }));
-    }
-
-    // 3. If client's activeAssessment has raw answers, group by answer domain
-    if (activeAssessment && activeAssessment.answers && activeAssessment.answers.length > 0) {
-      const groups = {};
-      activeAssessment.answers.forEach((ans, aIdx) => {
-        const dom = ans.domain || "Umum / Klinis";
-        if (!groups[dom]) groups[dom] = [];
-        groups[dom].push({
-          itemNo: aIdx + 1,
-          quadrant: ans.quadrant || (aIdx % 4 === 0 ? "AV" : aIdx % 4 === 1 ? "SN" : aIdx % 4 === 2 ? "RG" : "SK"),
-          question: ans.question || `Pertanyaan Klinis #${aIdx + 1}`,
-          defaultScore: typeof ans.score === "number" ? ans.score : 3,
-        });
-      });
-      return Object.entries(groups).map(([dom, items], gIdx) => ({
-        id: `sec-ans-${gIdx}`,
-        domain: dom,
-        title: dom,
-        description: "Anakku ...",
-        items,
-      }));
-    }
-
-    // Fallbacks for standard categories
-    if (isSchoolCompanion) return DEFAULT_SCHOOL_COMPANION_SECTIONS;
-    return DEFAULT_SENSORY_PROFILE_SECTIONS;
-  }, [masterCategory, activeAssessment, isSchoolCompanion]);
-
-  // Merge client's answer scores into the standardized clinical items
-  const resolvedSections = useMemo(() => {
-    const rawAnswers = activeAssessment?.answers || [];
-    return activeSections.map((sec) => {
-      const items = sec.items.map((it) => {
-        // Find if client has recorded an answer
-        const match = rawAnswers.find(
-          (a) => a.questionId === `q-${it.itemNo}` || a.itemNo === it.itemNo || a.question === it.question
-        );
-        let score = it.defaultScore;
-        if (match) {
-          if (typeof match.score === "number") score = match.score;
-          else if (match.answer && /^\d+/.test(match.answer)) {
-            score = parseInt(match.answer.match(/^\d+/)[0], 10);
-          }
-        }
-        return {
-          ...it,
-          score: score !== undefined ? score : 0,
-        };
-      });
-
-      const rawScoreSum = items.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0);
-
-      return {
-        ...sec,
-        items,
-        rawScoreSum,
-      };
-    });
-  }, [activeSections, activeAssessment]);
+  // Bentuk yang dibaca view tabel: { id, title, items:[{ itemNo, question, score }], rawScoreSum }
+  const resolvedSections = useMemo(
+    () => result.templateSections.map((sec) => ({ ...sec, id: sec.sectionId, domain: sec.title })),
+    [result]
+  );
+  const activeTemplate = getSectionTemplate(resolvedSections[0]);
+  const isSchoolCompanion = resolvedSections.some((s) => s.template === "school_companion");
 
   // Filter sections by domain filter (if user selects a specific domain, but print displays all)
   const displayedSections = useMemo(() => {
@@ -322,22 +93,31 @@ export default function ParentAssessmentView() {
     return resolvedSections.filter((s) => s.id === domainFilter);
   }, [resolvedSections, domainFilter]);
 
-  // Overall Quadrant Totals
-  const quadrantTotals = useMemo(() => {
-    const totals = Object.fromEntries(quadrants.map((q) => [q.code, 0]));
-    resolvedSections.forEach((sec) => {
-      sec.items.forEach((it) => {
-        if (totals[it.quadrant] !== undefined) {
-          totals[it.quadrant] += Number(it.score) || 0;
-        }
-      });
-    });
-    return totals;
-  }, [resolvedSections, quadrants]);
+  // Dua hasil terpisah: (1) jawaban form biasa, (2) profil sensori (tabel psikologi). Masing-masing tetap berurutan sesuai
+  // urutan section di kuesioner; kartu yang section-nya lebih dulu di kuesioner tampil lebih dulu.
+  const firstKind = result.order[0]?.kind || "plain";
+  // Section biasa juga ikut filter navigasi (domainFilter = sectionId)
+  const displayedPlain = useMemo(
+    () => (domainFilter === "all" ? result.plainSections : result.plainSections.filter((p) => p.sectionId === domainFilter)),
+    [result, domainFilter]
+  );
+  const cards = useMemo(() => {
+    const list = [];
+    if (displayedPlain.length > 0) list.push("plain");
+    if (displayedSections.length > 0) list.push("template");
+    return list.sort((x, y) => (x === firstKind ? -1 : y === firstKind ? 1 : 0));
+  }, [displayedPlain, displayedSections, firstKind]);
 
-  const totalQuestionsCount = useMemo(() => {
-    return resolvedSections.reduce((acc, s) => acc + s.items.length, 0);
-  }, [resolvedSections]);
+  // Daftar navigasi: SEMUA section (biasa + ber-template) sesuai urutan kuesioner
+  const navSections = useMemo(() => {
+    const plainById = Object.fromEntries(result.plainSections.map((p) => [p.sectionId, p]));
+    const tplById = Object.fromEntries(resolvedSections.map((t) => [t.id, t]));
+    return result.order.map(({ kind, sectionId }) => {
+      const sec = kind === "plain" ? plainById[sectionId] : tplById[sectionId];
+      return { id: sectionId, title: sec.title, count: sec.items.length, kind };
+    });
+  }, [result, resolvedSections]);
+  const totalQuestionsCount = useMemo(() => navSections.reduce((acc, s) => acc + s.count, 0), [navSections]);
 
   if (!client) {
     return (
@@ -355,55 +135,58 @@ export default function ParentAssessmentView() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto print:p-0 print:m-0" data-testid="parent-assessment-view-page">
+    <div className="space-y-6 max-w-6xl mx-auto min-w-0 print:p-0 print:m-0" data-testid="parent-assessment-view-page">
       {/* Non-print action header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 border-slate-200 text-slate-600 hover:bg-slate-100"
+            className="gap-2 min-h-10 border-slate-200 text-slate-600 hover:bg-slate-100"
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="w-4 h-4" /> Kembali
           </Button>
-          <Badge variant="outline" className="text-xs font-bold text-slate-700 bg-white border-slate-200">
+          <Badge variant="outline" className="text-xs font-bold text-slate-700 bg-white border-slate-200 max-w-full whitespace-normal break-words">
             {client.clientName} ({client.clientCode})
           </Badge>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View mode switcher */}
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 min-w-0">
+          {/* View mode switcher: 3 kolom penuh di HP, label ringkas */}
+          <div className="grid grid-cols-3 sm:inline-flex w-full sm:w-auto rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
             <button
               onClick={() => setViewMode("clinical")}
               className={cn(
-                "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5",
+                "px-2 sm:px-3 py-1.5 min-h-11 sm:min-h-0 rounded-lg transition-all flex items-center justify-center text-center gap-1.5 min-w-0",
                 viewMode === "clinical" ? "bg-white text-emerald-800 shadow-xs font-black" : "text-slate-600 hover:text-slate-900"
               )}
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              Lembar Klinis Assessor (Gambar 1)
+              <FileSpreadsheet className="hidden sm:block w-3.5 h-3.5 text-emerald-600" />
+              <span className="sm:hidden">Lembar Klinis</span>
+              <span className="hidden sm:inline">Lembar Klinis Assessor (Gambar 1)</span>
             </button>
             <button
               onClick={() => setViewMode("matrix")}
               className={cn(
-                "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5",
+                "px-2 sm:px-3 py-1.5 min-h-11 sm:min-h-0 rounded-lg transition-all flex items-center justify-center text-center gap-1.5 min-w-0",
                 viewMode === "matrix" ? "bg-white text-emerald-800 shadow-xs font-black" : "text-slate-600 hover:text-slate-900"
               )}
             >
-              <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
-              Matriks Jawaban Ortu (Gambar 2)
+              <CheckSquare className="hidden sm:block w-3.5 h-3.5 text-emerald-600" />
+              <span className="sm:hidden">Matriks Ortu</span>
+              <span className="hidden sm:inline">Matriks Jawaban Ortu (Gambar 2)</span>
             </button>
             <button
               onClick={() => setViewMode("inquiry")}
               className={cn(
-                "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5",
+                "px-2 sm:px-3 py-1.5 min-h-11 sm:min-h-0 rounded-lg transition-all flex items-center justify-center text-center gap-1.5 min-w-0",
                 viewMode === "inquiry" ? "bg-white text-emerald-800 shadow-xs font-black" : "text-slate-600 hover:text-slate-900"
               )}
             >
-              <LayoutGrid className="w-3.5 h-3.5 text-slate-500" />
-              Tabel Inquiry Cepat
+              <LayoutGrid className="hidden sm:block w-3.5 h-3.5 text-slate-500" />
+              <span className="sm:hidden">Tabel Cepat</span>
+              <span className="hidden sm:inline">Tabel Inquiry Cepat</span>
             </button>
           </div>
 
@@ -412,7 +195,7 @@ export default function ParentAssessmentView() {
               href={client.gdriveClientLink}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors shadow-2xs"
+              className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-10 px-3 py-2 rounded-xl text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors shadow-2xs"
             >
               <ExternalLink className="w-3.5 h-3.5" /> GDrive Client
             </a>
@@ -420,16 +203,16 @@ export default function ParentAssessmentView() {
 
           <Button
             onClick={handlePrint}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-2 shadow-xs"
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-2 shadow-xs w-full sm:w-auto min-h-10 whitespace-normal"
           >
-            <Printer className="w-4 h-4" /> Cetak / Unduh PDF Hasil Asesmen
+            <Printer className="w-4 h-4 shrink-0" /> Cetak / Unduh PDF Hasil Asesmen
           </Button>
         </div>
       </div>
 
       {/* Pilih Kuesioner: satu kartu per KODE yang diterbitkan (client bisa punya beberapa kode) */}
       {questionnaires.length > 1 && (
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3 print:hidden" data-testid="questionnaire-picker">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3 min-w-0 print:hidden" data-testid="questionnaire-picker">
           <div>
             <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-emerald-700" /> Pilih Kuesioner
@@ -438,7 +221,7 @@ export default function ParentAssessmentView() {
               Client ini punya {questionnaires.length} kode kuesioner. Pilih salah satu untuk melihat hasilnya; kode yang belum diisi ortu belum bisa dibuka.
             </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
             {questionnaires.map((q) => {
               const isSelected = selected?.key === q.key;
               return (
@@ -449,13 +232,13 @@ export default function ParentAssessmentView() {
                   onClick={() => selectQuestionnaire(q.key)}
                   aria-pressed={isSelected}
                   className={cn(
-                    "text-left rounded-xl border p-3 min-h-[64px] transition-all flex flex-col gap-1.5",
+                    "text-left rounded-xl border p-3 min-h-[64px] min-w-0 w-full transition-all flex flex-col gap-1.5",
                     isSelected ? "bg-emerald-50 border-emerald-400 ring-1 ring-emerald-400/40 shadow-xs" : q.filled ? "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 cursor-pointer" : "bg-slate-50 border-dashed border-slate-200 opacity-70 cursor-not-allowed"
                   )}
                   data-testid={`questionnaire-option-${q.key}`}
                 >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-extrabold text-slate-900 truncate">{q.categoryName}</span>
+                  <span className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-2 min-w-0">
+                    <span className="text-xs font-extrabold text-slate-900 break-words sm:truncate min-w-0 max-w-full">{q.categoryName}</span>
                     {q.filled ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> Sudah diisi</span>
                     ) : (
@@ -483,10 +266,10 @@ export default function ParentAssessmentView() {
       {selected && (
       <>
       {/* Filter domain dropdown for fast navigation when items are 100++ (Non-print) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 print:hidden">
+      <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 print:hidden", navSections.length === 0 && "hidden")}>
         <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
           <Layers className="w-4 h-4 text-emerald-700" />
-          <span>Navigasi Domain Sensorik ({totalQuestionsCount} Pertanyaan):</span>
+          <span>Navigasi Section ({totalQuestionsCount} Pertanyaan):</span>
         </div>
         <div className="flex items-center gap-2 min-w-0">
           <select
@@ -494,10 +277,10 @@ export default function ParentAssessmentView() {
             onChange={(e) => setDomainFilter(e.target.value)}
             className="text-xs font-semibold bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-auto max-w-full min-w-0 truncate"
           >
-            <option value="all">Tampilkan Semua Domain ({totalQuestionsCount} Item)</option>
-            {resolvedSections.map((sec) => (
+            <option value="all">Tampilkan Semua Section ({totalQuestionsCount} Pertanyaan)</option>
+            {navSections.map((sec) => (
               <option key={sec.id} value={sec.id}>
-                {sec.title} ({sec.items.length} item)
+                {sec.title} ({sec.count} {sec.kind === "plain" ? "pertanyaan" : "item"})
               </option>
             ))}
           </select>
@@ -520,31 +303,29 @@ export default function ParentAssessmentView() {
         {/* DOCUMENT HEADER / CLINICAL TITLE (Matching Image 1) */}
         <DocumentHeader activeAssessment={activeAssessment} ageDetail={ageDetail} branch={branch} client={client} isSchoolCompanion={isSchoolCompanion} masterCategory={masterCategory} testDate={testDate} />
 
-        {/* KETERANGAN DAN SKORING BANNER (Matching Image 1 & Image 2) */}
-        <ScoringLegend />
-
-        {/* SUMMARY KUADRAN SENSORIK CARDS (RESPONSIVE 4-CARD GRID) */}
-        <QuadrantSummary quadrants={quadrants} quadrantTotals={quadrantTotals} totalQuestionsCount={totalQuestionsCount} />
-
-        {/* ========================================================================= */}
-        {/* VIEW 1: LEMBAR EVALUASI KLINIS ASSESSOR (MATCHING EXACT IMAGE 1)          */}
-        {/* ========================================================================= */}
-        {viewMode === "clinical" && (
-          <AssessorSheetView displayedSections={displayedSections} quadStyle={quadStyle} />
-        )}
-
-        {/* ========================================================================= */}
-        {/* VIEW 2: MATRIKS JAWABAN ASLI ORANG TUA (MATCHING EXACT IMAGE 2)          */}
-        {/* ========================================================================= */}
-        {viewMode === "matrix" && (
-          <ParentMatrixView displayedSections={displayedSections} />
-        )}
-
-        {/* ========================================================================= */}
-        {/* VIEW 3: TABEL INQUIRY CEPAT                                               */}
-        {/* ========================================================================= */}
-        {viewMode === "inquiry" && (
-          <QuickInquiryView displayedSections={displayedSections} quadStyle={quadStyle} />
+        {cards.map((card) =>
+          card === "plain" ? (
+            <section key="plain" className="space-y-3" data-testid="result-form-card">
+              <h2 className="text-base font-black text-slate-900 border-b-2 border-emerald-600 pb-1">Hasil Form (Pertanyaan &amp; Jawaban)</h2>
+              {/* Section tanpa template, urut sesuai kuesioner */}
+              <PlainSectionsView plainSections={displayedPlain} />
+            </section>
+          ) : (
+            <section key="template" className="space-y-4" data-testid="result-profile-card">
+              <h2 className="text-base font-black text-slate-900 border-b-2 border-emerald-600 pb-1">
+                Hasil Profil{activeTemplate ? ` — ${activeTemplate.label}` : ""}
+              </h2>
+              <ScoringLegend template={activeTemplate} />
+              {/* Tabel psikologi (section ber-template), urut sesuai kuesioner */}
+              {viewMode === "clinical" ? (
+                <AssessorSheetView displayedSections={displayedSections} />
+              ) : viewMode === "matrix" ? (
+                <ParentMatrixView displayedSections={displayedSections} />
+              ) : (
+                <QuickInquiryView displayedSections={displayedSections} />
+              )}
+            </section>
+          )
         )}
 
         {/* TANDA TANGAN DOKUMEN CETAK (PRINT-READY) */}
