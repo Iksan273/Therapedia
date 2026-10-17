@@ -6,6 +6,8 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { AddScheduleModal } from "@/features/schedule";
 import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerModal";
+import { isApiMode } from "@/config/env";
+import { UnderDevelopment } from "@/shared/components/UnderDevelopment";
 import { useSchedules } from "@/stores/schedulesStore";
 import { useCredits } from "@/stores/creditsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
@@ -356,7 +358,11 @@ export default function ClientDetailInquiry() {
         <QuestionnaireCodeCard loading={questionnaires.isLoading} categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} masterPackages={masterPackages} newQuestionnaireService={newQuestionnaireService} setNewQuestionnaireService={setNewQuestionnaireService} newQuestionnaireInvoice={newQuestionnaireInvoice} setNewQuestionnaireInvoice={setNewQuestionnaireInvoice} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
 
         {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
-        <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={openScheduleModal} />
+        {isApiMode() ? (
+          <UnderDevelopment title="Schedule Assessment" testId="under-development-assessment-schedule" className="py-10" />
+        ) : (
+          <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={openScheduleModal} />
+        )}
 
         {/* STEP 5: PARENT ASSESSMENT ANSWER (PSYCHOLOGICAL TABLE & PDF) */}
         <ParentAnswerCard client={client} loading={questionnaires.isLoading} />
