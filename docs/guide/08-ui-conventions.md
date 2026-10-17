@@ -123,3 +123,12 @@ Aturan 18d. Semua combo box pilih + cari client memakai `shared/components/Clien
 - **Mode demo / daftar turunan**: `clients={...}` disaring di klien (`matchesClientSearch`), tampil 10 per 10.
 - `onChange(id, client)`: argumen kedua = objek client terpilih; pemanggil mode API memakainya (client tidak ada di store lokal). Opsi "semua" lewat `allOption`.
 - Tes: `shared/components/__tests__/ClientCombobox.{local,api}.test.js`.
+
+## Modul yang belum tersambung API ("Sedang dalam pengembangan")
+
+Di **mode API**, halaman/tab yang belum punya backend (di luar M1–M5) tidak menampilkan data demo: halamannya diganti `UnderDevelopment` (`shared/components/UnderDevelopment.js`), menunya diberi badge **Dev** (`DevBadge`), dan tab Finance yang belum siap diberi badge + isi penanda yang sama (tombol *Buat Tagihan* / *Renewal* dinonaktifkan). Mode demo tidak berubah.
+
+- Daftar tunggal: `shared/lib/devStatus.js` (`DEV_PATTERNS` untuk rute, `FINANCE_TABS_READY` untuk tab Finance). Dipakai `AppRouter`, `AppLayout` (badge menu), dan `FinancePortal`.
+- Saat sebuah modul selesai disambungkan ke API: **hapus path/tab-nya dari daftar itu** (dan tambahkan tes lazy-fetch halamannya, aturan 22b). Jangan menambah pengecekan `isApiMode()` ad hoc di halaman.
+- Tes: `shared/lib/__tests__/devStatus.test.js`, tes tab Finance di `features/finance/__tests__/assessmentInvoiceQueueApi.test.js`.
+- Status saat ini (Okt 2026): siap API = auth, Master Cabang/User/RBAC, Master Layanan & data master, Inquiry (pipeline, detail client), Master Asesmen + hasil + `/assessment`, Active Clients (daftar), Hari Libur, Finance tab Menunggu Pembayaran (asesmen) & Master Paket. Belum: Inquiry Dashboard (KPI butuh `GET /dashboards/inquiry`, masih skeleton `NotImplementedException`), Revenue, Performa Inquiry, Schedule Dashboard, Weekly Calendar, detail Active Client, Monitoring Laporan, Utilisasi, Portal Terapis, Portal Ortu, halaman cetak, tab Finance lainnya.

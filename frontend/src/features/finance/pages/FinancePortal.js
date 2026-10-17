@@ -2,9 +2,12 @@ import React, { useMemo, useState } from "react";
 import { usePagination } from "@/shared/components/TablePagination";
 import { SearchInput } from "@/shared/components/FilterBar";
 import { toast } from "sonner";
+import { isApiMode } from "@/config/env";
 import { Receipt, CheckCircle2, Plus, RefreshCw, History, Package, Wallet, ScrollText, Flame, CalendarOff } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { isFinanceTabUnderDevelopment } from "@/shared/lib/devStatus";
+import { DevBadge, UnderDevelopment } from "@/shared/components/UnderDevelopment";
 import { PaymentProofViewerModal } from "@/shared/components/PaymentProofViewerModal";
 import { useCredits } from "@/stores/creditsStore";
 import { useClients } from "@/stores/clientsStore";
@@ -508,6 +511,8 @@ export default function FinancePortal() {
           <Button
             variant="outline"
             className="border-slate-200 text-slate-700 font-bold gap-2 shadow-2xs hover:bg-slate-100"
+            disabled={isApiMode()}
+            title={isApiMode() ? "Sedang dalam pengembangan" : undefined}
             onClick={() => setIssueOpen(true)}
             data-testid="issue-invoice-button"
           >
@@ -516,6 +521,8 @@ export default function FinancePortal() {
 
           <Button
             className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-2 shadow-sm shadow-sky-600/20"
+            disabled={isApiMode()}
+            title={isApiMode() ? "Sedang dalam pengembangan" : undefined}
             onClick={() => setRenewOpen(true)}
             data-testid="renew-credit-button"
           >
@@ -545,21 +552,27 @@ export default function FinancePortal() {
           </TabsTrigger>
           <TabsTrigger value="renewal" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-renewal">
             <Flame className="w-4 h-4 text-amber-600" /> Perlu Renewal ({renewalRows.length})
+            {isFinanceTabUnderDevelopment("renewal") && <DevBadge className="ml-1" testId="dev-badge-renewal" />}
           </TabsTrigger>
           <TabsTrigger value="billing" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <Receipt className="w-4 h-4 text-sky-600" /> Semua Tagihan ({allInvoices.length})
+            {isFinanceTabUnderDevelopment("billing") && <DevBadge className="ml-1" testId="dev-badge-billing" />}
           </TabsTrigger>
           <TabsTrigger value="history" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <History className="w-4 h-4 text-purple-600" /> Log Buku Besar Kredit
+            {isFinanceTabUnderDevelopment("history") && <DevBadge className="ml-1" testId="dev-badge-history" />}
           </TabsTrigger>
           <TabsTrigger value="ledger" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-ledger">
             <ScrollText className="w-4 h-4 text-sky-600" /> Log Kredit & Saldo
+            {isFinanceTabUnderDevelopment("ledger") && <DevBadge className="ml-1" testId="dev-badge-ledger" />}
           </TabsTrigger>
           <TabsTrigger value="leftover" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-leftover">
             <Wallet className="w-4 h-4 text-amber-600" /> Saldo Lebihan ({leftoverRows.length})
+            {isFinanceTabUnderDevelopment("leftover") && <DevBadge className="ml-1" testId="dev-badge-leftover" />}
           </TabsTrigger>
           <TabsTrigger value="leave" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs" data-testid="tab-leave">
             <CalendarOff className="w-4 h-4 text-violet-600" /> Cuti
+            {isFinanceTabUnderDevelopment("leave") && <DevBadge className="ml-1" testId="dev-badge-leave" />}
           </TabsTrigger>
           <TabsTrigger value="packages" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <Package className="w-4 h-4 text-teal-600" /> Master Data Paket ({masterPackages.length})
@@ -570,22 +583,46 @@ export default function FinancePortal() {
         <VerificationTab handleApprovePayment={handleApprovePayment} loading={queue.active && queue.isLoading} refreshing={queue.active && queue.isFetching && !queue.isLoading} pendingTotal={pendingTotal} pendingInvoices={pendingInvoices} pendingPg={pendingPg} onDeleteInvoice={queue.active ? undefined : handleDeleteInvoice} setSelectedProofInvoice={setSelectedProofInvoice} onUploadProof={handleUploadProof} />
 
         {/* TAB: PERLU RENEWAL (kredit < 3) */}
-        <RenewalNeededTab rows={renewalRows} renewalPg={renewalPg} onRenew={handleQuickRenew} />
+        {isFinanceTabUnderDevelopment("renewal") ? (
+          <TabsContent value="renewal" className="mt-0"><UnderDevelopment title="Renewal" testId="under-development-renewal" /></TabsContent>
+        ) : (
+          <RenewalNeededTab rows={renewalRows} renewalPg={renewalPg} onRenew={handleQuickRenew} />
+        )}
 
         {/* TAB 2: SEMUA TAGIHAN */}
-        <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} onUploadProof={handleUploadProof} />
+        {isFinanceTabUnderDevelopment("billing") ? (
+          <TabsContent value="billing" className="mt-0"><UnderDevelopment title="Billing" testId="under-development-billing" /></TabsContent>
+        ) : (
+          <BillingTab invoicesPg={invoicesPg} setSelectedProofInvoice={setSelectedProofInvoice} onDeleteInvoice={handleDeleteInvoice} onUploadProof={handleUploadProof} />
+        )}
 
         {/* TAB 3: LOG BUKU BESAR KREDIT */}
-        <HistoryTab allHistoryLogs={allHistoryLogs} historyPg={historyPg} />
+        {isFinanceTabUnderDevelopment("history") ? (
+          <TabsContent value="history" className="mt-0"><UnderDevelopment title="History" testId="under-development-history" /></TabsContent>
+        ) : (
+          <HistoryTab allHistoryLogs={allHistoryLogs} historyPg={historyPg} />
+        )}
 
         {/* TAB: LOG KREDIT & SALDO PER CLIENT (rupiah) */}
-        <ClientLedgerTab clients={clients.filter((c) => matchesFinanceSearch({ clientName: c.clientName }, c, search))} search={search} />
+        {isFinanceTabUnderDevelopment("ledger") ? (
+          <TabsContent value="ledger" className="mt-0"><UnderDevelopment title="Ledger" testId="under-development-ledger" /></TabsContent>
+        ) : (
+          <ClientLedgerTab clients={clients.filter((c) => matchesFinanceSearch({ clientName: c.clientName }, c, search))} search={search} />
+        )}
 
         {/* TAB: SALDO LEBIHAN CLIENT */}
-        <LeftoverTab rows={leftoverRows} leftoverPg={leftoverPg} includeZero={includeZeroLeftover} setIncludeZero={setIncludeZeroLeftover} />
+        {isFinanceTabUnderDevelopment("leftover") ? (
+          <TabsContent value="leftover" className="mt-0"><UnderDevelopment title="Leftover" testId="under-development-leftover" /></TabsContent>
+        ) : (
+          <LeftoverTab rows={leftoverRows} leftoverPg={leftoverPg} includeZero={includeZeroLeftover} setIncludeZero={setIncludeZeroLeftover} />
+        )}
 
         {/* TAB: CUTI CLIENT (jatah 30 hari/tahun; log berdiri sendiri) */}
-        <LeaveTab clients={clients} search={search} invoices={rawInvoices} onIssueInvoice={(leave) => { setIssueForm({ ...issueForm, type: "leave", clientId: leave.clientId, leaveId: leave.id, amount: "", paidDirect: false, note: "" }); setIssueOpen(true); }} />
+        {isFinanceTabUnderDevelopment("leave") ? (
+          <TabsContent value="leave" className="mt-0"><UnderDevelopment title="Leave" testId="under-development-leave" /></TabsContent>
+        ) : (
+          <LeaveTab clients={clients} search={search} invoices={rawInvoices} onIssueInvoice={(leave) => { setIssueForm({ ...issueForm, type: "leave", clientId: leave.clientId, leaveId: leave.id, amount: "", paidDirect: false, note: "" }); setIssueOpen(true); }} />
+        )}
 
         {/* TAB 4: MASTER DATA PAKET KREDIT */}
         <PackagesTab masterPackages={masterPackages} loading={masterPackagesLoading} setNewPkgOpen={(o) => { setEditingPkgId(null); setNewPkgOpen(o); }} onEditPackage={openEditPackage} onSetActive={handleSetPackageActive} onDeletePackage={handleDeletePackage} />

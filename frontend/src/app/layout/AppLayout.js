@@ -1,4 +1,6 @@
 import React, { Suspense, useState, useEffect } from "react";
+import { isUnderDevelopment } from "@/shared/lib/devStatus";
+import { DevBadge } from "@/shared/components/UnderDevelopment";
 import { hasAllBranchAccess } from "@/domain/auth";
 import { isApiMode } from "@/config/env";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -100,6 +102,7 @@ const NavItems = ({ config, onNavigate, testidPrefix = "" }) => (
                 )}
               />
               <span className="truncate">{item.label}</span>
+              {isUnderDevelopment(item.to) && <DevBadge testId={`${testidPrefix}${item.testid}-dev`} />}
             </>
           )}
         </NavLink>

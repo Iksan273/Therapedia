@@ -2,8 +2,10 @@ import { Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "@/app/layout/AppLayout";
 import { RequireAccess, RequireModule } from "@/app/router/guards";
+import { isUnderDevelopment } from "@/shared/lib/devStatus";
 import { groupModules, PROTECTED_GROUPS, PUBLIC_ROUTES, STANDALONE_ROUTES } from "@/app/router/routes";
 import { PageSkeleton } from "@/shared/components/PageSkeleton";
+import { UnderDevelopment } from "@/shared/components/UnderDevelopment";
 
 const RouteFallback = () => (
   <div className="max-w-6xl mx-auto p-4 sm:p-8">
@@ -27,7 +29,7 @@ export default function AppRouter() {
               path={path}
               element={
                 <RequireAccess roles={roles} modules={modules}>
-                  <Component />
+                  {isUnderDevelopment(path) ? <UnderDevelopment className="m-6" /> : <Component />}
                 </RequireAccess>
               }
             />
@@ -48,7 +50,7 @@ export default function AppRouter() {
                   <Navigate to={redirect} replace />
                 ) : (
                   <RequireModule module={module}>
-                    <Component />
+                    {isUnderDevelopment(`${group.path}${path ? `/${path}` : ""}`) ? <UnderDevelopment className="m-4 sm:m-8" /> : <Component />}
                   </RequireModule>
                 );
                 return index ? (

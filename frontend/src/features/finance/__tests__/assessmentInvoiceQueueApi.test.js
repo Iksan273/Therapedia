@@ -188,3 +188,13 @@ test("Tandai Lunas: POST verify dengan version, daftar disegarkan; galat server 
   success.mockRestore();
   failure.mockRestore();
 });
+
+test("tab Finance yang belum tersambung API ditandai 'Sedang dalam pengembangan' (bukan data dummy); tombol terbit/renewal dinonaktifkan", async () => {
+  await mount();
+  for (const tab of ["renewal", "billing", "history", "ledger", "leftover", "leave"]) {
+    expect(document.querySelector(`[data-testid="dev-badge-${tab}"]`), tab).toBeTruthy();
+  }
+  expect(document.querySelector('[data-testid="dev-badge-packages"]')).toBeNull();
+  expect(document.querySelector('[data-testid="issue-invoice-button"]').disabled).toBe(true);
+  expect(document.querySelector('[data-testid="renew-credit-button"]').disabled).toBe(true);
+});
