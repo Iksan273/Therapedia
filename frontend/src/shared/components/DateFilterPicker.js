@@ -241,7 +241,7 @@ export default function DateFilterPicker({
         >
           <div className="p-3 pb-2 border-b border-slate-100 flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Pilih Tanggal (DD/MM/YYYY)
+              Pilih Tanggal ({spaced ? "DD / MM / YYYY" : "DD/MM/YYYY"})
             </span>
             {inputText && (
               <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md">

@@ -609,7 +609,7 @@ export default function Login() {
                           data-testid="login-client-dob-input"
                         />
                         <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                          Ketik angka saja (mis. 05032018) atau pilih dari kalender di sebelah kiri.
+                          Ketik angka saja (mis. 05032018) atau ketuk kolom untuk memilih dari kalender.
                         </p>
                       </div>
 
