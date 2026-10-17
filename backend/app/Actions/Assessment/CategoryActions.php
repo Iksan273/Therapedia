@@ -8,6 +8,7 @@ use App\Models\AssessmentCategory;
 use App\Models\AssessmentQuestion;
 use App\Models\AssessmentResponse;
 use App\Models\AssessmentSection;
+use App\Services\AssessmentDocumentFiles;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -121,7 +122,9 @@ class CategoryActions
 
     public function delete(int $id): void
     {
-        DB::transaction(function () use ($id): void {
+        $paths = [];
+
+        DB::transaction(function () use ($id, &$paths): void {
             $category = AssessmentCategory::query()->lockForUpdate()->findOrFail($id);
             $codes = AssessmentAccessCode::query()->where('category_id', $id)->count();
             $responses = AssessmentResponse::query()->where('category_id', $id)->count();
@@ -130,7 +133,13 @@ class CategoryActions
                 throw ApiException::inUse("Kategori \"{$category->name}\" sudah dipakai di {$codes} kode kuesioner. Nonaktifkan saja bila tidak dipakai lagi.");
             }
 
+            $paths = $category->assessmentSectionsViaCategory()->whereNotNull('document_path')->pluck('document_path')->all();
             $category->delete(); // section & soal ikut terhapus (FK cascade)
         });
+
+        // File PDF section ikut dibuang (kategori yang dipakai kode sudah ditolak di atas, jadi tidak ada snapshot yang merujuknya)
+        foreach ($paths as $path) {
+            app(AssessmentDocumentFiles::class)->release($path);
+        }
     }
 }

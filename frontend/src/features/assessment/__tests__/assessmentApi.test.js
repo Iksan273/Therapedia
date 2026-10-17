@@ -495,7 +495,8 @@ test("Master Asesmen: urutan section lewat tombol langsung tersimpan (PUT order)
 
   await act(async () => byId("section-move-down-10").click());
   expect(apiMock.put).toHaveBeenLastCalledWith("/assessment-categories/3/sections/order", { ids: [11, 10, 12] });
-  expect(titles().slice(0, 2)).toEqual(["Visual", "Auditori"]); // optimistis, sebelum server membalas
+  await flush(); // react-query menunda notifikasi render lewat timer; tanpa ini hasil bergantung beban mesin
+  expect(titles().slice(0, 2)).toEqual(["Visual", "Auditori"]); // urutan baru tampil tanpa menunggu muat ulang manual
 });
 
 test("Master Asesmen: gagal menyimpan urutan -> urutan kembali dan pesan galat tampil", async () => {

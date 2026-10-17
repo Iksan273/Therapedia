@@ -207,6 +207,7 @@ const ApiAssessmentsProvider = ({ children }) => {
     // Urutan section: tampil langsung (optimistis) lalu disimpan ke server; gagal → urutan kembali seperti semula
     reorderSections: async (categoryId, orderedIds) => {
       const key = treeKey(categoryId);
+      await queryClient.cancelQueries({ queryKey: key }); // fetch yang sedang jalan tidak boleh menimpa urutan optimistis dengan data lama
       const previous = queryClient.getQueryData(key);
       if (previous) {
         const rank = new Map(orderedIds.map((id, i) => [String(id), i]));

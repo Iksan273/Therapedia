@@ -86,6 +86,33 @@ class FrozenDocumentAndThrottleTest extends TestCase
         Storage::assertMissing($oldPath);
     }
 
+    public function test_deleting_category_removes_its_pdf_files(): void
+    {
+        $this->actAs($this->makeStaff('master'));
+        $this->upload('%PDF-VERSI-A');
+        $path = $this->f['sections'][0]->fresh()->document_path;
+        Storage::assertExists($path);
+
+        $this->deleteJson("/api/v1/assessment-categories/{$this->f['category']->id}")->assertSuccessful();
+
+        Storage::assertMissing($path);
+    }
+
+    public function test_deleting_client_removes_frozen_pdf_that_master_already_replaced(): void
+    {
+        $this->actAs($this->makeStaff('master'));
+        $this->upload('%PDF-VERSI-A');
+        $oldPath = $this->f['sections'][0]->fresh()->document_path;
+        $code = $this->code('DELCLI');
+        $this->putJson("/api/v1/public/assessments/{$code->code}/draft", ['answers' => []])->assertOk();
+        $this->upload('%PDF-VERSI-B'); // file lama hanya hidup lewat snapshot kode client ini
+        Storage::assertExists($oldPath);
+
+        $this->deleteJson("/api/v1/clients/{$this->client->id}")->assertSuccessful();
+
+        Storage::assertMissing($oldPath);
+    }
+
     public function test_pdf_is_served_inline_without_content_disposition_so_browsers_render_instead_of_download(): void
     {
         $this->actAs($this->makeStaff('master'));
