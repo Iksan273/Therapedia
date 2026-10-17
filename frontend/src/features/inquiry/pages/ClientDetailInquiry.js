@@ -30,6 +30,7 @@ import { useClientDetail } from "@/features/inquiry/hooks/useInquiryClients";
 import { STATUS_META } from "@/domain/status";
 import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink } from "@/domain/assessment";
 import { useClientOutcomeActions } from "@/features/inquiry/hooks/useClientOutcomeActions";
+import { useClientQuestionnaires, useClientWithQuestionnaires } from "@/features/inquiry/hooks/useClientQuestionnaires";
 import { useQuestionnaireCodeActions } from "@/features/inquiry/hooks/useQuestionnaireCodeActions";
 import { useClientDeleteActions } from "@/features/inquiry/hooks/useClientDeleteActions";
 import { DeleteButton } from "@/shared/components/DeleteControls";
@@ -54,7 +55,9 @@ export default function ClientDetailInquiry() {
 
   // Mode demo: dari store lokal. Mode API: GET /clients/{id}; mutasi async dan melempar ApiError (409 versi usang, 422 validasi).
   const detail = useClientDetail(id);
-  const client = detail.client;
+  // Mode API: kode & hasil kuesioner dari server (progres draft, struktur beku); mode demo: sudah ada di objek client.
+  const questionnaires = useClientQuestionnaires(id);
+  const client = useClientWithQuestionnaires(detail.client, questionnaires);
 
   // Modals & local state
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -68,14 +71,18 @@ export default function ClientDetailInquiry() {
   const [dischargeOpen, setDischargeOpen] = useState(false);
   const [dischargeReason, setDischargeReason] = useState("");
   const [dischargeNote, setDischargeNote] = useState("");
-  const [newQuestionnaireCategory, setNewQuestionnaireCategory] = useState("cat-001");
+  const [pickedQuestionnaireCategory, setNewQuestionnaireCategory] = useState("cat-001");
+  // Kategori terpilih; tak valid (mis. id server berbeda dari bawaan) → kategori pertama
+  const newQuestionnaireCategory = categories.some((c) => c.id === pickedQuestionnaireCategory) ? pickedQuestionnaireCategory : categories[0]?.id || "";
   const [newQuestionnaireValidity, setNewQuestionnaireValidity] = useState("none");
   const [newQuestionnaireService, setNewQuestionnaireService] = useState(""); // id master paket (harga invoice assessment)
   const [newQuestionnaireInvoice, setNewQuestionnaireInvoice] = useState(true); // false = kode gratis (tanpa invoice)
 
   // Invoices & Credits
   const invoices = client ? getInvoicesForClient(client.id) : [];
-  const latestInvoice = invoices.length > 0 ? invoices[0] : null;
+  // Mode API: invoice asesmen yang terbit otomatis bersama kode (dari daftar kode); invoice paket menyusul dengan modul Finance
+  const serverInvoices = (questionnaires.codes || []).map((c) => c.invoice).filter(Boolean);
+  const latestInvoice = questionnaires.active ? serverInvoices[0] || null : invoices.length > 0 ? invoices[0] : null;
   const creditRecord = client ? getRecordForClient(client.id) : null;
   const remainingCredit = creditRecord ? creditRecord.remainingCredit : 0;
   const [proofModalOpen, setProofModalOpen] = useState(false);
@@ -180,15 +187,25 @@ export default function ClientDetailInquiry() {
   };
 
   // STEP 3: Generate Multi-Questionnaire Code
-  const handleGenerateQuestionnaireCode = () => {
+  const handleGenerateQuestionnaireCode = async () => {
     const selectedCat = categories.find((c) => c.id === newQuestionnaireCategory) || categories[0];
+    if (!selectedCat) {
+      toast.error("Belum ada template kuesioner. Buat template di Master Asesmen dulu.");
+      return;
+    }
     const option = CODE_VALIDITY_OPTIONS.find((o) => o.value === newQuestionnaireValidity);
     const servicePackage = masterPackages.find((m) => m.id === newQuestionnaireService);
     if (newQuestionnaireInvoice && !servicePackage) {
       toast.error("Pilih layanan dulu: harganya dipakai untuk invoice assessment.");
       return;
     }
-    const item = codeActions.issueCode(client, selectedCat, { validityDays: option?.days ?? null, servicePackage, withInvoice: newQuestionnaireInvoice });
+    let item;
+    try {
+      item = await codeActions.issueCode(client, selectedCat, { validityDays: option?.days ?? null, servicePackage, withInvoice: newQuestionnaireInvoice });
+    } catch (err) {
+      toast.error(apiErrorText(err, ["category_id", "master_package_id"]));
+      return;
+    }
 
     toast.success(`Kode kuesioner baru '${item.code}' (${selectedCat.categoryName}) berhasil dibuat${item.expiresAt ? ` — berlaku ${option.label}` : ""}! ${newQuestionnaireInvoice ? `Invoice assessment ${fmtCurrency(servicePackage.price)} diterbitkan.` : "Kode gratis: tanpa invoice."}`, {
       action: { label: "Salin Link", onClick: () => copyToClipboard(buildQuestionnaireLink(item.code, window.location.origin), "Link kuesioner") },
@@ -202,7 +219,13 @@ export default function ClientDetailInquiry() {
       description: `Kode ${item.code} (${item.name || "kuesioner"}) belum diisi ortu. Setelah dihapus, kode tidak bisa dipakai lagi.`,
     });
     if (!ok) return;
-    const result = codeActions.deleteCode(client, item);
+    let result;
+    try {
+      result = await codeActions.deleteCode(client, item);
+    } catch (err) {
+      toast.error(apiErrorText(err));
+      return;
+    }
     if (result.deleted) toast.success(`Kode ${item.code} dihapus.`);
     else if (result.reason === "draft") toast.error("Kode ini sedang diisi ortu (sudah ada jawaban tersimpan) sehingga tidak bisa dihapus.");
     else toast.error("Kode ini sudah diisi ortu sehingga tidak bisa dihapus.");
@@ -330,13 +353,13 @@ export default function ClientDetailInquiry() {
         <ServiceSelectionCard getService={getService} handleToggleService={handleToggleService} selectedServices={selectedServices} services={services} />
 
         {/* STEP 3: QUESTIONNAIRE CODE GENERATOR (MULTI-CODE) */}
-        <QuestionnaireCodeCard categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} masterPackages={masterPackages} newQuestionnaireService={newQuestionnaireService} setNewQuestionnaireService={setNewQuestionnaireService} newQuestionnaireInvoice={newQuestionnaireInvoice} setNewQuestionnaireInvoice={setNewQuestionnaireInvoice} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
+        <QuestionnaireCodeCard loading={questionnaires.isLoading} categories={categories} client={client} copyToClipboard={copyToClipboard} handleGenerateQuestionnaireCode={handleGenerateQuestionnaireCode} handleDeleteQuestionnaireCode={handleDeleteQuestionnaireCode} newQuestionnaireCategory={newQuestionnaireCategory} newQuestionnaireValidity={newQuestionnaireValidity} setNewQuestionnaireValidity={setNewQuestionnaireValidity} masterPackages={masterPackages} newQuestionnaireService={newQuestionnaireService} setNewQuestionnaireService={setNewQuestionnaireService} newQuestionnaireInvoice={newQuestionnaireInvoice} setNewQuestionnaireInvoice={setNewQuestionnaireInvoice} setNewQuestionnaireCategory={setNewQuestionnaireCategory} />
 
         {/* STEP 4: SCHEDULE ASSESSMENT (MENDUKUNG LEBIH DARI 1 SESI ASESMEN) */}
         <AssessmentScheduleCard assessmentSessions={assessmentSessions} getTherapist={getTherapist} setScheduleModalOpen={openScheduleModal} />
 
         {/* STEP 5: PARENT ASSESSMENT ANSWER (PSYCHOLOGICAL TABLE & PDF) */}
-        <ParentAnswerCard client={client} />
+        <ParentAnswerCard client={client} loading={questionnaires.isLoading} />
 
         {/* STEP 6: GOOGLE DRIVE CLIENT LINK */}
         <GDriveLinkCard client={client} handleSaveGDriveLink={handleSaveGDriveLink} />

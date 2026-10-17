@@ -16,6 +16,12 @@ class AssessmentResponse extends Model
         'client_id',
         'category_id',
         'answered_count',
+        'respondent_name',
+        'respondent_relation',
+        'respondent_school',
+        'respondent_class',
+        'respondent_phone',
+        'respondent_email',
         'consent_at',
         'submitted_at',
         'ip_address',
@@ -48,5 +54,4 @@ class AssessmentResponse extends Model
     {
         return $this->hasMany(AssessmentAnswer::class, 'response_id');
     }
-
 }

@@ -212,6 +212,19 @@ Sudah ada (kerangka): 37 migration + 6 view, 37 model (`TracksActors`, `BranchSc
 
 ## 8. M5 Asesmen & kuesioner (Hari 9–10)
 
+> **Status backend: selesai (17 Okt 2026).** `app/Actions/Assessment/*`, 5.1–5.11 + 4.15 aktif (`tests/Feature/Assessment`, 24 test; suite penuh hijau). Keputusan M5:
+> - **Snapshot struktur**: `assessment_access_codes.structure_snapshot` (+`snapshot_at`) dibuat saat draft pertama / submit lalu dibekukan; draft, validasi submit, dan hasil staf (`GET /clients/{id}/assessment-responses`) memakai snapshot, jadi edit master tidak mengubah kuesioner yang sudah mulai diisi / selesai. Sebelum diisi, ortu melihat master terbaru. Soal wajib baru di master tidak berlaku untuk kode terbeku.
+> - Hapus soal/section: 409 `in_use` hanya bila ada kuesioner kategori itu yang sedang diisi (draft); soal yang pernah dijawab di kuesioner yang sudah dikirim BOLEH dihapus (hasil tetap utuh dari snapshot, FK `assessment_answers.question_id` dilepas); hapus kategori: 409 bila ada kode/hasil. Peringatan "N draft aktif" jadi informasi (`filling_count` di detail kategori).
+> - Akses: tulis master = `assessment_master`; baca kategori = `assessment_master` atau `inquiry_pipeline`; kode/hasil = `inquiry_pipeline`. Hapus kode lewat `DELETE /assessment-codes/{id}` (bukan teks kode).
+> - Bentuk jawaban draft/submit: `{ "<question_id>": { "t": "teks", "v": ["opsi"] } }`, patch (`null` = hapus), `version` wajib bila draft sudah ada, `consent: true`. Skor dihitung server (angka di awal teks, tipe `scale_0_5/range/multiple_choice/dropdown`).
+> - Kode dibuat server (`{type_code}-6 char tanpa 0/O/1/I`); `with_invoice` (default true) menerbitkan invoice `unpaid` dari paket `is_assessment` aktif (422 bila belum ada) dan memajukan client ke `assessment_scheduled`.
+> - Publik: `GET/PUT draft/POST responses` + `GET /public/assessments/{code}/sections/{id}/document` (PDF section, 10 MB, disk privat). Respons membawa `structure`, `draft`, `bank_accounts`; error 409 `already_submitted`, 410 `expired`, 403 `proof_required` (+`invoice`, `bank_accounts`), 422 `incomplete` (+`missing_question_ids`).
+> - Seeder `AssessmentCategorySeeder` (7 kategori, idempoten, dipanggil `MasterDataSeeder`): jalankan `db:seed --class=MasterDataSeeder` di server.
+> - **Finance awal (18 Okt 2026):** tab Menunggu Pembayaran di mode API untuk invoice asesmen: daftar server + cari, unggah bukti Finance, lihat bukti (Blob), Tandai Lunas (`GET /invoices`, `POST /invoices/{id}/proof`, `GET …/proofs/{id}/file`, `POST /invoices/{id}/verify`). Menu Finance lain menunggu sprint M7.
+> - **Duplikat template** (18 Okt 2026): `POST /assessment-categories/{id}/duplicate` + tombol Duplikat di Master Asesmen yang langsung menyimpan (nama/kode jenis otomatis, mode demo & API). **Urutan domain/section**: tombol naik/turun + seret, langsung tersimpan (`PUT …/sections/order`). Kode jenis kategori boleh diubah sampai ada kode kuesioner terbit.
+> - **Data Pengisi** bawaan per kategori (`respondent_profile`, kolom `respondent_*` di hasil, JSON di draft); semua kuesioner seragam tanpa Section 1 manual.
+> - **Integrasi FE selesai (17 Okt 2026, diuji E2E ke backend nyata di DB sementara):** Master Asesmen, kode di detail client, form ortu (autosave/resume/submit), hasil dengan struktur beku. Mode demo punya fitur yang sama (seed demo `v22`: profil per kategori, `respondent` di hasil, kode demo ASM-2016 orang tua / ASM-2017 guru / ASM-2018 tanpa pengisi). **18 Okt 2026:** unggah PDF section di dialog section, unggah bukti transfer ortu dari `/assessment` (`POST /public/assessments/{code}/proof`), dan invoice asesmen otomatis saat kode terbit (harga master paket berflag Assessment pilihan admin) sudah jalan (diuji E2E ke backend nyata). Sisa: tab Awaiting di Dashboard Inquiry (S3), tinjau bukti + tandai lunas (Finance M7).
+
 ### API — mesin kuesioner
 | # | Endpoint | Akses | Request kunci | Tabel | Catatan |
 |---|---|---|---|---|---|

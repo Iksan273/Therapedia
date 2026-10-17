@@ -73,3 +73,9 @@ Diperbarui 2026-10-03 (keputusan klien) setelah restrukturisasi enterprise 2026-
 - **Seed Child Sensory Profile 2 (`cat-001`) belum sama dengan PDF**: seed punya 7 section (termasuk vestibular/proprioception), formulir PDF punya 9 (Auditori, Visual, Sentuhan, Gerakan, Posisi Tubuh, Sensori Oral, Tabiat, Sosial-Emosional, Atensional; 86 butir). Seed School Companion (`cat-002`) juga memakai butir contoh. Sinkronkan lewat Master Asesmen atau seed bila klinik ingin teks resmi. Contoh Toddler (`TDL`, 54 butir) sudah mengikuti PDF.
 - Header tabel psikologi School Companion (nama guru, sekolah, kelas) belum ditampilkan karena data itu belum disimpan di client/jawaban.
 
+## Catatan M5 backend (17 Okt 2026)
+- Dokumen spek tidak konsisten soal nomor section (§7/§8) dan akses 5.2–5.5 (`inquiry_*` vs `assessment_master`); backend memakai `assessment_master` untuk tulis dan `assessment_master`/`inquiry_pipeline` untuk baca (sesuai rute `routes/api.php`).
+- (Header School Companion: guru/sekolah/kelas kini tersimpan lewat Data Pengisi profil `teacher`, 17 Okt 2026.)
+- File bukti transfer hanya bisa dilihat role Finance (tab Menunggu Pembayaran, mode API); admin inquiry hanya melihat jumlah unggahan di kartu invoice client. Di mode API baru invoice ASESMEN yang bisa ditandai lunas; invoice paket/cuti (aktivasi kredit), Semua Tagihan, void, refund, renewal, log invoice menunggu M7.
+- (PDF section kini bisa diunggah dari dialog section di mode API; file yang dibekukan dipertahankan sampai kuesioner dikirim.) File beku dari kuesioner yang tidak pernah dikirim (draft ditinggalkan) tetap tersimpan sampai kode/client dihapus.
+- Seed demo FE belum punya client dengan kode TDL; input tanggal di `/assessment` masih `<input type=date>` bawaan.

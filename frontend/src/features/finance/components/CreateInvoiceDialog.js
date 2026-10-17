@@ -15,6 +15,8 @@ import { Textarea } from "@/shared/ui/textarea";
 import { BalanceHint } from "@/features/finance/components/BalanceHint";
 import { ReplacementChoice } from "@/features/finance/components/ReplacementChoice";
 
+const ANY_CLIENT = {}; // mode API: semua client, daftar dari server (infinite scroll)
+
 export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, issueOpen, masterPackages, replacementOptions = [], leaves = [], setIssueForm, setIssueOpen }) {
   const isLeave = issueForm.type === "leave";
   const isAssessment = issueForm.type === "assessment";
@@ -33,7 +35,7 @@ export function CreateInvoiceDialog({ clients, handleIssueSubmit, issueForm, iss
           <form onSubmit={handleIssueSubmit} className="space-y-3.5 pt-2">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700">Pilih Client *</Label>
-              <ClientCombobox clients={clients} value={issueForm.clientId} onChange={(val) => setIssueForm({ ...issueForm, clientId: val, replacesInvoiceId: "", leaveId: "" })} placeholder="Cari client..." testId="invoice-client-select" />
+              <ClientCombobox clients={clients} source={ANY_CLIENT} selectedClient={issueForm.client} value={issueForm.clientId} onChange={(val, client) => setIssueForm({ ...issueForm, clientId: val, client, replacesInvoiceId: "", leaveId: "" })} placeholder="Cari client..." testId="invoice-client-select" />
             </div>
 
             <div className="space-y-1">

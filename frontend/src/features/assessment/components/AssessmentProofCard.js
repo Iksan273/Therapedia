@@ -31,13 +31,22 @@ export function AssessmentProofCard({ invoice, bankAccounts = [], branchName, on
     }
   };
 
-  const handleSubmit = (e) => {
+  // `onSubmit` boleh sinkron (mode demo) atau Promise (mode API: unggah ke server); galatnya ditampilkan di kartu.
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
       setError("Bukti transfer wajib diunggah sebelum mengisi kuesioner.");
       return;
     }
-    onSubmit(file);
+    setError("");
+    setBusy(true);
+    try {
+      await onSubmit(file);
+    } catch (err) {
+      setError(err?.message || "Bukti belum terkirim. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -67,7 +76,7 @@ export function AssessmentProofCard({ invoice, bankAccounts = [], branchName, on
           </button>
           {error && <p className="text-xs font-semibold text-rose-600" data-testid="assessment-proof-error">{error}</p>}
           <Button type="submit" size="lg" disabled={busy} className="w-full bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold cursor-pointer" data-testid="assessment-proof-submit">
-            Kirim Bukti & Lanjut ke Kuesioner
+            {busy ? "Mengirim…" : "Kirim Bukti & Lanjut ke Kuesioner"}
           </Button>
           <Button type="button" variant="ghost" onClick={onBack} className="w-full text-xs font-bold text-slate-500 cursor-pointer" data-testid="assessment-proof-back">
             Kembali

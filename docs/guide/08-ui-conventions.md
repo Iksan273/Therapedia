@@ -113,3 +113,13 @@ iOS Safari memperbesar halaman bila input yang difokuskan berfont < 16px. Kontai
 - Bahasa UI: **Indonesia**, dengan istilah klinis/operasional dalam English bila memang itu yang dipakai klinik (Active Client, Discharge, Reschedule, Frozen, Inquiry).
 - Nada netral dan suportif ("Perlu perhatian", bukan "Gagal"). Empty state selalu menunjukkan langkah berikutnya.
 - Format tampilan: tanggal `dd/MM/yyyy` (`fmtDate`), uang `Rp` (`fmtCurrency`), usia `calcAge`/`calcAgeDetailed`.
+
+## Pemilih client (ClientCombobox)
+
+Aturan 18d. Semua combo box pilih + cari client memakai `shared/components/ClientCombobox.js` (Finance buat tagihan & renewal, Penjadwalan, Generate Kode, filter client Portal Terapis, Master Asesmen, dll.).
+
+- **Infinite scroll 10 per halaman** (`useInfiniteSentinel`, tombol "Muat lebih banyak" bila IntersectionObserver tak ada); pencarian per kata (nama anak / ortu / kode) tetap tersedia dan mengulang dari halaman 1.
+- **Mode API**: `source={{ statuses: [...], branchId }}`; `GET /clients` (10/halaman, `q` ke server dengan jeda 300 ms). Daftar **baru diambil saat popover dibuka** (22b); shimmer `ListSkeleton` selama muat pertama, "Memuat client lainnya…" saat halaman berikut. Label nilai awal yang belum termuat diambil dari `GET /clients/{id}`.
+- **Mode demo / daftar turunan**: `clients={...}` disaring di klien (`matchesClientSearch`), tampil 10 per 10.
+- `onChange(id, client)`: argumen kedua = objek client terpilih; pemanggil mode API memakainya (client tidak ada di store lokal). Opsi "semua" lewat `allOption`.
+- Tes: `shared/components/__tests__/ClientCombobox.{local,api}.test.js`.

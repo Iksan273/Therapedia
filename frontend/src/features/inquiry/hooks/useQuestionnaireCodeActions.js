@@ -6,13 +6,20 @@ import { advanceStatus } from "@/domain/client";
 import { buildQuestionnaireCode, buildExpiresAt, canDeleteQuestionnaireCode } from "@/domain/assessment";
 import { DEFAULT_ASSESSMENT_FEE, invoiceTypeCode } from "@/domain/credit";
 import { nowIso, todayStr } from "@/shared/lib/id";
+import { useQueryClient } from "@tanstack/react-query";
+import { isApiMode } from "@/config/env";
+import { api } from "@/services/http/httpClient";
+import { ENDPOINTS } from "@/services/api/endpoints";
+import { codeFromApi, codeIssueToApi } from "@/services/api/mappers/assessmentMapper";
+import { CLIENTS_QUERY_KEY } from "@/stores/clientsStore";
+import { CLIENT_QUESTIONNAIRES_KEY } from "@/features/inquiry/hooks/useClientQuestionnaires";
 
 // Use-case kode kuesioner. Fase API: issueCode → POST /clients/{id}/assessment-codes (kode = kode jenis asesmen + acak,
 // masa berlaku opsional); deleteCode → DELETE /clients/{id}/assessment-codes/{code}
 // (hanya kode berstatus `issued` yang belum punya draft; jejak pelaku di `deleted_by`). Menerbitkan kode sekaligus membuat invoice assessment
 // (type `assessment`, `assessment_code` = kode itu) yang bukti transfernya wajib diunggah ortu sebelum mengisi kuesioner;
 // di API keduanya satu transaksi. Menghapus kode ikut menghapus invoice assessment-nya bila belum lunas.
-export function useQuestionnaireCodeActions() {
+function useQuestionnaireCodeActionsLocal() {
   const clientsStore = useClients();
   const { updateClient } = clientsStore; // daftar client dibaca saat dibutuhkan (allCodes), bukan tiap render
   const { issueInvoice, getInvoicesForClient, deleteInvoices } = useCredits();
@@ -75,3 +82,39 @@ export function useQuestionnaireCodeActions() {
 
   return { issueCode, previewCode, deleteCode };
 }
+
+// Mode API: kode dibuat SERVER (`{kode jenis}-6 karakter`), terbit sekaligus memajukan status client dan (bila `withInvoice`) menerbitkan
+// invoice asesmen `unpaid` dari paket asesmen yang dipilih; hapus lewat `DELETE /assessment-codes/{id}` (409 `draft_exists` /
+// `already_submitted` bila sudah diisi). Keduanya async dan melempar ApiError. Kode unik dijamin server, jadi tidak ada pratinjau kode.
+function useQuestionnaireCodeActionsApi() {
+  const queryClient = useQueryClient();
+
+  const refresh = (clientId) => {
+    queryClient.invalidateQueries({ queryKey: [...CLIENT_QUESTIONNAIRES_KEY, String(clientId)] });
+    queryClient.invalidateQueries({ queryKey: CLIENTS_QUERY_KEY }); // status client berubah
+  };
+
+  const issueCode = async (client, category, { validityDays = null, servicePackage = null, withInvoice = true } = {}) => {
+    const raw = await api.post(
+      ENDPOINTS.clients.assessmentCodes(client.id),
+      codeIssueToApi({ categoryId: category.id, validityDays, withInvoice, masterPackageId: servicePackage?.serverId })
+    );
+    refresh(client.id);
+    return codeFromApi(raw);
+  };
+
+  const deleteCode = async (client, codeItem) => {
+    try {
+      await api.delete(ENDPOINTS.assessmentCodes.detail(codeItem.id));
+    } catch (err) {
+      if (err?.status === 409) return { deleted: false, reason: err.code === "draft_exists" ? "draft" : "filled" };
+      throw err;
+    }
+    refresh(client.id);
+    return { deleted: true };
+  };
+
+  return { issueCode, previewCode: () => "", deleteCode };
+}
+
+export const useQuestionnaireCodeActions = isApiMode() ? useQuestionnaireCodeActionsApi : useQuestionnaireCodeActionsLocal;

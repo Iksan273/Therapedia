@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { diffAnswers } from "@/domain/assessment";
+import { diffAnswers, diffRespondent } from "@/domain/assessment";
 
 // Simpan otomatis draft kuesioner: debounce setelah perubahan, interval pengaman, dan flush saat tab disembunyikan / ditutup /
 // komponen dilepas. Yang dikirim ke `save` hanya PATCH jawaban (selisih dari simpanan terakhir), sesuai kontrak
 // PUT /public/assessments/{code}/draft. Draft baru dibuat hanya bila ada jawaban/persetujuan yang berubah.
-// Mengembalikan: state { status: idle|saving|saved|error, savedAt }, flush({ manual }), reset(baseline), cancel().
-export function useDraftAutosave({ enabled, save, answers, consentAt, lastSectionId, debounceMs = 1000, intervalMs = 30000 }) {
+// `save` boleh sinkron (mode demo) atau mengembalikan Promise (mode API: PUT …/draft). Versi Promise: titik acuan simpanan baru maju
+// setelah server membalas; bila simpan masih berjalan, perubahan berikutnya diantrekan lalu dikirim begitu selesai (satu request
+// berjalan pada satu waktu, supaya `version` draft tidak bentrok dengan dirinya sendiri).
+// Mengembalikan: state { status: idle|saving|saved|error, savedAt }, flush() → "saved" | "clean" | "error" (sinkron) atau Promise
+// bagi simpan asinkron, reset(baseline), cancel().
+export function useDraftAutosave({ enabled, save, answers, respondent = {}, consentAt, lastSectionId, debounceMs = 1000, intervalMs = 30000 }) {
   const [state, setState] = useState({ status: "idle", savedAt: null });
-  const latest = useRef({ answers, consentAt, lastSectionId });
-  const baseline = useRef({ answers: {}, consentAt: null, lastSectionId: null });
+  const latest = useRef({ answers, respondent, consentAt, lastSectionId });
+  const baseline = useRef({ answers: {}, respondent: {}, consentAt: null, lastSectionId: null });
   const enabledRef = useRef(enabled);
   const saveRef = useRef(save);
   const timer = useRef(null);
+  const inflight = useRef(null); // Promise simpan yang sedang berjalan (mode API)
+  const queued = useRef(false); // ada perubahan baru saat simpan berjalan
 
-  latest.current = { answers, consentAt, lastSectionId };
+  latest.current = { answers, respondent, consentAt, lastSectionId };
   enabledRef.current = enabled;
   saveRef.current = save;
 
@@ -23,19 +29,48 @@ export function useDraftAutosave({ enabled, save, answers, consentAt, lastSectio
   };
 
   // Mengembalikan "saved" | "clean" | "error" (clean = tidak ada yang perlu disimpan)
-  const flush = useCallback(() => {
+  const flush = useCallback(function flush() {
     clearTimer();
     if (!enabledRef.current) return "clean";
     const cur = latest.current;
     const base = baseline.current;
+    if (inflight.current) {
+      queued.current = true;
+      return inflight.current;
+    }
     const patch = diffAnswers(base.answers, cur.answers);
-    const dirty = Object.keys(patch).length > 0 || cur.consentAt !== base.consentAt;
+    const respondentPatch = diffRespondent(base.respondent, cur.respondent);
+    const dirty = Object.keys(patch).length > 0 || Object.keys(respondentPatch).length > 0 || cur.consentAt !== base.consentAt;
     if (!dirty) return "clean";
+    const next = { answers: { ...cur.answers }, respondent: { ...cur.respondent }, consentAt: cur.consentAt, lastSectionId: cur.lastSectionId };
+    const done = () => {
+      baseline.current = next;
+      setState({ status: "saved", savedAt: new Date() });
+    };
     try {
       setState((s) => ({ ...s, status: "saving" }));
-      saveRef.current({ answers: patch, lastSectionId: cur.lastSectionId, consentAt: cur.consentAt });
-      baseline.current = { answers: { ...cur.answers }, consentAt: cur.consentAt, lastSectionId: cur.lastSectionId };
-      setState({ status: "saved", savedAt: new Date() });
+      const result = saveRef.current({ answers: patch, respondent: respondentPatch, lastSectionId: cur.lastSectionId, consentAt: cur.consentAt });
+      if (result && typeof result.then === "function") {
+        inflight.current = result
+          .then(() => {
+            done();
+            return "saved";
+          })
+          .catch(() => {
+            setState((s) => ({ ...s, status: "error" }));
+            return "error";
+          })
+          .then((outcome) => {
+            inflight.current = null;
+            if (queued.current) {
+              queued.current = false;
+              if (outcome === "saved") flush(); // perubahan yang masuk selama simpan berjalan
+            }
+            return outcome;
+          });
+        return inflight.current;
+      }
+      done();
       return "saved";
     } catch {
       setState((s) => ({ ...s, status: "error" }));
@@ -49,7 +84,7 @@ export function useDraftAutosave({ enabled, save, answers, consentAt, lastSectio
     clearTimer();
     timer.current = setTimeout(flush, debounceMs);
     return clearTimer;
-  }, [enabled, answers, consentAt, lastSectionId, debounceMs, flush]);
+  }, [enabled, answers, respondent, consentAt, lastSectionId, debounceMs, flush]);
 
   // Interval pengaman + flush saat tab disembunyikan / ditutup
   useEffect(() => {
@@ -71,7 +106,7 @@ export function useDraftAutosave({ enabled, save, answers, consentAt, lastSectio
   // Titik acuan simpanan saat form dibuka (jawaban hasil resume dianggap sudah tersimpan)
   const reset = useCallback((next = {}) => {
     clearTimer();
-    baseline.current = { answers: { ...(next.answers || {}) }, consentAt: next.consentAt ?? null, lastSectionId: next.lastSectionId ?? null };
+    baseline.current = { answers: { ...(next.answers || {}) }, respondent: { ...(next.respondent || {}) }, consentAt: next.consentAt ?? null, lastSectionId: next.lastSectionId ?? null };
     setState({ status: "idle", savedAt: null });
   }, []);
 

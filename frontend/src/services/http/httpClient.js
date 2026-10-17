@@ -53,7 +53,8 @@ export const unwrap = (res) => (res.data && typeof res.data === "object" && "dat
 
 // `options.signal` (AbortSignal) meneruskan pembatalan request, kompatibel dengan `queryFn({ signal })` react-query.
 export const api = {
-  get: (url, params, options = {}) => httpClient.get(url, { params, signal: options.signal }).then(unwrap),
+  // `options.responseType: "blob"` untuk file (mis. pratinjau PDF staf yang butuh bearer): hasilnya Blob apa adanya
+  get: (url, params, options = {}) => httpClient.get(url, { params, signal: options.signal, responseType: options.responseType }).then(unwrap),
   post: (url, body) => httpClient.post(url, body).then(unwrap),
   put: (url, body) => httpClient.put(url, body).then(unwrap),
   patch: (url, body) => httpClient.patch(url, body).then(unwrap),

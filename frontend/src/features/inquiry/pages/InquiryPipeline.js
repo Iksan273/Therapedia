@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { useAuth } from "@/stores/authStore";
-import { BRANCHES, branchName } from "@/domain/branch";
+import { BRANCHES, activeBranches, branchName } from "@/domain/branch";
 import { useInquiryPipeline } from "@/features/inquiry/hooks/useInquiryClients";
 import { apiErrorText } from "@/domain/auth";
 import { useMasterData } from "@/stores/masterDataStore";
@@ -61,7 +61,10 @@ export default function InquiryPipeline() {
   // Cabang bawaan intake: cabang akun, atau cabang aktif di filter, atau cabang pertama (id lokal di demo, id server di mode API)
   // Akun yang terikat satu cabang hanya boleh mendaftarkan client ke cabangnya (server memaksa hal yang sama); dropdown dikunci.
   const branchLocked = !isMaster && Boolean(auth?.branchId);
-  const intakeBranch = branchLocked ? auth.branchId : newForm.branchId || auth?.branchId || (activeBranch && activeBranch !== "all" ? activeBranch : null) || BRANCHES[0]?.id || "";
+  // Pilihan "Cabang Tujuan": HANYA cabang aktif (cabang nonaktif tidak menerima client baru; server juga menolak). Akun terikat cabang: cabangnya saja.
+  const intakeOptions = branchLocked ? BRANCHES.filter((b) => b.id === auth.branchId) : activeBranches();
+  const usable = (id) => (id && intakeOptions.some((b) => b.id === id) ? id : null);
+  const intakeBranch = branchLocked ? auth.branchId : usable(newForm.branchId) || usable(auth?.branchId) || usable(activeBranch !== "all" ? activeBranch : null) || intakeOptions[0]?.id || "";
 
   // Mode demo: filter di klien dari store lokal. Mode API: tiap tahap diambil dari server dengan filter yang sama.
   const { clientsByStage, totals, total, hasAnyClient, isLoading, isFetching, isSearching, loadMore, loadingMore, loadMoreFailed, createIntake } = useInquiryPipeline({ branchFilter, serviceFilter, search });
@@ -305,7 +308,7 @@ export default function InquiryPipeline() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-slate-200">
-                  {BRANCHES.map((b) => (
+                  {intakeOptions.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.name} ({b.city})
                     </SelectItem>

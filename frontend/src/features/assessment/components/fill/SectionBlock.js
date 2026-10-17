@@ -26,7 +26,7 @@ export function SectionBlock({ section, index, answers, filterMode, onAnswer }) 
       </div>
       <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
         {section.documentUrl && (
-          <DocumentEmbed url={section.documentUrl} title={section.title} collapsible testId={`assessment-section-document-${section.id}`} />
+          <DocumentEmbed url={section.documentUrl} pdf={section.documentIsPdf} title={section.title} collapsible testId={`assessment-section-document-${section.id}`} />
         )}
         {visible.map((q) => (
           <QuestionCard key={q.id} q={q} value={answers[q.id]} onChange={onAnswer} />

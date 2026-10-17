@@ -4,8 +4,9 @@ import { Link } from "react-router-dom";
 import { Eye } from "lucide-react";
 import { listQuestionnaireResults } from "@/domain/assessment";
 import { fmtDate } from "@/shared/lib/format";
+import { ListSkeleton } from "@/shared/components/LoadingSkeletons";
 
-export function ParentAnswerCard({ client }) {
+export function ParentAnswerCard({ client, loading = false }) {
   const filled = listQuestionnaireResults(client).filter((q) => q.filled);
   return (
     <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
@@ -29,7 +30,9 @@ export function ParentAnswerCard({ client }) {
             </Link>
           </CardHeader>
           <CardContent className="p-4 text-xs text-slate-600">
-            {filled.length > 0 ? (
+            {loading ? (
+              <ListSkeleton rows={1} label="Memuat hasil kuesioner…" testId="parent-answers-skeleton" />
+            ) : filled.length > 0 ? (
               <div className="space-y-2">
                 <p className="font-semibold text-slate-800">Tersedia {filled.length} kuesioner terisi. Klik salah satu untuk melihat hasilnya:</p>
                 <div className="flex flex-wrap gap-2">

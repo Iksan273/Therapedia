@@ -12,7 +12,6 @@ use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\Finance\ClientPackageController;
 use App\Http\Controllers\Api\Finance\CreditLedgerController;
 use App\Http\Controllers\Api\Finance\InvoiceController;
-use App\Http\Controllers\Api\Finance\PaymentProofController;
 use App\Http\Controllers\Api\Master\CancelReasonController;
 use App\Http\Controllers\Api\Master\DischargeReasonController;
 use App\Http\Controllers\Api\Master\HolidayController;
@@ -44,10 +43,14 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
     Route::post('auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
-    Route::prefix('public/assessments/{code}')->middleware('throttle:60,1')->group(function () {
-        Route::get('/', [PublicAssessmentController::class, 'show']);
-        Route::put('draft', [PublicAssessmentController::class, 'saveDraft']);
-        Route::post('responses', [PublicAssessmentController::class, 'submit']);
+    // Batas per IP, dipisah per jenis rute (prefix = ember hitung terpisah; tanpa prefix semua `throttle:N,M` berbagi satu hitungan).
+    // Buka kuesioner paling ketat (satu-satunya jalan menebak kode); simpan/kirim longgar karena wifi klinik dipakai bersama banyak ortu.
+    Route::prefix('public/assessments/{code}')->group(function () {
+        Route::get('/', [PublicAssessmentController::class, 'show'])->middleware('throttle:30,1,assess-open');
+        Route::put('draft', [PublicAssessmentController::class, 'saveDraft'])->middleware('throttle:180,1,assess-write');
+        Route::post('responses', [PublicAssessmentController::class, 'submit'])->middleware('throttle:180,1,assess-write');
+        Route::get('sections/{section}/document', [PublicAssessmentController::class, 'document'])->middleware('throttle:90,1,assess-doc');
+        Route::post('proof', [PublicAssessmentController::class, 'uploadProof'])->middleware('throttle:12,1,assess-proof');
     });
 
     // ---- Login (staf atau ortu)
@@ -164,12 +167,28 @@ Route::prefix('v1')->group(function () {
         Route::middleware('module:assessment_master,inquiry_pipeline')->group(function () {
             Route::apiResource('assessment-categories', AssessmentCategoryController::class)->only(['index', 'show']);
         });
+        Route::get('assessment-sections/{section}/document', [AssessmentSectionController::class, 'document'])->middleware('module:assessment_master,inquiry_pipeline');
         Route::middleware('module:assessment_master')->group(function () {
+            Route::post('assessment-sections/{section}/document', [AssessmentSectionController::class, 'uploadDocument']);
+            Route::delete('assessment-sections/{section}/document', [AssessmentSectionController::class, 'deleteDocument']);
             Route::apiResource('assessment-categories', AssessmentCategoryController::class)->only(['store', 'update', 'destroy']);
-            Route::apiResource('assessment-categories.sections', AssessmentSectionController::class)->shallow();
-            Route::apiResource('assessment-sections.questions', AssessmentQuestionController::class)->shallow();
+            Route::post('assessment-categories/{category}/duplicate', [AssessmentCategoryController::class, 'duplicate']);
+            Route::get('assessment-categories/{category}/sections', [AssessmentSectionController::class, 'index']);
+            Route::post('assessment-categories/{category}/sections', [AssessmentSectionController::class, 'store']);
+            Route::put('assessment-categories/{category}/sections/order', [AssessmentSectionController::class, 'reorder']);
+            Route::get('assessment-sections/{section}', [AssessmentSectionController::class, 'show']);
+            Route::match(['put', 'patch'], 'assessment-sections/{section}', [AssessmentSectionController::class, 'update']);
+            Route::delete('assessment-sections/{section}', [AssessmentSectionController::class, 'destroy']);
+            Route::get('assessment-sections/{section}/questions', [AssessmentQuestionController::class, 'index']);
+            Route::post('assessment-sections/{section}/questions', [AssessmentQuestionController::class, 'store']);
+            Route::put('assessment-sections/{section}/questions/order', [AssessmentQuestionController::class, 'reorder']);
+            Route::get('assessment-questions/{question}', [AssessmentQuestionController::class, 'show']);
+            Route::match(['put', 'patch'], 'assessment-questions/{question}', [AssessmentQuestionController::class, 'update']);
+            Route::delete('assessment-questions/{question}', [AssessmentQuestionController::class, 'destroy']);
         });
         Route::middleware('module:inquiry_pipeline')->group(function () {
+            Route::get('assessment-codes', [AssessmentAccessCodeController::class, 'index']); // antrean menunggu diisi (4.15)
+            Route::get('clients/{client}/assessment-responses', [AssessmentAccessCodeController::class, 'results']);
             Route::apiResource('clients.assessment-codes', AssessmentAccessCodeController::class)->only(['index', 'store', 'destroy'])->shallow();
         });
 
@@ -181,7 +200,9 @@ Route::prefix('v1')->group(function () {
         // M7 Finance & kredit
         Route::middleware('module:finance')->group(function () {
             Route::apiResource('invoices', InvoiceController::class);
-            Route::apiResource('invoices.proofs', PaymentProofController::class)->only(['index', 'store'])->shallow();
+            Route::post('invoices/{invoice}/proof', [InvoiceController::class, 'uploadProof']);
+            Route::get('invoices/{invoice}/proofs/{proof}/file', [InvoiceController::class, 'proofFile']);
+            Route::post('invoices/{invoice}/verify', [InvoiceController::class, 'verify']);
             Route::apiResource('client-packages', ClientPackageController::class)->only(['index', 'show']);
             Route::get('credit-ledger', [CreditLedgerController::class, 'index']);
         });

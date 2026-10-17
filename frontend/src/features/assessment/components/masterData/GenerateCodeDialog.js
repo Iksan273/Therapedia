@@ -10,6 +10,8 @@ import { CODE_VALIDITY_OPTIONS } from "@/domain/assessment";
 import { AssessmentServiceSelect } from "@/shared/components/AssessmentServiceSelect";
 import { Switch } from "@/shared/ui/switch";
 
+const ANY_CLIENT = {}; // mode API: semua client, daftar dari server (infinite scroll)
+
 export function GenerateCodeDialog({ masterPackages = [], categories, clients, genDialog, handleConfirmGenerateCode, previewCode, setGenDialog }) {
   return (
     <Dialog open={genDialog.open} onOpenChange={(open) => setGenDialog((prev) => ({ ...prev, open }))}>
@@ -31,6 +33,7 @@ export function GenerateCodeDialog({ masterPackages = [], categories, clients, g
               <Label className="text-xs font-bold text-slate-700">Pilih Klien Tujuan</Label>
               <ClientCombobox
                 clients={clients}
+                source={ANY_CLIENT}
                 value={genDialog.selectedClientId}
                 onChange={(val) => setGenDialog((prev) => ({ ...prev, selectedClientId: val }))}
                 placeholder="Cari klien..."

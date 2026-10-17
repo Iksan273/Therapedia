@@ -1,6 +1,6 @@
 import { IfCanDelete } from "@/shared/components/DeleteControls";
 import React from "react";
-import { ChevronDown, ChevronUp, Copy, FileText, Pencil, Plus, Table2, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, FileText, GripVertical, Pencil, Plus, Table2, Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { getQuestionTypeInfo, isOptionBasedType, makeSectionDialog } from "@/features/assessment/components/masterData/assessmentConfig";
 import { sectionDescription } from "@/features/assessment/components/fill/fillSections";
@@ -17,7 +17,13 @@ const PLACEHOLDER_PREVIEW = {
   time: "[Pilih waktu / jam]",
 };
 
-export function SectionsList({ activeCategory, duplicateQuestion, expandedSections, filteredSections, openAddQuestion, openEditQuestion, removeQuestion, removeSection, searchQuery, selectedType, setSearchQuery, setSecDialog, setSelectedType, toggleSectionCollapse }) {
+export function SectionsList({ activeCategory, duplicateQuestion, expandedSections, filteredSections, onDropSection, onMoveSection, openAddQuestion, openEditQuestion, removeQuestion, removeSection, reorderEnabled = false, searchQuery, selectedType, setSearchQuery, setSecDialog, setSelectedType, toggleSectionCollapse }) {
+  // Seret & lepas (desktop); tombol naik/turun untuk HP dan papan ketik. Urutan langsung tersimpan.
+  const [dragId, setDragId] = React.useState(null);
+  const [overId, setOverId] = React.useState(null);
+  const lastIndex = filteredSections.length - 1;
+  const reorderHint = reorderEnabled ? "" : "Tampilkan semua domain untuk mengurutkan";
+
   return (
     <div className="space-y-6">
             {filteredSections.map((sec, sIdx) => {
@@ -28,7 +34,21 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
               return (
                 <div
                   key={sec.sectionId || `sec-${sIdx}`}
-                  className="rounded-3xl border border-slate-200/90 shadow-sm bg-white overflow-hidden transition-all"
+                  className={cn("rounded-3xl border border-slate-200/90 shadow-sm bg-white overflow-hidden transition-all", overId === sec.sectionId && dragId !== sec.sectionId && "ring-2 ring-emerald-400", dragId === sec.sectionId && "opacity-60")}
+                  onDragOver={(e) => {
+                    if (!reorderEnabled || !dragId) return;
+                    e.preventDefault();
+                    if (overId !== sec.sectionId) setOverId(sec.sectionId);
+                  }}
+                  onDrop={(e) => {
+                    if (!reorderEnabled || !dragId) return;
+                    e.preventDefault();
+                    const from = dragId;
+                    setDragId(null);
+                    setOverId(null);
+                    if (from !== sec.sectionId) onDropSection(from, sec.sectionId);
+                  }}
+                  data-testid={`section-card-${sec.sectionId}`}
                 >
                   {/* Section Banner Header */}
                   <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-50/70 via-white to-slate-50/60 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
@@ -63,6 +83,11 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                               <Table2 className="w-3 h-3" /> Tabel psikologi: {getSectionTemplate(sec).label}
                             </span>
                           )}
+                          {sec.hasDocumentFile && (
+                            <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold" data-testid={`section-pdf-badge-${sec.sectionId}`}>
+                              <FileText className="w-3 h-3" /> PDF: {sec.documentName}
+                            </span>
+                          )}
                           {sec.documentUrl && (
                             <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold" data-testid={`section-document-badge-${sec.sectionId}`}>
                               <FileText className="w-3 h-3" /> Dokumen terlampir
@@ -77,6 +102,54 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                       className="flex items-center gap-2 shrink-0 self-start md:self-center pl-11 md:pl-0 flex-wrap"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {/* Urutan domain: seret gagang atau pakai tombol; tersimpan otomatis */}
+                      <div className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-white px-0.5" data-testid={`section-reorder-${sec.sectionId}`}>
+                        <span
+                          draggable={reorderEnabled}
+                          onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", sec.sectionId);
+                            setDragId(sec.sectionId);
+                          }}
+                          onDragEnd={() => {
+                            setDragId(null);
+                            setOverId(null);
+                          }}
+                          title={reorderEnabled ? "Seret untuk memindahkan urutan domain" : reorderHint}
+                          aria-hidden="true"
+                          className={cn("hidden md:flex items-center justify-center w-7 h-10 text-slate-400", reorderEnabled ? "cursor-grab active:cursor-grabbing hover:text-slate-700" : "opacity-40")}
+                          data-testid={`section-drag-${sec.sectionId}`}
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="w-10 h-10 text-slate-500 hover:text-slate-900"
+                          disabled={!reorderEnabled || sIdx === 0}
+                          onClick={() => onMoveSection(sec.sectionId, -1)}
+                          title={reorderEnabled ? "Pindah ke atas" : reorderHint}
+                          aria-label={`Pindahkan domain ${sec.title} ke atas`}
+                          data-testid={`section-move-up-${sec.sectionId}`}
+                        >
+                          <ArrowUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="w-10 h-10 text-slate-500 hover:text-slate-900"
+                          disabled={!reorderEnabled || sIdx === lastIndex}
+                          onClick={() => onMoveSection(sec.sectionId, 1)}
+                          title={reorderEnabled ? "Pindah ke bawah" : reorderHint}
+                          aria-label={`Pindahkan domain ${sec.title} ke bawah`}
+                          data-testid={`section-move-down-${sec.sectionId}`}
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </Button>
+                      </div>
+
                       <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono shrink-0">
                         {visibleQuestions.length} Soal
                         {visibleQuestions.length !== sec.totalOriginalCount && ` / ${sec.totalOriginalCount}`}
@@ -108,6 +181,7 @@ export function SectionsList({ activeCategory, duplicateQuestion, expandedSectio
                                   description: sectionDescription(sec),
                                   documentUrl: sec.documentUrl || "",
                                   template: normalizeTemplate(sec.template) || "",
+                                  existingFile: sec.hasDocumentFile ? { name: sec.documentName, size: sec.documentSize } : null,
                                 })
                               )
                             }

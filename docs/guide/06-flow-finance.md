@@ -2,6 +2,10 @@
 
 > Keputusan klien 3 Okt 2026 yang menyentuh dokumen ini sudah diimplementasi di frontend; register keputusan + status: [12-keputusan-klien.md](12-keputusan-klien.md).
 
+> **Menunggu Pembayaran, invoice asesmen (mode API, 18 Okt 2026):** Finance sudah bisa melihat antrean invoice asesmen dari server, mengunggah bukti, melihat bukti, dan **Tandai Lunas** (hanya jenis asesmen; invoice paket/cuti, void, refund, renewal menyusul). Ortu yang belum mengunggah bukti tetap terkunci sampai ada bukti ATAU Finance menandai lunas.
+
+> **Invoice asesmen otomatis (mode API, 18 Okt 2026):** menerbitkan kode kuesioner dengan "Masuk invoice" membuat invoice `assessment` `unpaid` di server (nomor `INV-ASM-{YYYYMMDD}-{NNN}`, nominal = harga master paket berflag Assessment (`is_assessment`, aktif) yang dipilih admin (seed bawaan: "Paket Asesmen" Rp 500.000, sesuaikan di Finance), `master_package_id` NULL, `credits` 0, log `issued`). Ortu mengunggah bukti dari `/assessment` (`proof_upload_count` naik, log `proof_uploaded`, status tetap `unpaid`); tinjau bukti dan tandai lunas menunggu modul Finance (M7).
+
 ## Tujuan & role
 Menerbitkan tagihan (jenis **Paket Sesi** atau **Assessment**), menandai lunas setelah pembayaran diterima (orang tua **tidak** mengunggah bukti), dan menambah kredit sesi client (Paket Sesi).
 Role dengan akses modul `finance` (Finance, Master): void, renewal langsung, dan koreksi saldo = aksi modul finance. **Orang tua** hanya melihat status tagihan di `/client` (tanpa upload). Admin Inquiry melihat invoice di Client Detail (read-only).

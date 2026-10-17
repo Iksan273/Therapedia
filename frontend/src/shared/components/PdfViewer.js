@@ -29,7 +29,9 @@ export function PdfViewer({ url, testId = "pdf-viewer" }) {
     setPdf(null);
     loadPdfjs()
       .then((lib) => {
-        task = lib.getDocument({ url });
+        // Tanpa permintaan Range / streaming: satu GET sederhana (tanpa preflight CORS) sehingga PDF dari API lintas-origin (dev) tetap
+        // terbaca; dokumen section dibatasi 10 MB jadi muat sekaligus.
+        task = lib.getDocument({ url, disableRange: true, disableStream: true });
         return task.promise;
       })
       .then((doc) => {

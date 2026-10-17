@@ -47,11 +47,24 @@ export const ENDPOINTS = {
     byCode: (code) => `/public/assessments/${code}`,
     draft: (code) => `/public/assessments/${code}/draft`, // PUT: simpan otomatis (patch jawaban); GET byCode ikut membawa draft
     submit: (code) => `/public/assessments/${code}/responses`,
+    sectionDocument: (code, sectionId) => `/public/assessments/${code}/sections/${sectionId}/document`,
+    proof: (code) => `/public/assessments/${code}/proof`, // POST multipart `file` (bukti transfer invoice asesmen)
   },
   assessmentCategories: {
     list: "/assessment-categories",
     detail: (id) => `/assessment-categories/${id}`,
+    duplicate: (id) => `/assessment-categories/${id}/duplicate`, // POST: salin section + soal ke kategori baru
+    sections: (id) => `/assessment-categories/${id}/sections`,
+    sectionsOrder: (id) => `/assessment-categories/${id}/sections/order`,
   },
+  assessmentSections: {
+    detail: (id) => `/assessment-sections/${id}`,
+    questions: (id) => `/assessment-sections/${id}/questions`,
+    questionsOrder: (id) => `/assessment-sections/${id}/questions/order`,
+    document: (id) => `/assessment-sections/${id}/document`, // POST (multipart file) · DELETE · GET (stream PDF)
+  },
+  assessmentQuestions: { detail: (id) => `/assessment-questions/${id}` },
+  assessmentCodes: { list: "/assessment-codes", detail: (id) => `/assessment-codes/${id}` }, // list ?awaiting=1; hapus per id (bukan teks kode)
   // Master data kecil (M3). Kunci layanan/alasan = `code`; paket = id server.
   master: {
     services: { list: "/master/services", detail: (code) => `/master/services/${code}` },
@@ -98,6 +111,7 @@ export const ENDPOINTS = {
     list: "/invoices",
     detail: (id) => `/invoices/${id}`,
     proof: (id) => `/invoices/${id}/proof`,
+    proofFile: (id, proofId) => `/invoices/${id}/proofs/${proofId}/file`, // GET stream bukti (Blob, butuh bearer)
     verify: (id) => `/invoices/${id}/verify`,
     void: (id) => `/invoices/${id}/void`,
     convertPackage: (id) => `/invoices/${id}/convert-package`,

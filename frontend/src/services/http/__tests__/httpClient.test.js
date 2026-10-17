@@ -68,6 +68,15 @@ describe("api", () => {
     expect(lastConfig.signal).toBe(controller.signal);
   });
 
+  test("get meneruskan `responseType: blob` dan mengembalikan Blob apa adanya (file PDF dengan bearer)", async () => {
+    const blob = new Blob(["%PDF-1.4"], { type: "application/pdf" });
+    respondWith(blob);
+    const res = await api.get("/assessment-sections/1/document", undefined, { responseType: "blob" });
+
+    expect(lastConfig.responseType).toBe("blob");
+    expect(res).toBe(blob);
+  });
+
   test("list mengembalikan { items, meta }", async () => {
     respondWith({ data: [{ id: 1 }], meta: { total: 1, page: 1, per_page: 10, last_page: 1 } });
     const res = await api.list("/clients", { page: 1 });

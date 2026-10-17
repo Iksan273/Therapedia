@@ -144,6 +144,9 @@ export const makeSectionDialog = (overrides = {}) => ({
   description: "",
   documentUrl: "",
   template: "", // "" = form biasa; school_companion | toddler_sensory | child_sensory = jadi tabel psikologi
+  existingFile: null, // mode API: { name, size } PDF yang sudah diunggah
+  pendingFile: null, // File PDF baru yang dipilih (diunggah setelah section tersimpan)
+  removeFile: false, // hapus PDF yang ada saat simpan
   ...overrides,
 });
 

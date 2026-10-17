@@ -1,7 +1,17 @@
 import React from "react";
 
 
-export function DocumentHeader({ activeAssessment, ageDetail, branch, client, isSchoolCompanion, masterCategory, testDate }) {
+// Baris Data Pengisi (langkah bawaan kuesioner); hasil lama tanpa data ini tidak menampilkan baris.
+const respondentRows = (r) =>
+  r
+    ? [
+        ["Pengisi", [r.name, r.relation && `(${r.relation})`].filter(Boolean).join(" ")],
+        ["Sekolah / Kelas", [r.school, r.class].filter(Boolean).join(" • ")],
+        ["Kontak Pengisi", [r.phone, r.email].filter(Boolean).join(" • ")],
+      ].filter(([, v]) => v)
+    : [];
+
+export function DocumentHeader({ activeAssessment, ageDetail, branch, client, isSchoolCompanion, masterCategory, respondent, testDate }) {
   return (
     <div className="border-b-2 border-emerald-600 pb-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -76,6 +86,12 @@ export function DocumentHeader({ activeAssessment, ageDetail, branch, client, is
               <span className="font-bold text-emerald-950">Nama OTs / Assessor</span>
               <span className="font-semibold text-slate-800">: Dr. Maya Chen, S.Tr.Kes (Lead OT)</span>
             </div>
+            {respondentRows(respondent).map(([label, value]) => (
+              <div key={label} className="grid grid-cols-[96px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] items-center gap-1" data-testid={`document-respondent-${label}`}>
+                <span className="font-bold text-emerald-950">{label}</span>
+                <span className="font-semibold text-slate-800 break-words">: {value}</span>
+              </div>
+            ))}
           </div>
         </div>
   );

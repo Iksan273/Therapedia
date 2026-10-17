@@ -14,6 +14,8 @@ import { RENEWAL_MODES } from "@/domain/credit";
 import { BalanceHint } from "@/features/finance/components/BalanceHint";
 import { ReplacementChoice } from "@/features/finance/components/ReplacementChoice";
 
+const ACTIVE_CLIENTS = { statuses: ["admitted"] }; // mode API: hanya client aktif, daftar dari server
+
 export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, renewForm, renewOpen, replacementOptions = [], setRenewForm, setRenewOpen }) {
   const isDirect = renewForm.mode === "direct";
   const selectedMaster = masterPackages.find((p) => p.id === renewForm.packageId);
@@ -54,8 +56,10 @@ export function RenewalDialog({ clients, handleRenewSubmit, masterPackages, rene
               <Label className="text-xs font-bold text-slate-700">Pilih Client Aktif *</Label>
               <ClientCombobox
                 clients={clients.filter((c) => c.status === "admitted" || c.status === "active")}
+                source={ACTIVE_CLIENTS}
+                selectedClient={renewForm.client}
                 value={renewForm.clientId}
-                onChange={(val) => setRenewForm({ ...renewForm, clientId: val, replacesInvoiceId: "" })}
+                onChange={(val, client) => setRenewForm({ ...renewForm, clientId: val, client, replacesInvoiceId: "" })}
                 placeholder="Cari client aktif..."
                 testId="renewal-client-select"
               />

@@ -3,9 +3,9 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Printer, ArrowLeft, ExternalLink, ClipboardList, Layers, LayoutGrid, CheckSquare, FileSpreadsheet, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
-import { useClients } from "@/stores/clientsStore";
+import { useClientDetail, useClientQuestionnaires, useClientWithQuestionnaires } from "@/features/inquiry";
+import { DetailSkeleton } from "@/shared/components/LoadingSkeletons";
 import { useAssessments } from "@/stores/assessmentsStore";
-import { useTherapists } from "@/stores/therapistsStore";
 import { calcAgeDetailed, fmtDate } from "@/shared/lib/format";
 import { listQuestionnaireResults } from "@/domain/assessment";
 import { BRANCHES } from "@/domain/branch";
@@ -22,10 +22,7 @@ import { SignatureBlock } from "@/features/assessment/components/parentAssessmen
 export default function ParentAssessmentView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getClient } = useClients();
   const { categories } = useAssessments();
-
-  const { therapists } = useTherapists();
 
   // Kuesioner terpilih (kunci = kode kuesioner). Bisa dibuka langsung lewat ?kode=XXX
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,7 +31,10 @@ export default function ParentAssessmentView() {
   // Active sensory domain filter (for performance when 100++ questions)
   const [domainFilter, setDomainFilter] = useState("all");
 
-  const client = getClient(id);
+  // Mode API: client + kode/hasil dari server (hasil membawa struktur BEKU saat pengisian; tidak berubah oleh edit master)
+  const detail = useClientDetail(id);
+  const serverQuestionnaires = useClientQuestionnaires(id);
+  const client = useClientWithQuestionnaires(detail.client, serverQuestionnaires);
 
   // Semua kuesioner client (satu opsi per kode, terisi atau belum) — dasar menu "Pilih Kuesioner"
   const questionnaires = useMemo(() => listQuestionnaireResults(client), [client]);
@@ -70,8 +70,9 @@ export default function ParentAssessmentView() {
 
   // Hasil: section ber-template → tabel skor mentah ; section biasa → daftar pertanyaan–jawaban.
   // Tanpa kategori master (sudah dihapus), bentuk section dipulihkan dari snapshot jawaban.
+  // Struktur beku dari server (`structure`) didahulukan: hasil lama tidak ikut berubah bila master diedit.
   const resultCategory = useMemo(
-    () => (masterCategory?.sections?.length ? masterCategory : categoryFromAnswers(activeAssessment?.answers)),
+    () => activeAssessment?.structure || (masterCategory?.sections?.length ? masterCategory : categoryFromAnswers(activeAssessment?.answers)),
     [masterCategory, activeAssessment]
   );
   const result = useMemo(
@@ -118,6 +119,10 @@ export default function ParentAssessmentView() {
     });
   }, [result, resolvedSections]);
   const totalQuestionsCount = useMemo(() => navSections.reduce((acc, s) => acc + s.count, 0), [navSections]);
+
+  if (detail.isLoading || serverQuestionnaires.isLoading) {
+    return <DetailSkeleton sections={4} label="Memuat hasil kuesioner…" testId="parent-assessment-skeleton" />;
+  }
 
   if (!client) {
     return (
@@ -301,7 +306,7 @@ export default function ParentAssessmentView() {
         `}} />
         
         {/* DOCUMENT HEADER / CLINICAL TITLE (Matching Image 1) */}
-        <DocumentHeader activeAssessment={activeAssessment} ageDetail={ageDetail} branch={branch} client={client} isSchoolCompanion={isSchoolCompanion} masterCategory={masterCategory} testDate={testDate} />
+        <DocumentHeader activeAssessment={activeAssessment} ageDetail={ageDetail} branch={branch} client={client} isSchoolCompanion={isSchoolCompanion} masterCategory={masterCategory} respondent={activeAssessment?.respondent || null} testDate={testDate} />
 
         {cards.map((card) =>
           card === "plain" ? (

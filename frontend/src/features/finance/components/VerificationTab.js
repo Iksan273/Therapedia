@@ -10,21 +10,28 @@ import { Button } from "@/shared/ui/button";
 import { DeleteButton } from "@/shared/components/DeleteControls";
 import { ProofFileButton } from "@/shared/components/ProofFileButton";
 import { TablePagination } from "@/shared/components/TablePagination";
+import { TableSkeleton } from "@/shared/components/LoadingSkeletons";
+import { cn } from "@/shared/lib/utils";
 
-export function VerificationTab({ handleApprovePayment, pendingInvoices, pendingPg, onDeleteInvoice, setSelectedProofInvoice, onUploadProof }) {
+// `loading` = muat pertama dari server (shimmer), `refreshing` = muat ulang karena cari / halaman (data lama diredupkan), `pendingTotal` =
+// jumlah di server (mode API; mode demo memakai panjang daftar). Tanpa `onDeleteInvoice` tombol hapus tidak tampil (hapus invoice menyusul di modul Finance).
+export function VerificationTab({ handleApprovePayment, loading = false, pendingInvoices, pendingPg, pendingTotal, refreshing = false, onDeleteInvoice, setSelectedProofInvoice, onUploadProof }) {
   return (
     <TabsContent value="verification" className="space-y-4">
           <Card className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
             <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="text-sm font-bold text-slate-900">
-                Tagihan Menunggu Pembayaran ({pendingInvoices.length})
+                Tagihan Menunggu Pembayaran ({pendingTotal ?? pendingInvoices.length})
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
                 Invoice Assessment: ortu wajib mengunggah bukti transfer sebelum mengisi kuesioner. Klik Lihat Bukti untuk memeriksanya, lalu tandai lunas setelah pembayaran diterima; invoice paket langsung mengaktifkan kredit.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-              {pendingInvoices.length === 0 ? (
+            <CardContent className={cn("p-0 overflow-x-auto transition-opacity", refreshing && "opacity-60")} aria-busy={refreshing || undefined}>
+              {refreshing && <p className="px-6 py-1.5 text-[11px] font-semibold text-sky-700 bg-sky-50 border-b border-sky-100" data-testid="verification-refreshing">Memperbarui…</p>}
+              {loading ? (
+                <TableSkeleton rows={4} columns={4} label="Memuat tagihan…" testId="verification-skeleton" />
+              ) : pendingInvoices.length === 0 ? (
                 <EmptyState
                   icon={CheckCircle2}
                   title="Tidak Ada Tagihan Menunggu"
@@ -58,7 +65,7 @@ export function VerificationTab({ handleApprovePayment, pendingInvoices, pending
                           </TableCell>
                           <TableCell data-nolabel className="text-right pr-6 py-4 min-w-[240px] whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                              {!(inv.proofOfPaymentUrl || inv.proofUrl) && onUploadProof && (
+                              {!(inv.hasProof ?? Boolean(inv.proofOfPaymentUrl || inv.proofUrl)) && onUploadProof && (
                                 <ProofFileButton
                                   label="Upload Bukti"
                                   className="px-3 font-bold gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 whitespace-nowrap cursor-pointer"
@@ -66,7 +73,7 @@ export function VerificationTab({ handleApprovePayment, pendingInvoices, pending
                                   testId={`upload-proof-${inv.id}`}
                                 />
                               )}
-                              {(inv.proofOfPaymentUrl || inv.proofUrl) && (
+                              {(inv.hasProof ?? Boolean(inv.proofOfPaymentUrl || inv.proofUrl)) && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -84,7 +91,7 @@ export function VerificationTab({ handleApprovePayment, pendingInvoices, pending
                               >
                                 Tandai Lunas
                               </Button>
-                              <DeleteButton
+                              {onDeleteInvoice && <DeleteButton
                                 module="finance"
                                 iconOnly
                                 label={`Hapus invoice ${inv.invoiceNumber}`}
@@ -92,7 +99,7 @@ export function VerificationTab({ handleApprovePayment, pendingInvoices, pending
                                 description="Invoice belum lunas ini DIHAPUS PERMANEN beserta bukti bayar dan lognya. Saldo lebihan yang dipakainya dikembalikan ke client."
                                 onConfirm={() => onDeleteInvoice?.(inv)}
                                 testId={`delete-pending-invoice-${inv.id}`}
-                              />
+                              />}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -101,12 +108,12 @@ export function VerificationTab({ handleApprovePayment, pendingInvoices, pending
                   </TableBody>
                 </Table>
               )}
-              <TablePagination
+              {!loading && <TablePagination
                 {...pendingPg}
                 onPageChange={pendingPg.setPage}
                 onPageSizeChange={pendingPg.setPageSize}
                 noun="tagihan"
-              />
+              />}
             </CardContent>
           </Card>
         </TabsContent>

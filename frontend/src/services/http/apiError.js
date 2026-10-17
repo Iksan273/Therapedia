@@ -2,13 +2,14 @@
 // sehingga UI cukup membaca `message` (bahasa Indonesia) dan `fieldErrors` (validasi Laravel 422).
 
 export class ApiError extends Error {
-  constructor({ status = 0, message, code = null, fieldErrors = {}, retryAfter = null, cause = null }) {
+  constructor({ status = 0, message, code = null, fieldErrors = {}, retryAfter = null, body = {}, cause = null }) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.fieldErrors = fieldErrors;
     this.retryAfter = retryAfter; // detik sampai boleh mencoba lagi (429: lockout login, throttle)
+    this.body = body; // isi respons mentah (snake_case): data tambahan galat domain, mis. `missing_question_ids`, `invoice`, `bank_accounts`
     this.cause = cause;
   }
 
@@ -64,6 +65,7 @@ export function toApiError(error) {
     message: body.message || DEFAULT_MESSAGES[status] || DEFAULT_MESSAGES[500],
     fieldErrors,
     retryAfter: parseRetryAfter(body.retry_after ?? error?.response?.headers?.["retry-after"]),
+    body: typeof body === "object" && body !== null ? body : {},
     cause: error,
   });
 }

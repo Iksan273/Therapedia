@@ -129,6 +129,7 @@ config/env.js data/ (seed demo)
 18. **Mobile wajib**: breakpoint `md`, dialog `max-h-[calc(100dvh-2.5rem)]` + body scroll, tabel `overflow-x-auto`, target sentuh ≥40px. Portal ortu & `/assessment` diuji di 375px.
 18b. **List = pagination 10 data per halaman**, tanpa infinite scroll: `usePagination` + `TablePagination` (`resetKey` = filter). Satu-satunya pengecualian: kolom kanban pipeline (infinite scroll 10 kartu per halaman, `useInfiniteSentinel`). Detail: `docs/guide/08`.
 18c. **LOADING WAJIB saat fetch data.** Setiap tampilan yang datanya diambil dari server (halaman, tab, tabel, kartu, dialog berisi daftar) menampilkan kerangka **shimmer** (`<Skeleton/>`, `shared/components/LoadingSkeletons.js`) selama muat pertama, dan data lama diredupkan + indikator "memperbarui…" saat muat ulang (filter / halaman / pencarian). Dilarang layar kosong, `EmptyState`, atau tabel 0 baris sebelum data tiba. Store/hook mengekspos `isLoading` (muat pertama) dan `isFetching` (muat ulang). Wajib dites. Detail: `docs/guide/08` bagian "Loading data".
+18d. **Pemilih client = `ClientCombobox` (`shared/components/ClientCombobox.js`).** Setiap combo box pilih + cari client (nama anak, ortu, kode) wajib memakainya: **infinite scroll 10 per halaman** + kolom cari tetap jalan. Mode API: sumber `source={{ statuses, branchId }}`, daftar diambil dari server (`GET /clients`, cari di server), **baru di-fetch saat popover dibuka** (22b), shimmer saat muat. Mode demo / daftar turunan: `clients={...}` disaring di klien, tampil 10 per 10. `onChange(id, client)` mengembalikan objek client (client mode API tidak ada di store lokal). Dilarang `Select`/`Command` manual berisi seluruh daftar client. Detail: `docs/guide/08`.
 19. Toast `sonner` (bahasa Indonesia, spesifik); konfirmasi destruktif `useConfirm()`; `data-testid` kebab-case pada kontainer & elemen interaktif.
 20. Teks UI & komentar **bahasa Indonesia**; istilah operasional klinik boleh English. Import pakai alias `@/…`.
 
@@ -151,5 +152,6 @@ config/env.js data/ (seed demo)
 - [ ] `npm run lint` 0 error · `npm test` lolos · `npm run build` lolos
 - [ ] Cek di browser dengan role terkait (login, atau `/roles` di mode demo), termasuk refresh & tampilan ≤768px
 - [ ] Setiap tampilan yang fetch data punya loading shimmer (`isLoading`) + tes; hanya fetch data yang dibaca halaman (aturan 22b)
+- [ ] Pemilih client baru memakai `ClientCombobox` (aturan 18d), bukan Select berisi semua client
 - [ ] Route baru ada di smoke test; aturan domain baru ada test-nya
 - [ ] Docs `docs/guide/*` (dan `schema.md` bila menyentuh data) diperbarui

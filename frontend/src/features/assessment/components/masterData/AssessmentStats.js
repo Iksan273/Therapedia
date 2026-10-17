@@ -3,7 +3,8 @@ import { FolderTree, Layers, ListChecks } from "lucide-react";
 import { isTemplateSection } from "@/domain/assessmentTemplate";
 
 export function AssessmentStats({ activeCategory, categories, totalDomainsOverall, totalQuestionsOverall }) {
-  const templateSections = categories.reduce((n, c) => n + (c.sections || []).filter(isTemplateSection).length, 0);
+  // Mode API: daftar ringkas tanpa section, jumlah section ber-template datang dari server (`templateSectionCount`)
+  const templateSections = categories.reduce((n, c) => n + (c.templateSectionCount ?? (c.sections || []).filter(isTemplateSection).length), 0);
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1">

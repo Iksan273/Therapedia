@@ -22,6 +22,51 @@ export const normalizeTypeCode = (value) =>
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, 10);
 
+// Kode jenis untuk salinan template: `{kode}C`, `{kode}C2`, ... (maks 10 karakter) yang belum dipakai.
+export const suggestCopyTypeCode = (typeCode, existing = []) => {
+  const taken = new Set((existing || []).map(normalizeTypeCode));
+  const base = normalizeTypeCode(typeCode) || DEFAULT_TYPE_CODE;
+  for (let n = 1; n < 1000; n += 1) {
+    const suffix = n === 1 ? "C" : `C${n}`;
+    const code = `${base.slice(0, 10 - suffix.length)}${suffix}`;
+    if (!taken.has(code)) return code;
+  }
+  return `${base.slice(0, 6)}${Date.now().toString(36).toUpperCase().slice(-4)}`;
+};
+
+// Nama salinan: "{nama} (Salinan)", "(Salinan 2)", ... yang belum dipakai.
+export const suggestCopyName = (name, existing = []) => {
+  const taken = new Set((existing || []).map((n) => String(n || "").trim().toLowerCase()));
+  const base = String(name || "Template").replace(/\s*\(Salinan(?: \d+)?\)\s*$/i, "").trim();
+  for (let n = 1; n < 1000; n += 1) {
+    const candidate = n === 1 ? `${base} (Salinan)` : `${base} (Salinan ${n})`;
+    if (!taken.has(candidate.toLowerCase())) return candidate;
+  }
+  return `${base} (Salinan)`;
+};
+
+// Urutan id setelah `id` dipindah `delta` posisi (−1 naik, +1 turun); di luar batas = tidak berubah.
+export const moveId = (ids, id, delta) => {
+  const from = ids.indexOf(id);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= ids.length) return ids;
+  const next = [...ids];
+  next.splice(from, 1);
+  next.splice(to, 0, id);
+  return next;
+};
+
+// Urutan id setelah `id` dijatuhkan ke posisi `targetId` (drag & drop).
+export const moveIdTo = (ids, id, targetId) => {
+  const from = ids.indexOf(id);
+  const to = ids.indexOf(targetId);
+  if (from < 0 || to < 0 || from === to) return ids;
+  const next = [...ids];
+  next.splice(from, 1);
+  next.splice(to, 0, id);
+  return next;
+};
+
 // Kategori lama tanpa `typeCode` memakai awalan umum "ASM".
 export const categoryTypeCode = (category) => normalizeTypeCode(category?.typeCode) || DEFAULT_TYPE_CODE;
 
@@ -190,12 +235,22 @@ export const isLocalPdfUrl = (url) => LOCAL_PDF.test(String(url || "").trim());
 export const isValidDocumentUrl = (url) => toDocumentEmbedUrl(url) !== null || isLocalPdfUrl(url);
 
 // Jumlah soal sebuah kategori (bentuk bersarang `sections[].questions[]` atau datar `questions[]`).
+// Jumlah soal kategori: dari pohon bila dimuat; kategori ringkas dari server (mode API, tanpa section) memakai `questionCount`.
 export const countCategoryQuestions = (category) => {
   if (!category) return 0;
   if (Array.isArray(category.sections) && category.sections.length > 0) {
     return category.sections.reduce((n, sec) => n + (sec.questions || []).length, 0);
   }
+  if (typeof category.questionCount === "number") return category.questionCount;
   return (category.questions || []).length;
+};
+
+// Jumlah section / domain kategori (pohon bila dimuat, kalau tidak `sectionCount` dari server).
+export const countCategorySections = (category) => {
+  if (!category) return 0;
+  if (Array.isArray(category.sections) && category.sections.length > 0) return category.sections.length;
+  if (typeof category.sectionCount === "number") return category.sectionCount;
+  return category.domain ? 1 : category.questions?.length ? 1 : 0;
 };
 
 // Selisih jawaban sebagai PATCH (nilai null = jawaban dihapus). Dikirim apa adanya ke `PUT /public/assessments/{code}/draft`.
@@ -212,10 +267,89 @@ export const diffAnswers = (prev = {}, next = {}) => {
   return patch;
 };
 
-// Terapkan patch ke draft (pure). `validQuestionIds` (opsional): id di luar kategori dibuang. Draft baru dibuat bila belum ada.
+// ---- Langkah bawaan "Data Pengisi" (profil per kategori; padanan backend `AssessmentRespondent`) ----
+// Profil kategori: `parent` (orang tua), `teacher` (guru / pendamping School Companion), `none` (tanpa langkah; kategori yang
+// sudah punya section pengisi sendiri, mis. KON/TDL). Nama dan tanggal lahir anak tidak ditanya ulang (dari kode client).
+export const RESPONDENT_PROFILES = [
+  { value: "parent", label: "Orang tua", hint: "Nama pengisi, hubungan dengan anak, HP, email" },
+  { value: "teacher", label: "Guru / pendamping sekolah", hint: "Nama guru, peran, sekolah, kelas, HP, email (School Companion)" },
+  { value: "none", label: "Tanpa langkah Data Pengisi", hint: "Gunakan bila kuesioner sudah punya section pengisi sendiri" },
+];
+
+const REL_PARENT = ["Ayah", "Ibu", "Wali", "Lainnya"];
+const REL_TEACHER = ["Guru kelas", "Guru pendamping", "Lainnya"];
+
+export const RESPONDENT_FIELDS = {
+  parent: [
+    { key: "name", label: "Nama yang mengisi", required: true, max: 150, autoComplete: "name" },
+    { key: "relation", label: "Hubungan dengan anak", required: true, max: 50, options: REL_PARENT },
+    { key: "phone", label: "Nomor HP", required: false, max: 30, inputMode: "tel", autoComplete: "tel" },
+    { key: "email", label: "Email", required: false, max: 150, inputMode: "email", autoComplete: "email" },
+  ],
+  teacher: [
+    { key: "name", label: "Nama guru / pendamping", required: true, max: 150, autoComplete: "name" },
+    { key: "relation", label: "Peran", required: true, max: 50, options: REL_TEACHER },
+    { key: "school", label: "Nama sekolah", required: true, max: 150 },
+    { key: "class", label: "Kelas", required: true, max: 50 },
+    { key: "phone", label: "Nomor HP", required: false, max: 30, inputMode: "tel", autoComplete: "tel" },
+    { key: "email", label: "Email", required: false, max: 150, inputMode: "email", autoComplete: "email" },
+  ],
+};
+
+// Kategori tanpa `respondentProfile` (data lama / kustom lokal) = tanpa langkah, agar alur lama tidak berubah.
+export const respondentProfileOf = (category) => (RESPONDENT_FIELDS[category?.respondentProfile] ? category.respondentProfile : "none");
+
+export const respondentFields = (profile) => RESPONDENT_FIELDS[profile] || [];
+
+// Bersihkan nilai: hanya key profil, trim, kosong dibuang.
+export const cleanRespondent = (profile, values = {}) => {
+  const out = {};
+  respondentFields(profile).forEach((f) => {
+    const v = String(values?.[f.key] ?? "").trim().slice(0, f.max);
+    if (v) out[f.key] = v;
+  });
+  return out;
+};
+
+// Key wajib yang belum terisi.
+export const missingRespondentFields = (profile, values = {}) =>
+  respondentFields(profile).filter((f) => f.required && !String(values?.[f.key] ?? "").trim()).map((f) => f.key);
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^[0-9+\-\s()]{6,30}$/;
+
+// Galat format per key (email / HP opsional tetapi bila diisi harus valid).
+export const respondentFormatErrors = (profile, values = {}) => {
+  const errors = {};
+  const email = String(values?.email ?? "").trim();
+  const phone = String(values?.phone ?? "").trim();
+  if (respondentFields(profile).some((f) => f.key === "email") && email && !EMAIL_RE.test(email)) errors.email = "Format email tidak valid.";
+  if (respondentFields(profile).some((f) => f.key === "phone") && phone && !PHONE_RE.test(phone)) errors.phone = "Format nomor HP tidak valid.";
+  return errors;
+};
+
+// Selisih nilai Data Pengisi sebagai PATCH (null = dihapus), dikirim ke `PUT …/draft` bagian `respondent`.
+export const diffRespondent = (prev = {}, next = {}) => {
+  const patch = {};
+  Object.keys(next).forEach((k) => {
+    if (String(next[k] ?? "").trim() !== String(prev[k] ?? "").trim()) patch[k] = String(next[k] ?? "").trim() || null;
+  });
+  Object.keys(prev).forEach((k) => {
+    if (!(k in next) && String(prev[k] ?? "").trim()) patch[k] = null;
+  });
+  return patch;
+};
+
+// Terapkan patch ke draft (pure). `respondent`: patch Data Pengisi (null = hapus; `respondentProfile` menyaring key). `validQuestionIds` (opsional): id di luar kategori dibuang. Draft baru dibuat bila belum ada.
 // `consentAt`: undefined = tidak diubah; null = dicabut; string = waktu persetujuan.
-export const applyDraftPatch = (draft, { code, clientId, answers = {}, validQuestionIds = null, lastSectionId, consentAt }, now) => {
-  const base = draft || { code, clientId, answers: {}, answeredCount: 0, lastSectionId: null, consentAt: null, version: 0, startedAt: now };
+export const applyDraftPatch = (draft, { code, clientId, answers = {}, respondent = {}, respondentProfile = null, validQuestionIds = null, lastSectionId, consentAt }, now) => {
+  const base = draft || { code, clientId, answers: {}, respondent: {}, answeredCount: 0, lastSectionId: null, consentAt: null, version: 0, startedAt: now };
+  const mergedRespondent = { ...(base.respondent || {}) };
+  Object.keys(respondent || {}).forEach((k) => {
+    if (respondent[k] === null || respondent[k] === "") delete mergedRespondent[k];
+    else mergedRespondent[k] = respondent[k];
+  });
+  const respondentValues = respondentProfile ? cleanRespondent(respondentProfile, mergedRespondent) : mergedRespondent;
   const valid = validQuestionIds ? new Set(validQuestionIds.map(String)) : null;
   const merged = { ...base.answers };
   Object.keys(answers).forEach((id) => {
@@ -228,6 +362,7 @@ export const applyDraftPatch = (draft, { code, clientId, answers = {}, validQues
   return {
     ...base,
     answers: clean,
+    respondent: respondentValues,
     answeredCount: keptIds.length,
     lastSectionId: lastSectionId !== undefined ? lastSectionId : base.lastSectionId,
     consentAt: consentAt !== undefined ? consentAt : base.consentAt,

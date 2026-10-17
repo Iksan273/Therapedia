@@ -4,6 +4,7 @@
     "typeCode": "SP2",
     "categoryName": "Child Sensory Profile 2 (Winnie Dunn, PhD, OTR, FAOTA)",
     "domain": "Sensory & Developmental Processing",
+    "respondentProfile": "parent",
     "sections": [
       {
         "sectionId": "sec-auditory",
@@ -393,6 +394,7 @@
     "typeCode": "SCP",
     "categoryName": "School Companion Profile (School / Classroom Function)",
     "domain": "School Adaptation & Classroom Function",
+    "respondentProfile": "teacher",
     "sections": [
       {
         "sectionId": "sec-scp-attention",
@@ -767,6 +769,7 @@
     "typeCode": "FMV",
     "categoryName": "Fine Motor & Visual Motor Integration Profile",
     "domain": "Motor Planning & Coordination",
+    "respondentProfile": "parent",
     "sections": [
       {
         "sectionId": "sec-fm-grip",
@@ -1137,6 +1140,7 @@
     "typeCode": "SLC",
     "categoryName": "Speech, Language & Social Communication Profile",
     "domain": "Speech, Language & Pragmatic Communication",
+    "respondentProfile": "parent",
     "sections": [
       {
         "sectionId": "sec-receptive",
@@ -1547,6 +1551,7 @@
     "typeCode": "ADL",
     "categoryName": "Activities of Daily Living (ADL) & Pediatric Independence Profile",
     "domain": "Occupational Therapy & Functional Independence (ADL)",
+    "respondentProfile": "parent",
     "sections": [
       {
         "sectionId": "sec-feeding",
@@ -1957,6 +1962,7 @@
     "typeCode": "KON",
     "categoryName": "Konsultasi (contoh form kesepakatan + soal opsional)",
     "domain": "Consultation Intake",
+    "respondentProfile": "none",
     "sections": [
       {
         "sectionId": "sec-kon-pendahuluan",
@@ -2037,6 +2043,7 @@
     "typeCode": "TDL",
     "categoryName": "Asesmen Awal Tumbuh Kembang + Toddler Sensory Profile 2",
     "domain": "Intake & Sensory Processing",
+    "respondentProfile": "none",
     "sections": [
       {
         "sectionId": "sec-tdl-identitas",

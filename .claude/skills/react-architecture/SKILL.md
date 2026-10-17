@@ -133,3 +133,6 @@ Store mode API tidak boleh `useQuery` yang langsung aktif saat login. Pakai `use
 - [ ] Route/menu lewat `routes.js` & `navConfig.js` (dengan `module` RBAC)
 - [ ] Data cabang mengikuti `activeBranch`; mobile ≤768px dicek
 - [ ] `npm test` & `npm run build` lolos; docs `docs/guide/*` diperbarui
+
+## Pemilih client
+Combo box pilih/cari client selalu `ClientCombobox` (`shared/components`): infinite scroll 10/halaman + cari; mode API `source={{statuses,branchId}}` fetch server hanya saat dibuka, `onChange(id, client)`. Aturan CLAUDE.md 18d.

@@ -17,6 +17,7 @@ class MasterDataSeeder extends Seeder
     public function run(): void
     {
         $this->call(ClientCodeCounterSeeder::class); // counter kode client (AE/FJ/KO/PT/UZ)
+        $this->call(AssessmentCategorySeeder::class); // kategori kuesioner bawaan (idempoten)
 
         $now = now();
         $stamp = ['created_at' => $now, 'updated_at' => $now];
@@ -69,10 +70,12 @@ class MasterDataSeeder extends Seeder
             ['pkg-reguler', 'REG', 'Regular Therapist', 10, 2500000, '10 Sesi Terapi bersama Regular Therapist (OT / Sensori / Wicara)', 3, false],
             ['pkg-vip', 'SNR', 'Senior Therapist', 10, 3500000, '10 Sesi Terapi bersama Senior Therapist (1-on-1 Specialist)', 3, false],
             ['pkg-consult', 'KON', 'Paket Konsultasi', 1, 500000, '1 Sesi Konsultasi Klinis & Review', 1, true],
+            // Paket asesmen: satu-satunya jenis yang dipilih admin saat generate kode kuesioner berinvoice (harga = nominal invoice; sesuaikan di Finance)
+            ['pkg-asesmen', 'ASM', 'Paket Asesmen', 0, 500000, 'Asesmen tumbuh kembang (invoice otomatis saat kode kuesioner dibuat)', 0, true, true],
         ];
         DB::table('master_packages')->insertOrIgnore(collect($packages)->map(fn ($p) => [
             'code' => $p[0], 'invoice_code' => $p[1], 'name' => $p[2], 'credits' => $p[3], 'price' => $p[4],
-            'description' => $p[5], 'leave_quota' => $p[6], 'is_satuan' => $p[7], 'is_assessment' => false,
+            'description' => $p[5], 'leave_quota' => $p[6], 'is_satuan' => $p[7], 'is_assessment' => $p[8] ?? false,
             'is_active' => true,
         ] + $stamp)->all());
     }

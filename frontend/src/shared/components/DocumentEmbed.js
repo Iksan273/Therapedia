@@ -8,8 +8,9 @@ import { cn } from "@/shared/lib/utils";
 // Dokumen Google Docs / Drive yang dibaca langsung di layar (mis. kesepakatan asesmen). Hanya link Google yang bisa
 // di-embed (`toDocumentEmbedUrl`); dokumen harus dibagikan "Siapa saja yang memiliki link". Bila iframe tidak bisa
 // menampilkan (belum publik / diblokir), tombol "Buka di tab baru" selalu tersedia sebagai cadangan.
-export function DocumentEmbed({ url, title = "Dokumen", className, height = "h-[65dvh] md:h-[70dvh]", testId = "document-embed", collapsible = false }) {
-  const isPdf = isLocalPdfUrl(url);
+export function DocumentEmbed({ url, title = "Dokumen", className, height = "h-[65dvh] md:h-[70dvh]", testId = "document-embed", collapsible = false, pdf = false }) {
+  // `pdf`: URL file PDF dari server (mis. endpoint kuesioner publik) yang tidak berpola /documents/*.pdf
+  const isPdf = pdf || isLocalPdfUrl(url);
   const embedUrl = isPdf ? String(url).trim() : toDocumentEmbedUrl(url);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(true); // hanya relevan bila `collapsible`

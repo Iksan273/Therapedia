@@ -7,17 +7,29 @@ import { cn } from "@/shared/lib/utils";
 import { useClients } from "@/stores/clientsStore";
 import { useAssessments } from "@/stores/assessmentsStore";
 import { useCredits } from "@/stores/creditsStore";
+import { isApiMode } from "@/config/env";
+import { keysToCamel } from "@/shared/lib/caseConverter";
 import { BRANCHES, activeBankAccounts } from "@/domain/branch";
 import { AssessmentProofCard } from "@/features/assessment/components/AssessmentProofCard";
 import { CodeEntryCard } from "@/features/assessment/components/fill/CodeEntryCard";
 import { DoneCard } from "@/features/assessment/components/fill/DoneCard";
 import { ProgressHeader } from "@/features/assessment/components/fill/ProgressHeader";
 import { SectionBlock } from "@/features/assessment/components/fill/SectionBlock";
+import { RespondentCard } from "@/features/assessment/components/fill/RespondentCard";
 import { SubmitBar } from "@/features/assessment/components/fill/SubmitBar";
 import { buildSections, questionsOf, sectionIndex } from "@/features/assessment/components/fill/fillSections";
 import { useAssessmentFillActions } from "@/features/assessment/hooks/useAssessmentFillActions";
 import { useDraftAutosave } from "@/features/assessment/hooks/useDraftAutosave";
-import { checkQuestionnaireAccess, isAnswerFilled, requiredProgress, unansweredRequired } from "@/domain/assessment";
+import {
+  checkQuestionnaireAccess,
+  cleanRespondent,
+  isAnswerFilled,
+  missingRespondentFields,
+  requiredProgress,
+  respondentFormatErrors,
+  respondentProfileOf,
+  unansweredRequired,
+} from "@/domain/assessment";
 
 // Pesan penolakan akses kuesioner (aturan klien: sekali isi, masa berlaku opsional dicek saat dibuka, bukti transfer invoice assessment wajib diunggah sebelum mengisi).
 const ACCESS_ERRORS = {
@@ -26,9 +38,22 @@ const ACCESS_ERRORS = {
 };
 
 const normCode = (v) => String(v || "").trim().toUpperCase();
+const apiMode = isApiMode();
+const NO_CLIENTS = [];
+
+// Galat API → pesan di kartu kode
+const apiCodeError = (err) => {
+  if (err?.code === "already_submitted") return ACCESS_ERRORS.submitted;
+  if (err?.status === 410) return ACCESS_ERRORS.expired;
+  if (err?.status === 404) return "Kode kuesioner tidak ditemukan. Silakan periksa kembali kode yang diberikan klinik.";
+  if (err?.status === 429) return "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.";
+  return err?.message || "Kuesioner belum bisa dibuka. Coba lagi.";
+};
 
 export default function AssessmentFill() {
-  const { clients } = useClients();
+  // Mode API: kuesioner publik memakai satu request ke server; tidak membaca daftar client / kategori sama sekali.
+  const clientsStore = useClients();
+  const clients = apiMode ? NO_CLIENTS : clientsStore.clients;
   const { getCategory } = useAssessments();
   const { getInvoicesForClient, uploadPaymentProof } = useCredits();
   const fill = useAssessmentFillActions();
@@ -45,6 +70,10 @@ export default function AssessmentFill() {
   const [category, setCategory] = useState(null);
   const [activeCode, setActiveCode] = useState("");
   const [answers, setAnswers] = useState({});
+  const [lookupBusy, setLookupBusy] = useState(false); // mode API: menunggu server saat membuka kode
+  const [submitting, setSubmitting] = useState(false);
+  const [respondent, setRespondent] = useState({}); // Data Pengisi (langkah bawaan sesuai profil kategori)
+  const [showRespondentErrors, setShowRespondentErrors] = useState(false);
   const [formError, setFormError] = useState("");
   const [consentAt, setConsentAt] = useState(null); // waktu persetujuan; boleh dicentang di awal (tersimpan di draft) atau saat kirim
   const [lastSectionId, setLastSectionId] = useState(null);
@@ -56,11 +85,13 @@ export default function AssessmentFill() {
   const allCategoryQuestions = useMemo(() => questionsOf(categorizedSections), [categorizedSections]);
   const sectionOfQuestion = useMemo(() => sectionIndex(categorizedSections), [categorizedSections]);
   const validQuestionIds = useMemo(() => allCategoryQuestions.map((q) => q.id), [allCategoryQuestions]);
+  const respondentProfile = respondentProfileOf(category);
 
   const autosave = useDraftAutosave({
     enabled: stage === "form" && Boolean(client && category),
-    save: (payload) => fill.saveProgress({ code: activeCode, clientId: client.id, validQuestionIds, ...payload }),
+    save: (payload) => fill.saveProgress({ code: activeCode, clientId: client.id, validQuestionIds, respondentProfile, ...payload }),
     answers,
+    respondent,
     consentAt,
     lastSectionId,
   });
@@ -71,7 +102,31 @@ export default function AssessmentFill() {
   };
 
   // Cari kode (dari form atau tautan `?code=`), cek akses, lalu buka unggah bukti / kuesioner
-  const lookupCode = (rawCode) => {
+  const lookupCode = (rawCode) => (apiMode ? lookupCodeApi(rawCode) : lookupCodeLocal(rawCode));
+
+  // Mode API: GET /public/assessments/{code}. Struktur dari server (beku sejak draft pertama), draft ikut dimuat.
+  const lookupCodeApi = async (rawCode) => {
+    const input = normCode(rawCode);
+    if (!input) return;
+    setLookupBusy(true);
+    setCodeError("");
+    try {
+      const opened = await fill.open(input);
+      openForm(opened.client, opened.category, input, opened);
+    } catch (err) {
+      if (err?.code === "proof_required") {
+        const body = keysToCamel(err.body || {});
+        setProofTarget({ client: { id: "" }, invoice: body.invoice || {}, code: input, bankAccounts: body.bankAccounts || [] });
+        setStage("proof");
+      } else {
+        setCodeError(apiCodeError(err));
+      }
+    } finally {
+      setLookupBusy(false);
+    }
+  };
+
+  const lookupCodeLocal = (rawCode) => {
     const input = normCode(rawCode);
     let foundClient = null;
     let foundCat = null;
@@ -120,16 +175,19 @@ export default function AssessmentFill() {
   };
 
   // Buka form; bila kode ini sudah punya draft, jawaban dipulihkan dan ortu melanjutkan dari titik terakhir.
-  const openForm = (foundClient, foundCat, code) => {
+  const openForm = (foundClient, foundCat, code, opened = null) => {
     const sections = buildSections(foundCat);
     const ids = new Set(questionsOf(sections).map((q) => q.id));
-    const draft = fill.getDraft(code);
+    const draft = opened ? opened.draft : fill.getDraft(code);
     const restored = draft ? Object.fromEntries(Object.entries(draft.answers || {}).filter(([id]) => ids.has(id))) : {};
     const restoredConsent = draft?.consentAt || null;
     const restoredSection = draft?.lastSectionId || null;
+    const restoredRespondent = cleanRespondent(respondentProfileOf(foundCat), draft?.respondent || {});
 
-    autosave.reset({ answers: restored, consentAt: restoredConsent, lastSectionId: restoredSection });
+    autosave.reset({ answers: restored, respondent: restoredRespondent, consentAt: restoredConsent, lastSectionId: restoredSection });
     setAnswers(restored);
+    setRespondent(restoredRespondent);
+    setShowRespondentErrors(false);
     setConsentAt(restoredConsent);
     setLastSectionId(restoredSection);
     setResume(Object.keys(restored).length > 0 ? { answered: Object.keys(restored).length, total: ids.size } : null);
@@ -158,11 +216,11 @@ export default function AssessmentFill() {
   // Tautan dari admin (`/assessment?code=XXX`): kode terisi dan langsung diproses, ortu tidak perlu mengetik
   const autoOpened = useRef(false);
   useEffect(() => {
-    if (autoOpened.current || !searchParams.get("code") || clients.length === 0) return;
+    if (autoOpened.current || !searchParams.get("code") || (!apiMode && clients.length === 0)) return;
     autoOpened.current = true;
     lookupCode(searchParams.get("code"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients.length]);
+  }, [clients.length]); // mode API: langsung (clients selalu kosong)
 
   // Dilanjutkan dari draft: gulir ke section terakhir yang dikerjakan
   useEffect(() => {
@@ -189,11 +247,20 @@ export default function AssessmentFill() {
   const progress = useMemo(() => requiredProgress(allCategoryQuestions, answers), [allCategoryQuestions, answers]);
   const requiredLeft = progress.total - progress.answered;
 
+  const handleRespondent = useCallback((key, value) => {
+    setRespondent((prev) => ({ ...prev, [key]: value }));
+    setFormError("");
+  }, []);
+
   const scrollToSection = (secId) => {
     document.getElementById(secId)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
   };
 
   const jumpToFirstUnanswered = () => {
+    if (missingRespondentFields(respondentProfile, respondent).length > 0) {
+      document.getElementById("respondent-card")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      return;
+    }
     const firstUnanswered = unansweredRequired(allCategoryQuestions, answers)[0];
     if (firstUnanswered) {
       const el = document.getElementById(`q-card-${firstUnanswered.id}`);
@@ -206,8 +273,8 @@ export default function AssessmentFill() {
   };
 
   // "Simpan & lanjutkan nanti": simpan sekarang, ortu boleh menutup halaman dan kembali dengan kode/tautan yang sama.
-  const handleSaveForLater = () => {
-    const result = autosave.flush();
+  const handleSaveForLater = async () => {
+    const result = await Promise.resolve(autosave.flush()); // mode API: menunggu server membalas
     if (result === "error") {
       toast.error("Jawaban belum tersimpan. Periksa koneksi lalu coba lagi.");
       return;
@@ -219,9 +286,16 @@ export default function AssessmentFill() {
     toast.success("Jawaban tersimpan. Buka kembali tautan atau kode yang sama untuk melanjutkan kapan saja.");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!category) return;
+    if (!category || submitting) return;
+    // Data Pengisi lebih dulu (ada di bagian paling atas form)
+    if (missingRespondentFields(respondentProfile, respondent).length > 0 || Object.keys(respondentFormatErrors(respondentProfile, respondent)).length > 0) {
+      setShowRespondentErrors(true);
+      setFormError("Mohon lengkapi Data Pengisi di bagian atas formulir.");
+      document.getElementById("respondent-card")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      return;
+    }
     const unanswered = unansweredRequired(allCategoryQuestions, answers);
     if (unanswered.length > 0) {
       setFormError(`Mohon lengkapi seluruh pertanyaan wajib (${unanswered.length} belum diisi).`);
@@ -232,13 +306,37 @@ export default function AssessmentFill() {
       return;
     }
     autosave.cancel(); // tidak ada simpan draft yang menyusul setelah kirim final
-    fill.submit({ client, category, code: activeCode, questions: allCategoryQuestions, answers, consentAt });
+    if (apiMode) {
+      setSubmitting(true);
+      try {
+        await fill.submit({ code: activeCode, answers, respondent: cleanRespondent(respondentProfile, respondent), consentAt });
+        setStage("done");
+        toast.success("Kuesioner asesmen berhasil dikirimkan. Terima kasih!");
+      } catch (err) {
+        const body = keysToCamel(err?.body || {});
+        if (err?.code === "incomplete" && body.missingRespondentFields?.length) {
+          setShowRespondentErrors(true);
+          setFormError("Mohon lengkapi Data Pengisi di bagian atas formulir.");
+          document.getElementById("respondent-card")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+        } else if (err?.code === "incomplete") {
+          setFormError(`Mohon lengkapi seluruh pertanyaan wajib (${body.missingQuestionIds?.length ?? "beberapa"} belum diisi).`);
+        } else if (err?.code === "already_submitted") {
+          setFormError(ACCESS_ERRORS.submitted);
+        } else {
+          setFormError(err?.fieldErrors?.consent || err?.message || "Jawaban belum terkirim. Periksa koneksi lalu coba lagi.");
+        }
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+    fill.submit({ client, category, code: activeCode, questions: allCategoryQuestions, answers, respondent, consentAt });
     setStage("done");
     toast.success("Kuesioner asesmen berhasil dikirimkan. Terima kasih!");
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50/80 py-4 sm:py-8 px-3 sm:px-6">
+    <div className="no-input-zoom min-h-dvh bg-slate-50/80 py-4 sm:py-8 px-3 sm:px-6">
       <div className={cn("mx-auto space-y-4 sm:space-y-6 transition-all", stage === "form" ? "max-w-4xl" : "max-w-xl")}>
         <Link to="/login" className="inline-flex items-center gap-2 min-h-10 text-xs font-bold text-slate-500 hover:text-[#007AFF] transition-colors" data-testid="assessment-back-link">
           <ArrowLeft className="w-4 h-4" /> Kembali ke halaman masuk
@@ -268,6 +366,8 @@ export default function AssessmentFill() {
           <CodeEntryCard
             value={codeInput}
             error={codeError}
+            busy={lookupBusy}
+            showDemoHint={!apiMode}
             onChange={(v) => {
               setCodeInput(v);
               setCodeError("");
@@ -276,7 +376,21 @@ export default function AssessmentFill() {
           />
         )}
 
-        {stage === "proof" && proofTarget && (
+        {stage === "proof" && proofTarget && apiMode && (
+          <AssessmentProofCard
+            invoice={proofTarget.invoice}
+            bankAccounts={proofTarget.bankAccounts}
+            onSubmit={async (file) => {
+              await fill.uploadProof(proofTarget.code, file); // galat (422 format/ukuran, batas 4x) tampil di kartu
+              toast.success("Bukti transfer terkirim. Silakan lanjut mengisi kuesioner.");
+              setProofTarget(null);
+              await lookupCodeApi(proofTarget.code);
+            }}
+            onBack={() => { setProofTarget(null); setStage("code"); }}
+          />
+        )}
+
+        {stage === "proof" && proofTarget && !apiMode && (
           <AssessmentProofCard invoice={proofTarget.invoice} bankAccounts={proofBranchAccounts} branchName={proofBranch?.name} onSubmit={handleProofSubmit} onBack={() => { setProofTarget(null); setStage("code"); }} />
         )}
 
@@ -306,11 +420,13 @@ export default function AssessmentFill() {
             />
 
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              <RespondentCard profile={respondentProfile} values={respondent} onChange={handleRespondent} showErrors={showRespondentErrors} />
               {categorizedSections.map((sec, sIdx) => (
                 <SectionBlock key={sec.id} section={sec} index={sIdx} answers={answers} filterMode={filterMode} onAnswer={handleAnswer} />
               ))}
 
               <SubmitBar
+                submitting={submitting}
                 consented={Boolean(consentAt)}
                 onConsentChange={(checked) => {
                   setConsentAt(checked ? consentAt || nowIso() : null);

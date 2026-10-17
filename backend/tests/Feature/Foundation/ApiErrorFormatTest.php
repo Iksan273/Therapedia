@@ -5,8 +5,11 @@ namespace Tests\Feature\Foundation;
 use App\Exceptions\ApiException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Tests\Concerns\AuthFixtures;
+use Tests\Concerns\OrganizationFixtures;
 use Tests\TestCase;
 
 /**
@@ -15,6 +18,8 @@ use Tests\TestCase;
  */
 class ApiErrorFormatTest extends TestCase
 {
+    use AuthFixtures, OrganizationFixtures, RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -108,6 +113,7 @@ class ApiErrorFormatTest extends TestCase
     public function test_not_implemented_skeleton_is_still_501(): void
     {
         // Kerangka route yang belum ada use-case-nya: tetap 501 dengan code `not_implemented`.
-        $this->getJson('/api/v1/public/assessments/ASM-XXXXXX')->assertStatus(501)->assertJsonPath('code', 'not_implemented');
+        $this->seedFoundation();
+        $this->actAs($this->makeStaff('master'))->getJson('/api/v1/schedules')->assertStatus(501)->assertJsonPath('code', 'not_implemented');
     }
 }

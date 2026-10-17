@@ -133,7 +133,7 @@ describe("seed — kuesioner & invoice assessment", () => {
         }
       });
     });
-    expect(free).toBe(1);
+    expect(free).toBe(2);
   });
 
   test("kode yang dipakai tes demo (ASM-2016, ASM-2017) bisa dibuka ortu (invoice lunas)", () => {

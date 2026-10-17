@@ -21,6 +21,8 @@ class AssessmentAccessCode extends Model
         'expires_at',
         'submitted_at',
         'invoice_required',
+        'structure_snapshot',
+        'snapshot_at',
     ];
 
     protected function casts(): array
@@ -30,6 +32,8 @@ class AssessmentAccessCode extends Model
             'expires_at' => 'datetime',
             'submitted_at' => 'datetime',
             'invoice_required' => 'boolean',
+            'structure_snapshot' => 'array',
+            'snapshot_at' => 'datetime',
         ];
     }
 

@@ -6,7 +6,7 @@ import { cn } from "@/shared/lib/utils";
 
 // Persetujuan data (kartu biasa di akhir form) + bar kirim sticky di bawah layar.
 // HP: bar ramping (tombol Simpan ikon + Kirim); ≥sm: ringkasan + dua tombol sejajar.
-export function SubmitBar({ consented, onConsentChange, formError, onJumpToUnanswered, requiredLeft, progress, onSaveLater }) {
+export function SubmitBar({ submitting = false, consented, onConsentChange, formError, onJumpToUnanswered, requiredLeft, progress, onSaveLater }) {
   const complete = requiredLeft === 0;
   return (
     <>
@@ -47,10 +47,11 @@ export function SubmitBar({ consented, onConsentChange, formError, onJumpToUnans
             </Button>
             <Button
               type="submit"
+              disabled={submitting}
               className={cn("font-bold min-h-11 px-4 sm:px-6 shadow-xs cursor-pointer flex-1 sm:flex-none text-white", complete ? "bg-emerald-600 hover:bg-emerald-700" : "bg-sky-600 hover:bg-sky-700")}
               data-testid="assessment-submit-button"
             >
-              Kirim Jawaban Asesmen ({progress.answered}/{progress.total})
+              {submitting ? "Mengirim…" : `Kirim Jawaban Asesmen (${progress.answered}/${progress.total})`}
             </Button>
           </div>
         </div>

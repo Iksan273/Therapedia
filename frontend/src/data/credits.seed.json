@@ -43,6 +43,17 @@
       "leaveQuota": 4,
       "isSatuan": false,
       "isAssessment": false
+    },
+    {
+      "id": "pkg-asesmen",
+      "invoiceCode": "ASM",
+      "name": "Paket Asesmen",
+      "credits": 0,
+      "price": 500000,
+      "description": "Asesmen tumbuh kembang (invoice otomatis saat kode kuesioner dibuat)",
+      "leaveQuota": 0,
+      "isSatuan": true,
+      "isAssessment": true
     }
   ],
   "records": [

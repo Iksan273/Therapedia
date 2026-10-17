@@ -17,6 +17,8 @@ const EMPTY = { clientId: "", startDate: "", endDate: "", reason: "", note: "" }
 // Catat cuti client (rentang tanggal dari ortu). Hanya bisa bila client punya sesi terapi di rentang itu. Pratinjau: hari cuti
 // (sesi pertama s.d. terakhir), saldo jatah cuti client, dan sesi terapi yang akan jadi Off. Jatah terlewati hanya peringatan;
 // cuti memotong saldo jatah cuti (30 hari/tahun), bukan kredit sesi.
+const ANY_CLIENT = {}; // mode API: semua client, daftar dari server (infinite scroll)
+
 export function LeaveFormDialog({ open, onOpenChange, clients }) {
   const { previewLeave, createLeave } = useLeaveActions();
   const [form, setForm] = useState(EMPTY);
@@ -30,7 +32,7 @@ export function LeaveFormDialog({ open, onOpenChange, clients }) {
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const ready = Boolean(form.clientId && form.startDate && form.endDate);
   const plan = ready ? previewLeave(form) : null;
-  const client = clients.find((c) => c.id === form.clientId);
+  const client = form.client || clients.find((c) => c.id === form.clientId);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -71,7 +73,7 @@ export function LeaveFormDialog({ open, onOpenChange, clients }) {
         <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
           <div className="space-y-1">
             <Label className="text-xs font-bold text-slate-700">Client *</Label>
-            <ClientCombobox clients={clients} value={form.clientId} onChange={(val) => set({ clientId: val })} placeholder="Cari client..." testId="leave-client-select" />
+            <ClientCombobox clients={clients} source={ANY_CLIENT} selectedClient={form.client} value={form.clientId} onChange={(val, c) => set({ clientId: val, client: c })} placeholder="Cari client..." testId="leave-client-select" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

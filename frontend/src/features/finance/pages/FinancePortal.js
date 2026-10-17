@@ -23,6 +23,7 @@ import { fmtDate } from "@/shared/lib/format";
 import { CreateInvoiceDialog } from "@/features/finance/components/CreateInvoiceDialog";
 import { RenewalDialog } from "@/features/finance/components/RenewalDialog";
 import { usePackageActivationActions } from "@/features/finance/hooks/usePackageActivationActions";
+import { useAssessmentInvoiceQueue } from "@/features/finance/hooks/useAssessmentInvoiceQueue";
 import { NewPackageDialog } from "@/features/finance/components/NewPackageDialog";
 import { isActiveClient } from "@/domain/client";
 import { RESERVED_INVOICE_CODES, invoiceType, buildSamePackageRenewal, hasOpenPackageInvoice, needsRenewal, canDeleteInvoice, invoiceTypeCode, replacementCandidates, resolveInvoicePackage, leftoverSummaryByClient, matchesFinanceSearch, packageInvoiceCode } from "@/domain/credit";
@@ -51,9 +52,18 @@ export default function FinancePortal() {
   const { approvePackagePayment, renewDirect } = usePackageActivationActions();
 
   const [activeTab, setActiveTab] = useState("verification"); // verification | renewal | billing | history | ledger | leftover | leave | packages
+  const [search, setSearch] = useState(""); // cari nama anak / ortu / kode client / no. invoice (semua tab tabel)
+  // Mode API: antrean "Menunggu Pembayaran" dari server (hanya invoice asesmen untuk sekarang; invoice paket/cuti menyusul di modul Finance).
+  // Mode demo: `queue.active` false dan semuanya memakai store lokal seperti sebelumnya.
+  const queue = useAssessmentInvoiceQueue({ search, enabled: activeTab === "verification" });
   const [selectedProofId, setSelectedProofId] = useState(null);
-  const selectedProofInvoice = rawInvoices.find((i) => i.id === selectedProofId) || null; // selalu versi terbaru (bukti bisa diganti saat viewer terbuka)
-  const setSelectedProofInvoice = (inv) => setSelectedProofId(inv?.id || null);
+  const localProofInvoice = rawInvoices.find((i) => i.id === selectedProofId) || null; // selalu versi terbaru (bukti bisa diganti saat viewer terbuka)
+  const selectedProofInvoice = queue.active ? queue.proofView : localProofInvoice;
+  const setSelectedProofInvoice = (inv) => {
+    if (!queue.active) return setSelectedProofId(inv?.id || null);
+    if (!inv) return queue.closeProof();
+    return queue.openProof(inv).catch((err) => toast.error(apiErrorText(err)));
+  };
 
   // Issue Invoice Modal State
   const [issueOpen, setIssueOpen] = useState(false);
@@ -95,7 +105,6 @@ export default function FinancePortal() {
     isAssessment: false,
   });
 
-  const [search, setSearch] = useState(""); // cari nama anak / ortu / kode client / no. invoice (semua tab tabel)
   const clientById = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const matchSearch = (row) => matchesFinanceSearch(row, clientById.get(row.clientId), search);
 
@@ -113,10 +122,13 @@ export default function FinancePortal() {
   const renewReplacementOptions = useMemo(() => optionsFor(renewForm.clientId), [rawInvoices, renewForm.clientId, getRawRecord]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pending verification queue
-  const pendingInvoices = allInvoices.filter((inv) => inv.status !== "paid" && inv.status !== "void");
-  
+  const localPending = allInvoices.filter((inv) => inv.status !== "paid" && inv.status !== "void");
+
   // Tab 1 & 2: pagination tagihan
-  const pendingPg = usePagination(pendingInvoices, 6, search);
+  const localPendingPg = usePagination(localPending, 6, search);
+  const pendingInvoices = queue.active ? queue.rows : localPending;
+  const pendingPg = queue.active ? queue.pagination : localPendingPg;
+  const pendingTotal = queue.active ? queue.total : localPending.length;
   const invoicesPg = usePagination(allInvoices, 10, search);
 
   // All credit logs. Client terhapus (soft delete) tidak punya baris di `clients` → riwayat kreditnya ikut tidak tampil.
@@ -168,6 +180,14 @@ export default function FinancePortal() {
   const by = auth?.staffName || auth?.role || null;
 
   const handleApprovePayment = (invoice) => {
+    if (queue.active) {
+      // Server: hanya invoice asesmen yang bisa ditandai lunas sekarang (paket/cuti → 422 not_supported_yet)
+      queue.markPaid(invoice).then(
+        () => toast.success(`Pembayaran ${invoice.invoiceNumber} (Assessment) ditandai lunas. Akses kuesioner ortu terbuka.`),
+        (err) => toast.error(apiErrorText(err))
+      );
+      return;
+    }
     if (invoiceType(invoice) === "leave") {
       verifyPaymentProof({ invoiceId: invoice.id, status: "paid", by });
       toast.success(`Pembayaran ${invoice.invoiceNumber} (Cuti) ditandai lunas.`);
@@ -210,6 +230,13 @@ export default function FinancePortal() {
 
   // Finance mengunggah / mengganti bukti manual (mis. bukti mutasi). Tidak mengubah status invoice; tercatat di log invoice.
   const handleUploadProof = (invoice, file) => {
+    if (queue.active) {
+      queue.uploadProof(invoice, file).then(
+        () => toast.success(`Bukti ${invoice.invoiceNumber} ${invoice.hasProof ? "ditambahkan" : "diunggah"}.`),
+        (err) => toast.error(apiErrorText(err, ["file"]))
+      );
+      return;
+    }
     const replacing = Boolean(invoice.proofOfPaymentUrl || invoice.proofUrl);
     uploadPaymentProof({
       invoiceId: invoice.id,
@@ -245,7 +272,7 @@ export default function FinancePortal() {
   // Submit Issue Invoice
   const handleIssueSubmit = (e) => {
     e.preventDefault();
-    const c = clients.find((client) => client.id === issueForm.clientId);
+    const c = issueForm.client || clients.find((client) => client.id === issueForm.clientId); // mode API: objek dari pemilih client (tidak ada di store lokal)
     if (!c) {
       toast.error("Silakan pilih client terlebih dahulu.");
       return;
@@ -320,7 +347,7 @@ export default function FinancePortal() {
   // Submit Renewal (Exclusive to Finance)
   const handleRenewSubmit = (e) => {
     e.preventDefault();
-    const c = clients.find((client) => client.id === renewForm.clientId);
+    const c = renewForm.client || clients.find((client) => client.id === renewForm.clientId);
     if (!c) {
       toast.error("Silakan pilih client terlebih dahulu.");
       return;
@@ -510,9 +537,9 @@ export default function FinancePortal() {
         <TabsList className="bg-slate-100/90 border border-slate-200/80 p-1.5 rounded-2xl shadow-2xs gap-1.5 flex flex-wrap h-auto">
           <TabsTrigger value="verification" className="rounded-xl text-xs font-bold gap-2 h-10 px-4 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-2xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Menunggu Pembayaran
-            {pendingInvoices.length > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold">
-                {pendingInvoices.length}
+            {pendingTotal > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold" data-testid="pending-count">
+                {pendingTotal}
               </span>
             )}
           </TabsTrigger>
@@ -540,7 +567,7 @@ export default function FinancePortal() {
         </TabsList>
 
         {/* TAB 1: VERIFIKASI TRANSFER */}
-        <VerificationTab handleApprovePayment={handleApprovePayment} pendingInvoices={pendingInvoices} pendingPg={pendingPg} onDeleteInvoice={handleDeleteInvoice} setSelectedProofInvoice={setSelectedProofInvoice} onUploadProof={handleUploadProof} />
+        <VerificationTab handleApprovePayment={handleApprovePayment} loading={queue.active && queue.isLoading} refreshing={queue.active && queue.isFetching && !queue.isLoading} pendingTotal={pendingTotal} pendingInvoices={pendingInvoices} pendingPg={pendingPg} onDeleteInvoice={queue.active ? undefined : handleDeleteInvoice} setSelectedProofInvoice={setSelectedProofInvoice} onUploadProof={handleUploadProof} />
 
         {/* TAB: PERLU RENEWAL (kredit < 3) */}
         <RenewalNeededTab rows={renewalRows} renewalPg={renewalPg} onRenew={handleQuickRenew} />

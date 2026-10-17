@@ -8,10 +8,77 @@ import { DocumentEmbed } from "@/shared/components/DocumentEmbed";
 import { isValidDocumentUrl } from "@/domain/assessment";
 import { SECTION_TEMPLATE_OPTIONS } from "@/domain/assessmentTemplate";
 import { makeSectionDialog } from "@/features/assessment/components/masterData/assessmentConfig";
+import { isApiMode } from "@/config/env";
+import { formatFileSize } from "@/shared/lib/fileUpload";
 
-export function SectionDialog({ saveSection, secDialog, setSecDialog }) {
+export const MAX_SECTION_PDF_BYTES = 10 * 1024 * 1024;
+const apiMode = isApiMode();
+
+// Pratinjau PDF section: file yang BARU dipilih (dari memori, belum diunggah) atau file yang sudah tersimpan di server (diambil
+// sebagai Blob dengan sesi staf). Mengembalikan { url, loading, error } dan melepas object URL saat berganti / ditutup.
+function useSectionPdfPreview(secDialog, fetchDocument) {
+  const [state, setState] = React.useState({ url: null, loading: false, error: false });
+  const { open, pendingFile, existingFile, removeFile, editingSectionId } = secDialog;
+  const fetchRef = React.useRef(fetchDocument); // identitas fungsi berubah tiap render store: jangan jadi dependensi efek
+  fetchRef.current = fetchDocument;
+
+  React.useEffect(() => {
+    if (!apiMode || !open) {
+      setState({ url: null, loading: false, error: false });
+      return undefined;
+    }
+    let cancelled = false;
+    let objectUrl = null;
+
+    if (pendingFile) {
+      objectUrl = URL.createObjectURL(pendingFile);
+      setState({ url: objectUrl, loading: false, error: false });
+    } else if (existingFile && !removeFile && editingSectionId && fetchRef.current) {
+      setState({ url: null, loading: true, error: false });
+      fetchRef.current(editingSectionId)
+        .then((blob) => {
+          if (cancelled) return;
+          objectUrl = URL.createObjectURL(blob);
+          setState({ url: objectUrl, loading: false, error: false });
+        })
+        .catch(() => {
+          if (!cancelled) setState({ url: null, loading: false, error: true });
+        });
+    } else {
+      setState({ url: null, loading: false, error: false });
+    }
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [open, pendingFile, existingFile, removeFile, editingSectionId]);
+
+  return state;
+}
+
+export function SectionDialog({ fetchDocument, saveSection, secDialog, setSecDialog }) {
+  const pdfPreview = useSectionPdfPreview(secDialog, fetchDocument);
   const documentUrl = (secDialog.documentUrl || "").trim();
   const documentInvalid = documentUrl !== "" && !isValidDocumentUrl(documentUrl);
+  const [fileError, setFileError] = React.useState("");
+
+  const pickFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!(file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))) {
+      setFileError("Dokumen harus berformat PDF.");
+      return;
+    }
+    if (file.size > MAX_SECTION_PDF_BYTES) {
+      setFileError("Ukuran PDF maksimal 10 MB.");
+      return;
+    }
+    setFileError("");
+    // Satu sumber saja: file menggantikan link
+    setSecDialog((prev) => ({ ...prev, pendingFile: file, removeFile: false, documentUrl: "" }));
+  };
 
   return (
     <Dialog open={secDialog.open} onOpenChange={(open) => setSecDialog((prev) => ({ ...prev, open }))}>
@@ -97,6 +164,33 @@ export function SectionDialog({ saveSection, secDialog, setSecDialog }) {
               <DocumentEmbed url={documentUrl} title={secDialog.title.trim() || "Pratinjau dokumen"} height="h-[320px]" testId="section-document-preview" />
             )}
           </div>
+
+          {apiMode && (
+            <div className="space-y-1.5" data-testid="section-pdf-block">
+              <Label className="text-xs font-bold text-slate-700">
+                File PDF <span className="font-medium text-slate-400">(opsional, maks 10 MB; menggantikan link di atas)</span>
+              </Label>
+              {secDialog.pendingFile ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs" data-testid="section-pdf-pending">
+                  <span className="font-bold text-emerald-900 break-all">{secDialog.pendingFile.name} ({formatFileSize(secDialog.pendingFile.size)}) — diunggah saat disimpan</span>
+                  <Button type="button" variant="ghost" size="sm" className="text-rose-600" onClick={() => setSecDialog((prev) => ({ ...prev, pendingFile: null }))}>Batal</Button>
+                </div>
+              ) : secDialog.existingFile && !secDialog.removeFile ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs" data-testid="section-pdf-existing">
+                  <span className="font-bold text-slate-800 break-all">{secDialog.existingFile.name} ({formatFileSize(secDialog.existingFile.size)})</span>
+                  <Button type="button" variant="ghost" size="sm" className="text-rose-600" onClick={() => setSecDialog((prev) => ({ ...prev, removeFile: true }))} data-testid="section-pdf-remove">Hapus file</Button>
+                </div>
+              ) : secDialog.removeFile ? (
+                <p className="text-[11px] font-semibold text-amber-700" data-testid="section-pdf-removed">File PDF akan dihapus saat disimpan.</p>
+              ) : null}
+              <input type="file" accept="application/pdf,.pdf" onChange={pickFile} className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-sky-50 file:px-3 file:py-2 file:text-xs file:font-bold file:text-sky-700" data-testid="section-pdf-input" />
+              {fileError && <p className="text-[11px] font-semibold text-rose-600" data-testid="section-pdf-error">{fileError}</p>}
+              {pdfPreview.loading && <p className="text-[11px] font-semibold text-slate-500 animate-pulse" data-testid="section-pdf-preview-loading">Memuat pratinjau PDF…</p>}
+              {pdfPreview.error && <p className="text-[11px] font-semibold text-rose-600" data-testid="section-pdf-preview-error">Pratinjau PDF tidak dapat dimuat. File tetap tersimpan di server.</p>}
+              {pdfPreview.url && <DocumentEmbed url={pdfPreview.url} pdf title={secDialog.pendingFile?.name || secDialog.existingFile?.name || "Pratinjau PDF"} testId="section-pdf-preview" />}
+              <p className="text-[11px] text-slate-400">PDF disimpan di server (privat) dan hanya tampil ke orang tua yang memegang kode kuesioner.</p>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="mt-4 gap-2">

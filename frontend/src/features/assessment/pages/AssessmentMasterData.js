@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useConfirm } from "@/shared/components/ConfirmDialog";
 import { toast } from "sonner";
-import { useAssessments } from "@/stores/assessmentsStore";
+import { useAssessments, useCategoryTree } from "@/stores/assessmentsStore";
 import { useClients } from "@/stores/clientsStore";
 import { useCredits } from "@/stores/creditsStore";
-import { uid } from "@/shared/lib/id";
-import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, isQuestionRequired, isTypeCodeTaken, isValidDocumentUrl, normalizeTypeCode } from "@/domain/assessment";
+import { apiErrorText } from "@/domain/auth";
+import { isApiMode } from "@/config/env";
+import { DetailSkeleton } from "@/shared/components/LoadingSkeletons";
+import { CODE_VALIDITY_OPTIONS, buildQuestionnaireLink, countCategoryQuestions, countCategorySections, isQuestionRequired, moveId, moveIdTo, suggestCopyName, suggestCopyTypeCode, isTypeCodeTaken, isValidDocumentUrl, normalizeTypeCode } from "@/domain/assessment";
 import { normalizeTemplate } from "@/domain/assessmentTemplate";
 import { useQuestionnaireCodeActions } from "@/features/inquiry";
 
@@ -21,15 +23,22 @@ import { CategoryDialog } from "@/features/assessment/components/masterData/Cate
 import { QuestionDialog } from "@/features/assessment/components/masterData/QuestionDialog";
 import { SectionDialog } from "@/features/assessment/components/masterData/SectionDialog";
 
+const apiMode = isApiMode();
+const NO_CLIENTS = [];
+
 export default function AssessmentMasterData() {
   const { confirm, confirmDialog } = useConfirm();
-  const { categories, addCategory, updateCategory, deleteCategory } = useAssessments();
-  const { clients } = useClients();
+  const { categories, isLoading, createCategory, duplicateCategory, updateCategory, deleteCategory, createSection, updateSection, deleteSection, reorderSections, uploadSectionDocument, deleteSectionDocument, fetchSectionDocument, createQuestion, updateQuestion, deleteQuestion } = useAssessments();
+  // Penerbitan kode dari halaman ini hanya di mode demo; mode API menerbitkan dari detail client (daftar client tidak dibaca di sini)
+  const clientsStore = useClients();
+  const clients = apiMode ? NO_CLIENTS : clientsStore.clients;
   const codeActions = useQuestionnaireCodeActions();
-  const { getActiveMasterPackages } = useCredits();
+  const creditsStore = useCredits();
+  const masterPackages = apiMode ? [] : creditsStore.getActiveMasterPackages();
 
-  // Active category selection tab
-  const [selectedCatId, setSelectedCatId] = useState(() => categories[0]?.id || "cat-001");
+  // Active category selection tab (kosong / tak valid = kategori pertama)
+  const [pickedCatId, setSelectedCatId] = useState("");
+  const selectedCatId = categories.some((c) => c.id === pickedCatId) ? pickedCatId : categories[0]?.id || "";
 
   // Filtering & Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,7 +49,7 @@ export default function AssessmentMasterData() {
   const [expandedSections, setExpandedSections] = useState({});
 
   // Dialog states
-  const [catDialog, setCatDialog] = useState({ open: false, editingId: null, name: "", domain: "", typeCode: "" });
+  const [catDialog, setCatDialog] = useState({ open: false, editingId: null, name: "", domain: "", typeCode: "", respondentProfile: "parent" });
   const [qDialog, setQDialog] = useState(() => makeQuestionDialog());
   const [secDialog, setSecDialog] = useState(() => makeSectionDialog());
 
@@ -55,40 +64,30 @@ export default function AssessmentMasterData() {
   });
 
   // Calculate active category
+  // Mode API: ringkasan dari daftar + pohon (section/soal) hanya untuk kategori yang dibuka
+  const tree = useCategoryTree(selectedCatId);
+  const treeLoading = tree.isLoading;
   const activeCategory = useMemo(() => {
-    return categories.find((c) => c.id === selectedCatId) || categories[0] || null;
-  }, [categories, selectedCatId]);
+    const item = categories.find((c) => c.id === selectedCatId) || categories[0] || null;
+    return item ? { ...item, ...(tree.category || {}) } : null;
+  }, [categories, selectedCatId, tree.category]);
 
   // Overall statistics across all categories
   const totalQuestionsOverall = useMemo(() => {
-    return categories.reduce((acc, cat) => {
-      const qCount = cat.sections && cat.sections.length > 0
-        ? cat.sections.reduce((sAcc, s) => sAcc + (s.questions?.length || 0), 0)
-        : (cat.questions?.length || 0);
-      return acc + qCount;
-    }, 0);
+    return categories.reduce((acc, cat) => acc + countCategoryQuestions(cat), 0);
   }, [categories]);
 
   const totalDomainsOverall = useMemo(() => {
-    return categories.reduce((acc, cat) => {
-      const dCount = cat.sections && cat.sections.length > 0
-        ? cat.sections.length
-        : (cat.domain ? 1 : (cat.questions?.length ? 1 : 0));
-      return acc + dCount;
-    }, 0);
+    return categories.reduce((acc, cat) => acc + countCategorySections(cat), 0);
   }, [categories]);
 
   const activeCategoryTotalQuestions = useMemo(() => {
-    if (!activeCategory) return 0;
-    if (activeCategory.sections && activeCategory.sections.length > 0) {
-      return activeCategory.sections.reduce((acc, s) => acc + (s.questions?.length || 0), 0);
-    }
-    return activeCategory.questions?.length || 0;
+    return countCategoryQuestions(activeCategory);
   }, [activeCategory]);
 
   // Filtered sections and questions in active category
   const filteredSections = useMemo(() => {
-    if (!activeCategory) return [];
+    if (!activeCategory || treeLoading) return [];
     const query = searchQuery.trim().toLowerCase();
 
     const processQuestions = (questions) => {
@@ -136,7 +135,7 @@ export default function AssessmentMasterData() {
         totalOriginalCount: activeCategory.questions?.length || 0,
       },
     ];
-  }, [activeCategory, searchQuery, selectedType, selectedDomainId]);
+  }, [activeCategory, treeLoading, searchQuery, selectedType, selectedDomainId]);
 
   const totalFilteredQuestionsCount = useMemo(() => {
     return filteredSections.reduce((acc, s) => acc + (s.filteredQuestions?.length || 0), 0);
@@ -179,7 +178,7 @@ export default function AssessmentMasterData() {
 
   // Generate Questionnaire Code Modal
   const openGenModal = (preferredCatId = "") => {
-    const catId = preferredCatId || activeCategory?.id || categories[0]?.id || "cat-001";
+    const catId = preferredCatId || activeCategory?.id || categories[0]?.id || "";
     const cat = categories.find((c) => c.id === catId);
     setGenDialog({
       open: true,
@@ -204,7 +203,7 @@ export default function AssessmentMasterData() {
       return;
     }
 
-    const servicePackage = getActiveMasterPackages().find((m) => m.id === genDialog.servicePackageId);
+    const servicePackage = masterPackages.find((m) => m.id === genDialog.servicePackageId);
     const withInvoice = genDialog.withInvoice !== false;
     if (withInvoice && !servicePackage) {
       toast.error("Pilih layanan dulu: harganya dipakai untuk invoice assessment.");
@@ -226,7 +225,11 @@ export default function AssessmentMasterData() {
     setGenDialog((prev) => ({ ...prev, open: false }));
   };
 
-  const saveCategory = () => {
+  // Aksi tulis memakai kontrak per entity yang sama di mode demo dan API. Mode API melempar ApiError (409 versi usang / in_use,
+  // 422 validasi): pesan server ditampilkan, dialog dibiarkan terbuka agar input tidak hilang.
+  const fail = (err, fields = []) => toast.error(apiErrorText(err, fields));
+
+  const saveCategory = async () => {
     const name = catDialog.name.trim();
     if (!name) {
       toast.error("Nama kategori asesmen wajib diisi.");
@@ -241,31 +244,59 @@ export default function AssessmentMasterData() {
       toast.error(`Kode jenis "${typeCode}" sudah dipakai template lain.`);
       return;
     }
-    if (catDialog.editingId) {
-      updateCategory(catDialog.editingId, { categoryName: name, domain: catDialog.domain, typeCode });
-      toast.success("Kategori asesmen diperbarui.");
-    } else {
-      const newId = uid();
-      addCategory({
-        id: newId,
-        typeCode,
-        categoryName: name,
-        domain: catDialog.domain || "Clinical Assessment",
-        questions: [],
-        sections: [
-          {
-            sectionId: `sec-${uid()}`,
-            title: "Bagian Umum",
-            description: "",
-            documentUrl: "",
-            questions: [],
-          },
-        ],
-      });
-      setSelectedCatId(newId);
-      toast.success("Kategori asesmen baru berhasil dibuat.");
+    try {
+      if (catDialog.editingId) {
+        await updateCategory(catDialog.editingId, { categoryName: name, domain: catDialog.domain, typeCode, respondentProfile: catDialog.respondentProfile || "none" });
+        toast.success("Kategori asesmen diperbarui.");
+      } else {
+        const created = await createCategory({ typeCode, categoryName: name, domain: catDialog.domain, respondentProfile: catDialog.respondentProfile || "parent" });
+        setSelectedCatId(created.id);
+        toast.success("Kategori asesmen baru berhasil dibuat.");
+      }
+      setCatDialog({ open: false, editingId: null, name: "", domain: "", typeCode: "", respondentProfile: "parent" });
+    } catch (err) {
+      fail(err, ["type_code", "name", "respondent_profile", "version"]);
     }
-    setCatDialog({ open: false, editingId: null, name: "", domain: "", typeCode: "" });
+  };
+
+  // Duplikat: langsung tersimpan (tanpa dialog) dengan nama "(Salinan)" dan kode jenis otomatis; keduanya bisa diubah lewat "Ubah Nama".
+  const [duplicating, setDuplicating] = useState(false);
+  const handleDuplicateCategory = async (cat) => {
+    if (duplicating) return;
+    const typeCode = suggestCopyTypeCode(cat.typeCode, categories.map((c) => c.typeCode));
+    const name = suggestCopyName(cat.categoryName, categories.map((c) => c.categoryName));
+    setDuplicating(true);
+    try {
+      const created = await duplicateCategory(cat.id, { typeCode, categoryName: name, domain: cat.domain, respondentProfile: cat.respondentProfile || "none" });
+      setSelectedCatId(created.id);
+      toast.success(`Template "${name}" dibuat dan tersimpan (kode jenis ${typeCode}). Ubah nama/kode lewat "Ubah Nama", lalu hapus soal yang tidak perlu dan tambah yang diperlukan.`);
+    } catch (err) {
+      fail(err, ["type_code", "name"]);
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
+  // Urutan domain/section: tombol naik/turun atau seret; setiap perubahan LANGSUNG tersimpan (tanpa tombol simpan)
+  const reorderEnabled = selectedDomainId === "ALL" && !treeLoading && (activeCategory?.sections?.length || 0) > 1;
+  const saveSectionOrder = async (ids) => {
+    try {
+      await reorderSections(activeCategory.id, ids);
+      toast.success("Urutan domain disimpan.");
+    } catch (err) {
+      fail(err, ["ids"]);
+    }
+  };
+  const currentSectionIds = () => (activeCategory?.sections || []).map((s) => s.sectionId);
+  const moveSection = (sectionId, delta) => {
+    const ids = currentSectionIds();
+    const next = moveId(ids, sectionId, delta);
+    if (next !== ids) saveSectionOrder(next);
+  };
+  const dropSection = (fromId, targetId) => {
+    const ids = currentSectionIds();
+    const next = moveIdTo(ids, fromId, targetId);
+    if (next !== ids) saveSectionOrder(next);
   };
 
   const handleDeleteCategory = async (catId, catName) => {
@@ -273,21 +304,27 @@ export default function AssessmentMasterData() {
       toast.error("Minimal harus terdapat 1 kategori asesmen master.");
       return;
     }
-    // Master ber-FK: template yang sudah dipakai (ada kode kuesioner terbit/terisi) tidak bisa dihapus
-    const usedBy = (clients || []).reduce((n, c) => n + (c.assessmentCodes || []).filter((code) => code.categoryId === catId).length, 0);
-    if (usedBy > 0) {
-      toast.error(`Template "${catName}" sudah dipakai di ${usedBy} kode kuesioner. Hapus kodenya dulu atau gunakan template lain.`);
-      return;
+    // Mode demo: template yang sudah dipakai (ada kode kuesioner terbit/terisi) tidak bisa dihapus. Mode API: server menolak (409 in_use).
+    if (!apiMode) {
+      const usedBy = (clients || []).reduce((n, c) => n + (c.assessmentCodes || []).filter((code) => code.categoryId === catId).length, 0);
+      if (usedBy > 0) {
+        toast.error(`Template "${catName}" sudah dipakai di ${usedBy} kode kuesioner. Hapus kodenya dulu atau gunakan template lain.`);
+        return;
+      }
     }
     const ok = await confirm({
       title: "Hapus template asesmen?",
       description: `Template "${catName}" beserta seluruh bank soal di dalamnya akan dihapus permanen.`,
     });
     if (!ok) return;
-    deleteCategory(catId);
-    const remaining = categories.filter((c) => c.id !== catId);
-    setSelectedCatId(remaining[0]?.id || "");
-    toast.success(`Template "${catName}" telah dihapus.`);
+    try {
+      await deleteCategory(catId);
+      const remaining = categories.filter((c) => c.id !== catId);
+      setSelectedCatId(remaining[0]?.id || "");
+      toast.success(`Template "${catName}" telah dihapus.`);
+    } catch (err) {
+      fail(err);
+    }
   };
 
   // Open Add Question with defaults
@@ -327,33 +364,17 @@ export default function AssessmentMasterData() {
     );
   };
 
-  const duplicateQuestion = (catId, secId, q) => {
-    const category = categories.find((c) => c.id === catId);
-    if (!category) return;
-
-    if (category.sections && category.sections.length > 0) {
-      const updatedSections = category.sections.map((sec) => {
-        if (sec.sectionId === secId) {
-          const questions = sec.questions || [];
-          const duplicated = {
-            ...q,
-            id: uid(),
-            itemNo: questions.length + 1,
-            question: `${q.question} (Salinan)`,
-          };
-          return {
-            ...sec,
-            questions: [...questions, duplicated],
-          };
-        }
-        return sec;
-      });
-      updateCategory(catId, { sections: updatedSections });
+  const duplicateQuestion = async (catId, secId, q) => {
+    const { id: _id, itemNo: _itemNo, ...rest } = q; // eslint-disable-line no-unused-vars
+    try {
+      await createQuestion(catId, secId, { ...rest, question: `${q.question} (Salinan)` });
       toast.success("Butir pertanyaan berhasil diduplikasi.");
+    } catch (err) {
+      fail(err, ["question", "options"]);
     }
   };
 
-  const saveQuestion = () => {
+  const saveQuestion = async () => {
     const text = qDialog.text.trim();
     if (!text) {
       toast.error("Teks pertanyaan tidak boleh kosong.");
@@ -380,79 +401,30 @@ export default function AssessmentMasterData() {
       required: qDialog.required !== false,
     };
 
-    if (category.sections && category.sections.length > 0) {
-      const targetSecId = qDialog.sectionId || category.sections[0].sectionId;
-      const updatedSections = category.sections.map((sec) => {
-        if (sec.sectionId === targetSecId) {
-          const questions = sec.questions || [];
-          if (qDialog.editingId) {
-            return {
-              ...sec,
-              questions: questions.map((q) =>
-                q.id === qDialog.editingId
-                  ? {
-                      ...q,
-                      ...payload,
-                      itemNo: q.itemNo || 1,
-                    }
-                  : q
-              ),
-            };
-          } else {
-            return {
-              ...sec,
-              questions: [
-                ...questions,
-                {
-                  id: uid(),
-                  itemNo: (questions.length || 0) + 1,
-                  ...payload,
-                },
-              ],
-            };
-          }
-        }
-        return sec;
-      });
-      updateCategory(category.id, { sections: updatedSections });
-      toast.success(qDialog.editingId ? "Pertanyaan berhasil diperbarui." : "Pertanyaan baru ditambahkan.");
-    } else {
-      let questions = category.questions || [];
+    try {
       if (qDialog.editingId) {
-        questions = questions.map((q) =>
-          q.id === qDialog.editingId ? { ...q, ...payload } : q
-        );
-        toast.success("Pertanyaan diperbarui.");
+        await updateQuestion(category.id, qDialog.sectionId, qDialog.editingId, payload);
+        toast.success("Pertanyaan berhasil diperbarui.");
       } else {
-        questions = [...questions, { id: uid(), ...payload }];
-        toast.success("Pertanyaan ditambahkan.");
+        await createQuestion(category.id, qDialog.sectionId, payload);
+        toast.success("Pertanyaan baru ditambahkan.");
       }
-      updateCategory(category.id, { questions });
-    }
-
-    setQDialog(makeQuestionDialog());
-  };
-
-  const removeQuestion = (categoryId, questionId) => {
-    const category = categories.find((c) => c.id === categoryId);
-    if (!category) return;
-
-    if (category.sections && category.sections.length > 0) {
-      const updatedSections = category.sections.map((sec) => ({
-        ...sec,
-        questions: (sec.questions || []).filter((q) => q.id !== questionId),
-      }));
-      updateCategory(categoryId, { sections: updatedSections });
-      toast.success("Pertanyaan dihapus.");
-    } else {
-      updateCategory(categoryId, {
-        questions: (category.questions || []).filter((q) => q.id !== questionId),
-      });
-      toast.success("Pertanyaan dihapus.");
+      setQDialog(makeQuestionDialog());
+    } catch (err) {
+      fail(err, ["question", "options", "range_max"]);
     }
   };
 
-  const saveSection = () => {
+  const removeQuestion = async (categoryId, questionId, sectionId = null) => {
+    try {
+      await deleteQuestion(categoryId, sectionId, questionId);
+      toast.success("Pertanyaan dihapus.");
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const saveSection = async () => {
     const title = secDialog.title.trim();
     if (!title) {
       toast.error("Nama domain / seksi klinis wajib diisi.");
@@ -467,22 +439,35 @@ export default function AssessmentMasterData() {
     if (!category) return;
 
     const fields = { title, description: secDialog.description.trim(), documentUrl, template: normalizeTemplate(secDialog.template) };
-    let sections = category.sections || [];
-    if (secDialog.editingSectionId) {
-      // `leadText` lama digabung ke `description` (dibuang dari data section yang disimpan ulang)
-      sections = sections.map((s) => {
-        if (s.sectionId !== secDialog.editingSectionId) return s;
-        const { leadText: legacyLeadText, ...rest } = s; // eslint-disable-line no-unused-vars
-        return { ...rest, ...fields };
-      });
-      toast.success(`Section "${title}" diperbarui.`);
-    } else {
-      sections = [...sections, { sectionId: `sec-${uid()}`, ...fields, questions: [] }];
-      toast.success(`Section "${title}" berhasil ditambahkan.`);
+    try {
+      let sectionId = secDialog.editingSectionId;
+      if (sectionId) {
+        await updateSection(category.id, sectionId, fields);
+      } else {
+        const created = await createSection(category.id, fields);
+        sectionId = created?.sectionId;
+      }
+      // File PDF (mode API): unggah menggantikan link; hapus hanya bila tidak digantikan link baru
+      let fileFailed = false;
+      if (apiMode && sectionId) {
+        try {
+          if (secDialog.pendingFile) await uploadSectionDocument(category.id, sectionId, secDialog.pendingFile);
+          else if (secDialog.removeFile && !documentUrl && secDialog.existingFile) await deleteSectionDocument(category.id, sectionId);
+        } catch (err) {
+          fileFailed = true;
+          fail(err, ["file"]);
+        }
+      }
+      if (fileFailed) {
+        // Section sudah tersimpan; dialog beralih ke mode edit agar PDF bisa dicoba lagi tanpa membuat section ganda
+        setSecDialog((prev) => ({ ...prev, editingSectionId: sectionId }));
+        return;
+      }
+      toast.success(secDialog.editingSectionId ? `Section "${title}" diperbarui.` : `Section "${title}" berhasil ditambahkan.`);
+      setSecDialog(makeSectionDialog());
+    } catch (err) {
+      fail(err, ["title", "document_url", "result_template"]);
     }
-
-    updateCategory(category.id, { sections });
-    setSecDialog(makeSectionDialog());
   };
 
   const removeSection = async (categoryId, sectionId, sectionTitle) => {
@@ -491,12 +476,12 @@ export default function AssessmentMasterData() {
       description: `Domain "${sectionTitle}" beserta seluruh butir soal di dalamnya akan dihapus.`,
     });
     if (!ok) return;
-    const category = categories.find((c) => c.id === categoryId);
-    if (!category || !category.sections) return;
-
-    const updatedSections = category.sections.filter((s) => s.sectionId !== sectionId);
-    updateCategory(category.id, { sections: updatedSections });
-    toast.success(`Domain "${sectionTitle}" telah dihapus.`);
+    try {
+      await deleteSection(categoryId, sectionId);
+      toast.success(`Domain "${sectionTitle}" telah dihapus.`);
+    } catch (err) {
+      fail(err);
+    }
   };
 
   const applyOptionPreset = (presetKey) => {
@@ -547,7 +532,10 @@ export default function AssessmentMasterData() {
     <div className="space-y-7 max-w-7xl mx-auto pb-16" data-testid="assessment-master-page">
       {confirmDialog}
       {/* 1. TOP HERO HEADER & METRICS BAR */}
-      <AssessmentHero openGenModal={openGenModal} setCatDialog={setCatDialog} />
+      <AssessmentHero openGenModal={apiMode ? null : openGenModal} setCatDialog={setCatDialog} />
+
+      {/* Muat pertama (mode API): kerangka shimmer, bukan halaman kosong */}
+      {isLoading && <DetailSkeleton sections={3} label="Memuat bank asesmen…" testId="assessment-master-skeleton" />}
 
       {/* 2. STATS & CLINICAL FRAMEWORK CARDS */}
       <AssessmentStats activeCategory={activeCategory} categories={categories} totalDomainsOverall={totalDomainsOverall} totalQuestionsOverall={totalQuestionsOverall} />
@@ -559,20 +547,22 @@ export default function AssessmentMasterData() {
       {activeCategory && (
         <div className="space-y-6">
           {/* Active Category Header Card */}
-          <CategoryHeaderCard activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} handleDeleteCategory={handleDeleteCategory} openGenModal={openGenModal} setCatDialog={setCatDialog} setSecDialog={setSecDialog} />
+          <CategoryHeaderCard activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} duplicating={duplicating} onDuplicate={handleDuplicateCategory} handleDeleteCategory={handleDeleteCategory} openGenModal={apiMode ? null : openGenModal} setCatDialog={setCatDialog} setSecDialog={setSecDialog} />
+
+          {treeLoading && <DetailSkeleton sections={3} label="Memuat section dan soal…" testId="assessment-tree-skeleton" />}
 
           {/* 5. SEARCH, FILTER & SECTION CONTROL TOOLBAR */}
-          <QuestionToolbar activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} areAllCollapsed={areAllCollapsed} areAllExpanded={areAllExpanded} collapseAllSections={collapseAllSections} expandAllSections={expandAllSections} searchQuery={searchQuery} selectedDomainId={selectedDomainId} selectedType={selectedType} setSearchQuery={setSearchQuery} setSelectedDomainId={setSelectedDomainId} setSelectedType={setSelectedType} />
+          {!treeLoading && <QuestionToolbar activeCategory={activeCategory} activeCategoryTotalQuestions={activeCategoryTotalQuestions} areAllCollapsed={areAllCollapsed} areAllExpanded={areAllExpanded} collapseAllSections={collapseAllSections} expandAllSections={expandAllSections} searchQuery={searchQuery} selectedDomainId={selectedDomainId} selectedType={selectedType} setSearchQuery={setSearchQuery} setSelectedDomainId={setSelectedDomainId} setSelectedType={setSelectedType} />}
 
           {/* 6. DOMAIN SECTIONS & QUESTIONS LIST (NO CRAMPED MAX-H-72 SCROLLBOX) */}
-          <SectionsList activeCategory={activeCategory} duplicateQuestion={duplicateQuestion} expandedSections={expandedSections} filteredSections={filteredSections} openAddQuestion={openAddQuestion} openEditQuestion={openEditQuestion} removeQuestion={removeQuestion} removeSection={removeSection} searchQuery={searchQuery} selectedType={selectedType} setSearchQuery={setSearchQuery} setSecDialog={setSecDialog} setSelectedType={setSelectedType} toggleSectionCollapse={toggleSectionCollapse} />
+          {!treeLoading && <SectionsList activeCategory={activeCategory} duplicateQuestion={duplicateQuestion} expandedSections={expandedSections} filteredSections={filteredSections} onDropSection={dropSection} onMoveSection={moveSection} reorderEnabled={reorderEnabled} openAddQuestion={openAddQuestion} openEditQuestion={openEditQuestion} removeQuestion={removeQuestion} removeSection={removeSection} searchQuery={searchQuery} selectedType={selectedType} setSearchQuery={setSearchQuery} setSecDialog={setSecDialog} setSelectedType={setSelectedType} toggleSectionCollapse={toggleSectionCollapse} />}
         </div>
       )}
 
       {/* ========================================================================= */}
       {/* MODAL: TERBITKAN KODE KUESIONER (MULTI-CODE ENGINE)                       */}
       {/* ========================================================================= */}
-      <GenerateCodeDialog masterPackages={getActiveMasterPackages()} categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} previewCode={codeActions.previewCode} setGenDialog={setGenDialog} />
+      {!apiMode && <GenerateCodeDialog masterPackages={masterPackages} categories={categories} clients={clients} genDialog={genDialog} handleConfirmGenerateCode={handleConfirmGenerateCode} previewCode={codeActions.previewCode} setGenDialog={setGenDialog} />}
 
       {/* ========================================================================= */}
       {/* MODAL: TAMBAH / EDIT KATEGORI                                             */}
@@ -587,7 +577,7 @@ export default function AssessmentMasterData() {
       {/* ========================================================================= */}
       {/* MODAL: TAMBAH / EDIT DOMAIN & SEKSI KLINIS                                */}
       {/* ========================================================================= */}
-      <SectionDialog saveSection={saveSection} secDialog={secDialog} setSecDialog={setSecDialog} />
+      <SectionDialog fetchDocument={fetchSectionDocument} saveSection={saveSection} secDialog={secDialog} setSecDialog={setSecDialog} />
     </div>
   );
 }

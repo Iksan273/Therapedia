@@ -538,9 +538,10 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | `id` | BIGINT U | — | auto | PK |
-| `type_code` | VARCHAR(10) | — | — | UQ. Kode jenis asesmen = prefix kode kuesioner (mis. `SP2`, `SC`); jangan diubah setelah ada kode terbit |
+| `type_code` | VARCHAR(10) | — | — | UQ. Kode jenis asesmen = prefix kode kuesioner (mis. `SP2`, `SC`); boleh diubah selama belum ada kode terbit (setelah itu ditolak 409 `in_use`) |
 | `name` | VARCHAR(200) | — | — | Child Sensory Profile 2 (Winnie Dunn…) |
 | `domain` | VARCHAR(150) | ✔ | | |
+| `respondent_profile` | ENUM | — | `parent` | Profil langkah bawaan **Data Pengisi** di awal formulir ortu: `parent` (nama*, hubungan*, HP, email), `teacher` (nama*, peran*, sekolah*, kelas*, HP, email; School Companion), `none` (tanpa langkah; kategori yang sudah punya section pengisi sendiri, mis. KON/TDL). Nama & tanggal lahir anak tidak ditanya ulang (dari kode client). Definisi field = konstanta kode (`AssessmentRespondent`, FE `domain/assessment.js`), bukan tabel. Ikut dibekukan di `structure_snapshot` sehingga mengubah profil tidak memengaruhi kuesioner yang sudah mulai diisi |
 | `is_active` | BOOLEAN | — | 1 | |
 | `version` | INT U | — | 1 | |
 | `updated_by` | BIGINT U | ✔ | | FK → `users` · SET NULL |
@@ -556,7 +557,7 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | `description` | TEXT | ✔ | | Teks panduan section, pendek atau panjang, multi-baris (mis. "Anakku ...", kunci skala 0–5, pengantar kesepakatan). Menggantikan `lead_text` VARCHAR(150) — migration: rename + lebarkan ke TEXT (13 Okt skeleton belum dipakai produksi) |
 | `document_url` | VARCHAR(500) | ✔ | | Link Google Docs/Drive yang ditampilkan ke ortu lewat iframe (mis. kesepakatan asesmen). Validasi: https + host `docs.google.com` / `drive.google.com` (frontend `toDocumentEmbedUrl`); dokumen harus dibagikan "Siapa saja yang memiliki link". **Saling eksklusif dengan `document_path`** (satu section = satu dokumen: link ATAU file). Persetujuan = soal `multiple_choice` satu opsi, bukan kolom khusus |
 | `document_path` | VARCHAR(255) | ✔ | | **(rencana, ADR 0007)** Path relatif file PDF di **storage privat** (Laravel Storage, disk `local` = `storage/app/private`, non-publik; mis. `assessment-documents/{section_id}/{uuid}.pdf`), bukan URL. Diisi lewat upload admin; file tidak pernah dilayani langsung oleh web server, hanya lewat endpoint ber-otorisasi (staf `assessment_master`, atau ortu dengan kode kuesioner yang valid). Dirender di frontend oleh pdf.js (`PdfViewer`) |
-| `document_name` | VARCHAR(150) | ✔ | | Nama file asli untuk tampilan/unduhan. NULL bila `document_path` NULL |
+| `document_name` | VARCHAR(255) | ✔ | | Nama file asli untuk tampilan/unduhan. NULL bila `document_path` NULL |
 | `document_size` | INT U | ✔ | | Ukuran byte (usulan batas **10 MB**, divalidasi service; hanya `application/pdf`). NULL bila `document_path` NULL |
 | `result_template` | ENUM | ✔ | NULL | Template hasil section: `school_companion`, `toddler_sensory`, `child_sensory` (Sensory Profile 2, Winnie Dunn). NULL = form biasa. Hanya section ber-template yang dibuat jadi tabel psikologi (skor mentah per section, dihitung dari `assessment_answers.score`); satu kuesioner boleh campuran. **Tanpa klasifikasi/norma** (Much Less … Much More Than Others ditentukan asesor di luar sistem). Template terbaca lewat `question_id → section_id`, jadi `assessment_answers` tidak butuh kolom baru |
 | `sort_order` | SMALLINT U | — | 0 | |
@@ -567,7 +568,7 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 |---|---|---|
 | `idx_sections_category` | `category_id, sort_order` | Render form |
 
-> **Constraint**: `CHECK (document_url IS NULL OR document_path IS NULL)` (link atau file, tidak keduanya). Mengganti/menghapus file atau menghapus section/kategori ikut menghapus file di storage privat **sinkron setelah commit** (gagal hanya dilog; lihat §11). Detail (batas ukuran final, nama disk, kebijakan versi dokumen) dibahas saat M5.
+> **Constraint**: `CHECK (document_url IS NULL OR document_path IS NULL)` (link atau file, tidak keduanya). Mengganti/menghapus file atau menghapus section/kategori ikut menghapus file di storage privat **sinkron setelah commit** (gagal hanya dilog; lihat §11). Diputuskan di M5: batas **10 MB**, hanya `application/pdf`, disk privat bawaan (`storage/app/private/assessment-documents`), satu file per section; file section ikut dibekukan: `structure_snapshot` menyimpan `document_path` (internal, tidak dikirim ke klien) saat dibekukan. Mengganti/menghapus file di master TIDAK langsung membuang file lama: ia dipertahankan selama masih ada kode `issued` ber-snapshot yang merujuknya (ortu melihat PDF yang sama sampai kirim) dan dibuang saat kuesioner terakhir yang memakainya dikirim. File tanpa kuesioner beku dibuang segera. Kolom nyata: `document_path` VARCHAR(255), `document_name` VARCHAR(255), `document_size` INT U.
 
 #### `assessment_questions`
 
@@ -605,6 +606,8 @@ Counter kode client per grup huruf. Grup ditentukan dari huruf pertama nama: A�
 | `expires_at` | TIMESTAMP | ✔ | | OPSIONAL (dipilih admin saat generate); NULL = tanpa masa berlaku. Dicek saat kode dibuka (tanpa job harian) |
 | `submitted_at` | TIMESTAMP | ✔ | | |
 | `invoice_required` | BOOLEAN | — | 1 | 0 = kode GRATIS (mis. School Companion): tidak ada invoice assessment & tidak ada form bayar untuk ortu; 1 = invoice assessment otomatis terbit (harga layanan `is_assessment`) |
+| `structure_snapshot` | JSON | ✔ | NULL | **Snapshot struktur kuesioner** (kategori + section + soal: judul, deskripsi, `document_url`, `result_template`, teks soal, tipe, opsi, rentang, `is_required`, urutan). Dibuat SEKALI saat draft pertama disimpan (atau saat submit bila langsung submit), lalu dibekukan. Selama NULL, ortu melihat master terbaru; sesudahnya draft, validasi submit, dan hasil staf memakai snapshot, sehingga edit Master Asesmen tidak mengubah kuesioner yang sudah mulai diisi / selesai. ±<200 KB untuk kategori terbesar; tidak difilter (tanpa indeks) |
+| `snapshot_at` | TIMESTAMP | ✔ | NULL | Waktu snapshot dibuat; NOT NULL + `status='issued'` = "sedang diisi dengan struktur terbeku" (dipakai guard hapus soal/section) |
 | `created_at`, `updated_at` | TIMESTAMP | ✔ | | |
 
 | Indeks | Kolom | Melayani |
@@ -621,6 +624,7 @@ Draft jawaban kuesioner **sebelum submit**. Kuesioner bisa 200+ soal, jadi ortu 
 | Kolom | Tipe | Null | Default | Keterangan |
 |---|---|---|---|---|
 | `access_code_id` | BIGINT U | — | — | **PK**. FK → `assessment_access_codes` · CASCADE |
+| `respondent` | JSON | ✔ | NULL | Nilai Data Pengisi sementara `{name, relation, school, class, phone, email}` (hanya key sesuai profil kategori; ikut simpan otomatis; tidak dihitung ke `answered_count`) |
 | `answers` | JSON | — | — | Peta `{"<question_id>": {"t": "4 - Sering (75%)", "v": ["a","b"]}}`: `t` = answer_text, `v` = answer_values (checkbox_multi). Hanya soal yang sudah dijawab; tidak difilter/diquery (tanpa indeks) |
 | `answered_count` | SMALLINT U | — | 0 | Dihitung server tiap simpan → bar progres & kolom "sedang diisi" di Menunggu Kuesioner |
 | `last_section_id` | BIGINT U | ✔ | | FK → `assessment_sections` · SET NULL. Section terakhir dibuka = titik lanjut |
@@ -634,7 +638,7 @@ Aturan (rinci di §6.5b):
 - **Simpan otomatis**: `PUT /public/assessments/{code}/draft` tiap pindah section dan ±30 detik. Isi: jawaban yang berubah sebagai *patch* (nilai `null` = hapus jawaban), `last_section_id`, `version`. Service `lockForUpdate` baris draft (dibuat pada simpan pertama), menggabungkan patch ke `answers`, membuang id soal yang bukan milik kategori kode itu, menghitung ulang `answered_count`, `version + 1`. Payload ≤ 256 KB. Draft tidak menyimpan skor.
 - **Lanjutkan**: `GET /public/assessments/{code}` mengembalikan form + draft (jawaban, `last_section_id`, `answered_count`, consent). Kode adalah satu-satunya kunci (sama seperti pengisian langsung): pemegang kode bisa melanjutkan dari perangkat mana pun.
 - **Submit** memvalidasi semua soal `is_required` terjawab + `consent_at` terisi, lalu memindahkan draft ke `assessment_responses` / `assessment_answers` dalam satu transaksi dan menghapus draft. Validasi gagal → draft tidak berubah (respons memuat daftar soal wajib yang belum terjawab).
-- **Instrumen diubah saat ada draft**: id soal yang sudah dihapus diabaikan; soal wajib baru wajib dijawab saat submit. Master Asesmen menampilkan peringatan "ada N draft aktif" sebelum menyimpan perubahan (hitung `assessment_drafts` → `assessment_access_codes.category_id`).
+- **Instrumen diubah saat ada draft**: TIDAK berpengaruh, karena struktur dibekukan di `assessment_access_codes.structure_snapshot` saat draft pertama. Draft, validasi submit (soal wajib), dan hasil memakai snapshot; soal wajib baru di master tidak berlaku untuk kode yang sudah dibeku, dan id soal di luar snapshot dibuang. Master Asesmen hanya menampilkan informasi "N kuesioner sedang diisi (tidak terpengaruh perubahan ini)" (hitung kode `issued` ber-`snapshot_at`). Karena draft dapat menunjuk soal yang masih ada di snapshot, hapus soal/section ditolak (409 `in_use`) selama ada kuesioner kategori itu yang sedang diisi (draft). Kuesioner yang sudah dikirim tidak menahan hapus: jawabannya tetap terbaca dari snapshot.
 - **Volume**: paling banyak satu baris per kode `issued`; ±30–40 KB untuk 200 soal; diabaikan.
 
 #### `assessment_responses`
@@ -647,6 +651,7 @@ Aturan (rinci di §6.5b):
 | `client_id` | BIGINT U | — | — | FK → `clients` · CASCADE |
 | `category_id` | BIGINT U | — | — | FK → `assessment_categories` · RESTRICT |
 | `answered_count` | SMALLINT U | — | — | |
+| `respondent_name`, `respondent_relation`, `respondent_school`, `respondent_class`, `respondent_phone`, `respondent_email` | VARCHAR | ✔ | NULL | **Data Pengisi** (150/50/150/50/30/150). Diisi saat submit sesuai profil kategori; NULL untuk profil `none` dan hasil lama. Dibaca untuk header hasil/cetak (mis. nama guru, sekolah, kelas School Companion) |
 | `consent_at` | TIMESTAMP | — | — | Persetujuan penggunaan data anak (wajib dicentang sebelum submit) |
 | `submitted_at` | TIMESTAMP | — | now | |
 | `ip_address` | VARCHAR(45) | ✔ | | |
@@ -662,7 +667,7 @@ Aturan (rinci di §6.5b):
 |---|---|---|---|---|
 | `id` | BIGINT U | — | auto | PK |
 | `response_id` | BIGINT U | — | — | FK → `assessment_responses` · CASCADE |
-| `question_id` | BIGINT U | — | — | FK → `assessment_questions` · RESTRICT |
+| `question_id` | BIGINT U | — | — | Pengenal soal (BUKAN FK sejak 18 Okt 2026): soal master boleh dihapus walau sudah dijawab; teks soal, tipe, opsi, section, dan template tiap hasil dibaca dari `assessment_access_codes.structure_snapshot` (dibekukan saat draft pertama / kirim) |
 | `item_no` | SMALLINT U | — | — | Snapshot |
 | `answer_text` | TEXT | — | — | `4 - Sering (75%)`; tipe `date`/`birth_date` = `yyyy-MM-dd`, `time` = `HH:mm` |
 | `answer_values` | JSON | ✔ | | `checkbox_multi` |
@@ -907,6 +912,8 @@ Sinkron satu arah (sesi → Google Calendar) dipanggil **sinkron setelah commit*
 | Indeks | Kolom | Melayani |
 |---|---|---|
 | `idx_inv_queue` | `branch_id, status, issued_at` | Q9 |
+| `idx_inv_status_type_issued` | `status, invoice_type, issued_at` | Q9: antrean Finance per jenis (Menunggu Pembayaran asesmen), semua cabang |
+| `idx_inv_branch_status_type_issued` | `branch_id, status, invoice_type, issued_at` | Q9: antrean per cabang + jenis |
 | `idx_inv_client` | `client_id, issued_at` | Q8, Q13, Q22, portal ortu |
 | `idx_inv_paid_date` | `status, branch_id, paid_date, amount` | Q11 `v_daily_revenue` (covering) |
 
@@ -1323,7 +1330,7 @@ Sebelum conflict check: tolak (422) bila `session_date` ada di `holidays` (caban
 | **Client** | `client_services`, `client_documents`, `assessment_access_codes` → `assessment_responses` → `assessment_answers` (+ `assessment_drafts`), `schedule_series`, **`client_leaves`** → `client_leave_sessions`, **`schedules`** → `session_reports`, **`invoices`** → `payment_proofs`/`invoice_logs`, `client_packages` (lewat client), `package_conversions`, `credit_ledger` | **Hanya role `master`.** Kode client tidak dipakai ulang (counter tidak turun). File bukti bayar di storage privat dihapus sinkron tepat setelah commit. Client tidak bisa login portal ortu lagi |
 | **Invoice** (hanya `unpaid`) | `payment_proofs` (+ file), `invoice_logs` | Invoice belum lunas belum punya paket, jadi tidak ada paket/ledger/sesi yang terdampak. Saldo lebihan yang dipakai invoice itu (`balance_applied`) dikembalikan ke `clients.leftover_balance`. **Invoice `paid` / `void` tidak boleh dihapus** (service menolak 409): koreksi lewat **Void** (§6.5). Hapus invoice assessment membuka gating kuesioner bila tidak ada invoice assessment lain yang belum lunas |
 | **Sesi (jadwal)** | `session_reports` | Sesi `completed`/ber-ledger harus di-revert dulu (422) agar kredit konsisten; `credit_ledger.schedule_id` jadi NULL (`SET NULL`); ledger paket tetap |
-| **Master ber-FK**: `services`, `master_packages`, `assessment_categories` / `assessment_sections` / `assessment_questions`, `roles` | `assessment_categories` → `assessment_sections` → `assessment_questions` (bila belum dipakai); `roles` → `role_permissions` | **Hanya bila belum pernah dipakai**: FK `RESTRICT` (`client_services`/`schedules.service_code`, `invoices`/`client_packages.master_package_id`, `assessment_access_codes`/`assessment_responses.category_id`, `assessment_answers.question_id`, `users.role_id`) menolak hapus. Service mengecek dulu dan mengembalikan 409 dengan alasan ramah ("sudah dipakai di N client"); FK adalah jaring pengaman. Untuk yang sudah dipakai: nonaktifkan (`is_active = 0`) |
+| **Master ber-FK**: `services`, `master_packages`, `assessment_categories` / `assessment_sections` / `assessment_questions`, `roles` | `assessment_categories` → `assessment_sections` → `assessment_questions` (bila belum dipakai); `roles` → `role_permissions` | **Hanya bila belum pernah dipakai**: FK `RESTRICT` (`client_services`/`schedules.service_code`, `invoices`/`client_packages.master_package_id`, `assessment_access_codes`/`assessment_responses.category_id`, `users.role_id`) menolak hapus. Pengecualian asesmen: `assessment_answers.question_id` bukan FK; soal/section boleh dihapus kecuali ada kuesioner yang sedang diisi. Service mengecek dulu dan mengembalikan 409 dengan alasan ramah ("sudah dipakai di N client"); FK adalah jaring pengaman. Untuk yang sudah dipakai: nonaktifkan (`is_active = 0`) |
 | **Master pilihan string**: `cancel_reasons`, `discharge_reasons`, `holidays` | Tidak ada | Langsung dihapus tanpa cek (transaksi menyimpan string, bukan FK) |
 | **Kode kuesioner** `issued` | invoice assessment pemicu yang **belum lunas** (dihapus service) | Hanya yang belum diisi **dan belum punya draft** (409 `draft_exists`). `submitted` tidak bisa dihapus selain lewat hapus client. Invoice assessment yang sudah `paid` dibiarkan (FK `SET NULL`) |
 | **Cabang** | Semua isi cabang: `clients` (dan seluruh turunannya di atas), `schedule_series`, `client_leaves`, `schedules`, `invoices`, `credit_ledger`, `holidays` cabang itu, `branch_bank_accounts` (CASCADE), lalu akun `users` yang `branch_id`-nya = cabang itu | **Hanya role `master`.** Tidak ada pemblokir. Akun ber-`branch_id` NULL (semua cabang, mis. master) tidak tersentuh. Lihat alur di bawah |

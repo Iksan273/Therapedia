@@ -22,6 +22,9 @@ class AssessmentSection extends Model
         'title',
         'description',
         'document_url',
+        'document_path',
+        'document_name',
+        'document_size',
         'result_template',
         'sort_order',
     ];

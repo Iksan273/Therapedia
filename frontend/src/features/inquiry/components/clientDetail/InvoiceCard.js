@@ -61,6 +61,8 @@ export function InvoiceCard({ latestInvoice, setProofModalOpen }) {
                     >
                       <Eye className="w-3.5 h-3.5" /> Lihat Bukti Transfer
                     </Button>
+                  ) : latestInvoice.proofUploadCount > 0 ? (
+                    <span className="text-xs text-emerald-700 font-semibold" data-testid="invoice-proof-uploaded">Bukti transfer sudah diunggah ortu ({latestInvoice.proofUploadCount}x), menunggu verifikasi Finance</span>
                   ) : (
                     <span className="text-xs text-amber-600 italic">Menunggu upload slip dari ortu</span>
                   )}

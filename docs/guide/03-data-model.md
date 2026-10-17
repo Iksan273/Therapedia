@@ -39,7 +39,7 @@ Dibuat oleh `makeInquiryClient(form)` di `domain/client.js`.
 | `serviceTypes` | string[] | layanan terpilih (multi). **Pakai `getClientServiceIds(client)`** |
 | `serviceType` | string | legacy single = `serviceTypes[0]` |
 | `assessmentCodes` | `{ code, categoryId, name/categoryName, createdAt, issuedAt, expiresAt?, status? }[]` | kode kuesioner `{typeCode kategori}-{6 acak}` (`buildQuestionnaireCode`, `domain/assessment.js`; kode seed lama `ASM-xxxx` tetap valid). `expiresAt` **opsional** (null = tanpa masa berlaku), dicek saat kode dibuka |
-| `assessmentAnswers` | `{ code, categoryId, categoryName, submittedAt?, consentAt?, answers: Answer[] }[]` | satu entry per pengisian. **Hanya sekali isi** per kode (tanpa submit ulang); `consentAt` = waktu persetujuan |
+| `assessmentAnswers` | `{ code, categoryId, categoryName, submittedAt?, consentAt?, respondent?, structure?, answers: Answer[] }[]` | satu entry per pengisian. `respondent` = Data Pengisi `{name, relation, school?, class?, phone?, email?}` (profil kategori `respondentProfile`: `parent` / `teacher` / `none`; hasil lama tanpa kunci ini tampil "—"). `structure` (hanya mode API) = struktur kuesioner beku dari server. **Hanya sekali isi** per kode (tanpa submit ulang); `consentAt` = waktu persetujuan |
 | `Answer` | `{ questionId, itemNo, sectionId, template, domain, question, answer, score }` | `score` diambil dari angka di awal jawaban |
 | `intakeNote` | string \| null | catatan saat intake (input di New Intake / Edit Intake; tampil di Client Detail, portal terapis, dan laporan cetak) |
 | `gdriveClientLink` | string \| null | |

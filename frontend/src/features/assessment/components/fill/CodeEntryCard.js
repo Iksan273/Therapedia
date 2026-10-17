@@ -5,7 +5,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 
-export function CodeEntryCard({ value, error, onChange, onSubmit }) {
+export function CodeEntryCard({ value, error, busy = false, showDemoHint = true, onChange, onSubmit }) {
   return (
     <Card className="rounded-2xl border border-slate-200/90 shadow-sm bg-white overflow-hidden clinical-card">
       <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
@@ -13,7 +13,7 @@ export function CodeEntryCard({ value, error, onChange, onSubmit }) {
           <FileQuestion className="w-5 h-5 text-[#007AFF]" /> Masukkan Kode Akses Asesmen
         </CardTitle>
         <CardDescription className="text-xs text-slate-500">
-          Gunakan kode akses kuesioner yang diberikan klinik (demo: <strong>ASM-2016</strong> atau <strong>ASM-2017</strong>). Kuesioner hanya dapat dikirim satu kali, tetapi Anda boleh berhenti di tengah jalan: jawaban tersimpan otomatis dan dapat dilanjutkan dengan kode yang sama.
+          Gunakan kode akses kuesioner yang diberikan klinik {showDemoHint && <>(demo: <strong>ASM-2016</strong> orang tua, <strong>ASM-2017</strong> guru, <strong>ASM-2018</strong> tanpa data pengisi). </>}Kuesioner hanya dapat dikirim satu kali, tetapi Anda boleh berhenti di tengah jalan: jawaban tersimpan otomatis dan dapat dilanjutkan dengan kode yang sama.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-5 sm:p-6">
@@ -36,8 +36,8 @@ export function CodeEntryCard({ value, error, onChange, onSubmit }) {
             </div>
             {error && <p className="text-xs font-semibold text-rose-600 mt-1" data-testid="assessment-code-error">{error}</p>}
           </div>
-          <Button size="lg" type="submit" className="w-full min-h-12 bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold shadow-md shadow-[#007AFF]/25 cursor-pointer" data-testid="assessment-code-submit-button">
-            Buka Instrumen Kuesioner
+          <Button size="lg" type="submit" disabled={busy} className="w-full min-h-12 bg-[#007AFF] hover:bg-[#0062cc] text-white font-bold shadow-md shadow-[#007AFF]/25 cursor-pointer" data-testid="assessment-code-submit-button">
+            {busy ? "Membuka kuesioner…" : "Buka Instrumen Kuesioner"}
           </Button>
         </form>
       </CardContent>

@@ -2,6 +2,7 @@ import React from "react";
 import { getCategoryIcon } from "@/features/assessment/components/masterData/assessmentConfig";
 import { cn } from "@/shared/lib/utils";
 import { Badge } from "@/shared/ui/badge";
+import { countCategoryQuestions } from "@/domain/assessment";
 
 export function CategorySwitcher({ categories, selectedCatId, setSelectedCatId }) {
   return (
@@ -19,9 +20,7 @@ export function CategorySwitcher({ categories, selectedCatId, setSelectedCatId }
           {categories.map((cat) => {
             const isSelected = cat.id === selectedCatId;
             const CatIcon = getCategoryIcon(cat.categoryName);
-            const qCount = cat.sections && cat.sections.length > 0
-              ? cat.sections.reduce((acc, s) => acc + (s.questions?.length || 0), 0)
-              : (cat.questions?.length || 0);
+            const qCount = countCategoryQuestions(cat);
 
             return (
               <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => setSelectedCatId(cat.id))(e); } }}

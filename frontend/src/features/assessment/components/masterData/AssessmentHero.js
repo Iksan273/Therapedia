@@ -19,17 +19,19 @@ export function AssessmentHero({ openGenModal, setCatDialog }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button size="lg"
-            onClick={() => openGenModal()}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl px-5 gap-2 shadow-xs transition-all cursor-pointer"
-          >
-            <KeyRound className="w-4 h-4 stroke-[2.2]" /> Terbitkan Kode Kuesioner
-          </Button>
+          {openGenModal && (
+            <Button size="lg"
+              onClick={() => openGenModal()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl px-5 gap-2 shadow-xs transition-all cursor-pointer"
+            >
+              <KeyRound className="w-4 h-4 stroke-[2.2]" /> Terbitkan Kode Kuesioner
+            </Button>
+          )}
 
           <Button size="lg"
             variant="outline"
             className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold rounded-2xl px-4 gap-2 shadow-2xs cursor-pointer"
-            onClick={() => setCatDialog({ open: true, editingId: null, name: "", domain: "", typeCode: "" })}
+            onClick={() => setCatDialog({ open: true, editingId: null, name: "", domain: "", typeCode: "", respondentProfile: "parent" })}
             data-testid="new-category-button"
           >
             <Plus className="w-4 h-4 text-slate-500 stroke-[2.2]" /> Tambah Kategori

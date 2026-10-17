@@ -21,6 +21,7 @@ class AssessmentCategory extends Model
         'type_code',
         'name',
         'domain',
+        'respondent_profile',
         'is_active',
     ];
 

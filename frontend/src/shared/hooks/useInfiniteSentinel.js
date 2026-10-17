@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Infinite scroll di dalam wadah yang bisa di-scroll sendiri (mis. satu kolom kanban).
 // Pasang `ref` pada elemen kecil di DASAR daftar (sentinel) dan beri atribut `data-infinite-root` pada wadah scroll-nya.
@@ -7,13 +7,14 @@ import { useEffect, useRef } from "react";
 // (daftar masih pendek), halaman berikutnya langsung dimuat lagi sampai wadah penuh atau data habis.
 // Mengembalikan `supported`; bila browser tak punya IntersectionObserver, tampilkan tombol "Muat lebih banyak" sebagai gantinya.
 export function useInfiniteSentinel({ enabled, onVisible, watch }) {
-  const ref = useRef(null);
+  // `ref` adalah callback ref + state: sentinel yang baru terpasang belakangan (mis. di dalam popover/portal yang mounting
+  // setelah render pertama) tetap diamati; dengan ref objek biasa efek lewat sebelum elemen ada dan tidak pernah dijalankan ulang.
+  const [el, setEl] = useState(null);
   const callback = useRef(onVisible);
   callback.current = onVisible;
   const supported = typeof IntersectionObserver !== "undefined";
 
   useEffect(() => {
-    const el = ref.current;
     if (!enabled || !el || !supported) return undefined;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -23,7 +24,7 @@ export function useInfiniteSentinel({ enabled, onVisible, watch }) {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [enabled, supported, watch]);
+  }, [enabled, supported, watch, el]);
 
-  return { ref, supported };
+  return { ref: setEl, supported };
 }

@@ -48,6 +48,7 @@ export function buildSections(category) {
       title: sec.title || `Bagian ${sIdx + 1}`,
       description: sectionDescription(sec),
       documentUrl: sec.documentUrl || "",
+      documentIsPdf: Boolean(sec.documentIsPdf),
       template: normalizeTemplate(sec.template),
       questions: (sec.questions || []).map((q, idx) => mapQuestion(q, idx, sec)),
     }));

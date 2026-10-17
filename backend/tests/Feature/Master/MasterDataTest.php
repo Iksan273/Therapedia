@@ -117,7 +117,6 @@ class MasterDataTest extends TestCase
         $this->actAs($this->master)->deleteJson("/api/v1/master/services/{$code}")->assertStatus(409)->assertJsonPath('code', 'in_use');
     }
 
-
     // ---- Alasan Cancel/Off dan Discharge
 
     public function test_cancel_reasons_are_one_list_split_by_therapist_off_flag(): void
